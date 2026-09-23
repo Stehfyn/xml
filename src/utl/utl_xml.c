@@ -26,6 +26,12 @@
 ** 3.2 Types
 **===============================================================================================*/
 
+typedef struct XmlCodePointRange_s
+{
+    uint32_t first;
+    uint32_t last;
+} XmlCodePointRange_t;
+
 /*=================================================================================================
 ** 3.3 External global variables
 **===============================================================================================*/
@@ -34,22 +40,25 @@
 ** 3.4 Static global variables
 **===============================================================================================*/
 
-static const uint32_t c_xmlNameStartRanges[][2] = {{0x3A, 0x3A},
-                                                   {0x41, 0x5A},
-                                                   {0x5F, 0x5F},
-                                                   {0x61, 0x7A},
-                                                   {0xC0, 0xD6},
-                                                   {0xD8, 0xF6},
-                                                   {0xF8, 0x2FF},
-                                                   {0x370, 0x37D},
-                                                   {0x37F, 0x1FFF},
-                                                   {0x200C, 0x200D},
-                                                   {0x2070, 0x218F},
-                                                   {0x2C00, 0x2FEF},
-                                                   {0x3001, 0xD7FF},
-                                                   {0xF900, 0xFDCF},
-                                                   {0xFDF0, 0xFFFD},
-                                                   {0x10000, 0xEFFFF}};
+static const XmlCodePointRange_t c_xmlNameStartRanges[] =
+{
+    {0x3A, 0x3A},
+    {0x41, 0x5A},
+    {0x5F, 0x5F},
+    {0x61, 0x7A},
+    {0xC0, 0xD6},
+    {0xD8, 0xF6},
+    {0xF8, 0x2FF},
+    {0x370, 0x37D},
+    {0x37F, 0x1FFF},
+    {0x200C, 0x200D},
+    {0x2070, 0x218F},
+    {0x2C00, 0x2FEF},
+    {0x3001, 0xD7FF},
+    {0xF900, 0xFDCF},
+    {0xFDF0, 0xFFFD},
+    {0x10000, 0xEFFFF},
+};
 
 /*=================================================================================================
 ** 3.5 Static function prototypes
@@ -101,9 +110,9 @@ bool_t Utl_Xml_IsNameStartChar(uint32_t codePoint)
 
     for (range_index = 0; range_index < COUNT_OF(c_xmlNameStartRanges); ++range_index)
     {
-        if (codePoint <= c_xmlNameStartRanges[range_index][1])
+        if (codePoint <= c_xmlNameStartRanges[range_index].last)
         {
-            return codePoint >= c_xmlNameStartRanges[range_index][0];
+            return codePoint >= c_xmlNameStartRanges[range_index].first;
         }
     }
 
