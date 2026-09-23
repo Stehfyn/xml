@@ -25,7 +25,7 @@
 #define UTL_XML_NODE_MAX_NAME_BYTES  (1024u)    ///< Maximum UTF-8 bytes in a node or attribute name.
 #define UTL_XML_NODE_MAX_VALUE_BYTES (1048576u) ///< Maximum UTF-8 bytes in a node or attribute value.
 #define UTL_XML_NODE_MAX_ATTRIBUTES  (256u)     ///< Maximum attributes on one element.
-#define UTL_XML_NODE_MAX_NODES       (65536u)   ///< Maximum nodes in one connected tree.
+#define UTL_XML_NODE_MAX_DEPTH       (65536u)   ///< Maximum ancestor links checked when appending a child.
 
 /*=================================================================================================
 ** 3.2 Types
@@ -45,7 +45,7 @@ typedef enum Utl_Xml_NodeType_e
 
 /*************************************************************************************************/
 /**
- * \brief Caller-owned attribute linked to a caller-owned element.
+ * \brief Caller-owned XML attribute for an element's forward list.
  */
 typedef struct Utl_Xml_Attribute_s
 {
@@ -56,22 +56,20 @@ typedef struct Utl_Xml_Attribute_s
 
 /*************************************************************************************************/
 /**
- * \brief Caller-owned XML node with borrowed strings and caller-owned links.
+ * \brief Caller-owned XML node with borrowed strings and forward links for serialization.
  */
 typedef struct Utl_Xml_Node_s
 {
-    Utl_Xml_NodeType_t     type;            ///< Element, text, comment, or processing instruction.
-    const char_t*          name;            ///< Borrowed element name or PI target; NULL otherwise.
-    const char_t*          value;           ///< Borrowed text, comment, or PI data; NULL for elements.
-    struct Utl_Xml_Node_s* parent;          ///< Parent element, or NULL when detached.
-    struct Utl_Xml_Node_s* previousSibling; ///< Previous child of parent, or NULL.
-    struct Utl_Xml_Node_s* nextSibling;     ///< Next child of parent, or NULL.
-    struct Utl_Xml_Node_s* firstChild;      ///< First ordered child of an element, or NULL.
-    struct Utl_Xml_Node_s* lastChild;       ///< Last ordered child of an element, or NULL.
-    Utl_Xml_Attribute_t*   firstAttribute;  ///< First attribute of an element, or NULL.
-    Utl_Xml_Attribute_t*   lastAttribute;   ///< Last attribute of an element, or NULL.
-    uint32_t               attributeCount;  ///< Number of linked attributes.
-    uint32_t               subtreeCount;    ///< Number of nodes in this subtree, including this node.
+    Utl_Xml_NodeType_t     type;           ///< Element, text, comment, or processing instruction.
+    const char_t*          name;           ///< Borrowed element name or PI target; NULL otherwise.
+    const char_t*          value;          ///< Borrowed text, comment, or PI data; NULL for elements.
+    struct Utl_Xml_Node_s* parent;         ///< Parent set when appended, or NULL.
+    struct Utl_Xml_Node_s* firstChild;     ///< First child of an element, or NULL.
+    struct Utl_Xml_Node_s* lastChild;      ///< Last child of an element, or NULL.
+    struct Utl_Xml_Node_s* nextSibling;    ///< Next node at the same level, or NULL.
+    Utl_Xml_Attribute_t*   firstAttribute; ///< First attribute of an element, or NULL.
+    Utl_Xml_Attribute_t*   lastAttribute;  ///< Last attribute of an element, or NULL.
+    uint32_t               attributeCount; ///< Number of linked attributes.
 } Utl_Xml_Node_t;
 
 /*=================================================================================================
@@ -88,7 +86,7 @@ typedef struct Utl_Xml_Node_s
 
 /*************************************************************************************************/
 /**
- * \brief Initializes caller-provided storage as a detached element.
+ * \brief Initializes caller-provided storage as an unlinked element.
  *
  * \par Requirements:
  *  - 001 This function shall accept a complete UTF-8 XML 1.0 Name within UTL_XML_NODE_MAX_NAME_BYTES.
@@ -104,7 +102,7 @@ void Utl_Xml_Node_InitializeElement(Utl_Xml_Node_t* node, const char_t* name);
 
 /*************************************************************************************************/
 /**
- * \brief Initializes caller-provided storage as a detached text node.
+ * \brief Initializes caller-provided storage as an unlinked text node.
  *
  * \par Requirements:
  *  - 001 This function shall accept only UTF-8 XML 1.0 characters within UTL_XML_NODE_MAX_VALUE_BYTES.
@@ -120,7 +118,7 @@ void Utl_Xml_Node_InitializeText(Utl_Xml_Node_t* node, const char_t* text);
 
 /*************************************************************************************************/
 /**
- * \brief Initializes caller-provided storage as a detached comment node.
+ * \brief Initializes caller-provided storage as an unlinked comment node.
  *
  * \par Requirements:
  *  - 001 This function shall reject invalid XML characters, "--", a final '-', and oversized text.
@@ -136,7 +134,7 @@ void Utl_Xml_Node_InitializeComment(Utl_Xml_Node_t* node, const char_t* text);
 
 /*************************************************************************************************/
 /**
- * \brief Initializes caller-provided storage as a detached processing instruction.
+ * \brief Initializes caller-provided storage as an unlinked processing instruction.
  *
  * \par Requirements:
  *  - 001 This function shall reject an invalid or "xml" target in any case spelling.
@@ -154,128 +152,36 @@ void Utl_Xml_Node_InitializeProcessingInstruction(Utl_Xml_Node_t* node, const ch
 
 /*************************************************************************************************/
 /**
- * \brief Changes an element name or processing-instruction target.
+ * \brief Appends a caller-owned child while constructing a serializable element.
  *
  * \par Requirements:
- *  - 001 This function shall enforce XML Name, PI target, and name length restrictions.
- *  - 002 This function shall preserve the old name on invalid input.
- *  - 003 This function shall borrow name; the caller shall keep it valid while referenced.
- *  - 004 This function shall fail an assertion for NULL arguments or another node kind.
- *
- * \param[in,out] node   Element or processing instruction to change
- * \param[in]     name   Non-NULL null-terminated UTF-8 name
- *
- * \retval TRUE    if the name was set.
- * \retval FALSE   if name is invalid
- */
-bool_t Utl_Xml_Node_SetName(Utl_Xml_Node_t* node, const char_t* name);
-
-/*************************************************************************************************/
-/**
- * \brief Changes text, comment, or processing-instruction data.
- *
- * \par Requirements:
- *  - 001 This function shall enforce XML character, delimiter, and value length restrictions.
- *  - 002 This function shall preserve the old value on invalid input.
- *  - 003 This function shall borrow value; the caller shall keep it valid while referenced.
- *  - 004 This function shall fail an assertion for NULL arguments or an element node.
- *
- * \param[in,out] node    Node to change
- * \param[in]     value   Non-NULL null-terminated UTF-8 value
- *
- * \retval TRUE    if the value was set.
- * \retval FALSE   if value is invalid
- */
-bool_t Utl_Xml_Node_SetValue(Utl_Xml_Node_t* node, const char_t* value);
-
-/*************************************************************************************************/
-/**
- * \brief Appends a node to an element's ordered children.
- *
- * \par Requirements:
- *  - 001 This function shall link a detached child to the end of the element's child list.
- *  - 002 This function shall reject cycles and trees larger than UTL_XML_NODE_MAX_NODES without changing links.
- *  - 003 This function shall fail an assertion for NULL arguments, an attached child, or a non-element parent.
+ *  - 001 This function shall preserve the order in which children are appended.
+ *  - 002 This function shall fail an assertion for NULL arguments, a non-element parent, an attached child, or a cycle.
+ *  - 003 This function shall check at most UTL_XML_NODE_MAX_DEPTH ancestor links.
  *
  * \param[in,out] parent   Element receiving the child
- * \param[in,out] child    Detached node to link
+ * \param[in,out] child    Unlinked caller-owned child
  *
- * \retval TRUE    if the child was appended.
- * \retval FALSE   if linking would create a cycle or exceed the tree limit
+ * \retval None
  */
-bool_t Utl_Xml_Node_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child);
+void Utl_Xml_Node_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child);
 
 /*************************************************************************************************/
 /**
- * \brief Inserts a node before an element child, or appends when beforeSibling is NULL.
+ * \brief Appends a caller-owned attribute while constructing a serializable element.
  *
  * \par Requirements:
- *  - 001 This function shall link a detached child before an existing child.
- *  - 002 This function shall reject cycles, oversized trees, and invalid positions without changing links.
- *  - 003 This function shall fail an assertion for NULL parent or child, an attached child, or a non-element parent.
- *
- * \param[in,out] parent          Element receiving the child
- * \param[in,out] child           Detached node to link
- * \param[in]     beforeSibling   Existing child of parent, or NULL to append
- *
- * \retval TRUE    if the child was inserted.
- * \retval FALSE   if the link or position is invalid
- */
-bool_t Utl_Xml_Node_InsertBefore(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child, Utl_Xml_Node_t* beforeSibling);
-
-/*************************************************************************************************/
-/**
- * \brief Links a caller-provided attribute to an element.
- *
- * \par Requirements:
- *  - 001 This function shall validate name and value and reject duplicate names.
- *  - 002 This function shall enforce string and UTL_XML_NODE_MAX_ATTRIBUTES limits.
- *  - 003 This function shall leave node and attribute unchanged on failure.
- *  - 004 This function shall borrow name and value; the caller shall keep them valid while linked.
- *  - 005 This function shall fail an assertion for NULL arguments or a non-element node.
+ *  - 001 This function shall require a valid XML name and XML character value.
+ *  - 002 This function shall fail an assertion for NULL arguments, a non-element node, a duplicate name, or an attribute already linked to the element.
+ *  - 003 This function shall enforce UTL_XML_NODE_MAX_ATTRIBUTES and borrow both strings.
  *
  * \param[in,out] node        Element receiving the attribute
  * \param[out]    attribute   Unlinked caller-owned attribute storage
  * \param[in]     name        Non-NULL null-terminated UTF-8 attribute name
  * \param[in]     value       Non-NULL null-terminated UTF-8 expanded value
  *
- * \retval TRUE    if the attribute was linked.
- * \retval FALSE   if invalid or duplicate
+ * \retval None
  */
-bool_t Utl_Xml_Node_AddAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribute, const char_t* name, const char_t* value);
-
-/*************************************************************************************************/
-/**
- * \brief Changes the value of an existing attribute.
- *
- * \par Requirements:
- *  - 001 This function shall validate name and value and preserve insertion order.
- *  - 002 This function shall leave the attribute unchanged if absent or invalid.
- *  - 003 This function shall borrow value; the caller shall keep it valid while linked.
- *  - 004 This function shall fail an assertion for NULL arguments or a non-element node.
- *
- * \param[in,out] node    Element containing the attribute
- * \param[in]     name    Non-NULL null-terminated UTF-8 attribute name
- * \param[in]     value   Non-NULL null-terminated UTF-8 expanded value
- *
- * \retval TRUE    if the value was set.
- * \retval FALSE   if absent or invalid
- */
-bool_t Utl_Xml_Node_SetAttribute(Utl_Xml_Node_t* node, const char_t* name, const char_t* value);
-
-/*************************************************************************************************/
-/**
- * \brief Finds an attribute value by case-sensitive name.
- *
- * \par Requirements:
- *  - 001 This function shall return NULL when the attribute is absent.
- *  - 002 This function shall fail an assertion for NULL arguments or a non-element node.
- *
- * \param[in] node   Element to inspect
- * \param[in] name   Non-NULL null-terminated attribute name
- *
- * \return Borrowed UTF-8 value or NULL
- */
-const char_t* Utl_Xml_Node_GetAttributeValue(const Utl_Xml_Node_t* node, const char_t* name);
+void Utl_Xml_Node_AddAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribute, const char_t* name, const char_t* value);
 
 #endif /* UTL_XML_NODE_H */

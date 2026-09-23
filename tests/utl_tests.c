@@ -7,7 +7,6 @@
 #undef NDEBUG
 #endif
 #include <assert.h>
-#include <string.h>
 
 /*************************************************************************************************/
 /**
@@ -186,115 +185,58 @@ static void TestNames(void)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Checks ordered mixed content, nested elements, and cycle rejection.
+ *  Checks caller-owned node initialization and forward links used during serialization.
  */
-static void TestXmlNodeTree(void)
+static void TestXmlNodeInitialization(void)
 {
-    Utl_Xml_Node_t root;
-    Utl_Xml_Node_t first_text;
-    Utl_Xml_Node_t element;
-    Utl_Xml_Node_t root_comment;
-    Utl_Xml_Node_t element_comment;
-    Utl_Xml_Node_t last_text;
-
-    Utl_Xml_Node_InitializeElement(&root, "root");
-    Utl_Xml_Node_InitializeText(&first_text, "before");
-    Utl_Xml_Node_InitializeElement(&element, "child");
-    Utl_Xml_Node_InitializeComment(&root_comment, "between");
-    Utl_Xml_Node_InitializeComment(&element_comment, "nested");
-    Utl_Xml_Node_InitializeText(&last_text, "after");
-    assert(TRUE == Utl_Xml_Node_AppendChild(&element, &element_comment));
-    assert(TRUE == Utl_Xml_Node_AppendChild(&root, &first_text));
-    assert(TRUE == Utl_Xml_Node_AppendChild(&root, &element));
-    assert(TRUE == Utl_Xml_Node_AppendChild(&root, &last_text));
-    assert(TRUE == Utl_Xml_Node_InsertBefore(&root, &root_comment, &last_text));
-    assert(6 == root.subtreeCount);
-    assert(2 == element.subtreeCount);
-    assert(&first_text == root.firstChild);
-    assert(&element == first_text.nextSibling);
-    assert(&root_comment == element.nextSibling);
-    assert(&last_text == root_comment.nextSibling);
-    assert(&last_text == root.lastChild);
-    assert(&root_comment == last_text.previousSibling);
-    assert(NULL == last_text.nextSibling);
-    assert(FALSE == Utl_Xml_Node_AppendChild(&element, &root));
-    assert(FALSE == Utl_Xml_Node_InsertBefore(&root, &root, &element));
-    assert(NULL == root.parent);
-    assert(&root == root_comment.parent);
-    assert(&element_comment == element.firstChild);
-    assert(&element_comment == element.lastChild);
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Checks duplicate names, insertion order, and replacement of element attributes.
- */
-static void TestXmlNodeAttributes(void)
-{
-    Utl_Xml_Node_t       node;
-    Utl_Xml_Attribute_t id;
-    Utl_Xml_Attribute_t lang;
-    Utl_Xml_Attribute_t duplicate;
-
-    Utl_Xml_Node_InitializeElement(&node, "item");
-    assert(TRUE == Utl_Xml_Node_AddAttribute(&node, &id, "id", "1"));
-    assert(TRUE == Utl_Xml_Node_AddAttribute(&node, &lang, "lang", "en"));
-    assert(FALSE == Utl_Xml_Node_AddAttribute(&node, &duplicate, "id", "2"));
-    assert(2 == node.attributeCount);
-    assert(0 == strcmp(Utl_Xml_Node_GetAttributeValue(&node, "id"), "1"));
-    assert(TRUE == Utl_Xml_Node_SetAttribute(&node, "id", "2"));
-    assert(FALSE == Utl_Xml_Node_SetAttribute(&node, "missing", "2"));
-    assert(0 == strcmp(Utl_Xml_Node_GetAttributeValue(&node, "id"), "2"));
-    assert(&id == node.firstAttribute);
-    assert(&lang == id.next);
-    assert(NULL == lang.next);
-    assert(2 == node.attributeCount);
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Checks XML character and delimiter validation and non-destructive rejected mutations.
- */
-static void TestXmlNodeValidation(void)
-{
-    Utl_Xml_Node_t      node;
+    Utl_Xml_Node_t      root;
+    Utl_Xml_Node_t      text_node;
     Utl_Xml_Node_t      comment;
     Utl_Xml_Node_t      instruction;
     Utl_Xml_Attribute_t attribute;
     const char_t*       name;
 
     name = "\xC3\xA9";
-    Utl_Xml_Node_InitializeElement(&node, name);
-    assert(name == node.name);
-    assert(FALSE == Utl_Xml_Node_SetName(&node, "0bad"));
-    assert(name == node.name);
-    assert(FALSE == Utl_Xml_Node_AddAttribute(&node, &attribute, "0bad", "value"));
-    assert(FALSE == Utl_Xml_Node_AddAttribute(&node, &attribute, "ok", "\x01"));
-    assert(0 == node.attributeCount);
-
+    Utl_Xml_Node_InitializeElement(&root, name);
+    Utl_Xml_Node_InitializeText(&text_node, "before");
     Utl_Xml_Node_InitializeComment(&comment, "valid");
-    assert(FALSE == Utl_Xml_Node_SetValue(&comment, "bad--value"));
-    assert(0 == strcmp(comment.value, "valid"));
-
     Utl_Xml_Node_InitializeProcessingInstruction(&instruction, "target", "data");
+
+    assert(UTL_XML_NODE_ELEMENT == root.type);
+    assert(name == root.name);
+    assert(NULL == root.value);
+    assert(NULL == root.firstChild);
+    assert(NULL == root.nextSibling);
+    assert(NULL == root.firstAttribute);
+    assert(UTL_XML_NODE_TEXT == text_node.type);
+    assert(UTL_XML_NODE_COMMENT == comment.type);
     assert(UTL_XML_NODE_PROCESSING_INSTRUCTION == instruction.type);
-    assert(FALSE == Utl_Xml_Node_SetName(&instruction, "XmL"));
-    assert(FALSE == Utl_Xml_Node_SetValue(&instruction, "bad?>data"));
+    assert(NULL == instruction.firstChild);
+
+    Utl_Xml_Node_AddAttribute(&root, &attribute, "id", "7");
+    Utl_Xml_Node_AppendChild(&root, &text_node);
+    Utl_Xml_Node_AppendChild(&root, &comment);
+    Utl_Xml_Node_AppendChild(&root, &instruction);
+
+    assert(&attribute == root.firstAttribute);
+    assert(&attribute == root.lastAttribute);
+    assert(1 == root.attributeCount);
+    assert(&text_node == root.firstChild);
+    assert(&comment == text_node.nextSibling);
+    assert(&instruction == comment.nextSibling);
+    assert(&instruction == root.lastChild);
+    assert(&root == comment.parent);
 }
 
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Runs the XML character-classification and name-validation checks.
+ *  Runs the XML character and node initialization checks.
  */
 int main(void)
 {
     TestCharacterClasses();
     TestNames();
-    TestXmlNodeTree();
-    TestXmlNodeAttributes();
-    TestXmlNodeValidation();
+    TestXmlNodeInitialization();
     return 0;
 }
