@@ -45,7 +45,7 @@ typedef struct XmlCodePointRange_s
  * \brief Allowed first-character ranges from XML 1.0 (Fifth Edition), production [4] NameStartChar.
  * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-NameStartChar
  */
-static const XmlCodePointRange_t c_xmlNameStartRanges[] =
+static const XmlCodePointRange_t c_xmlNameStartCharRanges[] =
 {
     {':',     ':'},
     {'A',     'Z'},
@@ -63,6 +63,21 @@ static const XmlCodePointRange_t c_xmlNameStartRanges[] =
     {0xF900,  0xFDCF},
     {0xFDF0,  0xFFFD},
     {0x10000, 0xEFFFF},
+};
+
+/*************************************************************************************************/
+/**
+ * \brief Additional ranges from XML 1.0 (Fifth Edition), production [4a] NameChar.
+ * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-NameChar
+ */
+static const XmlCodePointRange_t c_xmlNameCharRanges[] =
+{
+    {'-',    '-'},
+    {'.',    '.'},
+    {'0',    '9'},
+    {0xB7,   0xB7},
+    {0x300,  0x36F},
+    {0x203F, 0x2040},
 };
 
 /*=================================================================================================
@@ -118,11 +133,11 @@ bool_t Utl_Xml_IsNameStartChar(uint32_t codePoint)
 {
     uint32_t range_index;
 
-    for (range_index = 0; range_index < COUNT_OF(c_xmlNameStartRanges); ++range_index)
+    for (range_index = 0; range_index < COUNT_OF(c_xmlNameStartCharRanges); ++range_index)
     {
-        if (codePoint <= c_xmlNameStartRanges[range_index].last)
+        if (codePoint <= c_xmlNameStartCharRanges[range_index].last)
         {
-            return codePoint >= c_xmlNameStartRanges[range_index].first;
+            return codePoint >= c_xmlNameStartCharRanges[range_index].first;
         }
     }
 
@@ -136,15 +151,33 @@ bool_t Utl_Xml_IsNameStartChar(uint32_t codePoint)
  */
 bool_t Utl_Xml_IsNameChar(uint32_t codePoint)
 {
-    bool_t is_name_start_char       = Utl_Xml_IsNameStartChar(codePoint);
-    bool_t is_hyphen                = ('-' == codePoint);
-    bool_t is_period                = ('.' == codePoint);
-    bool_t is_digit                 = (('0' <= codePoint) && (codePoint <= '9'));
-    bool_t is_middle_dot            = (0xB7 == codePoint);
-    bool_t is_combining_mark        = ((0x300 <= codePoint) && (codePoint <= 0x36F));
-    bool_t is_connector_punctuation = ((0x203F <= codePoint) && (codePoint <= 0x2040));
+    uint32_t range_index;
+    bool_t   is_name_char;
+    bool_t   is_after_first;
+    bool_t   is_before_last;
 
-    return is_name_start_char || is_hyphen || is_period || is_digit || is_middle_dot || is_combining_mark || is_connector_punctuation;
+    is_name_char = FALSE;
+
+    for (range_index = 0; range_index <= COUNT_OF(c_xmlNameCharRanges); ++range_index)
+    {
+        if (0 == range_index)
+        {
+            is_name_char = Utl_Xml_IsNameStartChar(codePoint);
+        }
+        else
+        {
+            is_after_first = (c_xmlNameCharRanges[range_index - 1].first <= codePoint);
+            is_before_last = (codePoint <= c_xmlNameCharRanges[range_index - 1].last);
+            is_name_char = is_after_first && is_before_last;
+        }
+
+        if (is_name_char)
+        {
+            break;
+        }
+    }
+
+    return is_name_char;
 }
 
 /*************************************************************************************************/
