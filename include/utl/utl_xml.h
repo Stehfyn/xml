@@ -108,23 +108,31 @@
 
 /*************************************************************************************************/
 /**
- * \brief Checks whether a decoded code point is a permitted XML character.
+ * \brief Checks whether a decoded code point is a permitted XML 1.0 character.
+ *
+ * \par Details:
+ *  XML 1.0 (Fifth Edition), production [2] Char:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-Char
  *
  * \par Requirements:
  *  - 001 This function shall return TRUE for XML 1.0 section 2.2, production [2] Char.
- *  - 002 This function shall accept discouraged code points that match Char.
+ *  - 002 This function shall accept Char values even when the section 2.2 note discourages their use.
  *  - 003 This function shall return FALSE otherwise, including for surrogates and values above U+10FFFF.
  *
  * \param[in] codePoint         Decoded Unicode code point to classify
  *
- * \retval TRUE  The code point matches Char.
- * \retval FALSE The code point does not match Char.
+ * \retval TRUE  The code point is a permitted XML 1.0 character.
+ * \retval FALSE Otherwise
  */
 bool_t Utl_Xml_IsChar(uint32_t codePoint);
 
 /*************************************************************************************************/
 /**
- * \brief Checks whether a decoded code point is XML whitespace.
+ * \brief Checks whether a decoded code point is XML 1.0 whitespace.
+ *
+ * \par Details:
+ *  XML 1.0 (Fifth Edition), production [3] S:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-S
  *
  * \par Requirements:
  *  - 001 This function shall return TRUE for space, tab, CR, and LF (XML 1.0 section 2.3, production [3] S).
@@ -133,7 +141,7 @@ bool_t Utl_Xml_IsChar(uint32_t codePoint);
  * \param[in] codePoint         Decoded Unicode code point to classify
  *
  * \retval TRUE  The code point is a character permitted in S.
- * \retval FALSE The code point is not XML whitespace.
+ * \retval FALSE Otherwise
  */
 bool_t Utl_Xml_IsWhitespace(uint32_t codePoint);
 
