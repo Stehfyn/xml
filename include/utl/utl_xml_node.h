@@ -193,15 +193,15 @@ bool_t Utl_Xml_Node_SetValue(Utl_Xml_Node_t* node, const char_t* value);
  * \brief Appends a node to an element's ordered children.
  *
  * \par Requirements:
- *  - 001 This function shall move an attached child from its old parent.
+ *  - 001 This function shall link a detached child to the end of the element's child list.
  *  - 002 This function shall reject cycles and trees larger than UTL_XML_NODE_MAX_NODES without changing links.
- *  - 003 This function shall fail an assertion for NULL arguments or a non-element parent.
+ *  - 003 This function shall fail an assertion for NULL arguments, an attached child, or a non-element parent.
  *
  * \param[in,out] parent   Element receiving the child
- * \param[in,out] child    Node to move
+ * \param[in,out] child    Detached node to link
  *
  * \retval TRUE    if the child was appended.
- * \retval FALSE   if the move is invalid
+ * \retval FALSE   if linking would create a cycle or exceed the tree limit
  */
 bool_t Utl_Xml_Node_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child);
 
@@ -210,33 +210,18 @@ bool_t Utl_Xml_Node_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child);
  * \brief Inserts a node before an element child, or appends when beforeSibling is NULL.
  *
  * \par Requirements:
- *  - 001 This function shall move an attached child from its old parent.
+ *  - 001 This function shall link a detached child before an existing child.
  *  - 002 This function shall reject cycles, oversized trees, and invalid positions without changing links.
- *  - 003 This function shall fail an assertion for NULL parent or child, or a non-element parent.
+ *  - 003 This function shall fail an assertion for NULL parent or child, an attached child, or a non-element parent.
  *
  * \param[in,out] parent          Element receiving the child
- * \param[in,out] child           Node to move
+ * \param[in,out] child           Detached node to link
  * \param[in]     beforeSibling   Existing child of parent, or NULL to append
  *
  * \retval TRUE    if the child was inserted.
- * \retval FALSE   if the move or position is invalid
+ * \retval FALSE   if the link or position is invalid
  */
 bool_t Utl_Xml_Node_InsertBefore(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child, Utl_Xml_Node_t* beforeSibling);
-
-/*************************************************************************************************/
-/**
- * \brief Detaches a node from its parent without changing its storage.
- *
- * \par Requirements:
- *  - 001 This function shall preserve the node's children and attributes.
- *  - 002 This function shall have no effect on a detached node.
- *  - 003 This function shall fail an assertion if node is NULL.
- *
- * \param[in,out] node   Node to detach
- *
- * \retval None
- */
-void Utl_Xml_Node_Detach(Utl_Xml_Node_t* node);
 
 /*************************************************************************************************/
 /**
@@ -277,22 +262,6 @@ bool_t Utl_Xml_Node_AddAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attr
  * \retval FALSE   if absent or invalid
  */
 bool_t Utl_Xml_Node_SetAttribute(Utl_Xml_Node_t* node, const char_t* name, const char_t* value);
-
-/*************************************************************************************************/
-/**
- * \brief Unlinks an attribute by case-sensitive name.
- *
- * \par Requirements:
- *  - 001 This function shall return the caller-owned attribute when found, or NULL if absent.
- *  - 002 This function shall clear the removed attribute's next link without freeing storage.
- *  - 003 This function shall fail an assertion for NULL arguments or a non-element node.
- *
- * \param[in,out] node   Element to change
- * \param[in]     name   Non-NULL null-terminated attribute name
- *
- * \return Unlinked caller-owned attribute or NULL
- */
-Utl_Xml_Attribute_t* Utl_Xml_Node_RemoveAttribute(Utl_Xml_Node_t* node, const char_t* name);
 
 /*************************************************************************************************/
 /**

@@ -186,54 +186,49 @@ static void TestNames(void)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Checks ordered mixed content, reparenting, detachment, and cycle rejection.
+ *  Checks ordered mixed content, nested elements, and cycle rejection.
  */
 static void TestXmlNodeTree(void)
 {
     Utl_Xml_Node_t root;
     Utl_Xml_Node_t first_text;
     Utl_Xml_Node_t element;
-    Utl_Xml_Node_t comment;
+    Utl_Xml_Node_t root_comment;
+    Utl_Xml_Node_t element_comment;
     Utl_Xml_Node_t last_text;
 
     Utl_Xml_Node_InitializeElement(&root, "root");
     Utl_Xml_Node_InitializeText(&first_text, "before");
     Utl_Xml_Node_InitializeElement(&element, "child");
-    Utl_Xml_Node_InitializeComment(&comment, "between");
+    Utl_Xml_Node_InitializeComment(&root_comment, "between");
+    Utl_Xml_Node_InitializeComment(&element_comment, "nested");
     Utl_Xml_Node_InitializeText(&last_text, "after");
+    assert(TRUE == Utl_Xml_Node_AppendChild(&element, &element_comment));
     assert(TRUE == Utl_Xml_Node_AppendChild(&root, &first_text));
     assert(TRUE == Utl_Xml_Node_AppendChild(&root, &element));
     assert(TRUE == Utl_Xml_Node_AppendChild(&root, &last_text));
-    assert(TRUE == Utl_Xml_Node_InsertBefore(&root, &comment, &last_text));
-    assert(5 == root.subtreeCount);
+    assert(TRUE == Utl_Xml_Node_InsertBefore(&root, &root_comment, &last_text));
+    assert(6 == root.subtreeCount);
+    assert(2 == element.subtreeCount);
     assert(&first_text == root.firstChild);
     assert(&element == first_text.nextSibling);
-    assert(&comment == element.nextSibling);
-    assert(&last_text == comment.nextSibling);
+    assert(&root_comment == element.nextSibling);
+    assert(&last_text == root_comment.nextSibling);
     assert(&last_text == root.lastChild);
-    assert(&comment == last_text.previousSibling);
+    assert(&root_comment == last_text.previousSibling);
     assert(NULL == last_text.nextSibling);
     assert(FALSE == Utl_Xml_Node_AppendChild(&element, &root));
     assert(FALSE == Utl_Xml_Node_InsertBefore(&root, &root, &element));
     assert(NULL == root.parent);
-    assert(&root == comment.parent);
-
-    assert(TRUE == Utl_Xml_Node_AppendChild(&element, &comment));
-    assert(2 == element.subtreeCount);
-    assert(5 == root.subtreeCount);
-    assert(&comment == element.firstChild);
-    assert(&last_text == element.nextSibling);
-    Utl_Xml_Node_Detach(&last_text);
-    assert(NULL == last_text.parent);
-    assert(1 == last_text.subtreeCount);
-    assert(4 == root.subtreeCount);
-    assert(&element == root.lastChild);
+    assert(&root == root_comment.parent);
+    assert(&element_comment == element.firstChild);
+    assert(&element_comment == element.lastChild);
 }
 
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Checks duplicate names, insertion order, replacement, and removal of element attributes.
+ *  Checks duplicate names, insertion order, and replacement of element attributes.
  */
 static void TestXmlNodeAttributes(void)
 {
@@ -254,11 +249,7 @@ static void TestXmlNodeAttributes(void)
     assert(&id == node.firstAttribute);
     assert(&lang == id.next);
     assert(NULL == lang.next);
-    assert(&id == Utl_Xml_Node_RemoveAttribute(&node, "id"));
-    assert(NULL == id.next);
-    assert(NULL == Utl_Xml_Node_RemoveAttribute(&node, "id"));
-    assert(1 == node.attributeCount);
-    assert(NULL == Utl_Xml_Node_GetAttributeValue(&node, "id"));
+    assert(2 == node.attributeCount);
 }
 
 /*************************************************************************************************/

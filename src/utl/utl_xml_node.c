@@ -652,12 +652,11 @@ bool_t Utl_Xml_Node_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Validates the position and cycle before detaching the child.
+ *  Validates the position, cycle, and tree limit before linking the child.
  */
 bool_t Utl_Xml_Node_InsertBefore(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child, Utl_Xml_Node_t* beforeSibling)
 {
     Utl_Xml_Node_t* target_root;
-    Utl_Xml_Node_t* source_root;
     Utl_Xml_Node_t* ancestor;
     uint32_t        ancestor_index;
     bool_t          is_valid_position;
@@ -667,28 +666,23 @@ bool_t Utl_Xml_Node_InsertBefore(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child, 
     LOGASSERT(NULL != parent);
     LOGASSERT(NULL != child);
     LOGASSERT(UTL_XML_NODE_ELEMENT == parent->type);
+    LOGASSERT(NULL == child->parent);
+    LOGASSERT(NULL == child->previousSibling);
+    LOGASSERT(NULL == child->nextSibling);
 
     is_valid_position = (NULL == beforeSibling) || (beforeSibling->parent == parent);
     is_cycle_free     = (FALSE == IsAncestor(child, parent));
 
     if ((TRUE == is_valid_position) && (TRUE == is_cycle_free))
     {
-        if (beforeSibling == child)
-        {
-            return TRUE;
-        }
-
         target_root = FindRoot(parent);
-        source_root = FindRoot(child);
         LOGASSERT((0 < target_root->subtreeCount) && (target_root->subtreeCount <= UTL_XML_NODE_MAX_NODES));
         LOGASSERT((0 < child->subtreeCount) && (child->subtreeCount <= UTL_XML_NODE_MAX_NODES));
 
-        has_capacity = (target_root == source_root) ||
-                      (child->subtreeCount <= UTL_XML_NODE_MAX_NODES - target_root->subtreeCount);
+        has_capacity = (child->subtreeCount <= UTL_XML_NODE_MAX_NODES - target_root->subtreeCount);
 
         if (TRUE == has_capacity)
         {
-            Utl_Xml_Node_Detach(child);
             child->parent = parent;
             ancestor = parent;
 
@@ -737,57 +731,6 @@ bool_t Utl_Xml_Node_InsertBefore(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child, 
     }
 
     return FALSE;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  None
- */
-void Utl_Xml_Node_Detach(Utl_Xml_Node_t* node)
-{
-    Utl_Xml_Node_t* parent;
-    Utl_Xml_Node_t* ancestor;
-    uint32_t        ancestor_index;
-
-    LOGASSERT(NULL != node);
-    parent = node->parent;
-
-    if (NULL != parent)
-    {
-        ancestor = parent;
-
-        for (ancestor_index = 0; (ancestor_index < UTL_XML_NODE_MAX_NODES) && (NULL != ancestor); ++ancestor_index)
-        {
-            LOGASSERT(node->subtreeCount <= ancestor->subtreeCount);
-            ancestor->subtreeCount -= node->subtreeCount;
-            ancestor = ancestor->parent;
-        }
-
-        LOGASSERT(NULL == ancestor);
-
-        if (NULL != node->previousSibling)
-        {
-            node->previousSibling->nextSibling = node->nextSibling;
-        }
-        else
-        {
-            parent->firstChild = node->nextSibling;
-        }
-
-        if (NULL != node->nextSibling)
-        {
-            node->nextSibling->previousSibling = node->previousSibling;
-        }
-        else
-        {
-            parent->lastChild = node->previousSibling;
-        }
-
-        node->parent          = NULL;
-        node->previousSibling = NULL;
-        node->nextSibling     = NULL;
-    }
 }
 
 /*************************************************************************************************/
@@ -889,58 +832,6 @@ bool_t Utl_Xml_Node_SetAttribute(Utl_Xml_Node_t* node, const char_t* name, const
     }
 
     return (NULL != attribute);
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  None
- */
-Utl_Xml_Attribute_t* Utl_Xml_Node_RemoveAttribute(Utl_Xml_Node_t* node, const char_t* name)
-{
-    Utl_Xml_Attribute_t* current;
-    Utl_Xml_Attribute_t* previous;
-    uint32_t             attribute_index;
-
-    LOGASSERT(NULL != node);
-    LOGASSERT(NULL != name);
-    LOGASSERT(UTL_XML_NODE_ELEMENT == node->type);
-
-    current  = node->firstAttribute;
-    previous = NULL;
-    LOGASSERT(node->attributeCount <= UTL_XML_NODE_MAX_ATTRIBUTES);
-
-    for (attribute_index = 0; attribute_index < node->attributeCount; ++attribute_index)
-    {
-        LOGASSERT(NULL != current);
-
-        if (0 == strncmp(current->name, name, UTL_XML_NODE_MAX_NAME_BYTES + 1u))
-        {
-            if (NULL != previous)
-            {
-                previous->next = current->next;
-            }
-            else
-            {
-                node->firstAttribute = current->next;
-            }
-
-            if (node->lastAttribute == current)
-            {
-                node->lastAttribute = previous;
-            }
-
-            current->next = NULL;
-            --node->attributeCount;
-            return current;
-        }
-
-        previous = current;
-        current  = current->next;
-    }
-
-    LOGASSERT(NULL == current);
-    return NULL;
 }
 
 /*************************************************************************************************/
