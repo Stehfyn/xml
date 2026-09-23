@@ -119,10 +119,10 @@
  *  - 002 This function shall accept Char values even when the section 2.2 note discourages their use.
  *  - 003 This function shall return FALSE otherwise, including for surrogates and values above U+10FFFF.
  *
- * \param[in] codePoint         Decoded Unicode code point to classify
+ * \param[in] codePoint   Decoded Unicode code point to classify
  *
- * \retval    TRUE if the code point is a permitted XML 1.0 character.
- * \retval    FALSE Otherwise
+ * \retval    TRUE        if the code point is a permitted XML 1.0 character.
+ * \retval    FALSE       otherwise
  */
 bool_t Utl_Xml_IsChar(uint32_t codePoint);
 
@@ -138,10 +138,10 @@ bool_t Utl_Xml_IsChar(uint32_t codePoint);
  *  - 001 This function shall return TRUE for space, tab, CR, and LF (XML 1.0 section 2.3, production [3] S).
  *  - 002 This function shall return FALSE for every other code point.
  *
- * \param[in] codePoint         Decoded Unicode code point to classify
+ * \param[in] codePoint   Decoded Unicode code point to classify
  *
- * \retval    TRUE if the code point is a permitted XML 1.0 whitespace character.
- * \retval    FALSE Otherwise
+ * \retval    TRUE        if the code point is a permitted XML 1.0 whitespace character.
+ * \retval    FALSE       otherwise
  */
 bool_t Utl_Xml_IsWhitespace(uint32_t codePoint);
 
@@ -158,32 +158,40 @@ bool_t Utl_Xml_IsWhitespace(uint32_t codePoint);
  *  - 002 This function shall accept colon without applying namespace constraints.
  *  - 003 This function shall return FALSE for every other code point.
  *
- * \param[in] codePoint         Decoded Unicode code point to classify
+ * \param[in] codePoint   Decoded Unicode code point to classify
  *
- * \retval    TRUE if the code point is a permitted XML 1.0 NameStartChar.
- * \retval    FALSE Otherwise
+ * \retval    TRUE        if the code point is a permitted XML 1.0 NameStartChar.
+ * \retval    FALSE       otherwise
  */
 bool_t Utl_Xml_IsNameStartChar(uint32_t codePoint);
 
 /*************************************************************************************************/
 /**
- * \brief Checks whether a decoded code point can occur within an XML name token.
+ * \brief Checks whether a decoded code point is a permitted XML 1.0 NameChar.
+ *
+ * \par Details:
+ *  XML 1.0 (Fifth Edition), production [4a] NameChar:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-NameChar
  *
  * \par Requirements:
  *  - 001 This function shall return TRUE for XML 1.0 section 2.3, production [4a] NameChar.
  *  - 002 This function shall accept every NameStartChar and the additional NameChar values.
  *  - 003 This function shall return FALSE for every other code point.
  *
- * \param[in] codePoint         Decoded Unicode code point to classify
+ * \param[in] codePoint   Decoded Unicode code point to classify
  *
- * \retval TRUE  The code point matches NameChar.
- * \retval FALSE The code point cannot occur in an XML Name or Nmtoken.
+ * \retval    TRUE        if the code point is a permitted XML 1.0 NameChar.
+ * \retval    FALSE       otherwise
  */
 bool_t Utl_Xml_IsNameChar(uint32_t codePoint);
 
 /*************************************************************************************************/
 /**
- * \brief Checks whether a decoded code-point span is an XML name.
+ * \brief Checks whether a decoded code-point span is a permitted XML 1.0 Name.
+ *
+ * \par Details:
+ *  XML 1.0 (Fifth Edition), production [5] Name:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-Name
  *
  * \par Requirements:
  *  - 001 This function shall fail separate assertions if codePoints is NULL or numCodePoints is zero.
@@ -192,17 +200,21 @@ bool_t Utl_Xml_IsNameChar(uint32_t codePoint);
  *  - 004 This function shall check Name syntax without namespace constraints or reserved-name policy.
  *  - 005 This function shall leave the input span unchanged.
  *
- * \param[in] codePoints        Non-NULL array of at least numCodePoints decoded Unicode code points
- * \param[in] numCodePoints     Nonzero number of code points in the span
+ * \param[in] codePoints      Non-NULL array of at least numCodePoints decoded Unicode code points
+ * \param[in] numCodePoints   Nonzero number of code points in the span
  *
- * \retval TRUE  The complete span matches Name.
- * \retval FALSE The span does not match Name.
+ * \retval    TRUE            if the complete span is a permitted XML 1.0 Name.
+ * \retval    FALSE           otherwise
  */
 bool_t Utl_Xml_IsName(const uint32_t* codePoints, uint32_t numCodePoints);
 
 /*************************************************************************************************/
 /**
- * \brief Checks whether a decoded code-point span is an XML name token.
+ * \brief Checks whether a decoded code-point span is a permitted XML 1.0 Nmtoken.
+ *
+ * \par Details:
+ *  XML 1.0 (Fifth Edition), production [7] Nmtoken:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-Nmtoken
  *
  * \par Requirements:
  *  - 001 This function shall fail separate assertions if codePoints is NULL or numCodePoints is zero.
@@ -211,11 +223,11 @@ bool_t Utl_Xml_IsName(const uint32_t* codePoints, uint32_t numCodePoints);
  *  - 004 This function shall check exactly numCodePoints values, require no terminator, and reject zero within the span.
  *  - 005 This function shall leave the input span unchanged.
  *
- * \param[in] codePoints        Non-NULL array of at least numCodePoints decoded Unicode code points
- * \param[in] numCodePoints     Nonzero number of code points in the span
+ * \param[in] codePoints      Non-NULL array of at least numCodePoints decoded Unicode code points
+ * \param[in] numCodePoints   Nonzero number of code points in the span
  *
- * \retval TRUE  The complete span matches Nmtoken.
- * \retval FALSE The span does not match Nmtoken.
+ * \retval    TRUE            if the complete span is a permitted XML 1.0 Nmtoken.
+ * \retval    FALSE           otherwise
  */
 bool_t Utl_Xml_IsNmtoken(const uint32_t* codePoints, uint32_t numCodePoints);
 
