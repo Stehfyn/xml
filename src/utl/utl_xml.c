@@ -26,10 +26,14 @@
 ** 3.2 Types
 **===============================================================================================*/
 
+/*************************************************************************************************/
+/**
+ * \brief Inclusive range of Unicode code points used by XML character productions.
+ */
 typedef struct XmlCodePointRange_s
 {
-    uint32_t first;
-    uint32_t last;
+    uint32_t first; ///< Lowest code point in the range.
+    uint32_t last;  ///< Highest code point in the range.
 } XmlCodePointRange_t;
 
 /*=================================================================================================
@@ -84,6 +88,17 @@ static const XmlCodePointRange_t c_xmlNameCharRanges[] =
 ** 3.5 Static function prototypes
 **===============================================================================================*/
 
+/*************************************************************************************************/
+/**
+ * \brief Checks whether a code point is in an inclusive range.
+ *
+ * \param[in] codePoint Code point to check.
+ * \param[in] first     Inclusive lower bound.
+ * \param[in] last      Inclusive upper bound.
+ *
+ * \retval TRUE  The code point is within the range.
+ * \retval FALSE The code point is outside the range.
+ */
 static bool_t InRange(uint32_t codePoint, uint32_t first, uint32_t last);
 
 /*=================================================================================================
@@ -92,17 +107,18 @@ static bool_t InRange(uint32_t codePoint, uint32_t first, uint32_t last);
 
 /*************************************************************************************************/
 /**
- * \brief Checks whether a code point is within an inclusive range.
+ * \par Details:
+ *  None
  */
 static bool_t InRange(uint32_t codePoint, uint32_t first, uint32_t last)
 {
-    bool_t is_after_first;
-    bool_t is_before_last;
+    bool_t is_first_or_greater;
+    bool_t is_last_or_less;
 
-    is_after_first = (first <= codePoint);
-    is_before_last = (codePoint <= last);
+    is_first_or_greater = (first <= codePoint);
+    is_last_or_less     = (codePoint <= last);
 
-    return is_after_first && is_before_last;
+    return is_first_or_greater && is_last_or_less;
 }
 
 /*=================================================================================================
