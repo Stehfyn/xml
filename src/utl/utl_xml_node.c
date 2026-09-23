@@ -64,8 +64,8 @@ static bool_t IsAncestor(const Utl_Xml_Node_t* candidate, const Utl_Xml_Node_t* 
 static bool_t IsAncestor(const Utl_Xml_Node_t* candidate, const Utl_Xml_Node_t* node)
 {
     const Utl_Xml_Node_t* current;
-    uint32_t              depth;
     bool_t                is_ancestor;
+    uint32_t              depth;
 
     current     = node;
     is_ancestor = FALSE;
