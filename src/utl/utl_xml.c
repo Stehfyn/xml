@@ -66,7 +66,7 @@ static const XmlCodePointRange_t c_xmlNameStartCharRanges[] =
     {0x3001,  0xD7FF},
     {0xF900,  0xFDCF},
     {0xFDF0,  0xFFFD},
-    {0x10000, 0xEFFFF},
+    {0x10000, 0xEFFFF}
 };
 
 /*************************************************************************************************/
@@ -81,7 +81,7 @@ static const XmlCodePointRange_t c_xmlNameCharRanges[] =
     {'0',    '9'},
     {0xB7,   0xB7},
     {0x300,  0x36F},
-    {0x203F, 0x2040},
+    {0x203F, 0x2040}
 };
 
 /*=================================================================================================
@@ -229,6 +229,7 @@ bool_t Utl_Xml_IsName(const uint32_t* codePoints, uint32_t numCodePoints)
 {
     bool_t   is_name;
     uint32_t code_point_index;
+    uint32_t code_point;
 
     LOGASSERT(NULL != codePoints);
     LOGASSERT(0 < numCodePoints);
@@ -237,13 +238,15 @@ bool_t Utl_Xml_IsName(const uint32_t* codePoints, uint32_t numCodePoints)
 
     for (code_point_index = 0; code_point_index < numCodePoints; ++code_point_index)
     {
+        code_point = codePoints[code_point_index];
+
         if (0 == code_point_index)
         {
-            is_name = Utl_Xml_IsNameStartChar(codePoints[code_point_index]);
+            is_name = Utl_Xml_IsNameStartChar(code_point);
         }
         else
         {
-            is_name = Utl_Xml_IsNameChar(codePoints[code_point_index]);
+            is_name = Utl_Xml_IsNameChar(code_point);
         }
 
         if (FALSE == is_name)
