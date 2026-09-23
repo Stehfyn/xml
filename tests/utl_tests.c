@@ -192,16 +192,24 @@ static void TestUtf8StringsAndNames(void)
     static const byte_t invalid_xml_char[] = "\x01";
     static const byte_t valid_name[] = "\xC3\xA9" "b";
     static const byte_t invalid_name[] = "1a";
+    static const byte_t embedded_zero[] = {'a', 0, 'b'};
+    static const byte_t unterminated[] = {'a', 'b'};
 
-    assert(TRUE == Utl_Xml_IsString(empty));
-    assert(TRUE == Utl_Xml_IsString(valid_text));
-    assert(FALSE == Utl_Xml_IsString(invalid_utf8));
-    assert(FALSE == Utl_Xml_IsString(invalid_xml_char));
+    assert(TRUE == Utl_Xml_IsString(empty, 0));
+    assert(TRUE == Utl_Xml_IsString(valid_text, (uint32_t)(sizeof(valid_text) - 1)));
+    assert(TRUE == Utl_Xml_IsString(unterminated, (uint32_t)sizeof(unterminated)));
+    assert(FALSE == Utl_Xml_IsString(invalid_utf8, (uint32_t)(sizeof(invalid_utf8) - 1)));
+    assert(FALSE == Utl_Xml_IsString(invalid_xml_char, (uint32_t)(sizeof(invalid_xml_char) - 1)));
+    assert(FALSE == Utl_Xml_IsString(embedded_zero, (uint32_t)sizeof(embedded_zero)));
+    assert(FALSE == Utl_Xml_IsString(valid_text, (uint32_t)sizeof(valid_text)));
 
-    assert(FALSE == Utl_Xml_IsName(empty));
-    assert(TRUE == Utl_Xml_IsName(valid_name));
-    assert(FALSE == Utl_Xml_IsName(invalid_name));
-    assert(FALSE == Utl_Xml_IsName(invalid_utf8));
+    assert(FALSE == Utl_Xml_IsName(empty, 0));
+    assert(TRUE == Utl_Xml_IsName(valid_name, (uint32_t)(sizeof(valid_name) - 1)));
+    assert(TRUE == Utl_Xml_IsName(unterminated, (uint32_t)sizeof(unterminated)));
+    assert(FALSE == Utl_Xml_IsName(invalid_name, (uint32_t)(sizeof(invalid_name) - 1)));
+    assert(FALSE == Utl_Xml_IsName(invalid_utf8, (uint32_t)(sizeof(invalid_utf8) - 1)));
+    assert(FALSE == Utl_Xml_IsName(embedded_zero, (uint32_t)sizeof(embedded_zero)));
+    assert(FALSE == Utl_Xml_IsName(valid_name, (uint32_t)sizeof(valid_name)));
 }
 
 /*************************************************************************************************/
@@ -217,6 +225,7 @@ static void TestXmlNodeInitialization(void)
     Utl_Xml_Node_t      instruction;
     Utl_Xml_Attribute_t attribute;
     Utl_Xml_Attribute_t utf8_attribute;
+    Utl_Xml_Attribute_t longer_attribute;
     const byte_t        name[] = "\xC3\xA9";
     const byte_t        text_value[] = "before";
     const byte_t        comment_value[] = "valid";
@@ -224,35 +233,47 @@ static void TestXmlNodeInitialization(void)
     const byte_t        data[] = "data";
     const byte_t        attribute_name[] = "id";
     const byte_t        attribute_value[] = "7";
-    const byte_t        utf8_name[] = "\xC3\xA9" "b";
+    const byte_t        utf8_name[] = "\xC3\xA9";
     const byte_t        utf8_value[] = "A\xE2\x82\xAC\xF0\x9F\x98\x80" "Z";
+    const byte_t        longer_name[] = "id2";
 
-    Utl_Xml_Node_Initialize(&root, UTL_XML_NODE_ELEMENT, name, NULL);
-    Utl_Xml_Node_Initialize(&text_node, UTL_XML_NODE_TEXT, NULL, text_value);
-    Utl_Xml_Node_Initialize(&comment, UTL_XML_NODE_COMMENT, NULL, comment_value);
-    Utl_Xml_Node_Initialize(&instruction, UTL_XML_NODE_PROCESSING_INSTRUCTION, target, data);
+    Utl_Xml_Node_Initialize(&root, UTL_XML_NODE_ELEMENT, name, (uint32_t)(sizeof(name) - 1), NULL, 0);
+    Utl_Xml_Node_Initialize(&text_node, UTL_XML_NODE_TEXT, NULL, 0, text_value, (uint32_t)(sizeof(text_value) - 1));
+    Utl_Xml_Node_Initialize(&comment, UTL_XML_NODE_COMMENT, NULL, 0, comment_value, (uint32_t)(sizeof(comment_value) - 1));
+    Utl_Xml_Node_Initialize(&instruction, UTL_XML_NODE_PROCESSING_INSTRUCTION, target, (uint32_t)(sizeof(target) - 1), data, (uint32_t)(sizeof(data) - 1));
 
     assert(UTL_XML_NODE_ELEMENT == root.type);
     assert(name == root.name);
+    assert((sizeof(name) - 1) == root.nameByteCount);
     assert(NULL == root.value);
+    assert(0 == root.valueByteCount);
     assert(NULL == root.firstChild);
     assert(NULL == root.nextSibling);
     assert(NULL == root.firstAttribute);
     assert(UTL_XML_NODE_TEXT == text_node.type);
+    assert((sizeof(text_value) - 1) == text_node.valueByteCount);
     assert(UTL_XML_NODE_COMMENT == comment.type);
     assert(UTL_XML_NODE_PROCESSING_INSTRUCTION == instruction.type);
+    assert((sizeof(target) - 1) == instruction.nameByteCount);
+    assert((sizeof(data) - 1) == instruction.valueByteCount);
     assert(NULL == instruction.firstChild);
 
-    Utl_Xml_Node_AddAttribute(&root, &attribute, attribute_name, attribute_value);
-    Utl_Xml_Node_AddAttribute(&root, &utf8_attribute, utf8_name, utf8_value);
+    Utl_Xml_Node_AddAttribute(&root, &attribute, attribute_name, (uint32_t)(sizeof(attribute_name) - 1), attribute_value, (uint32_t)(sizeof(attribute_value) - 1));
+    Utl_Xml_Node_AddAttribute(&root, &utf8_attribute, utf8_name, (uint32_t)(sizeof(utf8_name) - 1), utf8_value, (uint32_t)(sizeof(utf8_value) - 1));
+    Utl_Xml_Node_AddAttribute(&root, &longer_attribute, longer_name, (uint32_t)(sizeof(longer_name) - 1), attribute_value, (uint32_t)(sizeof(attribute_value) - 1));
     Utl_Xml_Node_AppendChild(&root, &text_node);
     Utl_Xml_Node_AppendChild(&root, &comment);
     Utl_Xml_Node_AppendChild(&root, &instruction);
 
     assert(&attribute == root.firstAttribute);
     assert(&utf8_attribute == attribute.next);
-    assert(&utf8_attribute == root.lastAttribute);
-    assert(2 == root.attributeCount);
+    assert(&longer_attribute == utf8_attribute.next);
+    assert(&longer_attribute == root.lastAttribute);
+    assert(3 == root.attributeCount);
+    assert((sizeof(attribute_name) - 1) == attribute.nameByteCount);
+    assert((sizeof(attribute_value) - 1) == attribute.valueByteCount);
+    assert((sizeof(utf8_name) - 1) == utf8_attribute.nameByteCount);
+    assert((sizeof(utf8_value) - 1) == utf8_attribute.valueByteCount);
     assert(&text_node == root.firstChild);
     assert(&comment == text_node.nextSibling);
     assert(&instruction == comment.nextSibling);
@@ -277,13 +298,15 @@ static void TestDeferredNodeContentValidation(void)
     const byte_t   target[] = "xml";
     const byte_t   data[] = "?>";
 
-    Utl_Xml_Node_Initialize(&element, UTL_XML_NODE_ELEMENT, name, NULL);
-    Utl_Xml_Node_Initialize(&text_node, UTL_XML_NODE_TEXT, NULL, text);
-    Utl_Xml_Node_Initialize(&comment, UTL_XML_NODE_COMMENT, NULL, comment_text);
-    Utl_Xml_Node_Initialize(&instruction, UTL_XML_NODE_PROCESSING_INSTRUCTION, target, data);
+    Utl_Xml_Node_Initialize(&element, UTL_XML_NODE_ELEMENT, name, (uint32_t)(sizeof(name) - 1), NULL, 0);
+    Utl_Xml_Node_Initialize(&text_node, UTL_XML_NODE_TEXT, NULL, 0, text, (uint32_t)(sizeof(text) - 1));
+    Utl_Xml_Node_Initialize(&comment, UTL_XML_NODE_COMMENT, NULL, 0, comment_text, (uint32_t)(sizeof(comment_text) - 1));
+    Utl_Xml_Node_Initialize(&instruction, UTL_XML_NODE_PROCESSING_INSTRUCTION, target, (uint32_t)(sizeof(target) - 1), data, (uint32_t)(sizeof(data) - 1));
 
     assert(name == element.name);
+    assert((sizeof(name) - 1) == element.nameByteCount);
     assert(text == text_node.value);
+    assert((sizeof(text) - 1) == text_node.valueByteCount);
     assert(comment_text == comment.value);
     assert(target == instruction.name);
     assert(data == instruction.value);

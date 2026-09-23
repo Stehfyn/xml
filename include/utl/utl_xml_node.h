@@ -50,9 +50,11 @@ typedef enum Utl_Xml_NodeType_e
  */
 typedef struct Utl_Xml_Attribute_s
 {
-    const byte_t*               name;  ///< Borrowed null-terminated UTF-8 XML name.
-    const byte_t*               value; ///< Borrowed null-terminated UTF-8 XML value.
-    struct Utl_Xml_Attribute_s* next;  ///< Next attribute in insertion order, or NULL.
+    const byte_t*               name;           ///< Borrowed UTF-8 XML name bytes.
+    uint32_t                    nameByteCount;  ///< Number of name bytes.
+    const byte_t*               value;          ///< Borrowed UTF-8 XML value bytes.
+    uint32_t                    valueByteCount; ///< Number of value bytes.
+    struct Utl_Xml_Attribute_s* next;           ///< Next attribute in insertion order, or NULL.
 } Utl_Xml_Attribute_t;
 
 /*************************************************************************************************/
@@ -63,7 +65,9 @@ typedef struct Utl_Xml_Node_s
 {
     Utl_Xml_NodeType_t     type;           ///< Element, text, comment, or processing instruction.
     const byte_t*          name;           ///< Borrowed element name or PI target; NULL otherwise.
+    uint32_t               nameByteCount;  ///< Number of name bytes; zero when name is NULL.
     const byte_t*          value;          ///< Borrowed text, comment, or PI data; NULL for elements.
+    uint32_t               valueByteCount; ///< Number of value bytes; zero when value is NULL.
     struct Utl_Xml_Node_s* parent;         ///< Parent set when appended, or NULL.
     struct Utl_Xml_Node_s* firstChild;     ///< First child of an element, or NULL.
     struct Utl_Xml_Node_s* lastChild;      ///< Last child of an element, or NULL.
@@ -90,24 +94,27 @@ typedef struct Utl_Xml_Node_s
  * \brief Initializes caller-provided storage as an unlinked XML node.
  *
  * \par Requirements:
- *  - 001 This function shall store type, name, and value without checking XML syntax or length.
+ *  - 001 This function shall store type, name, value, and their byte counts without checking XML syntax or length.
  *  - 002 This function shall fail an assertion if node is NULL.
- *  - 003 This function shall borrow non-NULL strings; the caller shall keep them valid while referenced.
+ *  - 003 This function shall borrow non-NULL byte spans; the caller shall keep them valid while referenced.
  *  - 004 This function shall clear the node's tree and attribute links.
+ *  - 005 This function shall require a zero byte count when the corresponding pointer is NULL.
  *
  * \par Details:
  *  Elements use name and set value to NULL. Text and comments set name to NULL
  *  and use value for content. Processing instructions use name for the target
  *  and value for data. XML validation and escaping are deferred until serialization.
  *
- * \param[out] node    Uninitialized caller-owned node storage
- * \param[in]  type    XML node kind
- * \param[in]  name    Borrowed null-terminated UTF-8 name or NULL
- * \param[in]  value   Borrowed null-terminated UTF-8 value or NULL
+ * \param[out] node            Uninitialized caller-owned node storage
+ * \param[in]  type            XML node kind
+ * \param[in]  name            Borrowed UTF-8 name byte span or NULL
+ * \param[in]  nameByteCount   Number of name bytes
+ * \param[in]  value           Borrowed UTF-8 value byte span or NULL
+ * \param[in]  valueByteCount  Number of value bytes
  *
  * \retval None
  */
-void Utl_Xml_Node_Initialize(Utl_Xml_Node_t* node, Utl_Xml_NodeType_t type, const byte_t* name, const byte_t* value);
+void Utl_Xml_Node_Initialize(Utl_Xml_Node_t* node, Utl_Xml_NodeType_t type, const byte_t* name, uint32_t nameByteCount, const byte_t* value, uint32_t valueByteCount);
 
 /*************************************************************************************************/
 /**
@@ -132,15 +139,17 @@ void Utl_Xml_Node_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child);
  * \par Requirements:
  *  - 001 This function shall require a valid XML name and XML character value.
  *  - 002 This function shall fail an assertion for NULL arguments, a non-element node, a duplicate name, or an attribute already linked to the element.
- *  - 003 This function shall enforce UTL_XML_NODE_MAX_ATTRIBUTES and borrow both strings.
+ *  - 003 This function shall enforce UTL_XML_NODE_MAX_ATTRIBUTES and borrow both byte spans.
  *
  * \param[in,out] node        Element receiving the attribute
  * \param[out]    attribute   Unlinked caller-owned attribute storage
- * \param[in]     name        Non-NULL null-terminated UTF-8 attribute name
- * \param[in]     value       Non-NULL null-terminated UTF-8 expanded value
+ * \param[in]     name            Non-NULL UTF-8 attribute name byte span
+ * \param[in]     nameByteCount   Number of name bytes
+ * \param[in]     value           Non-NULL UTF-8 expanded value byte span
+ * \param[in]     valueByteCount  Number of value bytes
  *
  * \retval None
  */
-void Utl_Xml_Node_AddAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribute, const byte_t* name, const byte_t* value);
+void Utl_Xml_Node_AddAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribute, const byte_t* name, uint32_t nameByteCount, const byte_t* value, uint32_t valueByteCount);
 
 #endif /* UTL_XML_NODE_H */

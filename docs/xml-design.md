@@ -9,7 +9,7 @@ an eventual consumer of this generic layer; widget types and ARINC rules do not
 belong in the XML model.
 
 The character helpers classify decoded Unicode code points. The string and
-name validators decode bounded UTF-8 byte strings. These helpers do not yet
+name validators decode counted UTF-8 byte spans. These helpers do not yet
 parse a document or serialize one.
 
 ## Next modules
@@ -30,7 +30,7 @@ relationships and reject cycles, duplicate attributes, and a second root.
 Malformed XML read from input must produce a recoverable parse error; assertions
 remain for misuse of the C API.
 
-The node initializer stores the chosen node type and borrows its strings without
+The node initializer stores the chosen node type and borrows its byte spans without
 validating XML syntax. The writer must validate borrowed strings when it
 serializes them, including element and processing-instruction names, UTF-8 and
 XML character rules, comment and processing-instruction delimiters, and the

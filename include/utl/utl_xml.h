@@ -128,23 +128,24 @@ bool_t Utl_Xml_IsChar(uint32_t codePoint);
 
 /*************************************************************************************************/
 /**
- * \brief Checks a null-terminated UTF-8 byte string against XML 1.0 Char.
+ * \brief Checks a counted UTF-8 byte span against XML 1.0 Char.
  *
  * \par Details:
  *  XML 1.0 (Fifth Edition), production [2] Char:
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-Char
  *
  * \par Requirements:
- *  - 001 This function shall accept empty strings and reject invalid UTF-8 or non-Char code points.
- *  - 002 This function shall inspect at most UTL_XML_MAX_STRING_BYTES + 1 bytes and reject longer strings.
+ *  - 001 This function shall accept an empty span and reject invalid UTF-8 or non-Char code points, including zero bytes.
+ *  - 002 This function shall check exactly byteCount bytes and reject spans longer than UTL_XML_MAX_STRING_BYTES.
  *  - 003 This function shall fail an assertion if utf8Text is NULL.
  *
- * \param[in] utf8Text   Non-NULL null-terminated UTF-8 byte string
+ * \param[in] utf8Text   Non-NULL UTF-8 byte span
+ * \param[in] byteCount  Number of bytes in the span
  *
  * \retval TRUE    if the complete string is valid XML character data.
  * \retval FALSE   otherwise
  */
-bool_t Utl_Xml_IsString(const byte_t* utf8Text);
+bool_t Utl_Xml_IsString(const byte_t* utf8Text, uint32_t byteCount);
 
 /*************************************************************************************************/
 /**
@@ -207,7 +208,7 @@ bool_t Utl_Xml_IsNameChar(uint32_t codePoint);
 
 /*************************************************************************************************/
 /**
- * \brief Checks a null-terminated UTF-8 byte string against XML 1.0 Name.
+ * \brief Checks a counted UTF-8 byte span against XML 1.0 Name.
  *
  * \par Details:
  *  XML 1.0 (Fifth Edition), production [5] Name:
@@ -215,15 +216,16 @@ bool_t Utl_Xml_IsNameChar(uint32_t codePoint);
  *
  * \par Requirements:
  *  - 001 This function shall require a non-empty NameStartChar followed by zero or more NameChar values.
- *  - 002 This function shall reject invalid UTF-8 and strings longer than UTL_XML_MAX_NAME_BYTES.
+ *  - 002 This function shall check exactly byteCount bytes and reject invalid UTF-8, zero bytes, and spans longer than UTL_XML_MAX_NAME_BYTES.
  *  - 003 This function shall fail an assertion if utf8Name is NULL.
  *
- * \param[in] utf8Name   Non-NULL null-terminated UTF-8 byte string
+ * \param[in] utf8Name   Non-NULL UTF-8 byte span
+ * \param[in] byteCount  Number of bytes in the span
  *
  * \retval TRUE    if the complete string is a permitted XML 1.0 Name.
  * \retval FALSE   otherwise
  */
-bool_t Utl_Xml_IsName(const byte_t* utf8Name);
+bool_t Utl_Xml_IsName(const byte_t* utf8Name, uint32_t byteCount);
 
 /*************************************************************************************************/
 /**

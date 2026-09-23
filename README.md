@@ -6,8 +6,8 @@ Public headers live in `include/utl`, implementations in `src/utl`, and tests in
 `Char`, XML whitespace, `NameStartChar`, `NameChar`, UTF-8 strings and names,
 and decoded-code-point `Nmtoken` spans.
 
-`Utl_Xml_IsString` and `Utl_Xml_IsName` accept null-terminated UTF-8 byte strings
-and enforce the documented byte limits. Character classifiers take a decoded
+`Utl_Xml_IsString` and `Utl_Xml_IsName` accept counted UTF-8 byte spans,
+reject zero bytes, and enforce the documented byte limits. Character classifiers take a decoded
 `uint32_t`; `Utl_Xml_IsNmtoken` takes a `const uint32_t*` and a nonzero code-point
 count. The functions check XML lexical syntax, including colons, with namespace
 and schema rules left to their respective modules.

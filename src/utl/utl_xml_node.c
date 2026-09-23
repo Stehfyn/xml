@@ -42,15 +42,27 @@
 
 /*************************************************************************************************/
 /**
- * \brief Checks whether candidate is node or one of its ancestors.
+ * \brief Finds child in parent's ancestor chain, including parent.
  *
- * \param[in] candidate   Node to find
- * \param[in] node        Node whose ancestors are checked
+ * \param[in] parent  Node whose parent chain is searched
+ * \param[in] child   Node to find
  *
- * \retval TRUE    if candidate is node or an ancestor.
- * \retval FALSE   otherwise
+ * \return Matching ancestor, or NULL if child is absent.
  */
-static bool_t IsAncestor(const Utl_Xml_Node_t* candidate, const Utl_Xml_Node_t* node);
+static const Utl_Xml_Node_t* FindAncestor(const Utl_Xml_Node_t* parent, const Utl_Xml_Node_t* child);
+
+/*************************************************************************************************/
+/**
+ * \brief Finds an attribute with the requested name.
+ *
+ * \param[in] node           Element whose attributes are searched
+ * \param[in] attribute      Attribute to be appended; must not already be linked
+ * \param[in] name           Name bytes to find
+ * \param[in] nameByteCount  Number of name bytes
+ *
+ * \return Matching attribute, or NULL if the name is absent.
+ */
+static const Utl_Xml_Attribute_t* FindAttribute(const Utl_Xml_Node_t* node, const Utl_Xml_Attribute_t* attribute, const byte_t* name, uint32_t nameByteCount);
 
 /*=================================================================================================
 ** 4. PRIVATE FUNCTIONS
@@ -59,36 +71,81 @@ static bool_t IsAncestor(const Utl_Xml_Node_t* candidate, const Utl_Xml_Node_t* 
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Bounds the ancestor traversal by UTL_XML_NODE_MAX_DEPTH.
+ *  None
  */
-static bool_t IsAncestor(const Utl_Xml_Node_t* candidate, const Utl_Xml_Node_t* node)
+static const Utl_Xml_Node_t* FindAncestor(const Utl_Xml_Node_t* parent, const Utl_Xml_Node_t* child)
 {
-    const Utl_Xml_Node_t* current;
+    const Utl_Xml_Node_t* current_node;
+    const Utl_Xml_Node_t* matching_ancestor;
     bool_t                is_ancestor;
-    uint32_t              depth;
+    uint32_t              node_depth;
 
-    current     = node;
-    is_ancestor = FALSE;
+    current_node = parent;
+    matching_ancestor = NULL;
 
-    for (depth = 0; depth < UTL_XML_NODE_MAX_DEPTH; ++depth)
+    for (node_depth = 0; node_depth < UTL_XML_NODE_MAX_DEPTH; ++node_depth)
     {
-        if (NULL == current)
+        if (NULL == current_node)
         {
             break;
         }
 
-        is_ancestor = (candidate == current);
+        is_ancestor = (child == current_node);
 
         if (is_ancestor)
         {
+            matching_ancestor = current_node;
             break;
         }
 
-        current = current->parent;
+        current_node = current_node->parent;
     }
 
-    LOGASSERT(is_ancestor || (NULL == current));
-    return is_ancestor;
+    LOGASSERT((NULL != matching_ancestor) || (NULL == current_node));
+
+    return matching_ancestor;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Compares byte contents only when the names have the same byte count.
+ */
+static const Utl_Xml_Attribute_t* FindAttribute(const Utl_Xml_Node_t* node, const Utl_Xml_Attribute_t* attribute, const byte_t* name, uint32_t nameByteCount)
+{
+    const Utl_Xml_Attribute_t* current_attribute;
+    const Utl_Xml_Attribute_t* found_attribute;
+    uint32_t                   attribute_index;
+    bool_t                     has_same_name_byte_count;
+    bool_t                     has_same_name;
+
+    current_attribute = node->firstAttribute;
+    found_attribute   = NULL;
+
+    for (attribute_index = 0; attribute_index < node->attributeCount; ++attribute_index)
+    {
+        LOGASSERT(NULL != current_attribute);
+        LOGASSERT(attribute != current_attribute);
+
+        has_same_name_byte_count = (nameByteCount == current_attribute->nameByteCount);
+
+        if (has_same_name_byte_count)
+        {
+            has_same_name = (0 == memcmp(current_attribute->name, name, nameByteCount));
+
+            if (has_same_name)
+            {
+                found_attribute = current_attribute;
+                break;
+            }
+        }
+
+        current_attribute = current_attribute->next;
+    }
+
+    LOGASSERT((NULL != found_attribute) || (NULL == current_attribute));
+
+    return found_attribute;
 }
 
 /*=================================================================================================
@@ -98,15 +155,19 @@ static bool_t IsAncestor(const Utl_Xml_Node_t* candidate, const Utl_Xml_Node_t* 
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Stores the borrowed strings and clears all tree links.
+ *  None
  */
-void Utl_Xml_Node_Initialize(Utl_Xml_Node_t* node, Utl_Xml_NodeType_t type, const byte_t* name, const byte_t* value)
+void Utl_Xml_Node_Initialize(Utl_Xml_Node_t* node, Utl_Xml_NodeType_t type, const byte_t* name, uint32_t nameByteCount, const byte_t* value, uint32_t valueByteCount)
 {
     LOGASSERT(NULL != node);
+    LOGASSERT((NULL != name) || (0 == nameByteCount));
+    LOGASSERT((NULL != value) || (0 == valueByteCount));
 
     node->type           = type;
     node->name           = name;
+    node->nameByteCount  = nameByteCount;
     node->value          = value;
+    node->valueByteCount = valueByteCount;
     node->parent         = NULL;
     node->firstChild     = NULL;
     node->lastChild      = NULL;
@@ -123,7 +184,7 @@ void Utl_Xml_Node_Initialize(Utl_Xml_Node_t* node, Utl_Xml_NodeType_t type, cons
  */
 void Utl_Xml_Node_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child)
 {
-    bool_t creates_cycle;
+    const Utl_Xml_Node_t* ancestor;
 
     LOGASSERT(NULL != parent);
     LOGASSERT(NULL != child);
@@ -131,8 +192,8 @@ void Utl_Xml_Node_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child)
     LOGASSERT(NULL == child->parent);
     LOGASSERT(NULL == child->nextSibling);
 
-    creates_cycle = IsAncestor(child, parent);
-    LOGASSERT(FALSE == creates_cycle);
+    ancestor = FindAncestor(parent, child);
+    LOGASSERT(NULL == ancestor);
 
     if (NULL != parent->lastChild)
     {
@@ -152,13 +213,11 @@ void Utl_Xml_Node_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child)
  * \par Details:
  *  Validates the caller's attribute and appends it in source order.
  */
-void Utl_Xml_Node_AddAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribute, const byte_t* name, const byte_t* value)
+void Utl_Xml_Node_AddAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribute, const byte_t* name, uint32_t nameByteCount, const byte_t* value, uint32_t valueByteCount)
 {
-    Utl_Xml_Attribute_t* current;
-    uint32_t             attribute_index;
-    bool_t               is_name;
-    bool_t               is_xml_string;
-    bool_t               is_unique;
+    bool_t                     is_name;
+    bool_t                     is_xml_string;
+    const Utl_Xml_Attribute_t* found_attribute;
 
     LOGASSERT(NULL != node);
     LOGASSERT(NULL != attribute);
@@ -167,26 +226,20 @@ void Utl_Xml_Node_AddAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attrib
     LOGASSERT(UTL_XML_NODE_ELEMENT == node->type);
     LOGASSERT(node->attributeCount < UTL_XML_NODE_MAX_ATTRIBUTES);
 
-    is_name       = Utl_Xml_IsName(name);
-    is_xml_string = Utl_Xml_IsString(value);
+    is_name = Utl_Xml_IsName(name, nameByteCount);
     LOGASSERT(is_name);
+
+    is_xml_string = Utl_Xml_IsString(value, valueByteCount);
     LOGASSERT(is_xml_string);
 
-    current = node->firstAttribute;
+    found_attribute = FindAttribute(node, attribute, name, nameByteCount);
+    LOGASSERT(NULL == found_attribute);
 
-    for (attribute_index = 0; attribute_index < node->attributeCount; ++attribute_index)
-    {
-        LOGASSERT(NULL != current);
-        LOGASSERT(attribute != current);
-        is_unique = (0 != strncmp((const char*)current->name, (const char*)name, UTL_XML_NODE_MAX_NAME_BYTES + 1));
-        LOGASSERT(is_unique);
-        current = current->next;
-    }
-
-    LOGASSERT(NULL == current);
-    attribute->name  = name;
-    attribute->value = value;
-    attribute->next  = NULL;
+    attribute->name           = name;
+    attribute->nameByteCount  = nameByteCount;
+    attribute->value          = value;
+    attribute->valueByteCount = valueByteCount;
+    attribute->next           = NULL;
 
     if (NULL != node->lastAttribute)
     {
@@ -198,5 +251,6 @@ void Utl_Xml_Node_AddAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attrib
     }
 
     node->lastAttribute = attribute;
-    ++node->attributeCount;
+
+    node->attributeCount += 1;
 }

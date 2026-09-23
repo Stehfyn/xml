@@ -1,7 +1,3 @@
-#if !defined(_WIN32) && !defined(_POSIX_C_SOURCE)
-#define _POSIX_C_SOURCE 200809L
-#endif
-
 /*=================================================================================================
 ** 1. References
 **===============================================================================================*/
@@ -19,8 +15,6 @@
 #include "utl/utl_defines.h"
 
 #include "os/os_assert.h"
-
-#include <string.h>
 
 /*=================================================================================================
 ** 3. DECLARATIONS
@@ -252,9 +246,8 @@ bool_t Utl_Xml_IsChar(uint32_t codePoint)
  * \par Details:
  *  Empty strings are permitted as text and attribute values.
  */
-bool_t Utl_Xml_IsString(const byte_t* utf8Text)
+bool_t Utl_Xml_IsString(const byte_t* utf8Text, uint32_t byteCount)
 {
-    uint32_t byte_count;
     uint32_t byte_offset;
     uint32_t code_point;
     uint32_t decoded_byte_count;
@@ -262,14 +255,13 @@ bool_t Utl_Xml_IsString(const byte_t* utf8Text)
 
     LOGASSERT(NULL != utf8Text);
 
-    byte_count = (uint32_t)strnlen((const char*)utf8Text, UTL_XML_MAX_STRING_BYTES + 1);
-    is_xml_string = (byte_count <= UTL_XML_MAX_STRING_BYTES);
+    is_xml_string = (byteCount <= UTL_XML_MAX_STRING_BYTES);
 
     if (is_xml_string)
     {
-        for (byte_offset = 0; byte_offset < byte_count; byte_offset += decoded_byte_count)
+        for (byte_offset = 0; byte_offset < byteCount; byte_offset += decoded_byte_count)
         {
-            code_point = DecodeUtf8(utf8Text, byte_count, byte_offset, &decoded_byte_count);
+            code_point = DecodeUtf8(utf8Text, byteCount, byte_offset, &decoded_byte_count);
 
             if ((0 == decoded_byte_count) || (FALSE == Utl_Xml_IsChar(code_point)))
             {
@@ -365,9 +357,8 @@ bool_t Utl_Xml_IsNameChar(uint32_t codePoint)
  * \par Details:
  *  Uses XML 1.0 NameStartChar and NameChar after strict UTF-8 decoding.
  */
-bool_t Utl_Xml_IsName(const byte_t* utf8Name)
+bool_t Utl_Xml_IsName(const byte_t* utf8Name, uint32_t byteCount)
 {
-    uint32_t byte_count;
     uint32_t byte_offset;
     uint32_t code_point;
     uint32_t code_point_index;
@@ -376,16 +367,15 @@ bool_t Utl_Xml_IsName(const byte_t* utf8Name)
 
     LOGASSERT(NULL != utf8Name);
 
-    byte_count = (uint32_t)strnlen((const char*)utf8Name, UTL_XML_MAX_NAME_BYTES + 1);
-    is_name = (0 < byte_count) && (byte_count <= UTL_XML_MAX_NAME_BYTES);
+    is_name = (0 < byteCount) && (byteCount <= UTL_XML_MAX_NAME_BYTES);
 
     if (is_name)
     {
         byte_offset = 0;
 
-        for (code_point_index = 0; byte_offset < byte_count; ++code_point_index, byte_offset += decoded_byte_count)
+        for (code_point_index = 0; byte_offset < byteCount; ++code_point_index, byte_offset += decoded_byte_count)
         {
-            code_point = DecodeUtf8(utf8Name, byte_count, byte_offset, &decoded_byte_count);
+            code_point = DecodeUtf8(utf8Name, byteCount, byte_offset, &decoded_byte_count);
             is_name = (0 < decoded_byte_count);
 
             if (is_name)
