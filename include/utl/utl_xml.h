@@ -27,10 +27,10 @@
 **===============================================================================================*/
 
 /* XML 1.0 sections 2.2 and 2.3, productions [2] Char and [3] S. */
-#define UTL_XML_CHAR_TAB   (0x09) ///< Horizontal tab.
-#define UTL_XML_CHAR_LF    (0x0A) ///< Line feed; normalized line ending (section 2.11).
-#define UTL_XML_CHAR_CR    (0x0D) ///< Carriage return.
-#define UTL_XML_CHAR_SPACE (0x20) ///< Space.
+#define UTL_XML_CHAR_TAB   ('\t') ///< Horizontal tab.
+#define UTL_XML_CHAR_LF    ('\n') ///< Line feed; normalized line ending (section 2.11).
+#define UTL_XML_CHAR_CR    ('\r') ///< Carriage return.
+#define UTL_XML_CHAR_SPACE (' ')  ///< Space.
 
 /* XML 1.0 section 2.3, production [10] AttValue, and section 2.8, [25] Eq. */
 #define UTL_XML_QUOTE_APOS ('\'') ///< Single-quoted literal delimiter.

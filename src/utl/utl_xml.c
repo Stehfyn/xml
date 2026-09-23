@@ -12,6 +12,7 @@
 **===============================================================================================*/
 
 #include "utl/utl_xml.h"
+#include "utl/utl_defines.h"
 
 #include "os/os_assert.h"
 
@@ -32,6 +33,23 @@
 /*=================================================================================================
 ** 3.4 Static global variables
 **===============================================================================================*/
+
+static const uint32_t c_xmlNameStartRanges[][2] = {{0x3A, 0x3A},
+                                                   {0x41, 0x5A},
+                                                   {0x5F, 0x5F},
+                                                   {0x61, 0x7A},
+                                                   {0xC0, 0xD6},
+                                                   {0xD8, 0xF6},
+                                                   {0xF8, 0x2FF},
+                                                   {0x370, 0x37D},
+                                                   {0x37F, 0x1FFF},
+                                                   {0x200C, 0x200D},
+                                                   {0x2070, 0x218F},
+                                                   {0x2C00, 0x2FEF},
+                                                   {0x3001, 0xD7FF},
+                                                   {0xF900, 0xFDCF},
+                                                   {0xFDF0, 0xFFFD},
+                                                   {0x10000, 0xEFFFF}};
 
 /*=================================================================================================
 ** 3.5 Static function prototypes
@@ -64,7 +82,12 @@ bool_t Utl_Xml_IsChar(uint32_t codePoint)
  */
 bool_t Utl_Xml_IsWhitespace(uint32_t codePoint)
 {
-    return (codePoint == (uint32_t)UTL_XML_CHAR_SPACE) || (codePoint == (uint32_t)UTL_XML_CHAR_TAB) || (codePoint == (uint32_t)UTL_XML_CHAR_CR) || (codePoint == (uint32_t)UTL_XML_CHAR_LF);
+    bool_t is_space           = (UTL_XML_CHAR_SPACE == codePoint);
+    bool_t is_tab             = (UTL_XML_CHAR_TAB == codePoint);
+    bool_t is_carriage_return = (UTL_XML_CHAR_CR == codePoint);
+    bool_t is_line_feed       = (UTL_XML_CHAR_LF == codePoint);
+
+    return is_space || is_tab || is_carriage_return || is_line_feed;
 }
 
 /*************************************************************************************************/
@@ -74,14 +97,17 @@ bool_t Utl_Xml_IsWhitespace(uint32_t codePoint)
  */
 bool_t Utl_Xml_IsNameStartChar(uint32_t codePoint)
 {
-    return (codePoint == (uint32_t)0x3A) || ((codePoint >= (uint32_t)0x41) && (codePoint <= (uint32_t)0x5A)) || (codePoint == (uint32_t)0x5F) ||
-           ((codePoint >= (uint32_t)0x61) && (codePoint <= (uint32_t)0x7A)) || ((codePoint >= (uint32_t)0xC0) && (codePoint <= (uint32_t)0xD6)) ||
-           ((codePoint >= (uint32_t)0xD8) && (codePoint <= (uint32_t)0xF6)) || ((codePoint >= (uint32_t)0xF8) && (codePoint <= (uint32_t)0x2FF)) ||
-           ((codePoint >= (uint32_t)0x370) && (codePoint <= (uint32_t)0x37D)) || ((codePoint >= (uint32_t)0x37F) && (codePoint <= (uint32_t)0x1FFF)) ||
-           ((codePoint >= (uint32_t)0x200C) && (codePoint <= (uint32_t)0x200D)) || ((codePoint >= (uint32_t)0x2070) && (codePoint <= (uint32_t)0x218F)) ||
-           ((codePoint >= (uint32_t)0x2C00) && (codePoint <= (uint32_t)0x2FEF)) || ((codePoint >= (uint32_t)0x3001) && (codePoint <= (uint32_t)0xD7FF)) ||
-           ((codePoint >= (uint32_t)0xF900) && (codePoint <= (uint32_t)0xFDCF)) || ((codePoint >= (uint32_t)0xFDF0) && (codePoint <= (uint32_t)0xFFFD)) ||
-           ((codePoint >= (uint32_t)0x10000) && (codePoint <= (uint32_t)0xEFFFF));
+    uint32_t range_index;
+
+    for (range_index = 0; range_index < COUNT_OF(c_xmlNameStartRanges); ++range_index)
+    {
+        if (codePoint <= c_xmlNameStartRanges[range_index][1])
+        {
+            return codePoint >= c_xmlNameStartRanges[range_index][0];
+        }
+    }
+
+    return FALSE;
 }
 
 /*************************************************************************************************/
@@ -108,11 +134,23 @@ bool_t Utl_Xml_IsName(const uint32_t* codePoints, uint32_t count)
     LOGASSERT(NULL != codePoints);
     LOGASSERT(0 < count);
 
-    is_name = Utl_Xml_IsNameStartChar(codePoints[0]);
+    is_name = TRUE;
 
-    for (code_point_index = 1; code_point_index < count; ++code_point_index)
+    for (code_point_index = 0; code_point_index < count; ++code_point_index)
     {
-        is_name = (is_name && (Utl_Xml_IsNameChar(codePoints[code_point_index])));
+        if (0 == code_point_index)
+        {
+            is_name = Utl_Xml_IsNameStartChar(codePoints[code_point_index]);
+        }
+        else
+        {
+            is_name = Utl_Xml_IsNameChar(codePoints[code_point_index]);
+        }
+
+        if (FALSE == is_name)
+        {
+            break;
+        }
     }
 
     return is_name;
