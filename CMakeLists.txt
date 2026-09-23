@@ -32,9 +32,11 @@ target_include_directories(os PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 add_library(utl STATIC
     src/utl/utl_xml.c
+    src/utl/utl_xml_document.c
     src/utl/utl_xml_node.c
     include/utl/utl_defines.h
     include/utl/utl_xml.h
+    include/utl/utl_xml_document.h
     include/utl/utl_xml_node.h)
 target_link_libraries(utl PUBLIC os)
 target_include_directories(utl PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")

@@ -1,5 +1,6 @@
 #include "utl/utl_defines.h"
 #include "utl/utl_xml.h"
+#include "utl/utl_xml_document.h"
 #include "utl/utl_xml_node.h"
 
 /* Keep assertions enabled in Release builds. */
@@ -7,6 +8,7 @@
 #undef NDEBUG
 #endif
 #include <assert.h>
+#include <string.h>
 
 /*************************************************************************************************/
 /**
@@ -315,6 +317,125 @@ static void TestDeferredNodeContentValidation(void)
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  Builds a document in source order and checks its exact serialized byte span.
+ */
+static void TestXmlDocumentSerialization(void)
+{
+    Utl_Xml_Document_t document;
+    Utl_Xml_Node_t     prolog_comment;
+    Utl_Xml_Node_t     prolog_instruction;
+    Utl_Xml_Node_t     root;
+    Utl_Xml_Node_t     text_node;
+    Utl_Xml_Node_t     child;
+    Utl_Xml_Node_t     tail_node;
+    Utl_Xml_Node_t     inner_comment;
+    Utl_Xml_Node_t     epilog_comment;
+    Utl_Xml_Attribute_t attribute;
+    const byte_t       declaration[] = "<?xml version=\"1.0\"?>";
+    const byte_t       doctype[] = "<!DOCTYPE root>";
+    const byte_t       before[] = "before";
+    const byte_t       target[] = "target";
+    const byte_t       data[] = "data";
+    const byte_t       root_name[] = "root";
+    const byte_t       child_name[] = "child";
+    const byte_t       attribute_name[] = "a";
+    const byte_t       attribute_value[] = "A&\"<\t\n\r";
+    const byte_t       text_value[] = "<&>\r";
+    const byte_t       tail[] = "tail";
+    const byte_t       inside[] = "inside";
+    const byte_t       after[] = "after";
+    const byte_t       expected[] =
+        "<?xml version=\"1.0\"?><!--before--><!DOCTYPE root><?target data?>"
+        "<root a=\"A&amp;&quot;&lt;&#x9;&#xA;&#xD;\">&lt;&amp;&gt;&#xD;"
+        "<child/>tail<!--inside--></root><!--after-->";
+    byte_t             output[256];
+    size_t             byte_count;
+    size_t             byte_index;
+    bool_t             is_serialized;
+
+    Utl_Xml_Document_Initialize(&document);
+    assert(NULL == document.root);
+    assert(NULL == document.firstNode);
+    assert(NULL == document.doctype);
+
+    Utl_Xml_Node_Initialize(&prolog_comment, UTL_XML_NODE_COMMENT, NULL, 0, before, (uint32_t)(sizeof(before) - 1));
+    Utl_Xml_Node_Initialize(&prolog_instruction, UTL_XML_NODE_PROCESSING_INSTRUCTION, target, (uint32_t)(sizeof(target) - 1), data, (uint32_t)(sizeof(data) - 1));
+    Utl_Xml_Node_Initialize(&root, UTL_XML_NODE_ELEMENT, root_name, (uint32_t)(sizeof(root_name) - 1), NULL, 0);
+    Utl_Xml_Node_Initialize(&text_node, UTL_XML_NODE_TEXT, NULL, 0, text_value, (uint32_t)(sizeof(text_value) - 1));
+    Utl_Xml_Node_Initialize(&child, UTL_XML_NODE_ELEMENT, child_name, (uint32_t)(sizeof(child_name) - 1), NULL, 0);
+    Utl_Xml_Node_Initialize(&tail_node, UTL_XML_NODE_TEXT, NULL, 0, tail, (uint32_t)(sizeof(tail) - 1));
+    Utl_Xml_Node_Initialize(&inner_comment, UTL_XML_NODE_COMMENT, NULL, 0, inside, (uint32_t)(sizeof(inside) - 1));
+    Utl_Xml_Node_Initialize(&epilog_comment, UTL_XML_NODE_COMMENT, NULL, 0, after, (uint32_t)(sizeof(after) - 1));
+
+    Utl_Xml_Node_AddAttribute(&root, &attribute, attribute_name, (uint32_t)(sizeof(attribute_name) - 1), attribute_value, (uint32_t)(sizeof(attribute_value) - 1));
+    Utl_Xml_Node_AppendChild(&root, &text_node);
+    Utl_Xml_Node_AppendChild(&root, &child);
+    Utl_Xml_Node_AppendChild(&root, &tail_node);
+    Utl_Xml_Node_AppendChild(&root, &inner_comment);
+
+    Utl_Xml_Document_SetXmlDeclaration(&document, declaration, (uint32_t)(sizeof(declaration) - 1));
+    Utl_Xml_Document_AppendNode(&document, &prolog_comment);
+    Utl_Xml_Document_SetDoctype(&document, doctype, (uint32_t)(sizeof(doctype) - 1));
+    Utl_Xml_Document_AppendNode(&document, &prolog_instruction);
+    Utl_Xml_Document_AppendNode(&document, &root);
+    Utl_Xml_Document_AppendNode(&document, &epilog_comment);
+
+    assert(&prolog_comment == document.firstNode);
+    assert(&prolog_comment == document.nodeBeforeDoctype);
+    assert(&root == document.root);
+    assert(&epilog_comment == document.lastNode);
+    assert(&prolog_instruction == prolog_comment.nextSibling);
+    assert(&root == prolog_instruction.nextSibling);
+    assert(&epilog_comment == root.nextSibling);
+
+    is_serialized = Utl_Xml_Document_Serialize(&document, NULL, 0, &byte_count);
+    assert(TRUE == is_serialized);
+    assert((sizeof(expected) - 1) == byte_count);
+
+    memset(output, 0xA5, sizeof(output));
+    is_serialized = Utl_Xml_Document_Serialize(&document, output, byte_count - 1, &byte_count);
+    assert(FALSE == is_serialized);
+    assert((sizeof(expected) - 1) == byte_count);
+
+    for (byte_index = 0; byte_index < sizeof(output); ++byte_index)
+    {
+        assert(0xA5 == output[byte_index]);
+    }
+
+    is_serialized = Utl_Xml_Document_Serialize(&document, output, sizeof(output), &byte_count);
+    assert(TRUE == is_serialized);
+    assert((sizeof(expected) - 1) == byte_count);
+    assert(0 == memcmp(output, expected, byte_count));
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Invalid borrowed content fails validation before any output bytes are written.
+ */
+static void TestXmlDocumentInvalidContent(void)
+{
+    Utl_Xml_Document_t document;
+    Utl_Xml_Node_t     root;
+    const byte_t       invalid_name[] = {'a', 0, 'b'};
+    byte_t             output[32];
+    size_t             byte_count;
+    bool_t             is_serialized;
+
+    Utl_Xml_Document_Initialize(&document);
+    Utl_Xml_Node_Initialize(&root, UTL_XML_NODE_ELEMENT, invalid_name, (uint32_t)sizeof(invalid_name), NULL, 0);
+    Utl_Xml_Document_AppendNode(&document, &root);
+
+    memset(output, 0xA5, sizeof(output));
+    is_serialized = Utl_Xml_Document_Serialize(&document, output, sizeof(output), &byte_count);
+    assert(FALSE == is_serialized);
+    assert(0 == byte_count);
+    assert(0xA5 == output[0]);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Runs the XML character and node initialization checks.
  */
 int main(void)
@@ -324,5 +445,7 @@ int main(void)
     TestUtf8StringsAndNames();
     TestXmlNodeInitialization();
     TestDeferredNodeContentValidation();
+    TestXmlDocumentSerialization();
+    TestXmlDocumentInvalidContent();
     return 0;
 }
