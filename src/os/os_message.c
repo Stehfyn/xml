@@ -5,8 +5,6 @@
 #include "os/os_message.h"
 
 #include <math.h>
-#include <stddef.h>
-#include <string.h>
 
 static const char_t c_decimalDigits[]  = "0123456789";
 static const char_t c_lowerHexDigits[] = "0123456789abcdef";

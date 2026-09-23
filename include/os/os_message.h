@@ -3,7 +3,6 @@
 
 #include "os/os_types.h"
 
-#include <stdint.h>
 #include <stdio.h>
 #include <wchar.h>
 
