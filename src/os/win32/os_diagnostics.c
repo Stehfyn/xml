@@ -59,7 +59,7 @@ static int __cdecl ReportCrt(int reportType, char* message, int* result)
 {
     (void)fprintf(stderr, "CRT report %d: %s\n", reportType, message ? message : "(no message)");
     (void)fflush(stderr);
-    if (NULL != result) *result = 0;
+    if (NULL != result) (*result) = 0;
     if (_CRT_WARN != reportType) _Exit(EXIT_FAILURE);
     return TRUE;
 }
@@ -69,7 +69,7 @@ static int __cdecl ReportCrtWide(int reportType, wchar_t* message, int* result)
 {
     (void)fprintf(stderr, "CRT report %d: %ls\n", reportType, message ? message : L"(no message)");
     (void)fflush(stderr);
-    if (NULL != result) *result = 0;
+    if (NULL != result) (*result) = 0;
     if (_CRT_WARN != reportType) _Exit(EXIT_FAILURE);
     return TRUE;
 }

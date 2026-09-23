@@ -99,9 +99,10 @@ void Os_MessageBuilder_AppendString(Os_MessageBuilder_t* pMessage, const char* p
     }
     else
     {
-        while (*pString)
+        while ((*pString))
         {
-            AppendCharacter(pMessage, (int)(unsigned char)(*pString++));
+            AppendCharacter(pMessage, (int)(byte_t)(*pString));
+            ++pString;
         }
     }
 }
@@ -111,9 +112,10 @@ void Os_MessageBuilder_AppendWideString(Os_MessageBuilder_t* pMessage, const wch
     uint32_t code_point;
     uint32_t low_surrogate;
 
-    while (*pString)
+    while ((*pString))
     {
-        code_point = (uint32_t)(*pString++);
+        code_point = (uint32_t)(*pString);
+        ++pString;
         if (0xd800u <= code_point && 0xdbffu >= code_point)
         {
             low_surrogate = (uint32_t)(*pString);

@@ -43,46 +43,67 @@
 **===============================================================================================*/
 
 /*************************************************************************************************/
-/**
- * \brief Decodes one strictly encoded UTF-8 code point and advances cursor.
+/** 
+ * \brief Finds a null terminator within a documented byte limit.
+ *
+ * \param[in]  text       Non-NULL null-terminated UTF-8 string
+ * \param[in]  maximum    Maximum permitted bytes before the terminator
+ * \param[out] length     Number of bytes before the terminator
+ *
+ * \retval TRUE    if the string fits within maximum bytes.
+ * \retval FALSE   otherwise
  */
-static bool_t DecodeUtf8(const byte_t** cursor, uint32_t* codePoint);
+static bool_t GetBoundedLength(const char_t* text, uint32_t maximum, uint32_t* length);
+
+/*************************************************************************************************/
+/**
+ * \brief Decodes one strictly encoded UTF-8 code point within a byte span.
+ *
+ * \param[in]     bytes       Non-NULL UTF-8 byte span
+ * \param[in]     numBytes    Number of bytes in the span
+ * \param[in,out] offset      Current byte offset, advanced on success
+ * \param[out]    codePoint   Decoded code point
+ *
+ * \retval TRUE    if one code point was decoded.
+ * \retval FALSE   otherwise
+ */
+static bool_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t* offset, uint32_t* codePoint);
 
 /*************************************************************************************************/
 /**
  * \brief Checks a null-terminated UTF-8 string against XML 1.0 Char.
  */
-static bool_t IsXmlString(const char* text);
+static bool_t IsXmlString(const char_t* text);
 
 /*************************************************************************************************/
 /**
  * \brief Checks a null-terminated UTF-8 string against XML 1.0 Name.
  */
-static bool_t IsName(const char* text);
+static bool_t IsName(const char_t* text);
 
 /*************************************************************************************************/
 /**
  * \brief Checks whether comment text can occur between XML comment delimiters.
  */
-static bool_t IsComment(const char* text);
+static bool_t IsComment(const char_t* text);
 
 /*************************************************************************************************/
 /**
  * \brief Checks an XML processing-instruction target and data.
  */
-static bool_t IsProcessingInstruction(const char* target, const char* data);
+static bool_t IsProcessingInstruction(const char_t* target, const char_t* data);
 
 /*************************************************************************************************/
 /**
  * \brief Allocates a copy of a null-terminated string.
  */
-static char* CopyString(const char* text);
+static char_t* CopyString(const char_t* text, uint32_t maximum);
 
 /*************************************************************************************************/
 /**
  * \brief Allocates a detached node with copied name and value.
  */
-static Utl_Xml_Node_t* AllocateNode(Utl_Xml_NodeType_t type, const char* name, const char* value);
+static Utl_Xml_Node_t* AllocateNode(Utl_Xml_NodeType_t type, const char_t* name, const char_t* value);
 
 /*************************************************************************************************/
 /**
@@ -94,13 +115,19 @@ static void FreeNode(Utl_Xml_Node_t* node);
 /**
  * \brief Finds an element attribute by case-sensitive name.
  */
-static Utl_Xml_Attribute_t* FindAttribute(const Utl_Xml_Node_t* node, const char* name);
+static Utl_Xml_Attribute_t* FindAttribute(const Utl_Xml_Node_t* node, const char_t* name);
 
 /*************************************************************************************************/
 /**
  * \brief Checks whether candidate is node or an ancestor of node.
  */
 static bool_t IsAncestor(const Utl_Xml_Node_t* candidate, const Utl_Xml_Node_t* node);
+
+/*************************************************************************************************/
+/**
+ * \brief Finds the root of a bounded connected tree.
+ */
+static Utl_Xml_Node_t* FindRoot(Utl_Xml_Node_t* node);
 
 /*=================================================================================================
 ** 4. PRIVATE FUNCTIONS
@@ -109,19 +136,45 @@ static bool_t IsAncestor(const Utl_Xml_Node_t* candidate, const Utl_Xml_Node_t* 
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  Checks at most maximum + 1 bytes, including the terminator position.
+ */
+static bool_t GetBoundedLength(const char_t* text, uint32_t maximum, uint32_t* length)
+{
+    uint32_t index;
+
+    for (index = 0; index <= maximum; ++index)
+    {
+        if ('\0' == text[index])
+        {
+            (*length) = index;
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Rejects truncated sequences, overlong forms, surrogates, and code points above U+10FFFF.
  */
-static bool_t DecodeUtf8(const byte_t** cursor, uint32_t* codePoint)
+static bool_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t* offset, uint32_t* codePoint)
 {
-    const byte_t* current;
     byte_t        first;
     uint32_t             decoded;
     uint32_t             minimum;
     uint32_t             num_continuations;
     uint32_t             index;
+    uint32_t             position;
 
-    current = *cursor;
-    first   = *current;
+    if ((*offset) >= numBytes)
+    {
+        return FALSE;
+    }
+
+    position = (*offset);
+    first    = bytes[position];
 
     if (first <= 0x7F)
     {
@@ -154,14 +207,14 @@ static bool_t DecodeUtf8(const byte_t** cursor, uint32_t* codePoint)
 
     for (index = 0; index < num_continuations; ++index)
     {
-        ++current;
+        ++position;
 
-        if ((0 == *current) || (0x80 != (*current & 0xC0)))
+        if ((position >= numBytes) || (0x80 != (bytes[position] & 0xC0)))
         {
             return FALSE;
         }
 
-        decoded = (decoded << 6) | (*current & 0x3F);
+        decoded = (decoded << 6) | (bytes[position] & 0x3F);
     }
 
     if ((decoded < minimum) || (0x10FFFF < decoded) || ((0xD800 <= decoded) && (decoded <= 0xDFFF)))
@@ -169,8 +222,8 @@ static bool_t DecodeUtf8(const byte_t** cursor, uint32_t* codePoint)
         return FALSE;
     }
 
-    *codePoint = decoded;
-    *cursor    = current + 1;
+    (*codePoint) = decoded;
+    (*offset)    = position + 1;
     return TRUE;
 }
 
@@ -179,16 +232,25 @@ static bool_t DecodeUtf8(const byte_t** cursor, uint32_t* codePoint)
  * \par Details:
  *  Empty strings are permitted as text and attribute values.
  */
-static bool_t IsXmlString(const char* text)
+static bool_t IsXmlString(const char_t* text)
 {
-    const byte_t* cursor;
-    uint32_t             code_point;
+    const byte_t* bytes;
+    uint32_t      byte_count;
+    uint32_t      byte_offset;
+    uint32_t      code_point;
+    uint32_t      code_point_index;
 
-    cursor = (const byte_t*)text;
-
-    while (0 != *cursor)
+    if (FALSE == GetBoundedLength(text, UTL_XML_NODE_MAX_VALUE_BYTES, &byte_count))
     {
-        if (FALSE == DecodeUtf8(&cursor, &code_point))
+        return FALSE;
+    }
+
+    bytes       = (const byte_t*)text;
+    byte_offset = 0;
+
+    for (code_point_index = 0; (code_point_index < byte_count) && (byte_offset < byte_count); ++code_point_index)
+    {
+        if (FALSE == DecodeUtf8(bytes, byte_count, &byte_offset, &code_point))
         {
             return FALSE;
         }
@@ -199,7 +261,7 @@ static bool_t IsXmlString(const char* text)
         }
     }
 
-    return TRUE;
+    return (byte_offset == byte_count);
 }
 
 /*************************************************************************************************/
@@ -207,42 +269,48 @@ static bool_t IsXmlString(const char* text)
  * \par Details:
  *  Uses the existing XML 1.0 NameStartChar and NameChar classifiers.
  */
-static bool_t IsName(const char* text)
+static bool_t IsName(const char_t* text)
 {
-    const byte_t* cursor;
-    uint32_t             code_point;
+    const byte_t* bytes;
+    uint32_t      byte_count;
+    uint32_t      byte_offset;
+    uint32_t      code_point;
+    uint32_t      code_point_index;
 
-    cursor = (const byte_t*)text;
-
-    if (0 == *cursor)
+    if (FALSE == GetBoundedLength(text, UTL_XML_NODE_MAX_NAME_BYTES, &byte_count))
     {
         return FALSE;
     }
 
-    if (FALSE == DecodeUtf8(&cursor, &code_point))
+    if (0 == byte_count)
     {
         return FALSE;
     }
 
-    if (FALSE == Utl_Xml_IsNameStartChar(code_point))
-    {
-        return FALSE;
-    }
+    bytes       = (const byte_t*)text;
+    byte_offset = 0;
 
-    while (0 != *cursor)
+    for (code_point_index = 0; (code_point_index < byte_count) && (byte_offset < byte_count); ++code_point_index)
     {
-        if (FALSE == DecodeUtf8(&cursor, &code_point))
+        if (FALSE == DecodeUtf8(bytes, byte_count, &byte_offset, &code_point))
         {
             return FALSE;
         }
 
-        if (FALSE == Utl_Xml_IsNameChar(code_point))
+        if (0 == code_point_index)
+        {
+            if (FALSE == Utl_Xml_IsNameStartChar(code_point))
+            {
+                return FALSE;
+            }
+        }
+        else if (FALSE == Utl_Xml_IsNameChar(code_point))
         {
             return FALSE;
         }
     }
 
-    return TRUE;
+    return (byte_offset == byte_count);
 }
 
 /*************************************************************************************************/
@@ -250,21 +318,29 @@ static bool_t IsName(const char* text)
  * \par Details:
  *  XML 1.0 production [15] disallows "--" within the content and a final '-'.
  */
-static bool_t IsComment(const char* text)
+static bool_t IsComment(const char_t* text)
 {
-    size_t length;
+    uint32_t length;
+    uint32_t index;
+
+    if (FALSE == GetBoundedLength(text, UTL_XML_NODE_MAX_VALUE_BYTES, &length))
+    {
+        return FALSE;
+    }
 
     if (FALSE == IsXmlString(text))
     {
         return FALSE;
     }
 
-    if (NULL != strstr(text, "--"))
+    for (index = 0; index + 1 < length; ++index)
     {
-        return FALSE;
+        if (('-' == text[index]) && ('-' == text[index + 1]))
+        {
+            return FALSE;
+        }
     }
 
-    length = strlen(text);
     return (0 == length) || ('-' != text[length - 1]);
 }
 
@@ -273,16 +349,24 @@ static bool_t IsComment(const char* text)
  * \par Details:
  *  XML 1.0 productions [16] and [17] reserve all case spellings of "xml" as PI targets.
  */
-static bool_t IsProcessingInstruction(const char* target, const char* data)
+static bool_t IsProcessingInstruction(const char_t* target, const char_t* data)
 {
-    bool_t is_xml_target;
+    bool_t   is_xml_target;
+    uint32_t target_length;
+    uint32_t data_length;
+    uint32_t index;
 
     if (FALSE == IsName(target))
     {
         return FALSE;
     }
 
-    is_xml_target = (3 == strlen(target)) &&
+    if (FALSE == GetBoundedLength(target, UTL_XML_NODE_MAX_NAME_BYTES, &target_length))
+    {
+        return FALSE;
+    }
+
+    is_xml_target = (3 == target_length) &&
                     (('x' == target[0]) || ('X' == target[0])) &&
                     (('m' == target[1]) || ('M' == target[1])) &&
                     (('l' == target[2]) || ('L' == target[2]));
@@ -292,7 +376,25 @@ static bool_t IsProcessingInstruction(const char* target, const char* data)
         return FALSE;
     }
 
-    return IsXmlString(data) && (NULL == strstr(data, "?>"));
+    if (FALSE == GetBoundedLength(data, UTL_XML_NODE_MAX_VALUE_BYTES, &data_length))
+    {
+        return FALSE;
+    }
+
+    if (FALSE == IsXmlString(data))
+    {
+        return FALSE;
+    }
+
+    for (index = 0; index + 1 < data_length; ++index)
+    {
+        if (('?' == data[index]) && ('>' == data[index + 1]))
+        {
+            return FALSE;
+        }
+    }
+
+    return TRUE;
 }
 
 /*************************************************************************************************/
@@ -300,23 +402,21 @@ static bool_t IsProcessingInstruction(const char* target, const char* data)
  * \par Details:
  *  A NULL return indicates allocation failure.
  */
-static char* CopyString(const char* text)
+static char_t* CopyString(const char_t* text, uint32_t maximum)
 {
-    char*  copy;
-    size_t length;
+    char_t*  copy;
+    uint32_t length;
 
-    length = strlen(text);
-
-    if (SIZE_MAX == length)
+    if (FALSE == GetBoundedLength(text, maximum, &length))
     {
         return NULL;
     }
 
-    copy = (char*)malloc(length + 1);
+    copy = (char_t*)malloc((size_t)length + 1u);
 
     if (NULL != copy)
     {
-        (void)memcpy(copy, text, length + 1);
+        (void)memcpy(copy, text, (size_t)length + 1u);
     }
 
     return copy;
@@ -327,22 +427,23 @@ static char* CopyString(const char* text)
  * \par Details:
  *  The caller validates name and value before allocating.
  */
-static Utl_Xml_Node_t* AllocateNode(Utl_Xml_NodeType_t type, const char* name, const char* value)
+static Utl_Xml_Node_t* AllocateNode(Utl_Xml_NodeType_t type, const char_t* name, const char_t* value)
 {
     Utl_Xml_Node_t* node;
 
-    node = (Utl_Xml_Node_t*)calloc(1, sizeof(*node));
+    node = (Utl_Xml_Node_t*)calloc(1, sizeof((*node)));
 
     if (NULL == node)
     {
         return NULL;
     }
 
-    node->type = type;
+    node->type         = type;
+    node->subtreeCount = 1;
 
     if (NULL != name)
     {
-        node->name = CopyString(name);
+        node->name = CopyString(name, UTL_XML_NODE_MAX_NAME_BYTES);
 
         if (NULL == node->name)
         {
@@ -353,7 +454,7 @@ static Utl_Xml_Node_t* AllocateNode(Utl_Xml_NodeType_t type, const char* name, c
 
     if (NULL != value)
     {
-        node->value = CopyString(value);
+        node->value = CopyString(value, UTL_XML_NODE_MAX_VALUE_BYTES);
 
         if (NULL == node->value)
         {
@@ -375,11 +476,14 @@ static void FreeNode(Utl_Xml_Node_t* node)
 {
     Utl_Xml_Attribute_t* attribute;
     Utl_Xml_Attribute_t* next_attribute;
+    uint32_t             attribute_index;
 
     attribute = node->firstAttribute;
+    LOGASSERT(node->attributeCount <= UTL_XML_NODE_MAX_ATTRIBUTES);
 
-    while (NULL != attribute)
+    for (attribute_index = 0; attribute_index < node->attributeCount; ++attribute_index)
     {
+        LOGASSERT(NULL != attribute);
         next_attribute = attribute->next;
         free(attribute->name);
         free(attribute->value);
@@ -387,6 +491,7 @@ static void FreeNode(Utl_Xml_Node_t* node)
         attribute = next_attribute;
     }
 
+    LOGASSERT(NULL == attribute);
     free(node->name);
     free(node->value);
     free(node);
@@ -397,15 +502,19 @@ static void FreeNode(Utl_Xml_Node_t* node)
  * \par Details:
  *  Attribute names are compared without case folding or normalization.
  */
-static Utl_Xml_Attribute_t* FindAttribute(const Utl_Xml_Node_t* node, const char* name)
+static Utl_Xml_Attribute_t* FindAttribute(const Utl_Xml_Node_t* node, const char_t* name)
 {
     Utl_Xml_Attribute_t* attribute;
+    uint32_t             attribute_index;
 
     attribute = node->firstAttribute;
+    LOGASSERT(node->attributeCount <= UTL_XML_NODE_MAX_ATTRIBUTES);
 
-    while (NULL != attribute)
+    for (attribute_index = 0; attribute_index < node->attributeCount; ++attribute_index)
     {
-        if (0 == strcmp(attribute->name, name))
+        LOGASSERT(NULL != attribute);
+
+        if (0 == strncmp(attribute->name, name, UTL_XML_NODE_MAX_NAME_BYTES + 1u))
         {
             return attribute;
         }
@@ -413,6 +522,7 @@ static Utl_Xml_Attribute_t* FindAttribute(const Utl_Xml_Node_t* node, const char
         attribute = attribute->next;
     }
 
+    LOGASSERT(NULL == attribute);
     return NULL;
 }
 
@@ -424,10 +534,11 @@ static Utl_Xml_Attribute_t* FindAttribute(const Utl_Xml_Node_t* node, const char
 static bool_t IsAncestor(const Utl_Xml_Node_t* candidate, const Utl_Xml_Node_t* node)
 {
     const Utl_Xml_Node_t* current;
+    uint32_t              node_index;
 
     current = node;
 
-    while (NULL != current)
+    for (node_index = 0; (node_index < UTL_XML_NODE_MAX_NODES) && (NULL != current); ++node_index)
     {
         if (candidate == current)
         {
@@ -437,7 +548,34 @@ static bool_t IsAncestor(const Utl_Xml_Node_t* candidate, const Utl_Xml_Node_t* 
         current = current->parent;
     }
 
+    LOGASSERT(NULL == current);
     return FALSE;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The public tree limit bounds every parent traversal.
+ */
+static Utl_Xml_Node_t* FindRoot(Utl_Xml_Node_t* node)
+{
+    Utl_Xml_Node_t* current;
+    uint32_t        node_index;
+
+    current = node;
+
+    for (node_index = 0; node_index < UTL_XML_NODE_MAX_NODES; ++node_index)
+    {
+        if (NULL == current->parent)
+        {
+            return current;
+        }
+
+        current = current->parent;
+    }
+
+    LOGASSERT(FALSE);
+    return NULL;
 }
 
 /*=================================================================================================
@@ -449,7 +587,7 @@ static bool_t IsAncestor(const Utl_Xml_Node_t* candidate, const Utl_Xml_Node_t* 
  * \par Details:
  *  None
  */
-Utl_Xml_Node_t* Utl_Xml_Node_CreateElement(const char* name)
+Utl_Xml_Node_t* Utl_Xml_Node_CreateElement(const char_t* name)
 {
     LOGASSERT(NULL != name);
     return (TRUE == IsName(name)) ? AllocateNode(UTL_XML_NODE_ELEMENT, name, NULL) : NULL;
@@ -460,7 +598,7 @@ Utl_Xml_Node_t* Utl_Xml_Node_CreateElement(const char* name)
  * \par Details:
  *  None
  */
-Utl_Xml_Node_t* Utl_Xml_Node_CreateText(const char* text)
+Utl_Xml_Node_t* Utl_Xml_Node_CreateText(const char_t* text)
 {
     LOGASSERT(NULL != text);
     return (TRUE == IsXmlString(text)) ? AllocateNode(UTL_XML_NODE_TEXT, NULL, text) : NULL;
@@ -471,7 +609,7 @@ Utl_Xml_Node_t* Utl_Xml_Node_CreateText(const char* text)
  * \par Details:
  *  None
  */
-Utl_Xml_Node_t* Utl_Xml_Node_CreateComment(const char* text)
+Utl_Xml_Node_t* Utl_Xml_Node_CreateComment(const char_t* text)
 {
     LOGASSERT(NULL != text);
     return (TRUE == IsComment(text)) ? AllocateNode(UTL_XML_NODE_COMMENT, NULL, text) : NULL;
@@ -482,7 +620,7 @@ Utl_Xml_Node_t* Utl_Xml_Node_CreateComment(const char* text)
  * \par Details:
  *  None
  */
-Utl_Xml_Node_t* Utl_Xml_Node_CreateProcessingInstruction(const char* target, const char* data)
+Utl_Xml_Node_t* Utl_Xml_Node_CreateProcessingInstruction(const char_t* target, const char_t* data)
 {
     LOGASSERT(NULL != target);
     LOGASSERT(NULL != data);
@@ -498,12 +636,16 @@ void Utl_Xml_Node_Destroy(Utl_Xml_Node_t* node)
 {
     Utl_Xml_Node_t* current;
     Utl_Xml_Node_t* parent;
+    uint32_t        node_count;
+    uint32_t        visit_index;
 
     LOGASSERT(NULL != node);
+    node_count = node->subtreeCount;
+    LOGASSERT((0 < node_count) && (node_count <= UTL_XML_NODE_MAX_NODES));
     Utl_Xml_Node_Detach(node);
     current = node;
 
-    while (NULL != current)
+    for (visit_index = 0; (visit_index < (2u * node_count)) && (NULL != current); ++visit_index)
     {
         if (NULL != current->firstChild)
         {
@@ -531,6 +673,8 @@ void Utl_Xml_Node_Destroy(Utl_Xml_Node_t* node)
             current = parent;
         }
     }
+
+    LOGASSERT(NULL == current);
 }
 
 /*************************************************************************************************/
@@ -538,9 +682,9 @@ void Utl_Xml_Node_Destroy(Utl_Xml_Node_t* node)
  * \par Details:
  *  None
  */
-bool_t Utl_Xml_Node_SetName(Utl_Xml_Node_t* node, const char* name)
+bool_t Utl_Xml_Node_SetName(Utl_Xml_Node_t* node, const char_t* name)
 {
-    char* copy;
+    char_t* copy;
 
     LOGASSERT(NULL != node);
     LOGASSERT(NULL != name);
@@ -558,7 +702,7 @@ bool_t Utl_Xml_Node_SetName(Utl_Xml_Node_t* node, const char* name)
         return FALSE;
     }
 
-    copy = CopyString(name);
+    copy = CopyString(name, UTL_XML_NODE_MAX_NAME_BYTES);
 
     if (NULL == copy)
     {
@@ -575,10 +719,10 @@ bool_t Utl_Xml_Node_SetName(Utl_Xml_Node_t* node, const char* name)
  * \par Details:
  *  None
  */
-bool_t Utl_Xml_Node_SetValue(Utl_Xml_Node_t* node, const char* value)
+bool_t Utl_Xml_Node_SetValue(Utl_Xml_Node_t* node, const char_t* value)
 {
     bool_t valid;
-    char*  copy;
+    char_t*  copy;
 
     LOGASSERT(NULL != node);
     LOGASSERT(NULL != value);
@@ -604,7 +748,7 @@ bool_t Utl_Xml_Node_SetValue(Utl_Xml_Node_t* node, const char* value)
         return FALSE;
     }
 
-    copy = CopyString(value);
+    copy = CopyString(value, UTL_XML_NODE_MAX_VALUE_BYTES);
 
     if (NULL == copy)
     {
@@ -633,6 +777,11 @@ bool_t Utl_Xml_Node_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child)
  */
 bool_t Utl_Xml_Node_InsertBefore(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child, Utl_Xml_Node_t* beforeSibling)
 {
+    Utl_Xml_Node_t* target_root;
+    Utl_Xml_Node_t* source_root;
+    Utl_Xml_Node_t* ancestor;
+    uint32_t        ancestor_index;
+
     LOGASSERT(NULL != parent);
     LOGASSERT(NULL != child);
     LOGASSERT(UTL_XML_NODE_ELEMENT == parent->type);
@@ -652,8 +801,29 @@ bool_t Utl_Xml_Node_InsertBefore(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child, 
         return TRUE;
     }
 
+    target_root = FindRoot(parent);
+    source_root = FindRoot(child);
+    LOGASSERT((0 < target_root->subtreeCount) && (target_root->subtreeCount <= UTL_XML_NODE_MAX_NODES));
+    LOGASSERT((0 < child->subtreeCount) && (child->subtreeCount <= UTL_XML_NODE_MAX_NODES));
+
+    if ((target_root != source_root) && (child->subtreeCount > UTL_XML_NODE_MAX_NODES - target_root->subtreeCount))
+    {
+        return FALSE;
+    }
+
     Utl_Xml_Node_Detach(child);
     child->parent = parent;
+
+    ancestor = parent;
+
+    for (ancestor_index = 0; (ancestor_index < UTL_XML_NODE_MAX_NODES) && (NULL != ancestor); ++ancestor_index)
+    {
+        LOGASSERT(ancestor->subtreeCount <= UTL_XML_NODE_MAX_NODES - child->subtreeCount);
+        ancestor->subtreeCount += child->subtreeCount;
+        ancestor = ancestor->parent;
+    }
+
+    LOGASSERT(NULL == ancestor);
 
     if (NULL == beforeSibling)
     {
@@ -697,6 +867,8 @@ bool_t Utl_Xml_Node_InsertBefore(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child, 
 void Utl_Xml_Node_Detach(Utl_Xml_Node_t* node)
 {
     Utl_Xml_Node_t* parent;
+    Utl_Xml_Node_t* ancestor;
+    uint32_t        ancestor_index;
 
     LOGASSERT(NULL != node);
     parent = node->parent;
@@ -705,6 +877,17 @@ void Utl_Xml_Node_Detach(Utl_Xml_Node_t* node)
     {
         return;
     }
+
+    ancestor = parent;
+
+    for (ancestor_index = 0; (ancestor_index < UTL_XML_NODE_MAX_NODES) && (NULL != ancestor); ++ancestor_index)
+    {
+        LOGASSERT(node->subtreeCount <= ancestor->subtreeCount);
+        ancestor->subtreeCount -= node->subtreeCount;
+        ancestor = ancestor->parent;
+    }
+
+    LOGASSERT(NULL == ancestor);
 
     if (NULL != node->previousSibling)
     {
@@ -734,7 +917,7 @@ void Utl_Xml_Node_Detach(Utl_Xml_Node_t* node)
  * \par Details:
  *  Adds only after all validation and allocation have succeeded.
  */
-bool_t Utl_Xml_Node_AddAttribute(Utl_Xml_Node_t* node, const char* name, const char* value)
+bool_t Utl_Xml_Node_AddAttribute(Utl_Xml_Node_t* node, const char_t* name, const char_t* value)
 {
     Utl_Xml_Attribute_t* attribute;
 
@@ -743,20 +926,21 @@ bool_t Utl_Xml_Node_AddAttribute(Utl_Xml_Node_t* node, const char* name, const c
     LOGASSERT(NULL != value);
     LOGASSERT(UTL_XML_NODE_ELEMENT == node->type);
 
-    if ((FALSE == IsName(name)) || (FALSE == IsXmlString(value)) || (NULL != FindAttribute(node, name)))
+    if ((FALSE == IsName(name)) || (FALSE == IsXmlString(value)) ||
+        (UTL_XML_NODE_MAX_ATTRIBUTES <= node->attributeCount) || (NULL != FindAttribute(node, name)))
     {
         return FALSE;
     }
 
-    attribute = (Utl_Xml_Attribute_t*)calloc(1, sizeof(*attribute));
+    attribute = (Utl_Xml_Attribute_t*)calloc(1, sizeof((*attribute)));
 
     if (NULL == attribute)
     {
         return FALSE;
     }
 
-    attribute->name  = CopyString(name);
-    attribute->value = CopyString(value);
+    attribute->name  = CopyString(name, UTL_XML_NODE_MAX_NAME_BYTES);
+    attribute->value = CopyString(value, UTL_XML_NODE_MAX_VALUE_BYTES);
 
     if ((NULL == attribute->name) || (NULL == attribute->value))
     {
@@ -776,6 +960,7 @@ bool_t Utl_Xml_Node_AddAttribute(Utl_Xml_Node_t* node, const char* name, const c
     }
 
     node->lastAttribute = attribute;
+    ++node->attributeCount;
     return TRUE;
 }
 
@@ -784,10 +969,10 @@ bool_t Utl_Xml_Node_AddAttribute(Utl_Xml_Node_t* node, const char* name, const c
  * \par Details:
  *  Replacing a value does not change attribute order.
  */
-bool_t Utl_Xml_Node_SetAttribute(Utl_Xml_Node_t* node, const char* name, const char* value)
+bool_t Utl_Xml_Node_SetAttribute(Utl_Xml_Node_t* node, const char_t* name, const char_t* value)
 {
     Utl_Xml_Attribute_t* attribute;
-    char*                copy;
+    char_t*                copy;
 
     LOGASSERT(NULL != node);
     LOGASSERT(NULL != name);
@@ -806,7 +991,7 @@ bool_t Utl_Xml_Node_SetAttribute(Utl_Xml_Node_t* node, const char* name, const c
         return Utl_Xml_Node_AddAttribute(node, name, value);
     }
 
-    copy = CopyString(value);
+    copy = CopyString(value, UTL_XML_NODE_MAX_VALUE_BYTES);
 
     if (NULL == copy)
     {
@@ -823,10 +1008,11 @@ bool_t Utl_Xml_Node_SetAttribute(Utl_Xml_Node_t* node, const char* name, const c
  * \par Details:
  *  None
  */
-bool_t Utl_Xml_Node_RemoveAttribute(Utl_Xml_Node_t* node, const char* name)
+bool_t Utl_Xml_Node_RemoveAttribute(Utl_Xml_Node_t* node, const char_t* name)
 {
     Utl_Xml_Attribute_t* current;
     Utl_Xml_Attribute_t* previous;
+    uint32_t             attribute_index;
 
     LOGASSERT(NULL != node);
     LOGASSERT(NULL != name);
@@ -834,10 +1020,13 @@ bool_t Utl_Xml_Node_RemoveAttribute(Utl_Xml_Node_t* node, const char* name)
 
     current  = node->firstAttribute;
     previous = NULL;
+    LOGASSERT(node->attributeCount <= UTL_XML_NODE_MAX_ATTRIBUTES);
 
-    while (NULL != current)
+    for (attribute_index = 0; attribute_index < node->attributeCount; ++attribute_index)
     {
-        if (0 == strcmp(current->name, name))
+        LOGASSERT(NULL != current);
+
+        if (0 == strncmp(current->name, name, UTL_XML_NODE_MAX_NAME_BYTES + 1u))
         {
             if (NULL != previous)
             {
@@ -856,6 +1045,7 @@ bool_t Utl_Xml_Node_RemoveAttribute(Utl_Xml_Node_t* node, const char* name)
             free(current->name);
             free(current->value);
             free(current);
+            --node->attributeCount;
             return TRUE;
         }
 
@@ -863,6 +1053,7 @@ bool_t Utl_Xml_Node_RemoveAttribute(Utl_Xml_Node_t* node, const char* name)
         current  = current->next;
     }
 
+    LOGASSERT(NULL == current);
     return FALSE;
 }
 
@@ -871,7 +1062,7 @@ bool_t Utl_Xml_Node_RemoveAttribute(Utl_Xml_Node_t* node, const char* name)
  * \par Details:
  *  None
  */
-const char* Utl_Xml_Node_GetAttributeValue(const Utl_Xml_Node_t* node, const char* name)
+const char_t* Utl_Xml_Node_GetAttributeValue(const Utl_Xml_Node_t* node, const char_t* name)
 {
     Utl_Xml_Attribute_t* attribute;
 

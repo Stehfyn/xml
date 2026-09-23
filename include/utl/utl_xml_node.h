@@ -16,11 +16,18 @@
 
 #include "os/os_types.h"
 
+#include <stdint.h>
+
 /*=================================================================================================
 ** 3. DECLARATIONS
 **
 ** 3.1 Macros
 **===============================================================================================*/
+
+#define UTL_XML_NODE_MAX_NAME_BYTES  (1024u)    ///< Maximum UTF-8 bytes in an element, PI, or attribute name.
+#define UTL_XML_NODE_MAX_VALUE_BYTES (1048576u) ///< Maximum UTF-8 bytes in a text, comment, PI, or attribute value.
+#define UTL_XML_NODE_MAX_ATTRIBUTES  (256u)     ///< Maximum attributes on one element.
+#define UTL_XML_NODE_MAX_NODES       (65536u)   ///< Maximum nodes in one connected tree.
 
 /*=================================================================================================
 ** 3.2 Types
@@ -44,8 +51,8 @@ typedef enum Utl_Xml_NodeType_e
  */
 typedef struct Utl_Xml_Attribute_s
 {
-    char*                       name;  ///< Owned UTF-8 XML attribute name.
-    char*                       value; ///< Owned UTF-8 expanded attribute value.
+    char_t*                       name;  ///< Owned UTF-8 XML attribute name.
+    char_t*                       value; ///< Owned UTF-8 expanded attribute value.
     struct Utl_Xml_Attribute_s* next;  ///< Next attribute in insertion order, or NULL.
 } Utl_Xml_Attribute_t;
 
@@ -56,8 +63,8 @@ typedef struct Utl_Xml_Attribute_s
 typedef struct Utl_Xml_Node_s
 {
     Utl_Xml_NodeType_t     type;            ///< Element, text, comment, or processing instruction.
-    char*                  name;            ///< Owned UTF-8 element name or PI target; NULL otherwise.
-    char*                  value;           ///< Owned UTF-8 text, comment, or PI data; NULL for elements.
+    char_t*                  name;            ///< Owned UTF-8 element name or PI target; NULL otherwise.
+    char_t*                  value;           ///< Owned UTF-8 text, comment, or PI data; NULL for elements.
     struct Utl_Xml_Node_s* parent;          ///< Parent element, or NULL when detached.
     struct Utl_Xml_Node_s* previousSibling; ///< Previous child of parent, or NULL.
     struct Utl_Xml_Node_s* nextSibling;     ///< Next child of parent, or NULL.
@@ -65,6 +72,8 @@ typedef struct Utl_Xml_Node_s
     struct Utl_Xml_Node_s* lastChild;       ///< Last ordered child of an element, or NULL.
     Utl_Xml_Attribute_t*   firstAttribute;  ///< First attribute of an element, or NULL.
     Utl_Xml_Attribute_t*   lastAttribute;   ///< Last attribute of an element, or NULL.
+    uint32_t               attributeCount;  ///< Number of attributes on this element.
+    uint32_t               subtreeCount;    ///< Number of nodes in this subtree, including this node.
 } Utl_Xml_Node_t;
 
 /*=================================================================================================
@@ -85,15 +94,16 @@ typedef struct Utl_Xml_Node_s
  *
  * \par Requirements:
  *  - 001 This function shall accept only a complete UTF-8 XML 1.0 Name.
- *  - 002 This function shall copy name and return NULL for an invalid name or allocation failure.
- *  - 003 This function shall fail an assertion if name is NULL.
+ *  - 002 This function shall reject names longer than UTL_XML_NODE_MAX_NAME_BYTES.
+ *  - 003 This function shall copy name and return NULL for an invalid name or allocation failure.
+ *  - 004 This function shall fail an assertion if name is NULL.
  *
  * \param[in] name   Non-NULL null-terminated UTF-8 element name
  *
  * \retval Non-NULL   if the element was created.
  * \retval NULL       otherwise
  */
-Utl_Xml_Node_t* Utl_Xml_Node_CreateElement(const char* name);
+Utl_Xml_Node_t* Utl_Xml_Node_CreateElement(const char_t* name);
 
 /*************************************************************************************************/
 /**
@@ -101,15 +111,16 @@ Utl_Xml_Node_t* Utl_Xml_Node_CreateElement(const char* name);
  *
  * \par Requirements:
  *  - 001 This function shall accept only UTF-8 sequences of XML 1.0 Char values.
- *  - 002 This function shall copy text and return NULL for invalid text or allocation failure.
- *  - 003 This function shall fail an assertion if text is NULL.
+ *  - 002 This function shall reject text longer than UTL_XML_NODE_MAX_VALUE_BYTES.
+ *  - 003 This function shall copy text and return NULL for invalid text or allocation failure.
+ *  - 004 This function shall fail an assertion if text is NULL.
  *
  * \param[in] text   Non-NULL null-terminated UTF-8 expanded character data
  *
  * \retval Non-NULL   if the text node was created.
  * \retval NULL       otherwise
  */
-Utl_Xml_Node_t* Utl_Xml_Node_CreateText(const char* text);
+Utl_Xml_Node_t* Utl_Xml_Node_CreateText(const char_t* text);
 
 /*************************************************************************************************/
 /**
@@ -118,15 +129,16 @@ Utl_Xml_Node_t* Utl_Xml_Node_CreateText(const char* text);
  * \par Requirements:
  *  - 001 This function shall accept only UTF-8 sequences of XML 1.0 Char values.
  *  - 002 This function shall reject "--" and a final '-' in comment text.
- *  - 003 This function shall copy text and return NULL for invalid text or allocation failure.
- *  - 004 This function shall fail an assertion if text is NULL.
+ *  - 003 This function shall reject text longer than UTL_XML_NODE_MAX_VALUE_BYTES.
+ *  - 004 This function shall copy text and return NULL for invalid text or allocation failure.
+ *  - 005 This function shall fail an assertion if text is NULL.
  *
  * \param[in] text   Non-NULL null-terminated UTF-8 comment content
  *
  * \retval Non-NULL   if the comment was created.
  * \retval NULL       otherwise
  */
-Utl_Xml_Node_t* Utl_Xml_Node_CreateComment(const char* text);
+Utl_Xml_Node_t* Utl_Xml_Node_CreateComment(const char_t* text);
 
 /*************************************************************************************************/
 /**
@@ -135,8 +147,9 @@ Utl_Xml_Node_t* Utl_Xml_Node_CreateComment(const char* text);
  * \par Requirements:
  *  - 001 This function shall accept only a UTF-8 XML 1.0 Name target other than any case of "xml".
  *  - 002 This function shall reject invalid XML characters and "?>" in data.
- *  - 003 This function shall copy target and data, returning NULL for invalid input or allocation failure.
- *  - 004 This function shall fail an assertion if target or data is NULL.
+ *  - 003 This function shall enforce the name and value byte limits.
+ *  - 004 This function shall copy target and data, returning NULL for invalid input or allocation failure.
+ *  - 005 This function shall fail an assertion if target or data is NULL.
  *
  * \param[in] target   Non-NULL null-terminated UTF-8 target
  * \param[in] data     Non-NULL null-terminated UTF-8 instruction data
@@ -144,7 +157,7 @@ Utl_Xml_Node_t* Utl_Xml_Node_CreateComment(const char* text);
  * \retval Non-NULL   if the processing instruction was created.
  * \retval NULL       otherwise
  */
-Utl_Xml_Node_t* Utl_Xml_Node_CreateProcessingInstruction(const char* target, const char* data);
+Utl_Xml_Node_t* Utl_Xml_Node_CreateProcessingInstruction(const char_t* target, const char_t* data);
 
 /*************************************************************************************************/
 /**
@@ -168,8 +181,9 @@ void Utl_Xml_Node_Destroy(Utl_Xml_Node_t* node);
  * \par Requirements:
  *  - 001 This function shall accept only a complete UTF-8 XML 1.0 Name.
  *  - 002 This function shall reject every case of "xml" as a processing-instruction target.
- *  - 003 This function shall preserve the old name on invalid input or allocation failure.
- *  - 004 This function shall fail an assertion for NULL arguments or another node kind.
+ *  - 003 This function shall reject names longer than UTL_XML_NODE_MAX_NAME_BYTES.
+ *  - 004 This function shall preserve the old name on invalid input or allocation failure.
+ *  - 005 This function shall fail an assertion for NULL arguments or another node kind.
  *
  * \param[in,out] node   Element or processing instruction to change
  * \param[in]     name   Non-NULL null-terminated UTF-8 name
@@ -177,7 +191,7 @@ void Utl_Xml_Node_Destroy(Utl_Xml_Node_t* node);
  * \retval TRUE    if the name was set.
  * \retval FALSE   otherwise
  */
-bool_t Utl_Xml_Node_SetName(Utl_Xml_Node_t* node, const char* name);
+bool_t Utl_Xml_Node_SetName(Utl_Xml_Node_t* node, const char_t* name);
 
 /*************************************************************************************************/
 /**
@@ -186,8 +200,9 @@ bool_t Utl_Xml_Node_SetName(Utl_Xml_Node_t* node, const char* name);
  * \par Requirements:
  *  - 001 This function shall accept only UTF-8 sequences of XML 1.0 Char values.
  *  - 002 This function shall enforce the comment and processing-instruction delimiter restrictions.
- *  - 003 This function shall preserve the old value on invalid input or allocation failure.
- *  - 004 This function shall fail an assertion for NULL arguments or an element node.
+ *  - 003 This function shall reject values longer than UTL_XML_NODE_MAX_VALUE_BYTES.
+ *  - 004 This function shall preserve the old value on invalid input or allocation failure.
+ *  - 005 This function shall fail an assertion for NULL arguments or an element node.
  *
  * \param[in,out] node    Node to change
  * \param[in]     value   Non-NULL null-terminated UTF-8 value
@@ -195,7 +210,7 @@ bool_t Utl_Xml_Node_SetName(Utl_Xml_Node_t* node, const char* name);
  * \retval TRUE    if the value was set.
  * \retval FALSE   otherwise
  */
-bool_t Utl_Xml_Node_SetValue(Utl_Xml_Node_t* node, const char* value);
+bool_t Utl_Xml_Node_SetValue(Utl_Xml_Node_t* node, const char_t* value);
 
 /*************************************************************************************************/
 /**
@@ -203,7 +218,7 @@ bool_t Utl_Xml_Node_SetValue(Utl_Xml_Node_t* node, const char* value);
  *
  * \par Requirements:
  *  - 001 This function shall move an attached child from its old parent.
- *  - 002 This function shall reject cycles without modifying the tree.
+ *  - 002 This function shall reject cycles and connected trees larger than UTL_XML_NODE_MAX_NODES without modifying the tree.
  *  - 003 This function shall fail an assertion for NULL arguments or a non-element parent.
  *
  * \param[in,out] parent   Element receiving the child
@@ -220,7 +235,7 @@ bool_t Utl_Xml_Node_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child);
  *
  * \par Requirements:
  *  - 001 This function shall move an attached child from its old parent.
- *  - 002 This function shall reject cycles and invalid insertion positions without modifying the tree.
+ *  - 002 This function shall reject cycles, oversized trees, and invalid insertion positions without modifying the tree.
  *  - 003 This function shall fail an assertion for NULL parent or child, or a non-element parent.
  *
  * \param[in,out] parent          Element receiving the child
@@ -254,8 +269,9 @@ void Utl_Xml_Node_Detach(Utl_Xml_Node_t* node);
  * \par Requirements:
  *  - 001 This function shall accept only a UTF-8 XML 1.0 Name and XML 1.0 Char value.
  *  - 002 This function shall reject a duplicate case-sensitive name.
- *  - 003 This function shall preserve attributes on failure.
- *  - 004 This function shall fail an assertion for NULL arguments or a non-element node.
+ *  - 003 This function shall enforce the name, value, and UTL_XML_NODE_MAX_ATTRIBUTES limits.
+ *  - 004 This function shall preserve attributes on failure.
+ *  - 005 This function shall fail an assertion for NULL arguments or a non-element node.
  *
  * \param[in,out] node    Element receiving the attribute
  * \param[in]     name    Non-NULL null-terminated UTF-8 attribute name
@@ -264,7 +280,7 @@ void Utl_Xml_Node_Detach(Utl_Xml_Node_t* node);
  * \retval TRUE    if the attribute was added.
  * \retval FALSE   if invalid, duplicate, or allocation failed
  */
-bool_t Utl_Xml_Node_AddAttribute(Utl_Xml_Node_t* node, const char* name, const char* value);
+bool_t Utl_Xml_Node_AddAttribute(Utl_Xml_Node_t* node, const char_t* name, const char_t* value);
 
 /*************************************************************************************************/
 /**
@@ -273,8 +289,9 @@ bool_t Utl_Xml_Node_AddAttribute(Utl_Xml_Node_t* node, const char* name, const c
  * \par Requirements:
  *  - 001 This function shall accept only a UTF-8 XML 1.0 Name and XML 1.0 Char value.
  *  - 002 This function shall preserve insertion order when replacing a value.
- *  - 003 This function shall preserve attributes on failure.
- *  - 004 This function shall fail an assertion for NULL arguments or a non-element node.
+ *  - 003 This function shall enforce the name, value, and UTL_XML_NODE_MAX_ATTRIBUTES limits.
+ *  - 004 This function shall preserve attributes on failure.
+ *  - 005 This function shall fail an assertion for NULL arguments or a non-element node.
  *
  * \param[in,out] node    Element receiving the attribute
  * \param[in]     name    Non-NULL null-terminated UTF-8 attribute name
@@ -283,7 +300,7 @@ bool_t Utl_Xml_Node_AddAttribute(Utl_Xml_Node_t* node, const char* name, const c
  * \retval TRUE    if the attribute was set.
  * \retval FALSE   if invalid or allocation failed
  */
-bool_t Utl_Xml_Node_SetAttribute(Utl_Xml_Node_t* node, const char* name, const char* value);
+bool_t Utl_Xml_Node_SetAttribute(Utl_Xml_Node_t* node, const char_t* name, const char_t* value);
 
 /*************************************************************************************************/
 /**
@@ -299,7 +316,7 @@ bool_t Utl_Xml_Node_SetAttribute(Utl_Xml_Node_t* node, const char* name, const c
  * \retval TRUE    if the attribute was removed.
  * \retval FALSE   if it was absent
  */
-bool_t Utl_Xml_Node_RemoveAttribute(Utl_Xml_Node_t* node, const char* name);
+bool_t Utl_Xml_Node_RemoveAttribute(Utl_Xml_Node_t* node, const char_t* name);
 
 /*************************************************************************************************/
 /**
@@ -314,6 +331,6 @@ bool_t Utl_Xml_Node_RemoveAttribute(Utl_Xml_Node_t* node, const char* name);
  *
  * \return Node-owned UTF-8 value or NULL
  */
-const char* Utl_Xml_Node_GetAttributeValue(const Utl_Xml_Node_t* node, const char* name);
+const char_t* Utl_Xml_Node_GetAttributeValue(const Utl_Xml_Node_t* node, const char_t* name);
 
 #endif /* UTL_XML_NODE_H */
