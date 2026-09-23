@@ -194,11 +194,11 @@ bool_t Utl_Xml_IsNameChar(uint32_t codePoint);
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-Name
  *
  * \par Requirements:
- *  - 001 This function shall fail separate assertions if codePoints is NULL or numCodePoints is zero.
- *  - 002 This function shall return TRUE only for XML 1.0 section 2.3, production [5] Name: a NameStartChar followed by zero or more NameChar values.
- *  - 003 This function shall check exactly numCodePoints values, require no terminator, and reject zero within the span.
- *  - 004 This function shall check Name syntax without namespace constraints or reserved-name policy.
- *  - 005 This function shall leave the input span unchanged.
+ *  - 001 This function shall return TRUE only for XML 1.0 section 2.3, production [5] Name: a NameStartChar followed by zero or more NameChar values.
+ *  - 002 This function shall check exactly numCodePoints values, require no terminator, and reject zero within the span.
+ *  - 003 This function shall check Name syntax without namespace constraints or reserved-name policy.
+ *  - 004 This function shall fail an assertion if codePoints is NULL.
+ *  - 005 This function shall fail an assertion if numCodePoints is zero.
  *
  * \param[in] codePoints      Non-NULL array of at least numCodePoints decoded Unicode code points
  * \param[in] numCodePoints   Nonzero number of code points in the span
@@ -217,11 +217,11 @@ bool_t Utl_Xml_IsName(const uint32_t* codePoints, uint32_t numCodePoints);
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-Nmtoken
  *
  * \par Requirements:
- *  - 001 This function shall fail separate assertions if codePoints is NULL or numCodePoints is zero.
- *  - 002 This function shall return TRUE only for XML 1.0 section 2.3, production [7] Nmtoken: one or more NameChar values.
- *  - 003 This function shall allow any NameChar first, without requiring NameStartChar.
- *  - 004 This function shall check exactly numCodePoints values, require no terminator, and reject zero within the span.
- *  - 005 This function shall leave the input span unchanged.
+ *  - 001 This function shall return TRUE only for XML 1.0 section 2.3, production [7] Nmtoken: one or more NameChar values.
+ *  - 002 This function shall allow any NameChar first, without requiring NameStartChar.
+ *  - 003 This function shall check exactly numCodePoints values, require no terminator, and reject zero within the span.
+ *  - 004 This function shall fail an assertion if codePoints is NULL.
+ *  - 005 This function shall fail an assertion if numCodePoints is zero.
  *
  * \param[in] codePoints      Non-NULL array of at least numCodePoints decoded Unicode code points
  * \param[in] numCodePoints   Nonzero number of code points in the span
