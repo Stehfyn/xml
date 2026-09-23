@@ -79,9 +79,14 @@ static const XmlCodePointRange_t c_xmlNameStartRanges[] =
  */
 bool_t Utl_Xml_IsChar(uint32_t codePoint)
 {
-    return (codePoint == (uint32_t)UTL_XML_CHAR_TAB) || (codePoint == (uint32_t)UTL_XML_CHAR_LF) || (codePoint == (uint32_t)UTL_XML_CHAR_CR) ||
-           ((codePoint >= (uint32_t)0x20) && (codePoint <= (uint32_t)0xD7FF)) || ((codePoint >= (uint32_t)0xE000) && (codePoint <= (uint32_t)0xFFFD)) ||
-           ((codePoint >= (uint32_t)0x10000) && (codePoint <= (uint32_t)0x10FFFF));
+    bool_t is_tab                   = (UTL_XML_CHAR_TAB == codePoint);
+    bool_t is_line_feed             = (UTL_XML_CHAR_LF == codePoint);
+    bool_t is_carriage_return       = (UTL_XML_CHAR_CR == codePoint);
+    bool_t is_bmp_before_surrogates = ((0x20 <= codePoint) && (codePoint <= 0xD7FF));
+    bool_t is_bmp_after_surrogates  = ((0xE000 <= codePoint) && (codePoint <= 0xFFFD));
+    bool_t is_supplementary         = ((0x10000 <= codePoint) && (codePoint <= 0x10FFFF));
+
+    return is_tab || is_line_feed || is_carriage_return || is_bmp_before_surrogates || is_bmp_after_surrogates || is_supplementary;
 }
 
 /*************************************************************************************************/
@@ -126,8 +131,15 @@ bool_t Utl_Xml_IsNameStartChar(uint32_t codePoint)
  */
 bool_t Utl_Xml_IsNameChar(uint32_t codePoint)
 {
-    return (Utl_Xml_IsNameStartChar(codePoint)) || (codePoint == (uint32_t)0x2D) || (codePoint == (uint32_t)0x2E) || ((codePoint >= (uint32_t)0x30) && (codePoint <= (uint32_t)0x39)) ||
-           (codePoint == (uint32_t)0xB7) || ((codePoint >= (uint32_t)0x300) && (codePoint <= (uint32_t)0x36F)) || ((codePoint >= (uint32_t)0x203F) && (codePoint <= (uint32_t)0x2040));
+    bool_t is_name_start_char       = Utl_Xml_IsNameStartChar(codePoint);
+    bool_t is_hyphen                = ('-' == codePoint);
+    bool_t is_period                = ('.' == codePoint);
+    bool_t is_digit                 = (('0' <= codePoint) && (codePoint <= '9'));
+    bool_t is_middle_dot            = (0xB7 == codePoint);
+    bool_t is_combining_mark        = ((0x300 <= codePoint) && (codePoint <= 0x36F));
+    bool_t is_connector_punctuation = ((0x203F <= codePoint) && (codePoint <= 0x2040));
+
+    return is_name_start_char || is_hyphen || is_period || is_digit || is_middle_dot || is_combining_mark || is_connector_punctuation;
 }
 
 /*************************************************************************************************/
