@@ -11,7 +11,7 @@
 typedef struct Os_MessageBuilder
 {
     FILE*  stream;
-    char*  buffer;
+    char_t* buffer;
     size_t capacity;
     size_t length;
     bool_t truncated;
@@ -20,9 +20,9 @@ typedef struct Os_MessageBuilder
 /** Begin/end must be paired on the same thread. Appends never interpret format specifiers. */
 void Os_MessageBuilder_Begin(Os_MessageBuilder_t* pMessage, FILE* pStream);
 /** Buffer output is always terminated when capacity is nonzero; truncation sets the truncated field. */
-void Os_MessageBuilder_BeginBuffer(Os_MessageBuilder_t* pMessage, char* pBuffer, size_t capacity);
+void Os_MessageBuilder_BeginBuffer(Os_MessageBuilder_t* pMessage, char_t* pBuffer, size_t capacity);
 void Os_MessageBuilder_End(Os_MessageBuilder_t* pMessage);
-void Os_MessageBuilder_AppendString(Os_MessageBuilder_t* pMessage, const char* pString);
+void Os_MessageBuilder_AppendString(Os_MessageBuilder_t* pMessage, const char_t* pString);
 /** Converts Unicode wide strings to UTF-8, replacing invalid code points with U+FFFD. */
 void Os_MessageBuilder_AppendWideString(Os_MessageBuilder_t* pMessage, const wchar_t* pString);
 void Os_MessageBuilder_AppendInt(Os_MessageBuilder_t* pMessage, int64_t value);

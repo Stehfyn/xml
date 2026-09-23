@@ -8,9 +8,9 @@
 #include <stddef.h>
 #include <string.h>
 
-static const char c_decimalDigits[]  = "0123456789";
-static const char c_lowerHexDigits[] = "0123456789abcdef";
-static const char c_upperHexDigits[] = "0123456789ABCDEF";
+static const char_t c_decimalDigits[]  = "0123456789";
+static const char_t c_lowerHexDigits[] = "0123456789abcdef";
+static const char_t c_upperHexDigits[] = "0123456789ABCDEF";
 
 static void AppendCharacter(Os_MessageBuilder_t* pMessage, int character)
 {
@@ -20,7 +20,7 @@ static void AppendCharacter(Os_MessageBuilder_t* pMessage, int character)
     }
     else if (pMessage->capacity && pMessage->length < pMessage->capacity - 1u)
     {
-        pMessage->buffer[pMessage->length++] = (char)character;
+        pMessage->buffer[pMessage->length++] = (char_t)character;
         pMessage->buffer[pMessage->length]   = '\0';
     }
     else
@@ -29,9 +29,9 @@ static void AppendCharacter(Os_MessageBuilder_t* pMessage, int character)
     }
 }
 
-static void AppendDigits(Os_MessageBuilder_t* pMessage, uint64_t value, uint32_t base, uint32_t minimumDigits, const char* pDigits)
+static void AppendDigits(Os_MessageBuilder_t* pMessage, uint64_t value, uint32_t base, uint32_t minimumDigits, const char_t* pDigits)
 {
-    char   digits[64];
+    char_t digits[64];
     size_t count;
 
     count = 0;
@@ -65,7 +65,7 @@ void Os_MessageBuilder_Begin(Os_MessageBuilder_t* pMessage, FILE* pStream)
 #endif
 }
 
-void Os_MessageBuilder_BeginBuffer(Os_MessageBuilder_t* pMessage, char* pBuffer, size_t capacity)
+void Os_MessageBuilder_BeginBuffer(Os_MessageBuilder_t* pMessage, char_t* pBuffer, size_t capacity)
 {
     pMessage->stream    = NULL;
     pMessage->buffer    = pBuffer;
@@ -91,7 +91,7 @@ void Os_MessageBuilder_End(Os_MessageBuilder_t* pMessage)
     }
 }
 
-void Os_MessageBuilder_AppendString(Os_MessageBuilder_t* pMessage, const char* pString)
+void Os_MessageBuilder_AppendString(Os_MessageBuilder_t* pMessage, const char_t* pString)
 {
     if (NULL != pMessage->stream)
     {
@@ -178,7 +178,7 @@ void Os_MessageBuilder_AppendUint(Os_MessageBuilder_t* pMessage, uint64_t value)
 
 void Os_MessageBuilder_AppendHex(Os_MessageBuilder_t* pMessage, uint64_t value, uint32_t minimumDigits, bool_t uppercase)
 {
-    const char* digits;
+    const char_t* digits;
 
     digits = c_lowerHexDigits;
     if (uppercase)

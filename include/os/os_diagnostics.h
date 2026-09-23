@@ -9,6 +9,8 @@
 ** 2. INCLUDE FILES
 **===============================================================================================*/
 
+#include "os/os_types.h"
+
 /*=================================================================================================
 ** 3. DECLARATIONS
 **
@@ -44,7 +46,7 @@ void Os_Diagnostics_Initialize(void);
 
 #if defined(_WIN32)
 /** Run an executable entry point behind a logging SEH boundary; never open a dialog. */
-int Os_Diagnostics_Run(int (*entry)(int, char**), int argc, char** argv);
+int Os_Diagnostics_Run(int (*entry)(int, char_t**), int argc, char_t** argv);
 #endif
 
 #endif /* XML_OS_DIAGNOSTICS_H */

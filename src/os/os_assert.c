@@ -46,7 +46,7 @@
  * \par Details:
  *  None
  */
-OS_NORETURN void Os_AssertFailure(const char* pExpression, const char* pFile, int line)
+OS_NORETURN void Os_AssertFailure(const char_t* pExpression, const char_t* pFile, int line)
 {
     LOGSTART(stderr);
     LOGPRINTS("assertion failed: ");
@@ -65,7 +65,7 @@ OS_NORETURN void Os_AssertFailure(const char* pExpression, const char* pFile, in
  * \par Details:
  *  None
  */
-OS_NORETURN void Os_LogFatal(const char* pMessage, const char* pFile, int line)
+OS_NORETURN void Os_LogFatal(const char_t* pMessage, const char_t* pFile, int line)
 {
     LOGSTART(stderr);
     LOGPRINTS("fatal: ");

@@ -55,7 +55,7 @@ static LONG WINAPI ReportUnhandledException(EXCEPTION_POINTERS* pException);
 
 #if defined(_DEBUG)
 /** Consume CRT reports without invoking the CRT's message-box handler. */
-static int __cdecl ReportCrt(int reportType, char* message, int* result)
+static int __cdecl ReportCrt(int reportType, char_t* message, int* result)
 {
     (void)fprintf(stderr, "CRT report %d: %s\n", reportType, message ? message : "(no message)");
     (void)fflush(stderr);
@@ -106,7 +106,7 @@ static LONG WINAPI ReportUnhandledException(EXCEPTION_POINTERS* pException)
 {
     void*                    frames[STACK_FRAME_CAPACITY];
     MEMORY_BASIC_INFORMATION memory_info;
-    char                     module_path[MAX_PATH];
+    char_t                   module_path[MAX_PATH];
     USHORT                   frame_count;
     USHORT                   frame_index;
 
@@ -165,7 +165,7 @@ void Os_Diagnostics_Initialize(void)
     (void)SetUnhandledExceptionFilter(ReportUnhandledException);
 }
 
-int Os_Diagnostics_Run(int (*entry)(int, char**), int argc, char** argv)
+int Os_Diagnostics_Run(int (*entry)(int, char_t**), int argc, char_t** argv)
 {
     Os_Diagnostics_Initialize();
     __try
