@@ -6,8 +6,10 @@ Public headers live in `include/utl`, implementations in `src/utl`, and tests in
 `Char`, XML whitespace, `NameStartChar`, `NameChar`, `Name`, and `Nmtoken`, with
 references to the corresponding specification productions.
 
-Character checks take decoded Unicode code points (`uint32_t`). Name checks take
-a `const uint32_t*` and a `uint32_t` code-point count. NULL and zero count fail separate
+The intended input encoding is UTF-8. Callers decode UTF-8 to Unicode code points
+before using these lexical helpers. Character checks take a decoded `uint32_t`.
+Name checks take a `const uint32_t*` and a `uint32_t` code-point count.
+NULL and zero count fail separate
 `LOGASSERT`s in all builds; included NUL characters return FALSE. The functions check XML lexical syntax, including colons, with
 namespace and schema rules left to their respective modules.
 

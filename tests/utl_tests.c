@@ -161,7 +161,7 @@ static void TestNames(void)
         {{'a', '&'}, 2, 0, 0},
         {{'a', 0x037E}, 2, 0, 0},
         {{'a', 0xF0000}, 2, 0, 0},
-        {{0xD800, 0xDC00}, 2, 0, 0}, /* Input is code points, not UTF-16 units. */
+        {{0xD800, 0xDC00}, 2, 0, 0}, /* Surrogate values are invalid XML name characters. */
         {{'a', 0x110000}, 2, 0, 0},
         {{'a', UINT32_MAX}, 2, 0, 0},
         {{0}, 1, 0, 0},

@@ -80,9 +80,8 @@
 #define UTL_XML_REFERENCE_CLOSE   ";"   ///< CharRef, EntityRef, and PEReference terminator.
 
 /* XML 1.0 section 4.3.3, productions [80] EncodingDecl and [81] EncName. */
-#define UTL_XML_ENCODING_NAME   "encoding" ///< EncodingDecl keyword.
-#define UTL_XML_ENCODING_UTF_8  "UTF-8"    ///< Required processor encoding.
-#define UTL_XML_ENCODING_UTF_16 "UTF-16"   ///< Required processor encoding.
+#define UTL_XML_ENCODING_NAME  "encoding" ///< EncodingDecl keyword.
+#define UTL_XML_ENCODING_UTF_8 "UTF-8"    ///< Encoding name for UTF-8 input.
 
 /* XML 1.0 section 4.6: references to the five predefined general entities. */
 #define UTL_XML_ENTITY_REF_LT   "&lt;"   ///< Expands to <.
