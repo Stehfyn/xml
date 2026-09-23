@@ -1,11 +1,13 @@
 #include "utl/utl_defines.h"
 #include "utl/utl_xml.h"
+#include "utl/utl_xml_node.h"
 
 /* Keep assertions enabled in Release builds. */
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
 #include <assert.h>
+#include <string.h>
 
 /*************************************************************************************************/
 /**
@@ -184,11 +186,129 @@ static void TestNames(void)
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  Checks ordered mixed content, reparenting, detachment, and cycle rejection.
+ */
+static void TestXmlNodeTree(void)
+{
+    Utl_Xml_Node_t* root;
+    Utl_Xml_Node_t* first_text;
+    Utl_Xml_Node_t* element;
+    Utl_Xml_Node_t* comment;
+    Utl_Xml_Node_t* last_text;
+
+    root       = Utl_Xml_Node_CreateElement("root");
+    first_text = Utl_Xml_Node_CreateText("before");
+    element    = Utl_Xml_Node_CreateElement("child");
+    comment    = Utl_Xml_Node_CreateComment("between");
+    last_text  = Utl_Xml_Node_CreateText("after");
+
+    assert(NULL != root);
+    assert(NULL != first_text);
+    assert(NULL != element);
+    assert(NULL != comment);
+    assert(NULL != last_text);
+    assert(TRUE == Utl_Xml_Node_AppendChild(root, first_text));
+    assert(TRUE == Utl_Xml_Node_AppendChild(root, element));
+    assert(TRUE == Utl_Xml_Node_AppendChild(root, last_text));
+    assert(TRUE == Utl_Xml_Node_InsertBefore(root, comment, last_text));
+    assert(first_text == root->firstChild);
+    assert(element == first_text->nextSibling);
+    assert(comment == element->nextSibling);
+    assert(last_text == comment->nextSibling);
+    assert(last_text == root->lastChild);
+    assert(comment == last_text->previousSibling);
+    assert(NULL == last_text->nextSibling);
+    assert(FALSE == Utl_Xml_Node_AppendChild(element, root));
+    assert(FALSE == Utl_Xml_Node_InsertBefore(root, root, element));
+    assert(NULL == root->parent);
+    assert(root == comment->parent);
+
+    assert(TRUE == Utl_Xml_Node_AppendChild(element, comment));
+    assert(comment == element->firstChild);
+    assert(last_text == element->nextSibling);
+    Utl_Xml_Node_Detach(last_text);
+    assert(NULL == last_text->parent);
+    assert(element == root->lastChild);
+
+    Utl_Xml_Node_Destroy(last_text);
+    Utl_Xml_Node_Destroy(root);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Checks duplicate names, insertion order, replacement, and removal of element attributes.
+ */
+static void TestXmlNodeAttributes(void)
+{
+    Utl_Xml_Node_t*            node;
+    const Utl_Xml_Attribute_t* attribute;
+
+    node = Utl_Xml_Node_CreateElement("item");
+    assert(NULL != node);
+    assert(TRUE == Utl_Xml_Node_AddAttribute(node, "id", "1"));
+    assert(TRUE == Utl_Xml_Node_AddAttribute(node, "lang", "en"));
+    assert(FALSE == Utl_Xml_Node_AddAttribute(node, "id", "2"));
+    assert(0 == strcmp(Utl_Xml_Node_GetAttributeValue(node, "id"), "1"));
+    assert(TRUE == Utl_Xml_Node_SetAttribute(node, "id", "2"));
+    assert(0 == strcmp(Utl_Xml_Node_GetAttributeValue(node, "id"), "2"));
+    attribute = node->firstAttribute;
+    assert(0 == strcmp(attribute->name, "id"));
+    attribute = attribute->next;
+    assert(0 == strcmp(attribute->name, "lang"));
+    assert(0 == strcmp(attribute->value, "en"));
+    assert(NULL == attribute->next);
+    assert(TRUE == Utl_Xml_Node_RemoveAttribute(node, "id"));
+    assert(FALSE == Utl_Xml_Node_RemoveAttribute(node, "id"));
+    assert(NULL == Utl_Xml_Node_GetAttributeValue(node, "id"));
+    Utl_Xml_Node_Destroy(node);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Checks XML character and delimiter validation and non-destructive rejected mutations.
+ */
+static void TestXmlNodeValidation(void)
+{
+    Utl_Xml_Node_t* node;
+
+    assert(NULL == Utl_Xml_Node_CreateElement(""));
+    assert(NULL == Utl_Xml_Node_CreateElement("0bad"));
+    assert(NULL == Utl_Xml_Node_CreateElement("\xC0\xAF"));
+    assert(NULL == Utl_Xml_Node_CreateElement("\xED\xA0\x80"));
+    assert(NULL == Utl_Xml_Node_CreateText("\x01"));
+    assert(NULL == Utl_Xml_Node_CreateComment("bad--comment"));
+    assert(NULL == Utl_Xml_Node_CreateComment("bad-"));
+    assert(NULL == Utl_Xml_Node_CreateProcessingInstruction("XmL", "data"));
+    assert(NULL == Utl_Xml_Node_CreateProcessingInstruction("target", "bad?>data"));
+
+    node = Utl_Xml_Node_CreateElement("\xC3\xA9");
+    assert(NULL != node);
+    assert(FALSE == Utl_Xml_Node_SetName(node, "0bad"));
+    assert(0 == strcmp(node->name, "\xC3\xA9"));
+    assert(FALSE == Utl_Xml_Node_AddAttribute(node, "0bad", "value"));
+    assert(FALSE == Utl_Xml_Node_AddAttribute(node, "ok", "\x01"));
+    Utl_Xml_Node_Destroy(node);
+
+    node = Utl_Xml_Node_CreateComment("valid");
+    assert(NULL != node);
+    assert(FALSE == Utl_Xml_Node_SetValue(node, "bad--value"));
+    assert(0 == strcmp(node->value, "valid"));
+    Utl_Xml_Node_Destroy(node);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Runs the XML character-classification and name-validation checks.
  */
 int main(void)
 {
     TestCharacterClasses();
     TestNames();
+    TestXmlNodeTree();
+    TestXmlNodeAttributes();
+    TestXmlNodeValidation();
     return 0;
 }
