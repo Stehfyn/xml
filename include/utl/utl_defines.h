@@ -18,10 +18,10 @@
 #define BYTE_TO_BITS    (0x08)                               ///< Number of bits in one byte.
 #define COUNT_OF(array) (sizeof(array) / sizeof((array)[0])) ///< Compile-time element count of a true array object.
 
-#define LBIT0 (1U << 0) ///< Bit zero mask.
-#define LBIT1 (1U << 1) ///< Bit one mask.
-#define LBIT2 (1U << 2) ///< Bit two mask.
-#define LBIT3 (1U << 3) ///< Bit three mask.
+#define LBIT0 (1 << 0) ///< Bit zero mask.
+#define LBIT1 (1 << 1) ///< Bit one mask.
+#define LBIT2 (1 << 2) ///< Bit two mask.
+#define LBIT3 (1 << 3) ///< Bit three mask.
 
 /*=================================================================================================
 ** 3.2 Types

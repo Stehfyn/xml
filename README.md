@@ -2,8 +2,14 @@
 
 Minimal C17 `utl` static library and `utl_tests` executable.
 Public headers live in `include/utl`, implementations in `src/utl`, and tests in `tests`.
-`utl_xml.h` provides XML 1.0 Fifth Edition constants with references to the
-corresponding specification productions. The test executable is a placeholder.
+`utl_xml.h` provides XML 1.0 Fifth Edition constants and ordinary C functions for
+`Char`, XML whitespace, `NameStartChar`, `NameChar`, `Name`, and `Nmtoken`, with
+references to the corresponding specification productions.
+
+Character checks take decoded Unicode code points (`uint32_t`). Name checks take
+a `const uint32_t*` and a `uint32_t` code-point count. NULL and zero count fail separate
+`LOGASSERT`s in all builds; included NUL characters return FALSE. The functions check XML lexical syntax, including colons, with
+namespace and schema rules left to their respective modules.
 
 Requires CMake 3.25+ and a C17 compiler.
 

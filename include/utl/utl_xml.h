@@ -15,6 +15,11 @@
 ** 2. INCLUDE FILES
 **===============================================================================================*/
 
+#include "os/os_types.h"
+
+#include <stddef.h>
+#include <stdint.h>
+
 /*=================================================================================================
 ** 3. DECLARATIONS
 **
@@ -22,10 +27,10 @@
 **===============================================================================================*/
 
 /* XML 1.0 sections 2.2 and 2.3, productions [2] Char and [3] S. */
-#define UTL_XML_CHAR_TAB   (0x09u) ///< Horizontal tab.
-#define UTL_XML_CHAR_LF    (0x0Au) ///< Line feed; normalized line ending (section 2.11).
-#define UTL_XML_CHAR_CR    (0x0Du) ///< Carriage return.
-#define UTL_XML_CHAR_SPACE (0x20u) ///< Space.
+#define UTL_XML_CHAR_TAB   (0x09) ///< Horizontal tab.
+#define UTL_XML_CHAR_LF    (0x0A) ///< Line feed; normalized line ending (section 2.11).
+#define UTL_XML_CHAR_CR    (0x0D) ///< Carriage return.
+#define UTL_XML_CHAR_SPACE (0x20) ///< Space.
 
 /* XML 1.0 section 2.3, production [10] AttValue, and section 2.8, [25] Eq. */
 #define UTL_XML_QUOTE_APOS ('\'') ///< Single-quoted literal delimiter.
@@ -34,7 +39,7 @@
 
 /* XML 1.0 section 2.5, production [15] Comment. */
 #define UTL_XML_COMMENT_OPEN  "<!--" ///< Comment opening delimiter.
-#define UTL_XML_COMMENT_CLOSE "-->" ///< Comment closing delimiter.
+#define UTL_XML_COMMENT_CLOSE "-->"  ///< Comment closing delimiter.
 
 /* XML 1.0 section 2.6, production [16] PI. */
 #define UTL_XML_PI_OPEN  "<?" ///< Processing-instruction opening delimiter.
@@ -42,11 +47,11 @@
 
 /* XML 1.0 section 2.7, productions [19] CDStart and [21] CDEnd. */
 #define UTL_XML_CD_START "<![CDATA[" ///< CDStart.
-#define UTL_XML_CD_END   "]]>"      ///< CDEnd; also forbidden inside CharData ([14]).
+#define UTL_XML_CD_END   "]]>"       ///< CDEnd; also forbidden inside CharData ([14]).
 
 /* XML 1.0 section 2.8, productions [23] XMLDecl, [24] VersionInfo, [26] VersionNum. */
-#define UTL_XML_DECL_OPEN    "<?xml"  ///< XMLDecl opening delimiter; S follows.
-#define UTL_XML_DECL_CLOSE   "?>"     ///< XMLDecl closing delimiter.
+#define UTL_XML_DECL_OPEN    "<?xml"   ///< XMLDecl opening delimiter; S follows.
+#define UTL_XML_DECL_CLOSE   "?>"      ///< XMLDecl closing delimiter.
 #define UTL_XML_VERSION_NAME "version" ///< VersionInfo keyword.
 #define UTL_XML_VERSION_1_0  "1.0"     ///< XML 1.0 version value.
 
@@ -85,5 +90,122 @@
 #define UTL_XML_ENTITY_REF_AMP  "&amp;"  ///< Expands to &.
 #define UTL_XML_ENTITY_REF_APOS "&apos;" ///< Expands to '.
 #define UTL_XML_ENTITY_REF_QUOT "&quot;" ///< Expands to ".
+
+/*=================================================================================================
+** 3.2 Types
+**===============================================================================================*/
+
+/*=================================================================================================
+** 3.3 Constants
+**===============================================================================================*/
+
+/*=================================================================================================
+** 3.4 Variables
+**===============================================================================================*/
+
+/*=================================================================================================
+** 3.5 Functions
+**===============================================================================================*/
+
+/*************************************************************************************************/
+/**
+ * \brief Checks whether a decoded code point is a permitted XML character.
+ *
+ * \par Requirements:
+ *  - 001 This function shall return TRUE if codePoint matches XML 1.0 section 2.2, production [2] Char.
+ *  - 002 This function shall accept discouraged code points that match Char.
+ *  - 003 This function shall return FALSE for all other values, including surrogates and values above U+10FFFF.
+ *
+ * \param[in] codePoint         Decoded Unicode code point to classify
+ *
+ * \retval TRUE  The code point matches Char.
+ * \retval FALSE The code point does not match Char.
+ */
+bool_t Utl_Xml_IsChar(uint32_t codePoint);
+
+/*************************************************************************************************/
+/**
+ * \brief Checks whether a decoded code point is XML whitespace.
+ *
+ * \par Requirements:
+ *  - 001 This function shall return TRUE for space, horizontal tab, carriage return, and line feed as defined by XML 1.0 section 2.3, production [3] S.
+ *  - 002 This function shall return FALSE for every other code point.
+ *
+ * \param[in] codePoint         Decoded Unicode code point to classify
+ *
+ * \retval TRUE  The code point is a character permitted in S.
+ * \retval FALSE The code point is not XML whitespace.
+ */
+bool_t Utl_Xml_IsWhitespace(uint32_t codePoint);
+
+/*************************************************************************************************/
+/**
+ * \brief Checks whether a decoded code point can begin an XML name.
+ *
+ * \par Requirements:
+ *  - 001 This function shall return TRUE if codePoint matches XML 1.0 section 2.3, production [4] NameStartChar.
+ *  - 002 This function shall accept colon as required by NameStartChar without applying namespace constraints.
+ *  - 003 This function shall return FALSE for every other code point.
+ *
+ * \param[in] codePoint         Decoded Unicode code point to classify
+ *
+ * \retval TRUE  The code point matches NameStartChar.
+ * \retval FALSE The code point cannot begin an XML Name.
+ */
+bool_t Utl_Xml_IsNameStartChar(uint32_t codePoint);
+
+/*************************************************************************************************/
+/**
+ * \brief Checks whether a decoded code point can occur within an XML name token.
+ *
+ * \par Requirements:
+ *  - 001 This function shall return TRUE if codePoint matches XML 1.0 section 2.3, production [4a] NameChar.
+ *  - 002 This function shall accept every NameStartChar and the additional characters permitted by NameChar.
+ *  - 003 This function shall return FALSE for every other code point.
+ *
+ * \param[in] codePoint         Decoded Unicode code point to classify
+ *
+ * \retval TRUE  The code point matches NameChar.
+ * \retval FALSE The code point cannot occur in an XML Name or Nmtoken.
+ */
+bool_t Utl_Xml_IsNameChar(uint32_t codePoint);
+
+/*************************************************************************************************/
+/**
+ * \brief Checks whether a decoded code-point span is an XML name.
+ *
+ * \par Requirements:
+ *  - 001 This function shall fail separate assertions if codePoints is NULL or count is zero.
+ *  - 002 This function shall return TRUE only when the span matches XML 1.0 section 2.3, production [5] Name: one NameStartChar followed by zero or more NameChar values.
+ *  - 003 This function shall use count as the span length, require no terminator, and reject any zero code point within the span.
+ *  - 004 This function shall check Name syntax without applying namespace constraints or reserved-name policy.
+ *  - 005 This function shall leave the input span unchanged.
+ *
+ * \param[in] codePoints        Non-NULL array of at least count decoded Unicode code points
+ * \param[in] count             Nonzero number of code points in the span
+ *
+ * \retval TRUE  The complete span matches Name.
+ * \retval FALSE The span does not match Name.
+ */
+bool_t Utl_Xml_IsName(const uint32_t* codePoints, uint32_t count);
+
+/*************************************************************************************************/
+/**
+ * \brief Checks whether a decoded code-point span is an XML name token.
+ *
+ * \par Requirements:
+ *  - 001 This function shall fail separate assertions if codePoints is NULL or count is zero.
+ *  - 002 This function shall return TRUE only when the span matches XML 1.0 section 2.3, production [7] Nmtoken: one or more NameChar values.
+ *  - 003 This function shall permit any NameChar as the first code point without requiring NameStartChar.
+ *  - 004 This function shall use count as the span length, require no terminator, and reject any zero code point within the span.
+ *  - 005 This function shall leave the input span unchanged.
+ *
+ * \param[in] codePoints        Non-NULL array of at least count decoded Unicode code points
+ * \param[in] count             Nonzero number of code points in the span
+ *
+ * \retval TRUE  The complete span matches Nmtoken.
+ * \retval FALSE The span does not match Nmtoken.
+ */
+bool_t Utl_Xml_IsNmtoken(const uint32_t* codePoints, uint32_t count);
 
 #endif /* UTL_XML_H */

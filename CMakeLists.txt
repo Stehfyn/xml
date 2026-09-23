@@ -6,7 +6,10 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
 add_library(utl STATIC
+    src/os/os_assert.c
     src/utl/utl_xml.c
+    include/os/os_assert.h
+    include/os/os_types.h
     include/utl/utl_defines.h
     include/utl/utl_xml.h)
 target_include_directories(utl PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
