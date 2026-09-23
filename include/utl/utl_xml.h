@@ -174,37 +174,37 @@ bool_t Utl_Xml_IsNameChar(uint32_t codePoint);
  * \brief Checks whether a decoded code-point span is an XML name.
  *
  * \par Requirements:
- *  - 001 This function shall fail separate assertions if codePoints is NULL or count is zero.
+ *  - 001 This function shall fail separate assertions if codePoints is NULL or numCodePoints is zero.
  *  - 002 This function shall return TRUE only when the span matches XML 1.0 section 2.3, production [5] Name: one NameStartChar followed by zero or more NameChar values.
- *  - 003 This function shall use count as the span length, require no terminator, and reject any zero code point within the span.
+ *  - 003 This function shall use numCodePoints as the span length, require no terminator, and reject any zero code point within the span.
  *  - 004 This function shall check Name syntax without applying namespace constraints or reserved-name policy.
  *  - 005 This function shall leave the input span unchanged.
  *
- * \param[in] codePoints        Non-NULL array of at least count decoded Unicode code points
- * \param[in] count             Nonzero number of code points in the span
+ * \param[in] codePoints        Non-NULL array of at least numCodePoints decoded Unicode code points
+ * \param[in] numCodePoints             Nonzero number of code points in the span
  *
  * \retval TRUE  The complete span matches Name.
  * \retval FALSE The span does not match Name.
  */
-bool_t Utl_Xml_IsName(const uint32_t* codePoints, uint32_t count);
+bool_t Utl_Xml_IsName(const uint32_t* codePoints, uint32_t numCodePoints);
 
 /*************************************************************************************************/
 /**
  * \brief Checks whether a decoded code-point span is an XML name token.
  *
  * \par Requirements:
- *  - 001 This function shall fail separate assertions if codePoints is NULL or count is zero.
+ *  - 001 This function shall fail separate assertions if codePoints is NULL or numCodePoints is zero.
  *  - 002 This function shall return TRUE only when the span matches XML 1.0 section 2.3, production [7] Nmtoken: one or more NameChar values.
  *  - 003 This function shall permit any NameChar as the first code point without requiring NameStartChar.
- *  - 004 This function shall use count as the span length, require no terminator, and reject any zero code point within the span.
+ *  - 004 This function shall use numCodePoints as the span length, require no terminator, and reject any zero code point within the span.
  *  - 005 This function shall leave the input span unchanged.
  *
- * \param[in] codePoints        Non-NULL array of at least count decoded Unicode code points
- * \param[in] count             Nonzero number of code points in the span
+ * \param[in] codePoints        Non-NULL array of at least numCodePoints decoded Unicode code points
+ * \param[in] numCodePoints             Nonzero number of code points in the span
  *
  * \retval TRUE  The complete span matches Nmtoken.
  * \retval FALSE The span does not match Nmtoken.
  */
-bool_t Utl_Xml_IsNmtoken(const uint32_t* codePoints, uint32_t count);
+bool_t Utl_Xml_IsNmtoken(const uint32_t* codePoints, uint32_t numCodePoints);
 
 #endif /* UTL_XML_H */

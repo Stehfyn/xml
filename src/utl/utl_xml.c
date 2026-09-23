@@ -229,17 +229,17 @@ bool_t Utl_Xml_IsNameChar(uint32_t codePoint)
  * \par Details:
  *  None
  */
-bool_t Utl_Xml_IsName(const uint32_t* codePoints, uint32_t count)
+bool_t Utl_Xml_IsName(const uint32_t* codePoints, uint32_t numCodePoints)
 {
     bool_t   is_name;
     uint32_t code_point_index;
 
     LOGASSERT(NULL != codePoints);
-    LOGASSERT(0 < count);
+    LOGASSERT(0 < numCodePoints);
 
     is_name = TRUE;
 
-    for (code_point_index = 0; code_point_index < count; ++code_point_index)
+    for (code_point_index = 0; code_point_index < numCodePoints; ++code_point_index)
     {
         if (0 == code_point_index)
         {
@@ -264,17 +264,17 @@ bool_t Utl_Xml_IsName(const uint32_t* codePoints, uint32_t count)
  * \par Details:
  *  None
  */
-bool_t Utl_Xml_IsNmtoken(const uint32_t* codePoints, uint32_t count)
+bool_t Utl_Xml_IsNmtoken(const uint32_t* codePoints, uint32_t numCodePoints)
 {
     bool_t   is_nmtoken;
     uint32_t code_point_index;
 
     LOGASSERT(NULL != codePoints);
-    LOGASSERT(0 < count);
+    LOGASSERT(0 < numCodePoints);
 
     is_nmtoken = TRUE;
 
-    for (code_point_index = 0; code_point_index < count; ++code_point_index)
+    for (code_point_index = 0; code_point_index < numCodePoints; ++code_point_index)
     {
         is_nmtoken = Utl_Xml_IsNameChar(codePoints[code_point_index]);
 
