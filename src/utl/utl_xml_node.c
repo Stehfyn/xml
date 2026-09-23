@@ -155,14 +155,14 @@ static bool_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t* offse
     byte_t   first;
     uint32_t decoded;
     uint32_t minimum;
-    uint32_t numContinuations;
+    uint32_t num_continuations;
     uint32_t index;
     uint32_t position;
-    bool_t   isValid;
+    bool_t   is_valid;
 
-    isValid = ((*offset) < numBytes);
+    is_valid = ((*offset) < numBytes);
 
-    if (TRUE == isValid)
+    if (TRUE == is_valid)
     {
         position = (*offset);
         first    = bytes[position];
@@ -171,59 +171,59 @@ static bool_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t* offse
         {
             decoded          = first;
             minimum          = 0;
-            numContinuations = 0;
+            num_continuations = 0;
         }
         else if ((0xC2 <= first) && (first <= 0xDF))
         {
             decoded          = first & 0x1F;
             minimum          = 0x80;
-            numContinuations = 1;
+            num_continuations = 1;
         }
         else if ((0xE0 <= first) && (first <= 0xEF))
         {
             decoded          = first & 0x0F;
             minimum          = 0x800;
-            numContinuations = 2;
+            num_continuations = 2;
         }
         else if ((0xF0 <= first) && (first <= 0xF4))
         {
             decoded          = first & 0x07;
             minimum          = 0x10000;
-            numContinuations = 3;
+            num_continuations = 3;
         }
         else
         {
-            isValid = FALSE;
+            is_valid = FALSE;
         }
 
-        if (TRUE == isValid)
+        if (TRUE == is_valid)
         {
-            for (index = 0; (index < numContinuations) && (TRUE == isValid); ++index)
+            for (index = 0; (index < num_continuations) && (TRUE == is_valid); ++index)
             {
                 ++position;
-                isValid = (position < numBytes) && (0x80 == (bytes[position] & 0xC0));
+                is_valid = (position < numBytes) && (0x80 == (bytes[position] & 0xC0));
 
-                if (TRUE == isValid)
+                if (TRUE == is_valid)
                 {
                     decoded = (decoded << 6) | (bytes[position] & 0x3F);
                 }
             }
         }
 
-        if (TRUE == isValid)
+        if (TRUE == is_valid)
         {
-            isValid = (minimum <= decoded) && (decoded <= 0x10FFFF) &&
+            is_valid = (minimum <= decoded) && (decoded <= 0x10FFFF) &&
                       ((decoded < 0xD800) || (0xDFFF < decoded));
         }
 
-        if (TRUE == isValid)
+        if (TRUE == is_valid)
         {
             (*codePoint) = decoded;
             (*offset)    = position + 1;
         }
     }
 
-    return isValid;
+    return is_valid;
 }
 
 /*************************************************************************************************/
@@ -238,29 +238,34 @@ static bool_t IsXmlString(const char_t* text)
     uint32_t      byte_offset;
     uint32_t      code_point;
     uint32_t      code_point_index;
+    bool_t        is_xml_string;
 
-    if (FALSE == GetBoundedLength(text, UTL_XML_NODE_MAX_VALUE_BYTES, &byte_count))
+    is_xml_string = GetBoundedLength(text, UTL_XML_NODE_MAX_VALUE_BYTES, &byte_count);
+
+    if (TRUE == is_xml_string)
     {
-        return FALSE;
-    }
+        bytes       = (const byte_t*)text;
+        byte_offset = 0;
 
-    bytes       = (const byte_t*)text;
-    byte_offset = 0;
-
-    for (code_point_index = 0; (code_point_index < byte_count) && (byte_offset < byte_count); ++code_point_index)
-    {
-        if (FALSE == DecodeUtf8(bytes, byte_count, &byte_offset, &code_point))
+        for (code_point_index = 0; (code_point_index < byte_count) && (byte_offset < byte_count); ++code_point_index)
         {
-            return FALSE;
+            is_xml_string = DecodeUtf8(bytes, byte_count, &byte_offset, &code_point);
+
+            if (TRUE == is_xml_string)
+            {
+                is_xml_string = Utl_Xml_IsChar(code_point);
+            }
+
+            if (FALSE == is_xml_string)
+            {
+                break;
+            }
         }
 
-        if (FALSE == Utl_Xml_IsChar(code_point))
-        {
-            return FALSE;
-        }
+        is_xml_string = is_xml_string && (byte_offset == byte_count);
     }
 
-    return (byte_offset == byte_count);
+    return is_xml_string;
 }
 
 /*************************************************************************************************/
@@ -275,41 +280,42 @@ static bool_t IsName(const char_t* text)
     uint32_t      byte_offset;
     uint32_t      code_point;
     uint32_t      code_point_index;
+    bool_t        is_name;
 
-    if (FALSE == GetBoundedLength(text, UTL_XML_NODE_MAX_NAME_BYTES, &byte_count))
+    is_name = GetBoundedLength(text, UTL_XML_NODE_MAX_NAME_BYTES, &byte_count);
+
+    if (TRUE == is_name)
     {
-        return FALSE;
-    }
+        is_name     = (0 < byte_count);
+        bytes       = (const byte_t*)text;
+        byte_offset = 0;
 
-    if (0 == byte_count)
-    {
-        return FALSE;
-    }
-
-    bytes       = (const byte_t*)text;
-    byte_offset = 0;
-
-    for (code_point_index = 0; (code_point_index < byte_count) && (byte_offset < byte_count); ++code_point_index)
-    {
-        if (FALSE == DecodeUtf8(bytes, byte_count, &byte_offset, &code_point))
+        for (code_point_index = 0; (code_point_index < byte_count) && (byte_offset < byte_count); ++code_point_index)
         {
-            return FALSE;
-        }
+            is_name = DecodeUtf8(bytes, byte_count, &byte_offset, &code_point);
 
-        if (0 == code_point_index)
-        {
-            if (FALSE == Utl_Xml_IsNameStartChar(code_point))
+            if (TRUE == is_name)
             {
-                return FALSE;
+                if (0 == code_point_index)
+                {
+                    is_name = Utl_Xml_IsNameStartChar(code_point);
+                }
+                else
+                {
+                    is_name = Utl_Xml_IsNameChar(code_point);
+                }
+            }
+
+            if (FALSE == is_name)
+            {
+                break;
             }
         }
-        else if (FALSE == Utl_Xml_IsNameChar(code_point))
-        {
-            return FALSE;
-        }
+
+        is_name = is_name && (byte_offset == byte_count);
     }
 
-    return (byte_offset == byte_count);
+    return is_name;
 }
 
 /*************************************************************************************************/
@@ -321,26 +327,29 @@ static bool_t IsComment(const char_t* text)
 {
     uint32_t length;
     uint32_t index;
+    bool_t   is_comment;
 
-    if (FALSE == GetBoundedLength(text, UTL_XML_NODE_MAX_VALUE_BYTES, &length))
-    {
-        return FALSE;
-    }
+    is_comment = GetBoundedLength(text, UTL_XML_NODE_MAX_VALUE_BYTES, &length) &&
+                 IsXmlString(text);
 
-    if (FALSE == IsXmlString(text))
+    if (TRUE == is_comment)
     {
-        return FALSE;
-    }
-
-    for (index = 0; index + 1 < length; ++index)
-    {
-        if (('-' == text[index]) && ('-' == text[index + 1]))
+        for (index = 0; index + 1 < length; ++index)
         {
-            return FALSE;
+            if (('-' == text[index]) && ('-' == text[index + 1]))
+            {
+                is_comment = FALSE;
+                break;
+            }
+        }
+
+        if (TRUE == is_comment)
+        {
+            is_comment = (0 == length) || ('-' != text[length - 1]);
         }
     }
 
-    return (0 == length) || ('-' != text[length - 1]);
+    return is_comment;
 }
 
 /*************************************************************************************************/
@@ -350,40 +359,40 @@ static bool_t IsComment(const char_t* text)
  */
 static bool_t IsProcessingInstruction(const char_t* target, const char_t* data)
 {
-    bool_t   isProcessingInstruction;
-    bool_t   isXmlTarget;
-    uint32_t targetLength;
-    uint32_t dataLength;
+    bool_t   is_processing_instruction;
+    bool_t   is_xml_target;
+    uint32_t target_length;
+    uint32_t data_length;
     uint32_t index;
 
-    isProcessingInstruction = IsName(target) &&
-                              GetBoundedLength(target, UTL_XML_NODE_MAX_NAME_BYTES, &targetLength);
+    is_processing_instruction = IsName(target) &&
+                              GetBoundedLength(target, UTL_XML_NODE_MAX_NAME_BYTES, &target_length);
 
-    if (TRUE == isProcessingInstruction)
+    if (TRUE == is_processing_instruction)
     {
-        isXmlTarget = (3 == targetLength) &&
+        is_xml_target = (3 == target_length) &&
                       (('x' == target[0]) || ('X' == target[0])) &&
                       (('m' == target[1]) || ('M' == target[1])) &&
                       (('l' == target[2]) || ('L' == target[2]));
 
-        isProcessingInstruction = (FALSE == isXmlTarget) &&
-                                  GetBoundedLength(data, UTL_XML_NODE_MAX_VALUE_BYTES, &dataLength) &&
+        is_processing_instruction = (FALSE == is_xml_target) &&
+                                  GetBoundedLength(data, UTL_XML_NODE_MAX_VALUE_BYTES, &data_length) &&
                                   IsXmlString(data);
     }
 
-    if (TRUE == isProcessingInstruction)
+    if (TRUE == is_processing_instruction)
     {
-        for (index = 0; index + 1 < dataLength; ++index)
+        for (index = 0; index + 1 < data_length; ++index)
         {
             if (('?' == data[index]) && ('>' == data[index + 1]))
             {
-                isProcessingInstruction = FALSE;
+                is_processing_instruction = FALSE;
                 break;
             }
         }
     }
 
-    return isProcessingInstruction;
+    return is_processing_instruction;
 }
 
 /*************************************************************************************************/
@@ -664,43 +673,43 @@ bool_t Utl_Xml_Node_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child)
  */
 bool_t Utl_Xml_Node_InsertBefore(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child, Utl_Xml_Node_t* beforeSibling)
 {
-    Utl_Xml_Node_t* targetRoot;
-    Utl_Xml_Node_t* sourceRoot;
+    Utl_Xml_Node_t* target_root;
+    Utl_Xml_Node_t* source_root;
     Utl_Xml_Node_t* ancestor;
-    uint32_t        ancestorIndex;
-    bool_t          isValidPosition;
-    bool_t          isCycleFree;
-    bool_t          hasCapacity;
+    uint32_t        ancestor_index;
+    bool_t          is_valid_position;
+    bool_t          is_cycle_free;
+    bool_t          has_capacity;
 
     LOGASSERT(NULL != parent);
     LOGASSERT(NULL != child);
     LOGASSERT(UTL_XML_NODE_ELEMENT == parent->type);
 
-    isValidPosition = (NULL == beforeSibling) || (beforeSibling->parent == parent);
-    isCycleFree     = (FALSE == IsAncestor(child, parent));
+    is_valid_position = (NULL == beforeSibling) || (beforeSibling->parent == parent);
+    is_cycle_free     = (FALSE == IsAncestor(child, parent));
 
-    if ((TRUE == isValidPosition) && (TRUE == isCycleFree))
+    if ((TRUE == is_valid_position) && (TRUE == is_cycle_free))
     {
         if (beforeSibling == child)
         {
             return TRUE;
         }
 
-        targetRoot = FindRoot(parent);
-        sourceRoot = FindRoot(child);
-        LOGASSERT((0 < targetRoot->subtreeCount) && (targetRoot->subtreeCount <= UTL_XML_NODE_MAX_NODES));
+        target_root = FindRoot(parent);
+        source_root = FindRoot(child);
+        LOGASSERT((0 < target_root->subtreeCount) && (target_root->subtreeCount <= UTL_XML_NODE_MAX_NODES));
         LOGASSERT((0 < child->subtreeCount) && (child->subtreeCount <= UTL_XML_NODE_MAX_NODES));
 
-        hasCapacity = (targetRoot == sourceRoot) ||
-                      (child->subtreeCount <= UTL_XML_NODE_MAX_NODES - targetRoot->subtreeCount);
+        has_capacity = (target_root == source_root) ||
+                      (child->subtreeCount <= UTL_XML_NODE_MAX_NODES - target_root->subtreeCount);
 
-        if (TRUE == hasCapacity)
+        if (TRUE == has_capacity)
         {
             Utl_Xml_Node_Detach(child);
             child->parent = parent;
             ancestor = parent;
 
-            for (ancestorIndex = 0; (ancestorIndex < UTL_XML_NODE_MAX_NODES) && (NULL != ancestor); ++ancestorIndex)
+            for (ancestor_index = 0; (ancestor_index < UTL_XML_NODE_MAX_NODES) && (NULL != ancestor); ++ancestor_index)
             {
                 LOGASSERT(ancestor->subtreeCount <= UTL_XML_NODE_MAX_NODES - child->subtreeCount);
                 ancestor->subtreeCount += child->subtreeCount;
@@ -756,7 +765,7 @@ void Utl_Xml_Node_Detach(Utl_Xml_Node_t* node)
 {
     Utl_Xml_Node_t* parent;
     Utl_Xml_Node_t* ancestor;
-    uint32_t        ancestorIndex;
+    uint32_t        ancestor_index;
 
     LOGASSERT(NULL != node);
     parent = node->parent;
@@ -765,7 +774,7 @@ void Utl_Xml_Node_Detach(Utl_Xml_Node_t* node)
     {
         ancestor = parent;
 
-        for (ancestorIndex = 0; (ancestorIndex < UTL_XML_NODE_MAX_NODES) && (NULL != ancestor); ++ancestorIndex)
+        for (ancestor_index = 0; (ancestor_index < UTL_XML_NODE_MAX_NODES) && (NULL != ancestor); ++ancestor_index)
         {
             LOGASSERT(node->subtreeCount <= ancestor->subtreeCount);
             ancestor->subtreeCount -= node->subtreeCount;
