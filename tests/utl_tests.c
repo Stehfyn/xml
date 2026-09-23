@@ -129,57 +129,79 @@ static void TestCharacterClasses(void)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Checks Name and Nmtoken validation with first-character restrictions, non-ASCII code points,
- *  explicit span lengths and invalid characters.
+ *  Checks Nmtoken validation with non-ASCII code points, explicit span lengths, and invalid characters.
  */
-static void TestNames(void)
+static void TestNmtokens(void)
 {
     static const struct
     {
         uint32_t codePoints[8];
         uint32_t count;
-        bool_t   isName;
         bool_t   isNmtoken;
     } cases[] = {
-        {{'a'}, 1, 1, 1},
-        {{'a', '-', 'b', '.', '0'}, 5, 1, 1},
-        {{'_', 'i', 'd'}, 3, 1, 1},
-        {{'0'}, 1, 0, 1},
-        {{'-', 'a'}, 2, 0, 1},
-        {{'.', 'a'}, 2, 0, 1},
-        {{0x0300, 'a'}, 2, 0, 1},
-        {{'a', 0x0300}, 2, 1, 1},
-        {{0x00B7}, 1, 0, 1},
-        {{0x4E00, 0x540D}, 2, 1, 1},
-        {{0x10000, 0xEFFFF}, 2, 1, 1},
-        {{'p', ':', 'n'}, 3, 1, 1},
-        {{':', ':'}, 2, 1, 1},      /* Name syntax does not impose namespace rules. */
-        {{'x', 'm', 'l'}, 3, 1, 1}, /* Reserved names still match the production. */
-        {{'a', ' ', 'b'}, 3, 0, 0},
-        {{' ', 'a'}, 2, 0, 0},
-        {{'a', '\t'}, 2, 0, 0},
-        {{'a', '/'}, 2, 0, 0},
-        {{'a', '&'}, 2, 0, 0},
-        {{'a', 0x037E}, 2, 0, 0},
-        {{'a', 0xF0000}, 2, 0, 0},
-        {{0xD800, 0xDC00}, 2, 0, 0}, /* Surrogate values are invalid XML name characters. */
-        {{'a', 0x110000}, 2, 0, 0},
-        {{'a', UINT32_MAX}, 2, 0, 0},
-        {{0}, 1, 0, 0},
-        {{'a', 0, 'b'}, 3, 0, 0}, /* Embedded NUL must not truncate validation. */
-        {{'a', 0}, 2, 0, 0},
-        {{'a', 0}, 1, 1, 1}, /* Only the requested span is checked. */
-        {{'a', '/'}, 1, 1, 1},
-        {{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'}, 8, 1, 1} /* No terminator. */
+        {{'a'}, 1, 1},
+        {{'a', '-', 'b', '.', '0'}, 5, 1},
+        {{'_', 'i', 'd'}, 3, 1},
+        {{'0'}, 1, 1},
+        {{'-', 'a'}, 2, 1},
+        {{'.', 'a'}, 2, 1},
+        {{0x0300, 'a'}, 2, 1},
+        {{'a', 0x0300}, 2, 1},
+        {{0x00B7}, 1, 1},
+        {{0x4E00, 0x540D}, 2, 1},
+        {{0x10000, 0xEFFFF}, 2, 1},
+        {{'p', ':', 'n'}, 3, 1},
+        {{':', ':'}, 2, 1},      /* Name syntax does not impose namespace rules. */
+        {{'x', 'm', 'l'}, 3, 1}, /* Reserved names still match the production. */
+        {{'a', ' ', 'b'}, 3, 0},
+        {{' ', 'a'}, 2, 0},
+        {{'a', '\t'}, 2, 0},
+        {{'a', '/'}, 2, 0},
+        {{'a', '&'}, 2, 0},
+        {{'a', 0x037E}, 2, 0},
+        {{'a', 0xF0000}, 2, 0},
+        {{0xD800, 0xDC00}, 2, 0}, /* Surrogate values are invalid XML name characters. */
+        {{'a', 0x110000}, 2, 0},
+        {{'a', UINT32_MAX}, 2, 0},
+        {{0}, 1, 0},
+        {{'a', 0, 'b'}, 3, 0}, /* Embedded NUL must not truncate validation. */
+        {{'a', 0}, 2, 0},
+        {{'a', 0}, 1, 1}, /* Only the requested span is checked. */
+        {{'a', '/'}, 1, 1},
+        {{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'}, 8, 1} /* No terminator. */
     };
 
     uint32_t test_case_index;
 
     for (test_case_index = 0; test_case_index < COUNT_OF(cases); ++test_case_index)
     {
-        assert(Utl_Xml_IsName(cases[test_case_index].codePoints, cases[test_case_index].count) == cases[test_case_index].isName);
         assert(Utl_Xml_IsNmtoken(cases[test_case_index].codePoints, cases[test_case_index].count) == cases[test_case_index].isNmtoken);
     }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Checks bounded UTF-8 validation across multibyte characters and invalid inputs.
+ */
+static void TestUtf8StringsAndNames(void)
+{
+    static const byte_t empty[] = "";
+    static const byte_t valid_text[] = "A\xC3\xA9\xE2\x82\xAC\xF0\x9F\x98\x80";
+    static const byte_t invalid_utf8[] = "\xC3";
+    static const byte_t invalid_xml_char[] = "\x01";
+    static const byte_t valid_name[] = "\xC3\xA9" "b";
+    static const byte_t invalid_name[] = "1a";
+
+    assert(TRUE == Utl_Xml_IsString(empty));
+    assert(TRUE == Utl_Xml_IsString(valid_text));
+    assert(FALSE == Utl_Xml_IsString(invalid_utf8));
+    assert(FALSE == Utl_Xml_IsString(invalid_xml_char));
+
+    assert(FALSE == Utl_Xml_IsName(empty));
+    assert(TRUE == Utl_Xml_IsName(valid_name));
+    assert(FALSE == Utl_Xml_IsName(invalid_name));
+    assert(FALSE == Utl_Xml_IsName(invalid_utf8));
 }
 
 /*************************************************************************************************/
@@ -195,13 +217,20 @@ static void TestXmlNodeInitialization(void)
     Utl_Xml_Node_t      instruction;
     Utl_Xml_Attribute_t attribute;
     Utl_Xml_Attribute_t utf8_attribute;
-    const char_t*       name;
+    const byte_t        name[] = "\xC3\xA9";
+    const byte_t        text_value[] = "before";
+    const byte_t        comment_value[] = "valid";
+    const byte_t        target[] = "target";
+    const byte_t        data[] = "data";
+    const byte_t        attribute_name[] = "id";
+    const byte_t        attribute_value[] = "7";
+    const byte_t        utf8_name[] = "\xC3\xA9" "b";
+    const byte_t        utf8_value[] = "A\xE2\x82\xAC\xF0\x9F\x98\x80" "Z";
 
-    name = "\xC3\xA9";
     Utl_Xml_Node_Initialize(&root, UTL_XML_NODE_ELEMENT, name, NULL);
-    Utl_Xml_Node_Initialize(&text_node, UTL_XML_NODE_TEXT, NULL, "before");
-    Utl_Xml_Node_Initialize(&comment, UTL_XML_NODE_COMMENT, NULL, "valid");
-    Utl_Xml_Node_Initialize(&instruction, UTL_XML_NODE_PROCESSING_INSTRUCTION, "target", "data");
+    Utl_Xml_Node_Initialize(&text_node, UTL_XML_NODE_TEXT, NULL, text_value);
+    Utl_Xml_Node_Initialize(&comment, UTL_XML_NODE_COMMENT, NULL, comment_value);
+    Utl_Xml_Node_Initialize(&instruction, UTL_XML_NODE_PROCESSING_INSTRUCTION, target, data);
 
     assert(UTL_XML_NODE_ELEMENT == root.type);
     assert(name == root.name);
@@ -214,8 +243,8 @@ static void TestXmlNodeInitialization(void)
     assert(UTL_XML_NODE_PROCESSING_INSTRUCTION == instruction.type);
     assert(NULL == instruction.firstChild);
 
-    Utl_Xml_Node_AddAttribute(&root, &attribute, "id", "7");
-    Utl_Xml_Node_AddAttribute(&root, &utf8_attribute, "\xC3\xA9" "b", "A\xE2\x82\xAC\xF0\x9F\x98\x80" "Z");
+    Utl_Xml_Node_AddAttribute(&root, &attribute, attribute_name, attribute_value);
+    Utl_Xml_Node_AddAttribute(&root, &utf8_attribute, utf8_name, utf8_value);
     Utl_Xml_Node_AppendChild(&root, &text_node);
     Utl_Xml_Node_AppendChild(&root, &comment);
     Utl_Xml_Node_AppendChild(&root, &instruction);
@@ -242,17 +271,11 @@ static void TestDeferredNodeContentValidation(void)
     Utl_Xml_Node_t text_node;
     Utl_Xml_Node_t comment;
     Utl_Xml_Node_t instruction;
-    const char_t*  name;
-    const char_t*  text;
-    const char_t*  comment_text;
-    const char_t*  target;
-    const char_t*  data;
-
-    name         = "bad name";
-    text         = "\x01";
-    comment_text = "--";
-    target       = "xml";
-    data         = "?>";
+    const byte_t   name[] = "bad name";
+    const byte_t   text[] = "\x01";
+    const byte_t   comment_text[] = "--";
+    const byte_t   target[] = "xml";
+    const byte_t   data[] = "?>";
 
     Utl_Xml_Node_Initialize(&element, UTL_XML_NODE_ELEMENT, name, NULL);
     Utl_Xml_Node_Initialize(&text_node, UTL_XML_NODE_TEXT, NULL, text);
@@ -274,7 +297,8 @@ static void TestDeferredNodeContentValidation(void)
 int main(void)
 {
     TestCharacterClasses();
-    TestNames();
+    TestNmtokens();
+    TestUtf8StringsAndNames();
     TestXmlNodeInitialization();
     TestDeferredNodeContentValidation();
     return 0;

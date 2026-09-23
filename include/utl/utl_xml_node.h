@@ -15,6 +15,7 @@
 **===============================================================================================*/
 
 #include "os/os_types.h"
+#include "utl/utl_xml.h"
 
 /*=================================================================================================
 ** 3. DECLARATIONS
@@ -22,8 +23,8 @@
 ** 3.1 Macros
 **===============================================================================================*/
 
-#define UTL_XML_NODE_MAX_NAME_BYTES  (1024u)    ///< Maximum UTF-8 bytes in a node or attribute name.
-#define UTL_XML_NODE_MAX_VALUE_BYTES (1048576u) ///< Maximum UTF-8 bytes in a node or attribute value.
+#define UTL_XML_NODE_MAX_NAME_BYTES  UTL_XML_MAX_NAME_BYTES   ///< Maximum UTF-8 bytes in a node or attribute name.
+#define UTL_XML_NODE_MAX_VALUE_BYTES UTL_XML_MAX_STRING_BYTES ///< Maximum UTF-8 bytes in a node or attribute value.
 #define UTL_XML_NODE_MAX_ATTRIBUTES  (256u)     ///< Maximum attributes on one element.
 #define UTL_XML_NODE_MAX_DEPTH       (65536u)   ///< Maximum ancestor links checked when appending a child.
 
@@ -49,8 +50,8 @@ typedef enum Utl_Xml_NodeType_e
  */
 typedef struct Utl_Xml_Attribute_s
 {
-    const char_t*               name;  ///< Borrowed null-terminated UTF-8 XML name.
-    const char_t*               value; ///< Borrowed null-terminated UTF-8 XML value.
+    const byte_t*               name;  ///< Borrowed null-terminated UTF-8 XML name.
+    const byte_t*               value; ///< Borrowed null-terminated UTF-8 XML value.
     struct Utl_Xml_Attribute_s* next;  ///< Next attribute in insertion order, or NULL.
 } Utl_Xml_Attribute_t;
 
@@ -61,8 +62,8 @@ typedef struct Utl_Xml_Attribute_s
 typedef struct Utl_Xml_Node_s
 {
     Utl_Xml_NodeType_t     type;           ///< Element, text, comment, or processing instruction.
-    const char_t*          name;           ///< Borrowed element name or PI target; NULL otherwise.
-    const char_t*          value;          ///< Borrowed text, comment, or PI data; NULL for elements.
+    const byte_t*          name;           ///< Borrowed element name or PI target; NULL otherwise.
+    const byte_t*          value;          ///< Borrowed text, comment, or PI data; NULL for elements.
     struct Utl_Xml_Node_s* parent;         ///< Parent set when appended, or NULL.
     struct Utl_Xml_Node_s* firstChild;     ///< First child of an element, or NULL.
     struct Utl_Xml_Node_s* lastChild;      ///< Last child of an element, or NULL.
@@ -106,7 +107,7 @@ typedef struct Utl_Xml_Node_s
  *
  * \retval None
  */
-void Utl_Xml_Node_Initialize(Utl_Xml_Node_t* node, Utl_Xml_NodeType_t type, const char_t* name, const char_t* value);
+void Utl_Xml_Node_Initialize(Utl_Xml_Node_t* node, Utl_Xml_NodeType_t type, const byte_t* name, const byte_t* value);
 
 /*************************************************************************************************/
 /**
@@ -140,6 +141,6 @@ void Utl_Xml_Node_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child);
  *
  * \retval None
  */
-void Utl_Xml_Node_AddAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribute, const char_t* name, const char_t* value);
+void Utl_Xml_Node_AddAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribute, const byte_t* name, const byte_t* value);
 
 #endif /* UTL_XML_NODE_H */

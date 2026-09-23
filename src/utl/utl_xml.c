@@ -1,3 +1,7 @@
+#if !defined(_WIN32) && !defined(_POSIX_C_SOURCE)
+#define _POSIX_C_SOURCE 200809L
+#endif
+
 /*=================================================================================================
 ** 1. References
 **===============================================================================================*/
@@ -15,6 +19,8 @@
 #include "utl/utl_defines.h"
 
 #include "os/os_assert.h"
+
+#include <string.h>
 
 /*=================================================================================================
 ** 3. DECLARATIONS
@@ -101,6 +107,19 @@ static const XmlCodePointRange_t c_xmlNameCharRanges[] =
  */
 static bool_t InRange(uint32_t codePoint, uint32_t first, uint32_t last);
 
+/*************************************************************************************************/
+/**
+ * \brief Decodes one strictly encoded UTF-8 code point within a byte span.
+ *
+ * \param[in]     bytes              Non-NULL UTF-8 byte span
+ * \param[in]     numBytes           Number of bytes in the span
+ * \param[in]     offset             Current byte offset
+ * \param[out]    decodedByteCount   Number of bytes decoded, or zero on failure
+ *
+ * \return Decoded code point, or zero for invalid UTF-8. Check decodedByteCount for success.
+ */
+static uint32_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t offset, uint32_t* decodedByteCount);
+
 /*=================================================================================================
 ** 4. PRIVATE FUNCTIONS
 **===============================================================================================*/
@@ -119,6 +138,92 @@ static bool_t InRange(uint32_t codePoint, uint32_t first, uint32_t last)
     is_last_or_less     = (codePoint <= last);
 
     return is_first_or_greater && is_last_or_less;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Rejects truncated sequences, overlong forms, surrogates, and code points above U+10FFFF.
+ */
+static uint32_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t offset, uint32_t* decodedByteCount)
+{
+    byte_t   first;
+    uint32_t decoded;
+    uint32_t code_point;
+    uint32_t minimum;
+    uint32_t num_continuations;
+    uint32_t index;
+    uint32_t position;
+    bool_t   is_valid;
+
+    code_point = 0;
+    (*decodedByteCount) = 0;
+    is_valid = (offset < numBytes);
+
+    if (is_valid)
+    {
+        position = offset;
+        first    = bytes[position];
+
+        if (first <= 0x7F)
+        {
+            decoded          = first;
+            minimum          = 0;
+            num_continuations = 0;
+        }
+        else if ((0xC2 <= first) && (first <= 0xDF))
+        {
+            decoded          = first & 0x1F;
+            minimum          = 0x80;
+            num_continuations = 1;
+        }
+        else if ((0xE0 <= first) && (first <= 0xEF))
+        {
+            decoded          = first & 0x0F;
+            minimum          = 0x800;
+            num_continuations = 2;
+        }
+        else if ((0xF0 <= first) && (first <= 0xF4))
+        {
+            decoded          = first & 0x07;
+            minimum          = 0x10000;
+            num_continuations = 3;
+        }
+        else
+        {
+            is_valid = FALSE;
+        }
+
+        if (is_valid)
+        {
+            for (index = 0; index < num_continuations; ++index)
+            {
+                ++position;
+                is_valid = (position < numBytes) && (0x80 == (bytes[position] & 0xC0));
+
+                if (FALSE == is_valid)
+                {
+                    break;
+                }
+
+                decoded = (decoded << 6) | (bytes[position] & 0x3F);
+            }
+        }
+
+        if (is_valid)
+        {
+            is_valid = (minimum <= decoded) && (decoded <= 0x10FFFF) &&
+                      ((decoded < 0xD800) || (0xDFFF < decoded));
+        }
+
+        if (is_valid)
+        {
+            code_point = decoded;
+            (*decodedByteCount) = num_continuations + 1;
+        }
+    }
+
+    return code_point;
 }
 
 /*=================================================================================================
@@ -140,6 +245,41 @@ bool_t Utl_Xml_IsChar(uint32_t codePoint)
     bool_t is_supplementary         = InRange(codePoint, 0x10000, 0x10FFFF);
 
     return is_tab || is_line_feed || is_carriage_return || is_bmp_before_surrogates || is_bmp_after_surrogates || is_supplementary;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Empty strings are permitted as text and attribute values.
+ */
+bool_t Utl_Xml_IsString(const byte_t* utf8Text)
+{
+    uint32_t byte_count;
+    uint32_t byte_offset;
+    uint32_t code_point;
+    uint32_t decoded_byte_count;
+    bool_t   is_xml_string;
+
+    LOGASSERT(NULL != utf8Text);
+
+    byte_count = (uint32_t)strnlen((const char*)utf8Text, UTL_XML_MAX_STRING_BYTES + 1);
+    is_xml_string = (byte_count <= UTL_XML_MAX_STRING_BYTES);
+
+    if (is_xml_string)
+    {
+        for (byte_offset = 0; byte_offset < byte_count; byte_offset += decoded_byte_count)
+        {
+            code_point = DecodeUtf8(utf8Text, byte_count, byte_offset, &decoded_byte_count);
+
+            if ((0 == decoded_byte_count) || (FALSE == Utl_Xml_IsChar(code_point)))
+            {
+                is_xml_string = FALSE;
+                break;
+            }
+        }
+    }
+
+    return is_xml_string;
 }
 
 /*************************************************************************************************/
@@ -223,35 +363,47 @@ bool_t Utl_Xml_IsNameChar(uint32_t codePoint)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
+ *  Uses XML 1.0 NameStartChar and NameChar after strict UTF-8 decoding.
  */
-bool_t Utl_Xml_IsName(const uint32_t* codePoints, uint32_t numCodePoints)
+bool_t Utl_Xml_IsName(const byte_t* utf8Name)
 {
-    bool_t   is_name;
-    uint32_t code_point_index;
+    uint32_t byte_count;
+    uint32_t byte_offset;
     uint32_t code_point;
+    uint32_t code_point_index;
+    uint32_t decoded_byte_count;
+    bool_t   is_name;
 
-    LOGASSERT(NULL != codePoints);
-    LOGASSERT(0 < numCodePoints);
+    LOGASSERT(NULL != utf8Name);
 
-    is_name = TRUE;
+    byte_count = (uint32_t)strnlen((const char*)utf8Name, UTL_XML_MAX_NAME_BYTES + 1);
+    is_name = (0 < byte_count) && (byte_count <= UTL_XML_MAX_NAME_BYTES);
 
-    for (code_point_index = 0; code_point_index < numCodePoints; ++code_point_index)
+    if (is_name)
     {
-        code_point = codePoints[code_point_index];
+        byte_offset = 0;
 
-        if (0 == code_point_index)
+        for (code_point_index = 0; byte_offset < byte_count; ++code_point_index, byte_offset += decoded_byte_count)
         {
-            is_name = Utl_Xml_IsNameStartChar(code_point);
-        }
-        else
-        {
-            is_name = Utl_Xml_IsNameChar(code_point);
-        }
+            code_point = DecodeUtf8(utf8Name, byte_count, byte_offset, &decoded_byte_count);
+            is_name = (0 < decoded_byte_count);
 
-        if (FALSE == is_name)
-        {
-            break;
+            if (is_name)
+            {
+                if (0 == code_point_index)
+                {
+                    is_name = Utl_Xml_IsNameStartChar(code_point);
+                }
+                else
+                {
+                    is_name = Utl_Xml_IsNameChar(code_point);
+                }
+            }
+
+            if (FALSE == is_name)
+            {
+                break;
+            }
         }
     }
 

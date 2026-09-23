@@ -8,8 +8,9 @@ nested elements, attributes, and ordered content. ARINC 661 Definition Files are
 an eventual consumer of this generic layer; widget types and ARINC rules do not
 belong in the XML model.
 
-The existing helpers classify decoded Unicode code points. They do not yet
-decode input bytes, parse a document, store a tree, or serialize one.
+The character helpers classify decoded Unicode code points. The string and
+name validators decode bounded UTF-8 byte strings. These helpers do not yet
+parse a document or serialize one.
 
 ## Next modules
 

@@ -22,6 +22,10 @@
 ** 3.1 Macros
 **===============================================================================================*/
 
+/* Maximum UTF-8 byte lengths accepted by the string and name validators. */
+#define UTL_XML_MAX_NAME_BYTES   (1024)
+#define UTL_XML_MAX_STRING_BYTES (1048576)
+
 /* XML 1.0 sections 2.2 and 2.3, productions [2] Char and [3] S. */
 #define UTL_XML_CHAR_TAB   ('\t') ///< Horizontal tab.
 #define UTL_XML_CHAR_LF    ('\n') ///< Line feed; normalized line ending (section 2.11).
@@ -124,6 +128,26 @@ bool_t Utl_Xml_IsChar(uint32_t codePoint);
 
 /*************************************************************************************************/
 /**
+ * \brief Checks a null-terminated UTF-8 byte string against XML 1.0 Char.
+ *
+ * \par Details:
+ *  XML 1.0 (Fifth Edition), production [2] Char:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-Char
+ *
+ * \par Requirements:
+ *  - 001 This function shall accept empty strings and reject invalid UTF-8 or non-Char code points.
+ *  - 002 This function shall inspect at most UTL_XML_MAX_STRING_BYTES + 1 bytes and reject longer strings.
+ *  - 003 This function shall fail an assertion if utf8Text is NULL.
+ *
+ * \param[in] utf8Text   Non-NULL null-terminated UTF-8 byte string
+ *
+ * \retval TRUE    if the complete string is valid XML character data.
+ * \retval FALSE   otherwise
+ */
+bool_t Utl_Xml_IsString(const byte_t* utf8Text);
+
+/*************************************************************************************************/
+/**
  * \brief Checks whether a decoded code point is a permitted XML 1.0 whitespace character.
  *
  * \par Details:
@@ -183,26 +207,23 @@ bool_t Utl_Xml_IsNameChar(uint32_t codePoint);
 
 /*************************************************************************************************/
 /**
- * \brief Checks whether a decoded code-point span is a permitted XML 1.0 Name.
+ * \brief Checks a null-terminated UTF-8 byte string against XML 1.0 Name.
  *
  * \par Details:
  *  XML 1.0 (Fifth Edition), production [5] Name:
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-Name
  *
  * \par Requirements:
- *  - 001 This function shall return TRUE only for XML 1.0 section 2.3, production [5] Name: a NameStartChar followed by zero or more NameChar values.
- *  - 002 This function shall check exactly numCodePoints values, require no terminator, and reject zero within the span.
- *  - 003 This function shall check Name syntax without namespace constraints or reserved-name policy.
- *  - 004 This function shall fail an assertion if codePoints is NULL.
- *  - 005 This function shall fail an assertion if numCodePoints is zero.
+ *  - 001 This function shall require a non-empty NameStartChar followed by zero or more NameChar values.
+ *  - 002 This function shall reject invalid UTF-8 and strings longer than UTL_XML_MAX_NAME_BYTES.
+ *  - 003 This function shall fail an assertion if utf8Name is NULL.
  *
- * \param[in] codePoints      Non-NULL array of at least numCodePoints decoded Unicode code points
- * \param[in] numCodePoints   Nonzero number of code points in the span
+ * \param[in] utf8Name   Non-NULL null-terminated UTF-8 byte string
  *
- * \retval    TRUE            if the complete span is a permitted XML 1.0 Name.
- * \retval    FALSE           otherwise
+ * \retval TRUE    if the complete string is a permitted XML 1.0 Name.
+ * \retval FALSE   otherwise
  */
-bool_t Utl_Xml_IsName(const uint32_t* codePoints, uint32_t numCodePoints);
+bool_t Utl_Xml_IsName(const byte_t* utf8Name);
 
 /*************************************************************************************************/
 /**
