@@ -84,9 +84,26 @@ static const XmlCodePointRange_t c_xmlNameCharRanges[] =
 ** 3.5 Static function prototypes
 **===============================================================================================*/
 
+static bool_t InRange(uint32_t codePoint, uint32_t first, uint32_t last);
+
 /*=================================================================================================
 ** 4. PRIVATE FUNCTIONS
 **===============================================================================================*/
+
+/*************************************************************************************************/
+/**
+ * \brief Checks whether a code point is within an inclusive range.
+ */
+static bool_t InRange(uint32_t codePoint, uint32_t first, uint32_t last)
+{
+    bool_t is_after_first;
+    bool_t is_before_last;
+
+    is_after_first = (first <= codePoint);
+    is_before_last = (codePoint <= last);
+
+    return is_after_first && is_before_last;
+}
 
 /*=================================================================================================
 ** 5. PUBLIC FUNCTIONS
@@ -102,9 +119,9 @@ bool_t Utl_Xml_IsChar(uint32_t codePoint)
     bool_t is_tab                   = (UTL_XML_CHAR_TAB == codePoint);
     bool_t is_line_feed             = (UTL_XML_CHAR_LF == codePoint);
     bool_t is_carriage_return       = (UTL_XML_CHAR_CR == codePoint);
-    bool_t is_bmp_before_surrogates = ((0x20 <= codePoint) && (codePoint <= 0xD7FF));
-    bool_t is_bmp_after_surrogates  = ((0xE000 <= codePoint) && (codePoint <= 0xFFFD));
-    bool_t is_supplementary         = ((0x10000 <= codePoint) && (codePoint <= 0x10FFFF));
+    bool_t is_bmp_before_surrogates = InRange(codePoint, 0x20, 0xD7FF);
+    bool_t is_bmp_after_surrogates  = InRange(codePoint, 0xE000, 0xFFFD);
+    bool_t is_supplementary         = InRange(codePoint, 0x10000, 0x10FFFF);
 
     return is_tab || is_line_feed || is_carriage_return || is_bmp_before_surrogates || is_bmp_after_surrogates || is_supplementary;
 }
@@ -133,17 +150,17 @@ bool_t Utl_Xml_IsNameStartChar(uint32_t codePoint)
 {
     uint32_t range_index;
     bool_t   is_name_start_char;
-    bool_t   is_after_first;
-    bool_t   is_before_last;
+    uint32_t first;
+    uint32_t last;
 
     is_name_start_char = FALSE;
 
     for (range_index = 0; range_index < COUNT_OF(c_xmlNameStartCharRanges); ++range_index)
     {
-        is_after_first = (c_xmlNameStartCharRanges[range_index].first <= codePoint);
-        is_before_last = (codePoint <= c_xmlNameStartCharRanges[range_index].last);
+        first = c_xmlNameStartCharRanges[range_index].first;
+        last  = c_xmlNameStartCharRanges[range_index].last;
 
-        is_name_start_char = is_after_first && is_before_last;
+        is_name_start_char = InRange(codePoint, first, last);
 
         if (is_name_start_char)
         {
@@ -161,10 +178,10 @@ bool_t Utl_Xml_IsNameStartChar(uint32_t codePoint)
  */
 bool_t Utl_Xml_IsNameChar(uint32_t codePoint)
 {
-    uint32_t range_index;
     bool_t   is_name_char;
-    bool_t   is_after_first;
-    bool_t   is_before_last;
+    uint32_t range_index;
+    uint32_t first;
+    uint32_t last;
 
     is_name_char = FALSE;
 
@@ -176,10 +193,10 @@ bool_t Utl_Xml_IsNameChar(uint32_t codePoint)
         }
         else
         {
-            is_after_first = (c_xmlNameCharRanges[range_index - 1].first <= codePoint);
-            is_before_last = (codePoint <= c_xmlNameCharRanges[range_index - 1].last);
+            first = c_xmlNameCharRanges[range_index - 1].first;
+            last  = c_xmlNameCharRanges[range_index - 1].last;
 
-            is_name_char = is_after_first && is_before_last;
+            is_name_char = InRange(codePoint, first, last);
         }
 
         if (is_name_char)
@@ -198,8 +215,8 @@ bool_t Utl_Xml_IsNameChar(uint32_t codePoint)
  */
 bool_t Utl_Xml_IsName(const uint32_t* codePoints, uint32_t count)
 {
-    uint32_t code_point_index;
     bool_t   is_name;
+    uint32_t code_point_index;
 
     LOGASSERT(NULL != codePoints);
     LOGASSERT(0 < count);
