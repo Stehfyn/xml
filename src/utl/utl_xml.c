@@ -40,12 +40,17 @@ typedef struct XmlCodePointRange_s
 ** 3.4 Static global variables
 **===============================================================================================*/
 
+/*************************************************************************************************/
+/**
+ * \brief Allowed first-character ranges from XML 1.0 (Fifth Edition), production [4] NameStartChar.
+ * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-NameStartChar
+ */
 static const XmlCodePointRange_t c_xmlNameStartRanges[] =
 {
-    {0x3A, 0x3A},
-    {0x41, 0x5A},
-    {0x5F, 0x5F},
-    {0x61, 0x7A},
+    {':', ':'},
+    {'A', 'Z'},
+    {'_', '_'},
+    {'a', 'z'},
     {0xC0, 0xD6},
     {0xD8, 0xF6},
     {0xF8, 0x2FF},
