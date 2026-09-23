@@ -121,8 +121,8 @@
  *
  * \param[in] codePoint         Decoded Unicode code point to classify
  *
- * \retval TRUE  The code point is a permitted XML 1.0 character.
- * \retval FALSE Otherwise
+ * \retval    TRUE if the code point is a permitted XML 1.0 character.
+ * \retval    FALSE Otherwise
  */
 bool_t Utl_Xml_IsChar(uint32_t codePoint);
 
@@ -140,8 +140,8 @@ bool_t Utl_Xml_IsChar(uint32_t codePoint);
  *
  * \param[in] codePoint         Decoded Unicode code point to classify
  *
- * \retval TRUE  The code point is a character permitted in S.
- * \retval FALSE Otherwise
+ * \retval    TRUE if the code point is a permitted XML 1.0 whitespace character.
+ * \retval    FALSE Otherwise
  */
 bool_t Utl_Xml_IsWhitespace(uint32_t codePoint);
 
