@@ -196,11 +196,11 @@ static void TestXmlNodeTree(void)
     Utl_Xml_Node_t comment;
     Utl_Xml_Node_t last_text;
 
-    assert(TRUE == Utl_Xml_Node_InitializeElement(&root, "root"));
-    assert(TRUE == Utl_Xml_Node_InitializeText(&first_text, "before"));
-    assert(TRUE == Utl_Xml_Node_InitializeElement(&element, "child"));
-    assert(TRUE == Utl_Xml_Node_InitializeComment(&comment, "between"));
-    assert(TRUE == Utl_Xml_Node_InitializeText(&last_text, "after"));
+    Utl_Xml_Node_InitializeElement(&root, "root");
+    Utl_Xml_Node_InitializeText(&first_text, "before");
+    Utl_Xml_Node_InitializeElement(&element, "child");
+    Utl_Xml_Node_InitializeComment(&comment, "between");
+    Utl_Xml_Node_InitializeText(&last_text, "after");
     assert(TRUE == Utl_Xml_Node_AppendChild(&root, &first_text));
     assert(TRUE == Utl_Xml_Node_AppendChild(&root, &element));
     assert(TRUE == Utl_Xml_Node_AppendChild(&root, &last_text));
@@ -242,7 +242,7 @@ static void TestXmlNodeAttributes(void)
     Utl_Xml_Attribute_t lang;
     Utl_Xml_Attribute_t duplicate;
 
-    assert(TRUE == Utl_Xml_Node_InitializeElement(&node, "item"));
+    Utl_Xml_Node_InitializeElement(&node, "item");
     assert(TRUE == Utl_Xml_Node_AddAttribute(&node, &id, "id", "1"));
     assert(TRUE == Utl_Xml_Node_AddAttribute(&node, &lang, "lang", "en"));
     assert(FALSE == Utl_Xml_Node_AddAttribute(&node, &duplicate, "id", "2"));
@@ -269,21 +269,13 @@ static void TestXmlNodeAttributes(void)
 static void TestXmlNodeValidation(void)
 {
     Utl_Xml_Node_t      node;
+    Utl_Xml_Node_t      comment;
+    Utl_Xml_Node_t      instruction;
     Utl_Xml_Attribute_t attribute;
     const char_t*       name;
 
-    assert(FALSE == Utl_Xml_Node_InitializeElement(&node, ""));
-    assert(FALSE == Utl_Xml_Node_InitializeElement(&node, "0bad"));
-    assert(FALSE == Utl_Xml_Node_InitializeElement(&node, "\xC0\xAF"));
-    assert(FALSE == Utl_Xml_Node_InitializeElement(&node, "\xED\xA0\x80"));
-    assert(FALSE == Utl_Xml_Node_InitializeText(&node, "\x01"));
-    assert(FALSE == Utl_Xml_Node_InitializeComment(&node, "bad--comment"));
-    assert(FALSE == Utl_Xml_Node_InitializeComment(&node, "bad-"));
-    assert(FALSE == Utl_Xml_Node_InitializeProcessingInstruction(&node, "XmL", "data"));
-    assert(FALSE == Utl_Xml_Node_InitializeProcessingInstruction(&node, "target", "bad?>data"));
-
     name = "\xC3\xA9";
-    assert(TRUE == Utl_Xml_Node_InitializeElement(&node, name));
+    Utl_Xml_Node_InitializeElement(&node, name);
     assert(name == node.name);
     assert(FALSE == Utl_Xml_Node_SetName(&node, "0bad"));
     assert(name == node.name);
@@ -291,9 +283,14 @@ static void TestXmlNodeValidation(void)
     assert(FALSE == Utl_Xml_Node_AddAttribute(&node, &attribute, "ok", "\x01"));
     assert(0 == node.attributeCount);
 
-    assert(TRUE == Utl_Xml_Node_InitializeComment(&node, "valid"));
-    assert(FALSE == Utl_Xml_Node_SetValue(&node, "bad--value"));
-    assert(0 == strcmp(node.value, "valid"));
+    Utl_Xml_Node_InitializeComment(&comment, "valid");
+    assert(FALSE == Utl_Xml_Node_SetValue(&comment, "bad--value"));
+    assert(0 == strcmp(comment.value, "valid"));
+
+    Utl_Xml_Node_InitializeProcessingInstruction(&instruction, "target", "data");
+    assert(UTL_XML_NODE_PROCESSING_INSTRUCTION == instruction.type);
+    assert(FALSE == Utl_Xml_Node_SetName(&instruction, "XmL"));
+    assert(FALSE == Utl_Xml_Node_SetValue(&instruction, "bad?>data"));
 }
 
 /*************************************************************************************************/

@@ -505,7 +505,7 @@ static Utl_Xml_Node_t* FindRoot(Utl_Xml_Node_t* node)
  * \par Details:
  *  None
  */
-bool_t Utl_Xml_Node_InitializeElement(Utl_Xml_Node_t* node, const char_t* name)
+void Utl_Xml_Node_InitializeElement(Utl_Xml_Node_t* node, const char_t* name)
 {
     bool_t is_name;
 
@@ -513,13 +513,9 @@ bool_t Utl_Xml_Node_InitializeElement(Utl_Xml_Node_t* node, const char_t* name)
     LOGASSERT(NULL != name);
 
     is_name = IsName(name);
+    LOGASSERT(is_name);
 
-    if (TRUE == is_name)
-    {
-        InitializeNode(node, UTL_XML_NODE_ELEMENT, name, NULL);
-    }
-
-    return is_name;
+    InitializeNode(node, UTL_XML_NODE_ELEMENT, name, NULL);
 }
 
 /*************************************************************************************************/
@@ -527,7 +523,7 @@ bool_t Utl_Xml_Node_InitializeElement(Utl_Xml_Node_t* node, const char_t* name)
  * \par Details:
  *  None
  */
-bool_t Utl_Xml_Node_InitializeText(Utl_Xml_Node_t* node, const char_t* text)
+void Utl_Xml_Node_InitializeText(Utl_Xml_Node_t* node, const char_t* text)
 {
     bool_t is_xml_string;
 
@@ -535,13 +531,9 @@ bool_t Utl_Xml_Node_InitializeText(Utl_Xml_Node_t* node, const char_t* text)
     LOGASSERT(NULL != text);
 
     is_xml_string = IsXmlString(text);
+    LOGASSERT(is_xml_string);
 
-    if (TRUE == is_xml_string)
-    {
-        InitializeNode(node, UTL_XML_NODE_TEXT, NULL, text);
-    }
-
-    return is_xml_string;
+    InitializeNode(node, UTL_XML_NODE_TEXT, NULL, text);
 }
 
 /*************************************************************************************************/
@@ -549,7 +541,7 @@ bool_t Utl_Xml_Node_InitializeText(Utl_Xml_Node_t* node, const char_t* text)
  * \par Details:
  *  None
  */
-bool_t Utl_Xml_Node_InitializeComment(Utl_Xml_Node_t* node, const char_t* text)
+void Utl_Xml_Node_InitializeComment(Utl_Xml_Node_t* node, const char_t* text)
 {
     bool_t is_comment;
 
@@ -557,13 +549,9 @@ bool_t Utl_Xml_Node_InitializeComment(Utl_Xml_Node_t* node, const char_t* text)
     LOGASSERT(NULL != text);
 
     is_comment = IsComment(text);
+    LOGASSERT(is_comment);
 
-    if (TRUE == is_comment)
-    {
-        InitializeNode(node, UTL_XML_NODE_COMMENT, NULL, text);
-    }
-
-    return is_comment;
+    InitializeNode(node, UTL_XML_NODE_COMMENT, NULL, text);
 }
 
 /*************************************************************************************************/
@@ -571,7 +559,7 @@ bool_t Utl_Xml_Node_InitializeComment(Utl_Xml_Node_t* node, const char_t* text)
  * \par Details:
  *  None
  */
-bool_t Utl_Xml_Node_InitializeProcessingInstruction(Utl_Xml_Node_t* node, const char_t* target, const char_t* data)
+void Utl_Xml_Node_InitializeProcessingInstruction(Utl_Xml_Node_t* node, const char_t* target, const char_t* data)
 {
     bool_t is_processing_instruction;
 
@@ -580,13 +568,9 @@ bool_t Utl_Xml_Node_InitializeProcessingInstruction(Utl_Xml_Node_t* node, const 
     LOGASSERT(NULL != data);
 
     is_processing_instruction = IsProcessingInstruction(target, data);
+    LOGASSERT(is_processing_instruction);
 
-    if (TRUE == is_processing_instruction)
-    {
-        InitializeNode(node, UTL_XML_NODE_PROCESSING_INSTRUCTION, target, data);
-    }
-
-    return is_processing_instruction;
+    InitializeNode(node, UTL_XML_NODE_PROCESSING_INSTRUCTION, target, data);
 }
 
 /*************************************************************************************************/
