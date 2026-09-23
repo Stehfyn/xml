@@ -44,10 +44,37 @@
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Writes the failed expression and its source location to stderr, then aborts the process.
+ *  None
  */
 OS_NORETURN void Os_AssertFailure(const char* pExpression, const char* pFile, int line)
 {
-    (void)fprintf(stderr, "assertion failed: %s (%s:%d)\n", pExpression, pFile, line);
+    LOGSTART(stderr);
+    LOGPRINTS("assertion failed: ");
+    LOGPRINTS(pExpression);
+    LOGPRINTS(" (");
+    LOGPRINTS(pFile);
+    LOGPRINTS(":");
+    LOGPRINTI((int64_t)(line));
+    LOGPRINTS(")\n");
+    LOGEND();
+    abort();
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  None
+ */
+OS_NORETURN void Os_LogFatal(const char* pMessage, const char* pFile, int line)
+{
+    LOGSTART(stderr);
+    LOGPRINTS("fatal: ");
+    LOGPRINTS(pMessage);
+    LOGPRINTS(" (");
+    LOGPRINTS(pFile);
+    LOGPRINTS(":");
+    LOGPRINTI((int64_t)(line));
+    LOGPRINTS(")\n");
+    LOGEND();
     abort();
 }

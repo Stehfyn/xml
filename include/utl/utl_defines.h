@@ -1,5 +1,5 @@
-#ifndef VULKAN_VA_ZERO_COPY_UTL_DEFINES_H
-#define VULKAN_VA_ZERO_COPY_UTL_DEFINES_H
+#ifndef UTL_DEFINES_H
+#define UTL_DEFINES_H
 
 /*=================================================================================================
 ** 1. References
@@ -39,4 +39,4 @@
 ** 3.5 Functions
 **===============================================================================================*/
 
-#endif /* VULKAN_VA_ZERO_COPY_UTL_DEFINES_H */
+#endif /* UTL_DEFINES_H */

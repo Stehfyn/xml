@@ -1,5 +1,5 @@
-#ifndef VULKAN_VA_ZERO_COPY_OS_TYPES_H
-#define VULKAN_VA_ZERO_COPY_OS_TYPES_H
+#ifndef XML_OS_TYPES_H
+#define XML_OS_TYPES_H
 
 /*=================================================================================================
 ** 1. References
@@ -51,4 +51,4 @@ typedef unsigned char byte_t;
 ** 3.5 Functions
 **===============================================================================================*/
 
-#endif /* VULKAN_VA_ZERO_COPY_OS_TYPES_H */
+#endif /* XML_OS_TYPES_H */
