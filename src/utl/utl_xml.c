@@ -132,16 +132,26 @@ bool_t Utl_Xml_IsWhitespace(uint32_t codePoint)
 bool_t Utl_Xml_IsNameStartChar(uint32_t codePoint)
 {
     uint32_t range_index;
+    bool_t   is_name_start_char;
+    bool_t   is_after_first;
+    bool_t   is_before_last;
+
+    is_name_start_char = FALSE;
 
     for (range_index = 0; range_index < COUNT_OF(c_xmlNameStartCharRanges); ++range_index)
     {
-        if (codePoint <= c_xmlNameStartCharRanges[range_index].last)
+        is_after_first = (c_xmlNameStartCharRanges[range_index].first <= codePoint);
+        is_before_last = (codePoint <= c_xmlNameStartCharRanges[range_index].last);
+
+        is_name_start_char = is_after_first && is_before_last;
+
+        if (is_name_start_char)
         {
-            return codePoint >= c_xmlNameStartCharRanges[range_index].first;
+            break;
         }
     }
 
-    return FALSE;
+    return is_name_start_char;
 }
 
 /*************************************************************************************************/
@@ -168,6 +178,7 @@ bool_t Utl_Xml_IsNameChar(uint32_t codePoint)
         {
             is_after_first = (c_xmlNameCharRanges[range_index - 1].first <= codePoint);
             is_before_last = (codePoint <= c_xmlNameCharRanges[range_index - 1].last);
+
             is_name_char = is_after_first && is_before_last;
         }
 
