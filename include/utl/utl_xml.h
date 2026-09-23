@@ -181,7 +181,7 @@ bool_t Utl_Xml_IsNameChar(uint32_t codePoint);
  *  - 005 This function shall leave the input span unchanged.
  *
  * \param[in] codePoints        Non-NULL array of at least numCodePoints decoded Unicode code points
- * \param[in] numCodePoints             Nonzero number of code points in the span
+ * \param[in] numCodePoints     Nonzero number of code points in the span
  *
  * \retval TRUE  The complete span matches Name.
  * \retval FALSE The span does not match Name.
@@ -200,7 +200,7 @@ bool_t Utl_Xml_IsName(const uint32_t* codePoints, uint32_t numCodePoints);
  *  - 005 This function shall leave the input span unchanged.
  *
  * \param[in] codePoints        Non-NULL array of at least numCodePoints decoded Unicode code points
- * \param[in] numCodePoints             Nonzero number of code points in the span
+ * \param[in] numCodePoints     Nonzero number of code points in the span
  *
  * \retval TRUE  The complete span matches Nmtoken.
  * \retval FALSE The span does not match Nmtoken.
