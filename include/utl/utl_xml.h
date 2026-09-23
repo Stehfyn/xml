@@ -128,7 +128,7 @@ bool_t Utl_Xml_IsChar(uint32_t codePoint);
 
 /*************************************************************************************************/
 /**
- * \brief Checks whether a decoded code point is XML 1.0 whitespace.
+ * \brief Checks whether a decoded code point is a permitted XML 1.0 whitespace character.
  *
  * \par Details:
  *  XML 1.0 (Fifth Edition), production [3] S:
@@ -147,7 +147,11 @@ bool_t Utl_Xml_IsWhitespace(uint32_t codePoint);
 
 /*************************************************************************************************/
 /**
- * \brief Checks whether a decoded code point can begin an XML name.
+ * \brief Checks whether a decoded code point is a permitted XML 1.0 NameStartChar.
+ *
+ * \par Details:
+ *  XML 1.0 (Fifth Edition), production [4] NameStartChar:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-NameStartChar
  *
  * \par Requirements:
  *  - 001 This function shall return TRUE for XML 1.0 section 2.3, production [4] NameStartChar.
@@ -156,8 +160,8 @@ bool_t Utl_Xml_IsWhitespace(uint32_t codePoint);
  *
  * \param[in] codePoint         Decoded Unicode code point to classify
  *
- * \retval TRUE  The code point matches NameStartChar.
- * \retval FALSE The code point cannot begin an XML Name.
+ * \retval    TRUE if the code point is a permitted XML 1.0 NameStartChar.
+ * \retval    FALSE Otherwise
  */
 bool_t Utl_Xml_IsNameStartChar(uint32_t codePoint);
 
