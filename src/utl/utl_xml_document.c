@@ -30,9 +30,9 @@
 
 typedef struct XmlOutput_s
 {
-    byte_t* bytes;
-    size_t  capacity;
-    size_t  length;
+    byte_t*  bytes;
+    uint32_t capacity;
+    uint32_t length;
 } XmlOutput_t;
 
 /*=================================================================================================
@@ -55,11 +55,11 @@ typedef struct XmlOutput_s
 /**
  * \brief Appends bytes, or measures them when output storage is NULL.
  */
-static bool_t WriteBytes(XmlOutput_t* output, const byte_t* bytes, size_t byteCount)
+static bool_t WriteBytes(XmlOutput_t* output, const byte_t* bytes, uint32_t byteCount)
 {
     bool_t can_write;
 
-    can_write = (byteCount <= SIZE_MAX - output->length);
+    can_write = (byteCount <= UINT32_MAX - output->length);
 
     if (can_write && (NULL != output->bytes))
     {
@@ -120,30 +120,30 @@ static bool_t WriteEscaped(XmlOutput_t* output, const byte_t* utf8Text, uint32_t
         {
             case '&':
                 is_written = WriteBytes(output, (const byte_t*)UTL_XML_ENTITY_REF_AMP,
-                                        sizeof(UTL_XML_ENTITY_REF_AMP) - 1);
+                                        (uint32_t)(sizeof(UTL_XML_ENTITY_REF_AMP) - 1));
                 break;
             case '<':
                 is_written = WriteBytes(output, (const byte_t*)UTL_XML_ENTITY_REF_LT,
-                                        sizeof(UTL_XML_ENTITY_REF_LT) - 1);
+                                        (uint32_t)(sizeof(UTL_XML_ENTITY_REF_LT) - 1));
                 break;
             case '>':
                 is_written = WriteBytes(output, (const byte_t*)UTL_XML_ENTITY_REF_GT,
-                                        sizeof(UTL_XML_ENTITY_REF_GT) - 1);
+                                        (uint32_t)(sizeof(UTL_XML_ENTITY_REF_GT) - 1));
                 break;
             case '"':
                 is_written = isAttribute ? WriteBytes(output, (const byte_t*)UTL_XML_ENTITY_REF_QUOT,
-                                                      sizeof(UTL_XML_ENTITY_REF_QUOT) - 1) : WriteByte(output, '"');
+                                                      (uint32_t)(sizeof(UTL_XML_ENTITY_REF_QUOT) - 1)) : WriteByte(output, '"');
                 break;
             case '\t':
-                is_written = isAttribute ? WriteBytes(output, (const byte_t*)"&#x9;", sizeof("&#x9;") - 1) :
+                is_written = isAttribute ? WriteBytes(output, (const byte_t*)"&#x9;", (uint32_t)(sizeof("&#x9;") - 1)) :
                                            WriteByte(output, '\t');
                 break;
             case '\n':
-                is_written = isAttribute ? WriteBytes(output, (const byte_t*)"&#xA;", sizeof("&#xA;") - 1) :
+                is_written = isAttribute ? WriteBytes(output, (const byte_t*)"&#xA;", (uint32_t)(sizeof("&#xA;") - 1)) :
                                            WriteByte(output, '\n');
                 break;
             case '\r':
-                is_written = WriteBytes(output, (const byte_t*)"&#xD;", sizeof("&#xD;") - 1);
+                is_written = WriteBytes(output, (const byte_t*)"&#xD;", (uint32_t)(sizeof("&#xD;") - 1));
                 break;
             default:
                 is_written = WriteByte(output, utf8Text[byte_index]);
@@ -163,11 +163,12 @@ static bool_t WriteEscaped(XmlOutput_t* output, const byte_t* utf8Text, uint32_t
 /**
  * \brief Validates the byte span and framing of caller-supplied raw markup.
  */
-static bool_t WriteRawMarkup(XmlOutput_t* output, const byte_t* markup, uint32_t byteCount, const byte_t* prefix, size_t prefixByteCount, const byte_t* suffix, size_t suffixByteCount)
+static bool_t WriteRawMarkup(XmlOutput_t* output, const byte_t* markup, uint32_t byteCount, const byte_t* prefix, uint32_t prefixByteCount, const byte_t* suffix, uint32_t suffixByteCount)
 {
     bool_t is_valid;
 
-    is_valid = (NULL != markup) && (prefixByteCount + suffixByteCount <= byteCount);
+    is_valid = (NULL != markup) && (prefixByteCount <= byteCount) &&
+               (suffixByteCount <= byteCount - prefixByteCount);
 
     if (is_valid)
     {
@@ -194,7 +195,7 @@ static bool_t WriteXmlDeclaration(XmlOutput_t* output, const Utl_Xml_Document_t*
     static const byte_t suffix[] = "?>";
 
     return WriteRawMarkup(output, document->xmlDeclaration, document->xmlDeclarationByteCount,
-                          prefix, sizeof(prefix) - 1, suffix, sizeof(suffix) - 1);
+                          prefix, (uint32_t)(sizeof(prefix) - 1), suffix, (uint32_t)(sizeof(suffix) - 1));
 }
 
 /*************************************************************************************************/
@@ -207,7 +208,7 @@ static bool_t WriteDoctype(XmlOutput_t* output, const Utl_Xml_Document_t* docume
     static const byte_t suffix[] = ">";
 
     return WriteRawMarkup(output, document->doctype, document->doctypeByteCount,
-                          prefix, sizeof(prefix) - 1, suffix, sizeof(suffix) - 1);
+                          prefix, (uint32_t)(sizeof(prefix) - 1), suffix, (uint32_t)(sizeof(suffix) - 1));
 }
 
 /*************************************************************************************************/
@@ -293,7 +294,7 @@ static bool_t WriteElementStart(XmlOutput_t* output, const Utl_Xml_Node_t* node)
     if (NULL == node->firstChild)
     {
         return WriteBytes(output, (const byte_t*)UTL_XML_EMPTY_ELEM_TAG_CLOSE,
-                          sizeof(UTL_XML_EMPTY_ELEM_TAG_CLOSE) - 1);
+                          (uint32_t)(sizeof(UTL_XML_EMPTY_ELEM_TAG_CLOSE) - 1));
     }
 
     return WriteByte(output, '>');
@@ -305,7 +306,7 @@ static bool_t WriteElementStart(XmlOutput_t* output, const Utl_Xml_Node_t* node)
  */
 static bool_t WriteElementEnd(XmlOutput_t* output, const Utl_Xml_Node_t* node)
 {
-    return WriteBytes(output, (const byte_t*)UTL_XML_ETAG_OPEN, sizeof(UTL_XML_ETAG_OPEN) - 1) &&
+    return WriteBytes(output, (const byte_t*)UTL_XML_ETAG_OPEN, (uint32_t)(sizeof(UTL_XML_ETAG_OPEN) - 1)) &&
            WriteBytes(output, node->name, node->nameByteCount) &&
            WriteByte(output, '>');
 }
@@ -373,9 +374,9 @@ static bool_t WriteLeaf(XmlOutput_t* output, const Utl_Xml_Node_t* node)
             return FALSE;
         }
 
-        return WriteBytes(output, (const byte_t*)UTL_XML_COMMENT_OPEN, sizeof(UTL_XML_COMMENT_OPEN) - 1) &&
+        return WriteBytes(output, (const byte_t*)UTL_XML_COMMENT_OPEN, (uint32_t)(sizeof(UTL_XML_COMMENT_OPEN) - 1)) &&
                WriteBytes(output, node->value, node->valueByteCount) &&
-               WriteBytes(output, (const byte_t*)UTL_XML_COMMENT_CLOSE, sizeof(UTL_XML_COMMENT_CLOSE) - 1);
+               WriteBytes(output, (const byte_t*)UTL_XML_COMMENT_CLOSE, (uint32_t)(sizeof(UTL_XML_COMMENT_CLOSE) - 1));
     }
 
     if (UTL_XML_NODE_PROCESSING_INSTRUCTION == node->type)
@@ -403,7 +404,7 @@ static bool_t WriteLeaf(XmlOutput_t* output, const Utl_Xml_Node_t* node)
             }
         }
 
-        if ((FALSE == WriteBytes(output, (const byte_t*)UTL_XML_PI_OPEN, sizeof(UTL_XML_PI_OPEN) - 1)) ||
+        if ((FALSE == WriteBytes(output, (const byte_t*)UTL_XML_PI_OPEN, (uint32_t)(sizeof(UTL_XML_PI_OPEN) - 1))) ||
             (FALSE == WriteBytes(output, node->name, node->nameByteCount)))
         {
             return FALSE;
@@ -418,7 +419,7 @@ static bool_t WriteLeaf(XmlOutput_t* output, const Utl_Xml_Node_t* node)
             }
         }
 
-        return WriteBytes(output, (const byte_t*)UTL_XML_PI_CLOSE, sizeof(UTL_XML_PI_CLOSE) - 1);
+        return WriteBytes(output, (const byte_t*)UTL_XML_PI_CLOSE, (uint32_t)(sizeof(UTL_XML_PI_CLOSE) - 1));
     }
 
     return FALSE;
@@ -715,7 +716,7 @@ void Utl_Xml_Document_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* n
  *  Measures and validates before writing, so invalid input or insufficient capacity
  *  does not modify the caller's output buffer.
  */
-bool_t Utl_Xml_Document_Serialize(const Utl_Xml_Document_t* document, byte_t* output, size_t capacity, size_t* byteCount)
+bool_t Utl_Xml_Document_Serialize(const Utl_Xml_Document_t* document, byte_t* output, uint32_t capacity, uint32_t* byteCount)
 {
     XmlOutput_t measured_output;
     XmlOutput_t written_output;

@@ -349,8 +349,8 @@ static void TestXmlDocumentSerialization(void)
         "<root a=\"A&amp;&quot;&lt;&#x9;&#xA;&#xD;\">&lt;&amp;&gt;&#xD;"
         "<child/>tail<!--inside--></root><!--after-->";
     byte_t             output[256];
-    size_t             byte_count;
-    size_t             byte_index;
+    uint32_t           byte_count;
+    uint32_t           byte_index;
     bool_t             is_serialized;
 
     Utl_Xml_Document_Initialize(&document);
@@ -397,12 +397,12 @@ static void TestXmlDocumentSerialization(void)
     assert(FALSE == is_serialized);
     assert((sizeof(expected) - 1) == byte_count);
 
-    for (byte_index = 0; byte_index < sizeof(output); ++byte_index)
+    for (byte_index = 0; byte_index < (uint32_t)sizeof(output); ++byte_index)
     {
         assert(0xA5 == output[byte_index]);
     }
 
-    is_serialized = Utl_Xml_Document_Serialize(&document, output, sizeof(output), &byte_count);
+    is_serialized = Utl_Xml_Document_Serialize(&document, output, (uint32_t)sizeof(output), &byte_count);
     assert(TRUE == is_serialized);
     assert((sizeof(expected) - 1) == byte_count);
     assert(0 == memcmp(output, expected, byte_count));
@@ -419,7 +419,7 @@ static void TestXmlDocumentInvalidContent(void)
     Utl_Xml_Node_t     root;
     const byte_t       invalid_name[] = {'a', 0, 'b'};
     byte_t             output[32];
-    size_t             byte_count;
+    uint32_t           byte_count;
     bool_t             is_serialized;
 
     Utl_Xml_Document_Initialize(&document);
@@ -427,7 +427,7 @@ static void TestXmlDocumentInvalidContent(void)
     Utl_Xml_Document_AppendNode(&document, &root);
 
     memset(output, 0xA5, sizeof(output));
-    is_serialized = Utl_Xml_Document_Serialize(&document, output, sizeof(output), &byte_count);
+    is_serialized = Utl_Xml_Document_Serialize(&document, output, (uint32_t)sizeof(output), &byte_count);
     assert(FALSE == is_serialized);
     assert(0 == byte_count);
     assert(0xA5 == output[0]);

@@ -132,6 +132,7 @@ void Utl_Xml_Document_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* n
  *  - 003 A short output buffer shall remain untouched and byteCount shall report the required size.
  *  - 004 Output shall contain exactly byteCount bytes, without a zero terminator.
  *  - 005 The caller shall keep borrowed spans unchanged during serialization and use output storage that does not overlap them.
+ *  - 006 This function shall reject serialized output longer than UINT32_MAX bytes.
  *
  * \par Details:
  *  The XML declaration and DOCTYPE spans are written verbatim after UTF-8 and
@@ -145,6 +146,6 @@ void Utl_Xml_Document_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* n
  * \retval TRUE   if validation and measurement or serialization succeeded.
  * \retval FALSE  if the document is invalid or output is too small.
  */
-bool_t Utl_Xml_Document_Serialize(const Utl_Xml_Document_t* document, byte_t* output, size_t capacity, size_t* byteCount);
+bool_t Utl_Xml_Document_Serialize(const Utl_Xml_Document_t* document, byte_t* output, uint32_t capacity, uint32_t* byteCount);
 
 #endif /* UTL_XML_DOCUMENT_H */
