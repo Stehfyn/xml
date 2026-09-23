@@ -141,8 +141,8 @@ void Utl_Xml_Node_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child);
  *  - 002 This function shall fail an assertion for NULL arguments, a non-element node, a duplicate name, or an attribute already linked to the element.
  *  - 003 This function shall enforce UTL_XML_NODE_MAX_ATTRIBUTES and borrow both byte spans.
  *
- * \param[in,out] node        Element receiving the attribute
- * \param[out]    attribute   Unlinked caller-owned attribute storage
+ * \param[in,out] node            Element receiving the attribute
+ * \param[out]    attribute       Unlinked caller-owned attribute storage
  * \param[in]     name            Non-NULL UTF-8 attribute name byte span
  * \param[in]     nameByteCount   Number of name bytes
  * \param[in]     value           Non-NULL UTF-8 expanded value byte span
