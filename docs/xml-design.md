@@ -29,6 +29,13 @@ relationships and reject cycles, duplicate attributes, and a second root.
 Malformed XML read from input must produce a recoverable parse error; assertions
 remain for misuse of the C API.
 
+The node initializer stores the chosen node type and borrows its strings without
+validating XML syntax. The writer must validate borrowed strings when it
+serializes them, including element and processing-instruction names, UTF-8 and
+XML character rules, comment and processing-instruction delimiters, and the
+reserved `xml` processing-instruction target. Text and attribute values also
+need escaping in the output.
+
 ## Naming
 
 The public functions already use the `Utl_Xml_` prefix. The existing

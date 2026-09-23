@@ -81,24 +81,6 @@ static bool_t IsName(const char_t* text);
 
 /*************************************************************************************************/
 /**
- * \brief Checks whether comment text can occur between XML comment delimiters.
- */
-static bool_t IsComment(const char_t* text);
-
-/*************************************************************************************************/
-/**
- * \brief Checks an XML processing-instruction target and data.
- */
-static bool_t IsProcessingInstruction(const char_t* target, const char_t* data);
-
-/*************************************************************************************************/
-/**
- * \brief Initializes caller-owned node storage after validating its strings.
- */
-static void InitializeNode(Utl_Xml_Node_t* node, Utl_Xml_NodeType_t type, const char_t* name, const char_t* value);
-
-/*************************************************************************************************/
-/**
  * \brief Checks whether candidate is node or one of its ancestors.
  *
  * \param[in] candidate   Node to find
@@ -311,134 +293,6 @@ static bool_t IsName(const char_t* text)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  XML 1.0 production [15] disallows "--" within the content and a final '-'.
- */
-static bool_t IsComment(const char_t* text)
-{
-    uint32_t length;
-    uint32_t index;
-    uint32_t pair_count;
-    bool_t   is_comment;
-
-    is_comment = GetBoundedLength(text, UTL_XML_NODE_MAX_VALUE_BYTES, &length);
-
-    if (is_comment)
-    {
-        is_comment = IsXmlString(text);
-    }
-
-    if (is_comment)
-    {
-        pair_count = 0;
-
-        if (0 < length)
-        {
-            pair_count = length - 1;
-        }
-
-        for (index = 0; index < pair_count; ++index)
-        {
-            if (('-' == text[index]) && ('-' == text[index + 1]))
-            {
-                is_comment = FALSE;
-                break;
-            }
-        }
-
-        if (is_comment)
-        {
-            is_comment = (0 == length) || ('-' != text[length - 1]);
-        }
-    }
-
-    return is_comment;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  XML 1.0 productions [16] and [17] reserve all case spellings of "xml" as PI targets.
- */
-static bool_t IsProcessingInstruction(const char_t* target, const char_t* data)
-{
-    bool_t   is_processing_instruction;
-    bool_t   is_xml_target;
-    uint32_t target_length;
-    uint32_t data_length;
-    uint32_t index;
-    uint32_t pair_count;
-
-    is_processing_instruction = IsName(target);
-
-    if (is_processing_instruction)
-    {
-        is_processing_instruction = GetBoundedLength(target, UTL_XML_NODE_MAX_NAME_BYTES, &target_length);
-    }
-
-    if (is_processing_instruction)
-    {
-        is_xml_target = (3 == target_length) &&
-                        (('x' == target[0]) || ('X' == target[0])) &&
-                        (('m' == target[1]) || ('M' == target[1])) &&
-                        (('l' == target[2]) || ('L' == target[2]));
-
-        is_processing_instruction = (FALSE == is_xml_target);
-    }
-
-    if (is_processing_instruction)
-    {
-        is_processing_instruction = GetBoundedLength(data, UTL_XML_NODE_MAX_VALUE_BYTES, &data_length);
-    }
-
-    if (is_processing_instruction)
-    {
-        is_processing_instruction = IsXmlString(data);
-    }
-
-    if (is_processing_instruction)
-    {
-        pair_count = 0;
-
-        if (0 < data_length)
-        {
-            pair_count = data_length - 1;
-        }
-
-        for (index = 0; index < pair_count; ++index)
-        {
-            if (('?' == data[index]) && ('>' == data[index + 1]))
-            {
-                is_processing_instruction = FALSE;
-                break;
-            }
-        }
-    }
-
-    return is_processing_instruction;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  None
- */
-static void InitializeNode(Utl_Xml_Node_t* node, Utl_Xml_NodeType_t type, const char_t* name, const char_t* value)
-{
-    node->type           = type;
-    node->name           = name;
-    node->value          = value;
-    node->parent         = NULL;
-    node->firstChild     = NULL;
-    node->lastChild      = NULL;
-    node->nextSibling    = NULL;
-    node->firstAttribute = NULL;
-    node->lastAttribute  = NULL;
-    node->attributeCount = 0;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
  *  Bounds the ancestor traversal by UTL_XML_NODE_MAX_DEPTH.
  */
 static bool_t IsAncestor(const Utl_Xml_Node_t* candidate, const Utl_Xml_Node_t* node)
@@ -478,74 +332,22 @@ static bool_t IsAncestor(const Utl_Xml_Node_t* candidate, const Utl_Xml_Node_t* 
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
+ *  Stores the borrowed strings and clears all tree links.
  */
-void Utl_Xml_Node_InitializeElement(Utl_Xml_Node_t* node, const char_t* name)
+void Utl_Xml_Node_Initialize(Utl_Xml_Node_t* node, Utl_Xml_NodeType_t type, const char_t* name, const char_t* value)
 {
-    bool_t is_name;
-
     LOGASSERT(NULL != node);
-    LOGASSERT(NULL != name);
 
-    is_name = IsName(name);
-    LOGASSERT(is_name);
-
-    InitializeNode(node, UTL_XML_NODE_ELEMENT, name, NULL);
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  None
- */
-void Utl_Xml_Node_InitializeText(Utl_Xml_Node_t* node, const char_t* text)
-{
-    bool_t is_xml_string;
-
-    LOGASSERT(NULL != node);
-    LOGASSERT(NULL != text);
-
-    is_xml_string = IsXmlString(text);
-    LOGASSERT(is_xml_string);
-
-    InitializeNode(node, UTL_XML_NODE_TEXT, NULL, text);
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  None
- */
-void Utl_Xml_Node_InitializeComment(Utl_Xml_Node_t* node, const char_t* text)
-{
-    bool_t is_comment;
-
-    LOGASSERT(NULL != node);
-    LOGASSERT(NULL != text);
-
-    is_comment = IsComment(text);
-    LOGASSERT(is_comment);
-
-    InitializeNode(node, UTL_XML_NODE_COMMENT, NULL, text);
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  None
- */
-void Utl_Xml_Node_InitializeProcessingInstruction(Utl_Xml_Node_t* node, const char_t* target, const char_t* data)
-{
-    bool_t is_processing_instruction;
-
-    LOGASSERT(NULL != node);
-    LOGASSERT(NULL != target);
-    LOGASSERT(NULL != data);
-
-    is_processing_instruction = IsProcessingInstruction(target, data);
-    LOGASSERT(is_processing_instruction);
-
-    InitializeNode(node, UTL_XML_NODE_PROCESSING_INSTRUCTION, target, data);
+    node->type           = type;
+    node->name           = name;
+    node->value          = value;
+    node->parent         = NULL;
+    node->firstChild     = NULL;
+    node->lastChild      = NULL;
+    node->nextSibling    = NULL;
+    node->firstAttribute = NULL;
+    node->lastAttribute  = NULL;
+    node->attributeCount = 0;
 }
 
 /*************************************************************************************************/

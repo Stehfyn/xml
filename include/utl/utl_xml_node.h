@@ -86,69 +86,27 @@ typedef struct Utl_Xml_Node_s
 
 /*************************************************************************************************/
 /**
- * \brief Initializes caller-provided storage as an unlinked element.
+ * \brief Initializes caller-provided storage as an unlinked XML node.
  *
  * \par Requirements:
- *  - 001 This function shall accept a complete UTF-8 XML 1.0 Name within UTL_XML_NODE_MAX_NAME_BYTES.
- *  - 002 This function shall fail an assertion for NULL arguments or an invalid name.
- *  - 003 This function shall borrow name; the caller shall keep it valid while referenced.
+ *  - 001 This function shall store type, name, and value without checking XML syntax or length.
+ *  - 002 This function shall fail an assertion if node is NULL.
+ *  - 003 This function shall borrow non-NULL strings; the caller shall keep them valid while referenced.
+ *  - 004 This function shall clear the node's tree and attribute links.
  *
- * \param[out] node   Uninitialized caller-owned node storage
- * \param[in]  name   Non-NULL null-terminated UTF-8 element name
+ * \par Details:
+ *  Elements use name and set value to NULL. Text and comments set name to NULL
+ *  and use value for content. Processing instructions use name for the target
+ *  and value for data. XML validation and escaping are deferred until serialization.
+ *
+ * \param[out] node    Uninitialized caller-owned node storage
+ * \param[in]  type    XML node kind
+ * \param[in]  name    Borrowed null-terminated UTF-8 name or NULL
+ * \param[in]  value   Borrowed null-terminated UTF-8 value or NULL
  *
  * \retval None
  */
-void Utl_Xml_Node_InitializeElement(Utl_Xml_Node_t* node, const char_t* name);
-
-/*************************************************************************************************/
-/**
- * \brief Initializes caller-provided storage as an unlinked text node.
- *
- * \par Requirements:
- *  - 001 This function shall accept only UTF-8 XML 1.0 characters within UTL_XML_NODE_MAX_VALUE_BYTES.
- *  - 002 This function shall fail an assertion for NULL arguments or invalid text.
- *  - 003 This function shall borrow text; the caller shall keep it valid while referenced.
- *
- * \param[out] node   Uninitialized caller-owned node storage
- * \param[in]  text   Non-NULL null-terminated UTF-8 text
- *
- * \retval None
- */
-void Utl_Xml_Node_InitializeText(Utl_Xml_Node_t* node, const char_t* text);
-
-/*************************************************************************************************/
-/**
- * \brief Initializes caller-provided storage as an unlinked comment node.
- *
- * \par Requirements:
- *  - 001 This function shall reject invalid XML characters, "--", a final '-', and oversized text.
- *  - 002 This function shall fail an assertion for NULL arguments or invalid text.
- *  - 003 This function shall borrow text; the caller shall keep it valid while referenced.
- *
- * \param[out] node   Uninitialized caller-owned node storage
- * \param[in]  text   Non-NULL null-terminated UTF-8 comment content
- *
- * \retval None
- */
-void Utl_Xml_Node_InitializeComment(Utl_Xml_Node_t* node, const char_t* text);
-
-/*************************************************************************************************/
-/**
- * \brief Initializes caller-provided storage as an unlinked processing instruction.
- *
- * \par Requirements:
- *  - 001 This function shall reject an invalid or "xml" target in any case spelling.
- *  - 002 This function shall reject invalid XML characters, "?>" in data, and oversized strings.
- *  - 003 This function shall fail an assertion for NULL arguments or invalid strings.
- *  - 004 This function shall borrow both strings; the caller shall keep them valid while referenced.
- *
- * \param[out] node     Uninitialized caller-owned node storage
- * \param[in]  target   Non-NULL null-terminated UTF-8 target
- * \param[in]  data     Non-NULL null-terminated UTF-8 instruction data
- *
- * \retval None
- */
-void Utl_Xml_Node_InitializeProcessingInstruction(Utl_Xml_Node_t* node, const char_t* target, const char_t* data);
+void Utl_Xml_Node_Initialize(Utl_Xml_Node_t* node, Utl_Xml_NodeType_t type, const char_t* name, const char_t* value);
 
 /*************************************************************************************************/
 /**

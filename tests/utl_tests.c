@@ -197,10 +197,10 @@ static void TestXmlNodeInitialization(void)
     const char_t*       name;
 
     name = "\xC3\xA9";
-    Utl_Xml_Node_InitializeElement(&root, name);
-    Utl_Xml_Node_InitializeText(&text_node, "before");
-    Utl_Xml_Node_InitializeComment(&comment, "valid");
-    Utl_Xml_Node_InitializeProcessingInstruction(&instruction, "target", "data");
+    Utl_Xml_Node_Initialize(&root, UTL_XML_NODE_ELEMENT, name, NULL);
+    Utl_Xml_Node_Initialize(&text_node, UTL_XML_NODE_TEXT, NULL, "before");
+    Utl_Xml_Node_Initialize(&comment, UTL_XML_NODE_COMMENT, NULL, "valid");
+    Utl_Xml_Node_Initialize(&instruction, UTL_XML_NODE_PROCESSING_INSTRUCTION, "target", "data");
 
     assert(UTL_XML_NODE_ELEMENT == root.type);
     assert(name == root.name);
@@ -231,6 +231,41 @@ static void TestXmlNodeInitialization(void)
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  Node initializers store content that the writer will validate later.
+ */
+static void TestDeferredNodeContentValidation(void)
+{
+    Utl_Xml_Node_t element;
+    Utl_Xml_Node_t text_node;
+    Utl_Xml_Node_t comment;
+    Utl_Xml_Node_t instruction;
+    const char_t*  name;
+    const char_t*  text;
+    const char_t*  comment_text;
+    const char_t*  target;
+    const char_t*  data;
+
+    name         = "bad name";
+    text         = "\x01";
+    comment_text = "--";
+    target       = "xml";
+    data         = "?>";
+
+    Utl_Xml_Node_Initialize(&element, UTL_XML_NODE_ELEMENT, name, NULL);
+    Utl_Xml_Node_Initialize(&text_node, UTL_XML_NODE_TEXT, NULL, text);
+    Utl_Xml_Node_Initialize(&comment, UTL_XML_NODE_COMMENT, NULL, comment_text);
+    Utl_Xml_Node_Initialize(&instruction, UTL_XML_NODE_PROCESSING_INSTRUCTION, target, data);
+
+    assert(name == element.name);
+    assert(text == text_node.value);
+    assert(comment_text == comment.value);
+    assert(target == instruction.name);
+    assert(data == instruction.value);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Runs the XML character and node initialization checks.
  */
 int main(void)
@@ -238,5 +273,6 @@ int main(void)
     TestCharacterClasses();
     TestNames();
     TestXmlNodeInitialization();
+    TestDeferredNodeContentValidation();
     return 0;
 }
