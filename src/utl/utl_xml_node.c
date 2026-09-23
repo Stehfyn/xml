@@ -232,26 +232,17 @@ static bool_t IsXmlString(const char_t* text)
     uint32_t      byte_count;
     uint32_t      byte_offset;
     uint32_t      code_point;
-    uint32_t      code_point_index;
     bool_t        is_xml_string;
-    bool_t        is_fully_consumed;
 
-    is_fully_consumed = FALSE;
-    is_xml_string     = GetBoundedLength(text, UTL_XML_NODE_MAX_VALUE_BYTES, &byte_count);
+    is_xml_string = GetBoundedLength(text, UTL_XML_NODE_MAX_VALUE_BYTES, &byte_count);
 
     if (is_xml_string)
     {
-        bytes             = (const byte_t*)text;
-        byte_offset       = 0;
-        is_fully_consumed = (0 == byte_count);
+        bytes       = (const byte_t*)text;
+        byte_offset = 0;
 
-        for (code_point_index = 0; code_point_index < byte_count; ++code_point_index)
+        while (byte_offset < byte_count)
         {
-            if (is_fully_consumed)
-            {
-                break;
-            }
-
             is_xml_string = DecodeUtf8(bytes, byte_count, &byte_offset, &code_point);
 
             if (is_xml_string)
@@ -263,13 +254,10 @@ static bool_t IsXmlString(const char_t* text)
             {
                 break;
             }
-
-            is_fully_consumed = (byte_offset == byte_count);
         }
-
     }
 
-    return is_xml_string && is_fully_consumed;
+    return is_xml_string;
 }
 
 /*************************************************************************************************/
@@ -285,25 +273,17 @@ static bool_t IsName(const char_t* text)
     uint32_t      code_point;
     uint32_t      code_point_index;
     bool_t        is_name;
-    bool_t        is_fully_consumed;
 
-    is_fully_consumed = FALSE;
-    is_name           = GetBoundedLength(text, UTL_XML_NODE_MAX_NAME_BYTES, &byte_count);
+    is_name = GetBoundedLength(text, UTL_XML_NODE_MAX_NAME_BYTES, &byte_count);
 
     if (is_name)
     {
-        is_name           = (0 < byte_count);
-        bytes             = (const byte_t*)text;
-        byte_offset       = 0;
-        is_fully_consumed = (0 == byte_count);
+        is_name     = (0 < byte_count);
+        bytes       = (const byte_t*)text;
+        byte_offset = 0;
 
-        for (code_point_index = 0; code_point_index < byte_count; ++code_point_index)
+        for (code_point_index = 0; byte_offset < byte_count; ++code_point_index)
         {
-            if (is_fully_consumed)
-            {
-                break;
-            }
-
             is_name = DecodeUtf8(bytes, byte_count, &byte_offset, &code_point);
 
             if (is_name)
@@ -322,12 +302,10 @@ static bool_t IsName(const char_t* text)
             {
                 break;
             }
-
-            is_fully_consumed = (byte_offset == byte_count);
         }
     }
 
-    return is_name && is_fully_consumed;
+    return is_name;
 }
 
 /*************************************************************************************************/
