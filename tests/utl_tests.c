@@ -194,6 +194,7 @@ static void TestXmlNodeInitialization(void)
     Utl_Xml_Node_t      comment;
     Utl_Xml_Node_t      instruction;
     Utl_Xml_Attribute_t attribute;
+    Utl_Xml_Attribute_t utf8_attribute;
     const char_t*       name;
 
     name = "\xC3\xA9";
@@ -214,13 +215,15 @@ static void TestXmlNodeInitialization(void)
     assert(NULL == instruction.firstChild);
 
     Utl_Xml_Node_AddAttribute(&root, &attribute, "id", "7");
+    Utl_Xml_Node_AddAttribute(&root, &utf8_attribute, "\xC3\xA9" "b", "A\xE2\x82\xAC\xF0\x9F\x98\x80" "Z");
     Utl_Xml_Node_AppendChild(&root, &text_node);
     Utl_Xml_Node_AppendChild(&root, &comment);
     Utl_Xml_Node_AppendChild(&root, &instruction);
 
     assert(&attribute == root.firstAttribute);
-    assert(&attribute == root.lastAttribute);
-    assert(1 == root.attributeCount);
+    assert(&utf8_attribute == attribute.next);
+    assert(&utf8_attribute == root.lastAttribute);
+    assert(2 == root.attributeCount);
     assert(&text_node == root.firstChild);
     assert(&comment == text_node.nextSibling);
     assert(&instruction == comment.nextSibling);

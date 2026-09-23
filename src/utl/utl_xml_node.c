@@ -1,3 +1,7 @@
+#if !defined(_WIN32) && !defined(_POSIX_C_SOURCE)
+#define _POSIX_C_SOURCE 200809L
+#endif
+
 /*=================================================================================================
 ** 1. References
 **===============================================================================================*/
@@ -42,40 +46,36 @@
 
 /*************************************************************************************************/
 /**
- * \brief Finds a null terminator within a documented byte limit.
- *
- * \param[in]  text       Non-NULL null-terminated UTF-8 string
- * \param[in]  maximum    Maximum permitted bytes before the terminator
- * \param[out] length     Number of bytes before the terminator
- *
- * \retval TRUE    if the string fits within maximum bytes.
- * \retval FALSE   otherwise
- */
-static bool_t GetBoundedLength(const char_t* text, uint32_t maximum, uint32_t* length);
-
-/*************************************************************************************************/
-/**
  * \brief Decodes one strictly encoded UTF-8 code point within a byte span.
  *
  * \param[in]     bytes       Non-NULL UTF-8 byte span
  * \param[in]     numBytes    Number of bytes in the span
- * \param[in,out] offset      Current byte offset, advanced on success
- * \param[out]    codePoint   Decoded code point
+ * \param[in]     offset      Current byte offset
+ * \param[out]    decodedByteCount   Number of bytes decoded, or zero on failure
  *
- * \retval TRUE    if one code point was decoded.
- * \retval FALSE   otherwise
+ * \return Decoded code point, or zero for invalid UTF-8. Check decodedByteCount for success.
  */
-static bool_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t* offset, uint32_t* codePoint);
+static uint32_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t offset, uint32_t* decodedByteCount);
 
 /*************************************************************************************************/
 /**
  * \brief Checks a null-terminated UTF-8 string against XML 1.0 Char.
+ *
+ * \param[in] text   Non-NULL null-terminated UTF-8 string
+ *
+ * \retval TRUE    if the string fits the byte limit and contains only XML Char code points; empty is valid.
+ * \retval FALSE   otherwise
  */
 static bool_t IsXmlString(const char_t* text);
 
 /*************************************************************************************************/
 /**
  * \brief Checks a null-terminated UTF-8 string against XML 1.0 Name.
+ *
+ * \param[in] text   Non-NULL null-terminated UTF-8 string
+ *
+ * \retval TRUE    if the non-empty string fits the byte limit and is a valid XML Name.
+ * \retval FALSE   otherwise
  */
 static bool_t IsName(const char_t* text);
 
@@ -98,48 +98,26 @@ static bool_t IsAncestor(const Utl_Xml_Node_t* candidate, const Utl_Xml_Node_t* 
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Checks at most maximum + 1 bytes, including the terminator position.
- */
-static bool_t GetBoundedLength(const char_t* text, uint32_t maximum, uint32_t* length)
-{
-    uint32_t index;
-    bool_t   found;
-
-    found = FALSE;
-
-    for (index = 0; index <= maximum; ++index)
-    {
-        if ('\0' == text[index])
-        {
-            (*length) = index;
-            found = TRUE;
-            break;
-        }
-    }
-
-    return found;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
  *  Rejects truncated sequences, overlong forms, surrogates, and code points above U+10FFFF.
  */
-static bool_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t* offset, uint32_t* codePoint)
+static uint32_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t offset, uint32_t* decodedByteCount)
 {
     byte_t   first;
     uint32_t decoded;
+    uint32_t code_point;
     uint32_t minimum;
     uint32_t num_continuations;
     uint32_t index;
     uint32_t position;
     bool_t   is_valid;
 
-    is_valid = ((*offset) < numBytes);
+    code_point = 0;
+    (*decodedByteCount) = 0;
+    is_valid = (offset < numBytes);
 
     if (is_valid)
     {
-        position = (*offset);
+        position = offset;
         first    = bytes[position];
 
         if (first <= 0x7F)
@@ -195,12 +173,12 @@ static bool_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t* offse
 
         if (is_valid)
         {
-            (*codePoint) = decoded;
-            (*offset)    = position + 1;
+            code_point = decoded;
+            (*decodedByteCount) = num_continuations + 1;
         }
     }
 
-    return is_valid;
+    return code_point;
 }
 
 /*************************************************************************************************/
@@ -214,18 +192,20 @@ static bool_t IsXmlString(const char_t* text)
     uint32_t      byte_count;
     uint32_t      byte_offset;
     uint32_t      code_point;
+    uint32_t      decoded_byte_count;
     bool_t        is_xml_string;
 
-    is_xml_string = GetBoundedLength(text, UTL_XML_NODE_MAX_VALUE_BYTES, &byte_count);
+    byte_count = (uint32_t)strnlen(text, UTL_XML_NODE_MAX_VALUE_BYTES + 1);
+    is_xml_string = (byte_count <= UTL_XML_NODE_MAX_VALUE_BYTES);
 
     if (is_xml_string)
     {
-        bytes       = (const byte_t*)text;
-        byte_offset = 0;
+        bytes = (const byte_t*)text;
 
-        while (byte_offset < byte_count)
+        for (byte_offset = 0; byte_offset < byte_count; byte_offset += decoded_byte_count)
         {
-            is_xml_string = DecodeUtf8(bytes, byte_count, &byte_offset, &code_point);
+            code_point = DecodeUtf8(bytes, byte_count, byte_offset, &decoded_byte_count);
+            is_xml_string = (0 < decoded_byte_count);
 
             if (is_xml_string)
             {
@@ -254,19 +234,21 @@ static bool_t IsName(const char_t* text)
     uint32_t      byte_offset;
     uint32_t      code_point;
     uint32_t      code_point_index;
+    uint32_t      decoded_byte_count;
     bool_t        is_name;
 
-    is_name = GetBoundedLength(text, UTL_XML_NODE_MAX_NAME_BYTES, &byte_count);
+    byte_count = (uint32_t)strnlen(text, UTL_XML_NODE_MAX_NAME_BYTES + 1);
+    is_name = (0 < byte_count) && (byte_count <= UTL_XML_NODE_MAX_NAME_BYTES);
 
     if (is_name)
     {
-        is_name     = (0 < byte_count);
         bytes       = (const byte_t*)text;
         byte_offset = 0;
 
-        for (code_point_index = 0; byte_offset < byte_count; ++code_point_index)
+        for (code_point_index = 0; byte_offset < byte_count; ++code_point_index, byte_offset += decoded_byte_count)
         {
-            is_name = DecodeUtf8(bytes, byte_count, &byte_offset, &code_point);
+            code_point = DecodeUtf8(bytes, byte_count, byte_offset, &decoded_byte_count);
+            is_name = (0 < decoded_byte_count);
 
             if (is_name)
             {
@@ -412,7 +394,7 @@ void Utl_Xml_Node_AddAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attrib
     {
         LOGASSERT(NULL != current);
         LOGASSERT(attribute != current);
-        is_unique = (0 != strncmp(current->name, name, UTL_XML_NODE_MAX_NAME_BYTES + 1u));
+        is_unique = (0 != strncmp(current->name, name, UTL_XML_NODE_MAX_NAME_BYTES + 1));
         LOGASSERT(is_unique);
         current = current->next;
     }
