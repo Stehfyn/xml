@@ -155,7 +155,7 @@ static bool_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t* offse
 
     is_valid = ((*offset) < numBytes);
 
-    if (TRUE == is_valid)
+    if (is_valid)
     {
         position = (*offset);
         first    = bytes[position];
@@ -189,27 +189,29 @@ static bool_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t* offse
             is_valid = FALSE;
         }
 
-        if (TRUE == is_valid)
+        if (is_valid)
         {
-            for (index = 0; (index < num_continuations) && (TRUE == is_valid); ++index)
+            for (index = 0; index < num_continuations; ++index)
             {
                 ++position;
                 is_valid = (position < numBytes) && (0x80 == (bytes[position] & 0xC0));
 
-                if (TRUE == is_valid)
+                if (FALSE == is_valid)
                 {
-                    decoded = (decoded << 6) | (bytes[position] & 0x3F);
+                    break;
                 }
+
+                decoded = (decoded << 6) | (bytes[position] & 0x3F);
             }
         }
 
-        if (TRUE == is_valid)
+        if (is_valid)
         {
             is_valid = (minimum <= decoded) && (decoded <= 0x10FFFF) &&
                       ((decoded < 0xD800) || (0xDFFF < decoded));
         }
 
-        if (TRUE == is_valid)
+        if (is_valid)
         {
             (*codePoint) = decoded;
             (*offset)    = position + 1;
@@ -232,19 +234,27 @@ static bool_t IsXmlString(const char_t* text)
     uint32_t      code_point;
     uint32_t      code_point_index;
     bool_t        is_xml_string;
+    bool_t        is_fully_consumed;
 
-    is_xml_string = GetBoundedLength(text, UTL_XML_NODE_MAX_VALUE_BYTES, &byte_count);
+    is_fully_consumed = FALSE;
+    is_xml_string     = GetBoundedLength(text, UTL_XML_NODE_MAX_VALUE_BYTES, &byte_count);
 
-    if (TRUE == is_xml_string)
+    if (is_xml_string)
     {
-        bytes       = (const byte_t*)text;
-        byte_offset = 0;
+        bytes             = (const byte_t*)text;
+        byte_offset       = 0;
+        is_fully_consumed = (0 == byte_count);
 
-        for (code_point_index = 0; (code_point_index < byte_count) && (byte_offset < byte_count); ++code_point_index)
+        for (code_point_index = 0; code_point_index < byte_count; ++code_point_index)
         {
+            if (is_fully_consumed)
+            {
+                break;
+            }
+
             is_xml_string = DecodeUtf8(bytes, byte_count, &byte_offset, &code_point);
 
-            if (TRUE == is_xml_string)
+            if (is_xml_string)
             {
                 is_xml_string = Utl_Xml_IsChar(code_point);
             }
@@ -253,12 +263,13 @@ static bool_t IsXmlString(const char_t* text)
             {
                 break;
             }
+
+            is_fully_consumed = (byte_offset == byte_count);
         }
 
-        is_xml_string = is_xml_string && (byte_offset == byte_count);
     }
 
-    return is_xml_string;
+    return is_xml_string && is_fully_consumed;
 }
 
 /*************************************************************************************************/
@@ -274,20 +285,28 @@ static bool_t IsName(const char_t* text)
     uint32_t      code_point;
     uint32_t      code_point_index;
     bool_t        is_name;
+    bool_t        is_fully_consumed;
 
-    is_name = GetBoundedLength(text, UTL_XML_NODE_MAX_NAME_BYTES, &byte_count);
+    is_fully_consumed = FALSE;
+    is_name           = GetBoundedLength(text, UTL_XML_NODE_MAX_NAME_BYTES, &byte_count);
 
-    if (TRUE == is_name)
+    if (is_name)
     {
-        is_name     = (0 < byte_count);
-        bytes       = (const byte_t*)text;
-        byte_offset = 0;
+        is_name           = (0 < byte_count);
+        bytes             = (const byte_t*)text;
+        byte_offset       = 0;
+        is_fully_consumed = (0 == byte_count);
 
-        for (code_point_index = 0; (code_point_index < byte_count) && (byte_offset < byte_count); ++code_point_index)
+        for (code_point_index = 0; code_point_index < byte_count; ++code_point_index)
         {
+            if (is_fully_consumed)
+            {
+                break;
+            }
+
             is_name = DecodeUtf8(bytes, byte_count, &byte_offset, &code_point);
 
-            if (TRUE == is_name)
+            if (is_name)
             {
                 if (0 == code_point_index)
                 {
@@ -303,12 +322,12 @@ static bool_t IsName(const char_t* text)
             {
                 break;
             }
-        }
 
-        is_name = is_name && (byte_offset == byte_count);
+            is_fully_consumed = (byte_offset == byte_count);
+        }
     }
 
-    return is_name;
+    return is_name && is_fully_consumed;
 }
 
 /*************************************************************************************************/
@@ -320,14 +339,26 @@ static bool_t IsComment(const char_t* text)
 {
     uint32_t length;
     uint32_t index;
+    uint32_t pair_count;
     bool_t   is_comment;
 
-    is_comment = GetBoundedLength(text, UTL_XML_NODE_MAX_VALUE_BYTES, &length) &&
-                 IsXmlString(text);
+    is_comment = GetBoundedLength(text, UTL_XML_NODE_MAX_VALUE_BYTES, &length);
 
-    if (TRUE == is_comment)
+    if (is_comment)
     {
-        for (index = 0; index + 1 < length; ++index)
+        is_comment = IsXmlString(text);
+    }
+
+    if (is_comment)
+    {
+        pair_count = 0;
+
+        if (0 < length)
+        {
+            pair_count = length - 1;
+        }
+
+        for (index = 0; index < pair_count; ++index)
         {
             if (('-' == text[index]) && ('-' == text[index + 1]))
             {
@@ -336,7 +367,7 @@ static bool_t IsComment(const char_t* text)
             }
         }
 
-        if (TRUE == is_comment)
+        if (is_comment)
         {
             is_comment = (0 == length) || ('-' != text[length - 1]);
         }
@@ -357,25 +388,45 @@ static bool_t IsProcessingInstruction(const char_t* target, const char_t* data)
     uint32_t target_length;
     uint32_t data_length;
     uint32_t index;
+    uint32_t pair_count;
 
-    is_processing_instruction = IsName(target) &&
-                              GetBoundedLength(target, UTL_XML_NODE_MAX_NAME_BYTES, &target_length);
+    is_processing_instruction = IsName(target);
 
-    if (TRUE == is_processing_instruction)
+    if (is_processing_instruction)
     {
-        is_xml_target = (3 == target_length) &&
-                      (('x' == target[0]) || ('X' == target[0])) &&
-                      (('m' == target[1]) || ('M' == target[1])) &&
-                      (('l' == target[2]) || ('L' == target[2]));
-
-        is_processing_instruction = (FALSE == is_xml_target) &&
-                                  GetBoundedLength(data, UTL_XML_NODE_MAX_VALUE_BYTES, &data_length) &&
-                                  IsXmlString(data);
+        is_processing_instruction = GetBoundedLength(target, UTL_XML_NODE_MAX_NAME_BYTES, &target_length);
     }
 
-    if (TRUE == is_processing_instruction)
+    if (is_processing_instruction)
     {
-        for (index = 0; index + 1 < data_length; ++index)
+        is_xml_target = (3 == target_length) &&
+                        (('x' == target[0]) || ('X' == target[0])) &&
+                        (('m' == target[1]) || ('M' == target[1])) &&
+                        (('l' == target[2]) || ('L' == target[2]));
+
+        is_processing_instruction = (FALSE == is_xml_target);
+    }
+
+    if (is_processing_instruction)
+    {
+        is_processing_instruction = GetBoundedLength(data, UTL_XML_NODE_MAX_VALUE_BYTES, &data_length);
+    }
+
+    if (is_processing_instruction)
+    {
+        is_processing_instruction = IsXmlString(data);
+    }
+
+    if (is_processing_instruction)
+    {
+        pair_count = 0;
+
+        if (0 < data_length)
+        {
+            pair_count = data_length - 1;
+        }
+
+        for (index = 0; index < pair_count; ++index)
         {
             if (('?' == data[index]) && ('>' == data[index + 1]))
             {
@@ -421,11 +472,16 @@ static bool_t IsAncestor(const Utl_Xml_Node_t* candidate, const Utl_Xml_Node_t* 
     current     = node;
     is_ancestor = FALSE;
 
-    for (depth = 0; (depth < UTL_XML_NODE_MAX_DEPTH) && (NULL != current); ++depth)
+    for (depth = 0; depth < UTL_XML_NODE_MAX_DEPTH; ++depth)
     {
+        if (NULL == current)
+        {
+            break;
+        }
+
         is_ancestor = (candidate == current);
 
-        if (TRUE == is_ancestor)
+        if (is_ancestor)
         {
             break;
         }
@@ -433,7 +489,7 @@ static bool_t IsAncestor(const Utl_Xml_Node_t* candidate, const Utl_Xml_Node_t* 
         current = current->parent;
     }
 
-    LOGASSERT((TRUE == is_ancestor) || (NULL == current));
+    LOGASSERT(is_ancestor || (NULL == current));
     return is_ancestor;
 }
 
