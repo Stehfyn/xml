@@ -92,12 +92,12 @@ static const XmlCodePointRange_t c_xmlNameCharRanges[] =
 /**
  * \brief Checks whether a code point is in an inclusive range.
  *
- * \param[in] codePoint Code point to check.
- * \param[in] first     Inclusive lower bound.
- * \param[in] last      Inclusive upper bound.
+ * \param[in] codePoint   Code point to check.
+ * \param[in] first       Inclusive lower bound.
+ * \param[in] last        Inclusive upper bound.
  *
- * \retval TRUE  The code point is within the range.
- * \retval FALSE The code point is outside the range.
+ * \retval    TRUE        if code point is within the range.
+ * \retval    FALSE       otherwise
  */
 static bool_t InRange(uint32_t codePoint, uint32_t first, uint32_t last);
 
@@ -199,25 +199,21 @@ bool_t Utl_Xml_IsNameChar(uint32_t codePoint)
     uint32_t first;
     uint32_t last;
 
-    is_name_char = FALSE;
+    is_name_char = Utl_Xml_IsNameStartChar(codePoint);
 
-    for (range_index = 0; range_index <= COUNT_OF(c_xmlNameCharRanges); ++range_index)
+    if (FALSE == is_name_char)
     {
-        if (0 == range_index)
+        for (range_index = 0; range_index < COUNT_OF(c_xmlNameCharRanges); ++range_index)
         {
-            is_name_char = Utl_Xml_IsNameStartChar(codePoint);
-        }
-        else
-        {
-            first = c_xmlNameCharRanges[range_index - 1].first;
-            last  = c_xmlNameCharRanges[range_index - 1].last;
+            first = c_xmlNameCharRanges[range_index].first;
+            last  = c_xmlNameCharRanges[range_index].last;
 
             is_name_char = InRange(codePoint, first, last);
-        }
 
-        if (is_name_char)
-        {
-            break;
+            if (is_name_char)
+            {
+                break;
+            }
         }
     }
 
