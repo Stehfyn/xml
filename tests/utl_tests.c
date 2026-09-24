@@ -184,9 +184,9 @@ static void TestNmtokens(void)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Checks bounded UTF-8 validation across multibyte characters and invalid inputs.
+ *  Checks counted UTF-8 strings, names, and markup content.
  */
-static void TestUtf8StringsAndNames(void)
+static void TestXmlByteSpans(void)
 {
     static const byte_t empty[] = "";
     static const byte_t valid_text[] = "A\xC3\xA9\xE2\x82\xAC\xF0\x9F\x98\x80";
@@ -194,6 +194,14 @@ static void TestUtf8StringsAndNames(void)
     static const byte_t invalid_xml_char[] = "\x01";
     static const byte_t valid_name[] = "\xC3\xA9" "b";
     static const byte_t invalid_name[] = "1a";
+    static const byte_t reserved_target[] = "xml";
+    static const byte_t mixed_case_target[] = "XmL";
+    static const byte_t valid_target[] = "xml-stylesheet";
+    static const byte_t valid_comment[] = "a-b";
+    static const byte_t double_hyphen[] = "a--b";
+    static const byte_t trailing_hyphen[] = "a-";
+    static const byte_t valid_pi_data[] = "a?b>";
+    static const byte_t pi_close_delimiter[] = "a?>b";
     static const byte_t embedded_zero[] = {'a', 0, 'b'};
     static const byte_t unterminated[] = {'a', 'b'};
 
@@ -212,6 +220,26 @@ static void TestUtf8StringsAndNames(void)
     assert(FALSE == Utl_Xml_IsName(invalid_utf8, (uint32_t)(sizeof(invalid_utf8) - 1)));
     assert(FALSE == Utl_Xml_IsName(embedded_zero, (uint32_t)sizeof(embedded_zero)));
     assert(FALSE == Utl_Xml_IsName(valid_name, (uint32_t)sizeof(valid_name)));
+
+    assert(TRUE == Utl_Xml_IsPITarget(valid_name, (uint32_t)(sizeof(valid_name) - 1)));
+    assert(TRUE == Utl_Xml_IsPITarget(valid_target, (uint32_t)(sizeof(valid_target) - 1)));
+    assert(FALSE == Utl_Xml_IsPITarget(reserved_target, (uint32_t)(sizeof(reserved_target) - 1)));
+    assert(FALSE == Utl_Xml_IsPITarget(mixed_case_target, (uint32_t)(sizeof(mixed_case_target) - 1)));
+    assert(FALSE == Utl_Xml_IsPITarget(invalid_name, (uint32_t)(sizeof(invalid_name) - 1)));
+    assert(FALSE == Utl_Xml_IsPITarget(embedded_zero, (uint32_t)sizeof(embedded_zero)));
+
+    assert(TRUE == Utl_Xml_IsCommentContent(empty, 0));
+    assert(TRUE == Utl_Xml_IsCommentContent(valid_comment, (uint32_t)(sizeof(valid_comment) - 1)));
+    assert(FALSE == Utl_Xml_IsCommentContent(double_hyphen, (uint32_t)(sizeof(double_hyphen) - 1)));
+    assert(FALSE == Utl_Xml_IsCommentContent(trailing_hyphen, (uint32_t)(sizeof(trailing_hyphen) - 1)));
+    assert(FALSE == Utl_Xml_IsCommentContent(invalid_utf8, (uint32_t)(sizeof(invalid_utf8) - 1)));
+    assert(FALSE == Utl_Xml_IsCommentContent(embedded_zero, (uint32_t)sizeof(embedded_zero)));
+
+    assert(TRUE == Utl_Xml_IsPIData(empty, 0));
+    assert(TRUE == Utl_Xml_IsPIData(valid_pi_data, (uint32_t)(sizeof(valid_pi_data) - 1)));
+    assert(FALSE == Utl_Xml_IsPIData(pi_close_delimiter, (uint32_t)(sizeof(pi_close_delimiter) - 1)));
+    assert(FALSE == Utl_Xml_IsPIData(invalid_utf8, (uint32_t)(sizeof(invalid_utf8) - 1)));
+    assert(FALSE == Utl_Xml_IsPIData(embedded_zero, (uint32_t)sizeof(embedded_zero)));
 }
 
 /*************************************************************************************************/
@@ -408,7 +436,7 @@ int main(void)
 {
     TestCharacterClasses();
     TestNmtokens();
-    TestUtf8StringsAndNames();
+    TestXmlByteSpans();
     TestXmlNodeInitialization();
     TestDeferredNodeContentValidation();
     TestXmlDocumentWrite();

@@ -120,7 +120,7 @@ void Utl_Xml_Document_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* n
  *
  * \par Requirements:
  *  - 001 This function shall fail an assertion if document or output is NULL.
- *  - 002 This function shall fail an assertion for invalid element, DOCTYPE, attribute, or processing-instruction names and invalid text, attribute, comment, or processing-instruction content.
+ *  - 002 This function shall fail an assertion for invalid element, DOCTYPE, or attribute names, invalid processing-instruction targets, and invalid text, attribute, comment, or processing-instruction content.
  *  - 003 This function shall construct XML declaration and DOCTYPE markup from their node data.
  *  - 004 This function shall write nodes, children, and attributes in append order, escaping text and attribute values.
  *  - 005 This function shall return the number of bytes written, without writing a zero terminator.

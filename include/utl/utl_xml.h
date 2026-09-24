@@ -250,4 +250,67 @@ bool_t Utl_Xml_IsName(const byte_t* utf8Text, uint32_t byteCount);
  */
 bool_t Utl_Xml_IsNmtoken(const uint32_t* codePoints, uint32_t numCodePoints);
 
+/*************************************************************************************************/
+/**
+ * \brief Checks a counted UTF-8 byte span for XML 1.0 comment content.
+ *
+ * \par Details:
+ *  XML 1.0 (Fifth Edition), production [15] Comment:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-Comment
+ *
+ * \par Requirements:
+ *  - 001 This function shall reject a double hyphen or trailing hyphen.
+ *  - 002 This function shall check exactly byteCount bytes and reject invalid UTF-8, non-Char values, and spans longer than UTL_XML_MAX_STRING_BYTES.
+ *  - 003 This function shall fail an assertion if utf8Text is NULL.
+ *
+ * \param[in] utf8Text   Non-NULL UTF-8 byte span
+ * \param[in] byteCount  Number of bytes in the span
+ *
+ * \retval TRUE          if the span is permitted XML 1.0 comment content.
+ * \retval FALSE         otherwise
+ */
+bool_t Utl_Xml_IsCommentContent(const byte_t* utf8Text, uint32_t byteCount);
+
+/*************************************************************************************************/
+/**
+ * \brief Checks a counted UTF-8 byte span for XML 1.0 processing-instruction data.
+ *
+ * \par Details:
+ *  XML 1.0 (Fifth Edition), production [16] PI:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-PI
+ *
+ * \par Requirements:
+ *  - 001 This function shall reject the ?> delimiter within the data.
+ *  - 002 This function shall check exactly byteCount bytes and reject invalid UTF-8, non-Char values, and spans longer than UTL_XML_MAX_STRING_BYTES.
+ *  - 003 This function shall fail an assertion if utf8Text is NULL.
+ *
+ * \param[in] utf8Text   Non-NULL UTF-8 byte span
+ * \param[in] byteCount  Number of bytes in the span
+ *
+ * \retval TRUE          if the span is permitted XML 1.0 PI data.
+ * \retval FALSE         otherwise
+ */
+bool_t Utl_Xml_IsPIData(const byte_t* utf8Text, uint32_t byteCount);
+
+/*************************************************************************************************/
+/**
+ * \brief Checks a counted UTF-8 byte span against XML 1.0 PITarget.
+ *
+ * \par Details:
+ *  XML 1.0 (Fifth Edition), production [17] PITarget:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-PITarget
+ *
+ * \par Requirements:
+ *  - 001 This function shall accept a Name except any case variant of xml.
+ *  - 002 This function shall check exactly byteCount bytes and reject invalid UTF-8, zero bytes, and spans longer than UTL_XML_MAX_NAME_BYTES.
+ *  - 003 This function shall fail an assertion if utf8Text is NULL.
+ *
+ * \param[in] utf8Text   Non-NULL UTF-8 byte span
+ * \param[in] byteCount  Number of bytes in the span
+ *
+ * \retval TRUE          if the complete string is a permitted XML 1.0 PITarget.
+ * \retval FALSE         otherwise
+ */
+bool_t Utl_Xml_IsPITarget(const byte_t* utf8Text, uint32_t byteCount);
+
 #endif /* UTL_XML_H */

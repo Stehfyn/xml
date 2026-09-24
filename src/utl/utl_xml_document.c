@@ -550,13 +550,11 @@ static void WriteText(byte_t* output, uint32_t capacity, uint64_t* byteCount, co
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Rejects the double-hyphen delimiter and a trailing hyphen in comment content.
+ *  Checks content with Utl_Xml_IsCommentContent.
  */
 static void WriteComment(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
 {
-    uint32_t byte_index;
-    bool_t   is_xml_string;
-    bool_t   has_delimiter;
+    bool_t is_comment_content;
 
     LOGASSERT(NULL == node->name);
     LOGASSERT(0 == node->nameByteCount);
@@ -564,20 +562,8 @@ static void WriteComment(byte_t* output, uint32_t capacity, uint64_t* byteCount,
 
     if (NULL != node->value)
     {
-        is_xml_string = Utl_Xml_IsString(node->value, node->valueByteCount);
-        LOGASSERT(is_xml_string);
-    }
-
-    for (byte_index = 1; byte_index < node->valueByteCount; ++byte_index)
-    {
-        has_delimiter = ('-' == node->value[byte_index - 1]) &&
-                        ('-' == node->value[byte_index]);
-        LOGASSERT(FALSE == has_delimiter);
-    }
-
-    if (0 < node->valueByteCount)
-    {
-        LOGASSERT('-' != node->value[node->valueByteCount - 1]);
+        is_comment_content = Utl_Xml_IsCommentContent(node->value, node->valueByteCount);
+        LOGASSERT(is_comment_content);
     }
 
     WriteToken(output, capacity, byteCount, UTL_XML_COMMENT_OPEN);
@@ -588,39 +574,23 @@ static void WriteComment(byte_t* output, uint32_t capacity, uint64_t* byteCount,
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Rejects every case variant of the reserved xml target and the closing delimiter in data.
+ *  Checks the target and data with the XML 1.0 validators.
  */
 static void WriteProcessingInstruction(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
 {
-    uint32_t byte_index;
-    bool_t   is_xml_string;
-    bool_t   is_name;
-    bool_t   is_reserved_target;
-    bool_t   has_delimiter;
+    bool_t is_pi_target;
+    bool_t is_pi_data;
 
     LOGASSERT(NULL != node->name);
     LOGASSERT((NULL != node->value) || (0 == node->valueByteCount));
 
-    is_name = Utl_Xml_IsName(node->name, node->nameByteCount);
-    LOGASSERT(is_name);
-
-    is_reserved_target = (3 == node->nameByteCount) &&
-                         (('x' == node->name[0]) || ('X' == node->name[0])) &&
-                         (('m' == node->name[1]) || ('M' == node->name[1])) &&
-                         (('l' == node->name[2]) || ('L' == node->name[2]));
-    LOGASSERT(FALSE == is_reserved_target);
+    is_pi_target = Utl_Xml_IsPITarget(node->name, node->nameByteCount);
+    LOGASSERT(is_pi_target);
 
     if (NULL != node->value)
     {
-        is_xml_string = Utl_Xml_IsString(node->value, node->valueByteCount);
-        LOGASSERT(is_xml_string);
-    }
-
-    for (byte_index = 1; byte_index < node->valueByteCount; ++byte_index)
-    {
-        has_delimiter = ('?' == node->value[byte_index - 1]) &&
-                        ('>' == node->value[byte_index]);
-        LOGASSERT(FALSE == has_delimiter);
+        is_pi_data = Utl_Xml_IsPIData(node->value, node->valueByteCount);
+        LOGASSERT(is_pi_data);
     }
 
     WriteToken(output, capacity, byteCount, UTL_XML_PI_OPEN);
@@ -645,16 +615,13 @@ static void WriteElement(byte_t* output, uint32_t capacity, uint64_t* byteCount,
     const Utl_Xml_Node_t* current_node;
     uint32_t              node_index;
     uint32_t              ancestor_index;
-    bool_t                has_node;
     bool_t                should_close_parent;
 
     current_node = root;
 
     for (node_index = 0; node_index < UTL_XML_DOCUMENT_MAX_NODES; ++node_index)
     {
-        has_node = (NULL != current_node);
-
-        if (FALSE == has_node)
+        if (NULL == current_node)
         {
             break;
         }

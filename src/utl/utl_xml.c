@@ -427,3 +427,103 @@ bool_t Utl_Xml_IsNmtoken(const uint32_t* codePoints, uint32_t numCodePoints)
 
     return is_nmtoken;
 }
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Comment content cannot contain a double hyphen or end with a hyphen.
+ */
+bool_t Utl_Xml_IsCommentContent(const byte_t* utf8Text, uint32_t byteCount)
+{
+    uint32_t byte_index;
+    bool_t   is_comment_content;
+    bool_t   has_delimiter;
+
+    LOGASSERT(NULL != utf8Text);
+
+    is_comment_content = Utl_Xml_IsString(utf8Text, byteCount);
+
+    if (is_comment_content)
+    {
+        for (byte_index = 1; byte_index < byteCount; ++byte_index)
+        {
+            has_delimiter = ('-' == utf8Text[byte_index - 1]) &&
+                            ('-' == utf8Text[byte_index]);
+
+            if (has_delimiter)
+            {
+                is_comment_content = FALSE;
+                break;
+            }
+        }
+    }
+
+    if (is_comment_content)
+    {
+        if (0 < byteCount)
+        {
+            is_comment_content = ('-' != utf8Text[byteCount - 1]);
+        }
+    }
+
+    return is_comment_content;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  PI data cannot contain its closing delimiter.
+ */
+bool_t Utl_Xml_IsPIData(const byte_t* utf8Text, uint32_t byteCount)
+{
+    uint32_t byte_index;
+    bool_t   is_pi_data;
+    bool_t   has_delimiter;
+
+    LOGASSERT(NULL != utf8Text);
+
+    is_pi_data = Utl_Xml_IsString(utf8Text, byteCount);
+
+    if (is_pi_data)
+    {
+        for (byte_index = 1; byte_index < byteCount; ++byte_index)
+        {
+            has_delimiter = ('?' == utf8Text[byte_index - 1]) &&
+                            ('>' == utf8Text[byte_index]);
+
+            if (has_delimiter)
+            {
+                is_pi_data = FALSE;
+                break;
+            }
+        }
+    }
+
+    return is_pi_data;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  PITarget excludes xml in every ASCII letter case after checking Name.
+ */
+bool_t Utl_Xml_IsPITarget(const byte_t* utf8Text, uint32_t byteCount)
+{
+    bool_t is_pi_target;
+    bool_t is_reserved_target;
+
+    LOGASSERT(NULL != utf8Text);
+
+    is_pi_target = Utl_Xml_IsName(utf8Text, byteCount);
+
+    if (is_pi_target)
+    {
+        is_reserved_target = (3 == byteCount) &&
+                             (('x' == utf8Text[0]) || ('X' == utf8Text[0])) &&
+                             (('m' == utf8Text[1]) || ('M' == utf8Text[1])) &&
+                             (('l' == utf8Text[2]) || ('L' == utf8Text[2]));
+        is_pi_target = (FALSE == is_reserved_target);
+    }
+
+    return is_pi_target;
+}
