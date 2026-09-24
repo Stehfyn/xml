@@ -93,6 +93,34 @@ static void WriteToken(byte_t* output, uint32_t capacity, uint64_t* byteCount, c
 
 /*************************************************************************************************/
 /**
+ * \brief Writes a document type declaration from its name and optional suffix.
+ * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-doctypedecl
+ *
+ * \param[in,out] output     Caller-provided byte storage
+ * \param[in]     capacity   Number of bytes in output
+ * \param[in,out] byteCount  Number of bytes already written
+ * \param[in]     node       DOCTYPE node to write
+ *
+ * \retval None
+ */
+static void WriteDoctype(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
+
+/*************************************************************************************************/
+/**
+ * \brief Writes an XML 1.0 declaration with optional encoding and standalone fields.
+ * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-XMLDecl
+ *
+ * \param[in,out] output     Caller-provided byte storage
+ * \param[in]     capacity   Number of bytes in output
+ * \param[in,out] byteCount  Number of bytes already written
+ * \param[in]     node       XML declaration node to write
+ *
+ * \retval None
+ */
+static void WriteDeclaration(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
+
+/*************************************************************************************************/
+/**
  * \brief Writes a one-digit hexadecimal XML character reference.
  * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-CharRef
  *
@@ -273,6 +301,62 @@ static void WriteToken(byte_t* output, uint32_t capacity, uint64_t* byteCount, c
     {
         WriteByte(output, capacity, byteCount, token[byte_index]);
     }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The caller supplies any ExternalID or internal subset in value, without a leading space.
+ */
+static void WriteDoctype(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
+{
+    bool_t is_name;
+
+    LOGASSERT(NULL != node->name);
+    LOGASSERT((NULL != node->value) || (0 == node->valueByteCount));
+
+    is_name = Utl_Xml_IsName(node->name, node->nameByteCount);
+    LOGASSERT(is_name);
+
+    WriteToken(output, capacity, byteCount, UTL_XML_DOCTYPE_OPEN);
+    WriteByte(output, capacity, byteCount, UTL_XML_CHAR_SPACE);
+    WriteBytes(output, capacity, byteCount, node->name, node->nameByteCount);
+
+    if (0 < node->valueByteCount)
+    {
+        WriteByte(output, capacity, byteCount, UTL_XML_CHAR_SPACE);
+        WriteBytes(output, capacity, byteCount, node->value, node->valueByteCount);
+    }
+
+    WriteToken(output, capacity, byteCount, UTL_XML_DOCTYPE_CLOSE);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The caller supplies any encoding and standalone fields in value, without a leading space.
+ */
+static void WriteDeclaration(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
+{
+    LOGASSERT(NULL == node->name);
+    LOGASSERT(0 == node->nameByteCount);
+    LOGASSERT((NULL != node->value) || (0 == node->valueByteCount));
+
+    WriteToken(output, capacity, byteCount, UTL_XML_DECL_OPEN);
+    WriteByte(output, capacity, byteCount, UTL_XML_CHAR_SPACE);
+    WriteToken(output, capacity, byteCount, UTL_XML_VERSION_NAME);
+    WriteByte(output, capacity, byteCount, UTL_XML_EQ);
+    WriteByte(output, capacity, byteCount, UTL_XML_QUOTE_QUOT);
+    WriteToken(output, capacity, byteCount, UTL_XML_VERSION_1_0);
+    WriteByte(output, capacity, byteCount, UTL_XML_QUOTE_QUOT);
+
+    if (0 < node->valueByteCount)
+    {
+        WriteByte(output, capacity, byteCount, UTL_XML_CHAR_SPACE);
+        WriteBytes(output, capacity, byteCount, node->value, node->valueByteCount);
+    }
+
+    WriteToken(output, capacity, byteCount, UTL_XML_DECL_CLOSE);
 }
 
 /*************************************************************************************************/
@@ -682,10 +766,14 @@ uint64_t Utl_Xml_Document_Write(const Utl_Xml_Document_t* document, byte_t* outp
 
         switch (current_node->type)
         {
-            case UTL_XML_NODE_XML_DECLARATION:
             case UTL_XML_NODE_DOCTYPE:
             {
-                WriteBytes(output, capacity, &byte_count, current_node->value, current_node->valueByteCount);
+                WriteDoctype(output, capacity, &byte_count, current_node);
+                break;
+            }
+            case UTL_XML_NODE_XML_DECLARATION:
+            {
+                WriteDeclaration(output, capacity, &byte_count, current_node);
                 break;
             }
             case UTL_XML_NODE_ELEMENT:

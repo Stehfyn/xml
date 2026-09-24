@@ -334,8 +334,6 @@ static void TestXmlDocumentWrite(void)
     Utl_Xml_Node_t     inner_comment;
     Utl_Xml_Node_t     epilog_comment;
     Utl_Xml_Attribute_t attribute;
-    const byte_t       declaration[] = "<?xml version=\"1.0\"?>";
-    const byte_t       doctype[] = "<!DOCTYPE root>";
     const byte_t       before[] = "before";
     const byte_t       target[] = "target";
     const byte_t       data[] = "data";
@@ -359,9 +357,9 @@ static void TestXmlDocumentWrite(void)
     assert(NULL == document.firstNode);
     assert(NULL == document.lastNode);
 
-    Utl_Xml_Node_Initialize(&declaration_node, UTL_XML_NODE_XML_DECLARATION, NULL, 0, declaration, (uint32_t)(sizeof(declaration) - 1));
+    Utl_Xml_Node_Initialize(&declaration_node, UTL_XML_NODE_XML_DECLARATION, NULL, 0, NULL, 0);
     Utl_Xml_Node_Initialize(&prolog_comment, UTL_XML_NODE_COMMENT, NULL, 0, before, (uint32_t)(sizeof(before) - 1));
-    Utl_Xml_Node_Initialize(&doctype_node, UTL_XML_NODE_DOCTYPE, NULL, 0, doctype, (uint32_t)(sizeof(doctype) - 1));
+    Utl_Xml_Node_Initialize(&doctype_node, UTL_XML_NODE_DOCTYPE, root_name, (uint32_t)(sizeof(root_name) - 1), NULL, 0);
     Utl_Xml_Node_Initialize(&prolog_instruction, UTL_XML_NODE_PROCESSING_INSTRUCTION, target, (uint32_t)(sizeof(target) - 1), data, (uint32_t)(sizeof(data) - 1));
     Utl_Xml_Node_Initialize(&root, UTL_XML_NODE_ELEMENT, root_name, (uint32_t)(sizeof(root_name) - 1), NULL, 0);
     Utl_Xml_Node_Initialize(&text_node, UTL_XML_NODE_TEXT, NULL, 0, text_value, (uint32_t)(sizeof(text_value) - 1));

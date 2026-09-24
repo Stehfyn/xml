@@ -21,8 +21,9 @@ The node and document modules provide the tree model and a serializer.
   collection. The model must retain text before, between, and after child
   elements.
 - `utl_xml_document` appends caller-owned top-level nodes in source order.
-  Declaration nodes borrow complete XML declaration or document type markup;
-  one element node is the document root.
+  XML declaration nodes borrow optional encoding and standalone fields. DOCTYPE
+  nodes borrow a root name and an optional ExternalID and/or internal subset
+  suffix. One element node is the document root.
 
 The caller owns node storage and UTF-8 byte spans. Tree operations preserve parent-child
 relationships and reject cycles, duplicate attributes, and a second root.
@@ -33,8 +34,9 @@ The node initializer stores the chosen node type and borrows its byte spans with
 validating XML syntax. The document serializer validates node content, including
 element and processing-instruction names, UTF-8 and XML character rules,
 comment and processing-instruction delimiters, and the reserved `xml` target.
-It escapes text and attribute values. The XML declaration and DOCTYPE are
-borrowed complete markup spans whose internal grammar remains the caller's
+It escapes text and attribute values. The XML declaration writer emits the XML
+1.0 version and optional fields. The DOCTYPE writer adds delimiters around the
+borrowed name and optional suffix. The suffix grammar remains the caller's
 responsibility.
 
 ## Naming
@@ -50,8 +52,8 @@ type convention. Public node and document types therefore need the same prefix;
 ## Remaining work
 
 1. Implement an XML reader that builds this tree and reports malformed input.
-2. Parse and validate XML declarations and DOCTYPE content instead of relying on
-   caller-supplied complete markup.
+2. Parse and validate XML declaration and DOCTYPE suffix content instead of
+   relying on caller-supplied suffix grammar.
 3. Add specification tests for accepted and rejected documents and semantic
    read-write-read round trips.
 

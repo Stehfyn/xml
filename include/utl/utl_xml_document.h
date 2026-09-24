@@ -73,8 +73,10 @@ void Utl_Xml_Document_Initialize(Utl_Xml_Document_t* document);
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-document
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-prolog
  *
- *  XML declaration and DOCTYPE nodes use value for complete UTF-8 markup and
- *  a NULL name. The caller supplies valid internal markup grammar.
+ *  XML declaration nodes may use value for optional encoding and standalone
+ *  fields. DOCTYPE nodes use name for the root element type and may use value
+ *  for an ExternalID and/or internal subset. The caller supplies valid suffix
+ *  grammar without a leading space.
  *
  * \par Requirements:
  *  - 001 This function shall fail an assertion if document or node is NULL.
@@ -100,16 +102,16 @@ void Utl_Xml_Document_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* n
  *  XML 1.0 (Fifth Edition), production [1] document:
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-document
  *
- *  XML declaration and DOCTYPE markup is supplied complete by the caller and
- *  written verbatim.
+ *  XML declaration markup is written with version="1.0" and optional fields.
+ *  DOCTYPE markup is written from its name and optional suffix.
  *  The caller keeps nodes, attributes, and borrowed byte spans valid while
  *  serializing, with output storage disjoint from them.
  *
  * \par Requirements:
  *  - 001 This function shall fail an assertion if document or output is NULL.
  *  - 002 This function shall fail an assertion if the document has no element.
- *  - 003 This function shall fail an assertion for invalid element, attribute, or processing-instruction names and invalid text, attribute, comment, or processing-instruction content.
- *  - 004 This function shall write declaration and DOCTYPE markup verbatim.
+ *  - 003 This function shall fail an assertion for invalid element, DOCTYPE, attribute, or processing-instruction names and invalid text, attribute, comment, or processing-instruction content.
+ *  - 004 This function shall construct XML declaration and DOCTYPE markup from their node data.
  *  - 005 This function shall write nodes, children, and attributes in append order, escaping text and attribute values.
  *  - 006 This function shall return the number of bytes written, without writing a zero terminator.
  *  - 007 This function shall fail an assertion before writing beyond capacity.

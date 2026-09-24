@@ -66,9 +66,9 @@ typedef struct Utl_Xml_Attribute_s
 typedef struct Utl_Xml_Node_s
 {
     Utl_Xml_NodeType_t     type;           ///< Kind of XML node.
-    const byte_t*          name;           ///< Borrowed element name or PI target; NULL otherwise.
+    const byte_t*          name;           ///< Borrowed element or DOCTYPE name, or PI target; NULL otherwise.
     uint32_t               nameByteCount;  ///< Number of name bytes; zero when name is NULL.
-    const byte_t*          value;          ///< Borrowed content or complete declaration markup; NULL for elements.
+    const byte_t*          value;          ///< Borrowed content or optional declaration suffix; NULL for elements.
     uint32_t               valueByteCount; ///< Number of value bytes; zero when value is NULL.
     struct Utl_Xml_Node_s* parent;         ///< Parent set when appended, or NULL.
     struct Utl_Xml_Node_s* firstChild;     ///< First child of an element, or NULL.
@@ -105,8 +105,11 @@ typedef struct Utl_Xml_Node_s
  * \par Details:
  *  Elements use name and set value to NULL. Text and comments set name to NULL
  *  and use value for content. Processing instructions use name for the target
- *  and value for data. XML declaration and DOCTYPE nodes use value for complete
- *  markup and a NULL name. XML validation and escaping are deferred until serialization.
+ *  and value for data. XML declarations use a NULL name and optionally use value
+ *  for encoding and standalone fields after version="1.0". DOCTYPE nodes use name
+ *  for the root element type and optionally use value for an ExternalID and/or
+ *  internal subset after the name. Declaration suffixes omit the leading space.
+ *  XML validation and escaping are deferred until serialization.
  *
  * \param[out] node            Uninitialized caller-owned node storage
  * \param[in]  type            XML node kind
