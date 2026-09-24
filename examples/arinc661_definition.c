@@ -163,22 +163,34 @@ int main(void)
         Utl_Xml_InitializeNode(&models[index], UTL_XML_NODE_ELEMENT, XML_LITERAL("model"), NULL, 0);
     }
 
-    Utl_Xml_AddAttribute(&definition, &definition_attributes[0], XML_LITERAL("name"), XML_LITERAL("arinc661_definition"));
-    Utl_Xml_AddAttribute(&definition, &definition_attributes[1], XML_LITERAL("library_version"), XML_LITERAL("0"));
-    Utl_Xml_AddAttribute(&definition, &definition_attributes[2], XML_LITERAL("supp_version"), XML_LITERAL("6"));
-    Utl_Xml_AddAttribute(&layer, &layer_attribute, XML_LITERAL("name"), XML_LITERAL("PrimaryLayer"));
-    Utl_Xml_AddAttribute(&panel, &panel_attributes[0], XML_LITERAL("name"), XML_LITERAL("MainPanel"));
-    Utl_Xml_AddAttribute(&panel, &panel_attributes[1], XML_LITERAL("type"), XML_LITERAL("A661_PANEL"));
-    Utl_Xml_AddAttribute(&label, &label_attributes[0], XML_LITERAL("name"), XML_LITERAL("StatusLabel"));
-    Utl_Xml_AddAttribute(&label, &label_attributes[1], XML_LITERAL("type"), XML_LITERAL("A661_LABEL"));
-    Utl_Xml_AddAttribute(&second_label, &second_label_attributes[0], XML_LITERAL("name"), XML_LITERAL("SecondaryLabel"));
-    Utl_Xml_AddAttribute(&second_label, &second_label_attributes[1], XML_LITERAL("type"), XML_LITERAL("A661_LABEL"));
+    Utl_Xml_InitializeAttribute(&definition_attributes[0], XML_LITERAL("name"), XML_LITERAL("arinc661_definition"));
+    Utl_Xml_AddAttribute(&definition, &definition_attributes[0]);
+    Utl_Xml_InitializeAttribute(&definition_attributes[1], XML_LITERAL("library_version"), XML_LITERAL("0"));
+    Utl_Xml_AddAttribute(&definition, &definition_attributes[1]);
+    Utl_Xml_InitializeAttribute(&definition_attributes[2], XML_LITERAL("supp_version"), XML_LITERAL("6"));
+    Utl_Xml_AddAttribute(&definition, &definition_attributes[2]);
+    Utl_Xml_InitializeAttribute(&layer_attribute, XML_LITERAL("name"), XML_LITERAL("PrimaryLayer"));
+    Utl_Xml_AddAttribute(&layer, &layer_attribute);
+    Utl_Xml_InitializeAttribute(&panel_attributes[0], XML_LITERAL("name"), XML_LITERAL("MainPanel"));
+    Utl_Xml_AddAttribute(&panel, &panel_attributes[0]);
+    Utl_Xml_InitializeAttribute(&panel_attributes[1], XML_LITERAL("type"), XML_LITERAL("A661_PANEL"));
+    Utl_Xml_AddAttribute(&panel, &panel_attributes[1]);
+    Utl_Xml_InitializeAttribute(&label_attributes[0], XML_LITERAL("name"), XML_LITERAL("StatusLabel"));
+    Utl_Xml_AddAttribute(&label, &label_attributes[0]);
+    Utl_Xml_InitializeAttribute(&label_attributes[1], XML_LITERAL("type"), XML_LITERAL("A661_LABEL"));
+    Utl_Xml_AddAttribute(&label, &label_attributes[1]);
+    Utl_Xml_InitializeAttribute(&second_label_attributes[0], XML_LITERAL("name"), XML_LITERAL("SecondaryLabel"));
+    Utl_Xml_AddAttribute(&second_label, &second_label_attributes[0]);
+    Utl_Xml_InitializeAttribute(&second_label_attributes[1], XML_LITERAL("type"), XML_LITERAL("A661_LABEL"));
+    Utl_Xml_AddAttribute(&second_label, &second_label_attributes[1]);
 
     for (index = 0; index < (uint32_t)COUNT_OF(c_arinc661Properties); ++index)
     {
         Utl_Xml_InitializeNode(&property_nodes[index], UTL_XML_NODE_ELEMENT, XML_LITERAL("prop"), NULL, 0);
-        Utl_Xml_AddAttribute(&property_nodes[index], &property_names[index], XML_LITERAL("name"), c_arinc661Properties[index].name, c_arinc661Properties[index].nameByteCount);
-        Utl_Xml_AddAttribute(&property_nodes[index], &property_values[index], XML_LITERAL("value"), c_arinc661Properties[index].value, c_arinc661Properties[index].valueByteCount);
+        Utl_Xml_InitializeAttribute(&property_names[index], XML_LITERAL("name"), c_arinc661Properties[index].name, c_arinc661Properties[index].nameByteCount);
+        Utl_Xml_AddAttribute(&property_nodes[index], &property_names[index]);
+        Utl_Xml_InitializeAttribute(&property_values[index], XML_LITERAL("value"), c_arinc661Properties[index].value, c_arinc661Properties[index].valueByteCount);
+        Utl_Xml_AddAttribute(&property_nodes[index], &property_values[index]);
         Utl_Xml_AppendChild(&models[c_arinc661Properties[index].modelIndex], &property_nodes[index]);
     }
 

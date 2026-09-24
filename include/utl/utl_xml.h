@@ -388,6 +388,26 @@ bool_t Utl_Xml_IsPITarget(const byte_t* utf8Text, uint32_t byteCount);
 
 /*************************************************************************************************/
 /**
+ * \brief Initializes caller-provided storage as an unlinked XML attribute.
+ *
+ * \par Requirements:
+ *  - 001 This function shall store name, value, and their byte counts without checking XML syntax or length.
+ *  - 002 This function shall fail an assertion if attribute, name, or value is NULL.
+ *  - 003 This function shall borrow the byte spans; the caller shall keep them valid while referenced.
+ *  - 004 This function shall clear the attribute's next link.
+ *
+ * \param[out] attribute       Uninitialized caller-owned attribute storage
+ * \param[in]  name            Borrowed UTF-8 name byte span
+ * \param[in]  nameByteCount   Number of name bytes
+ * \param[in]  value           Borrowed UTF-8 value byte span
+ * \param[in]  valueByteCount  Number of value bytes
+ *
+ * \retval None
+ */
+void Utl_Xml_InitializeAttribute(Utl_Xml_Attribute_t* attribute, const byte_t* name, uint32_t nameByteCount, const byte_t* value, uint32_t valueByteCount);
+
+/*************************************************************************************************/
+/**
  * \brief Initializes caller-provided storage as an unlinked XML node.
  *
  * \par Requirements:
@@ -448,23 +468,19 @@ void Utl_Xml_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child);
 
 /*************************************************************************************************/
 /**
- * \brief Appends a caller-owned attribute while constructing a serializable element.
+ * \brief Appends an initialized caller-owned attribute while constructing a serializable element.
  *
  * \par Requirements:
- *  - 001 This function shall require a valid XML name and XML character value.
+ *  - 001 This function shall require a valid XML name and XML character value in attribute.
  *  - 002 This function shall fail an assertion for NULL arguments, a non-element node, a duplicate name, or an attribute already linked to the element.
- *  - 003 This function shall enforce UTL_XML_NODE_MAX_ATTRIBUTES and borrow both byte spans.
+ *  - 003 This function shall enforce UTL_XML_NODE_MAX_ATTRIBUTES and preserve the borrowed byte spans.
  *
  * \param[in,out] node            Element receiving the attribute
- * \param[out]    attribute       Unlinked caller-owned attribute storage
- * \param[in]     name            Non-NULL UTF-8 attribute name byte span
- * \param[in]     nameByteCount   Number of name bytes
- * \param[in]     value           Non-NULL UTF-8 expanded value byte span
- * \param[in]     valueByteCount  Number of value bytes
+ * \param[in,out] attribute       Initialized, unlinked caller-owned attribute
  *
  * \retval None
  */
-void Utl_Xml_AddAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribute, const byte_t* name, uint32_t nameByteCount, const byte_t* value, uint32_t valueByteCount);
+void Utl_Xml_AddAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribute);
 
 /*************************************************************************************************/
 /**

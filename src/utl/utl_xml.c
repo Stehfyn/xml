@@ -1411,6 +1411,24 @@ bool_t Utl_Xml_IsPITarget(const byte_t* utf8Text, uint32_t byteCount)
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  Stores borrowed byte spans and clears the attribute link.
+ */
+void Utl_Xml_InitializeAttribute(Utl_Xml_Attribute_t* attribute, const byte_t* name, uint32_t nameByteCount, const byte_t* value, uint32_t valueByteCount)
+{
+    LOGASSERT(NULL != attribute);
+    LOGASSERT(NULL != name);
+    LOGASSERT(NULL != value);
+
+    attribute->name           = name;
+    attribute->nameByteCount  = nameByteCount;
+    attribute->value          = value;
+    attribute->valueByteCount = valueByteCount;
+    attribute->next           = NULL;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  None
  */
 void Utl_Xml_InitializeNode(Utl_Xml_Node_t* node, Utl_Xml_NodeType_t type, const byte_t* name, uint32_t nameByteCount, const byte_t* value, uint32_t valueByteCount)
@@ -1484,7 +1502,7 @@ void Utl_Xml_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child)
  * \par Details:
  *  Validates the caller's attribute and appends it in source order.
  */
-void Utl_Xml_AddAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribute, const byte_t* name, uint32_t nameByteCount, const byte_t* value, uint32_t valueByteCount)
+void Utl_Xml_AddAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribute)
 {
     bool_t                     is_name;
     bool_t                     is_xml_string;
@@ -1492,25 +1510,20 @@ void Utl_Xml_AddAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribute, 
 
     LOGASSERT(NULL != node);
     LOGASSERT(NULL != attribute);
-    LOGASSERT(NULL != name);
-    LOGASSERT(NULL != value);
+    LOGASSERT(NULL != attribute->name);
+    LOGASSERT(NULL != attribute->value);
+    LOGASSERT(NULL == attribute->next);
     LOGASSERT(UTL_XML_NODE_ELEMENT == node->type);
     LOGASSERT(node->attributeCount < UTL_XML_NODE_MAX_ATTRIBUTES);
 
-    is_name = Utl_Xml_IsName(name, nameByteCount);
+    is_name = Utl_Xml_IsName(attribute->name, attribute->nameByteCount);
     LOGASSERT(is_name);
 
-    is_xml_string = Utl_Xml_IsString(value, valueByteCount);
+    is_xml_string = Utl_Xml_IsString(attribute->value, attribute->valueByteCount);
     LOGASSERT(is_xml_string);
 
-    found_attribute = FindAttribute(node, attribute, name, nameByteCount);
+    found_attribute = FindAttribute(node, attribute, attribute->name, attribute->nameByteCount);
     LOGASSERT(NULL == found_attribute);
-
-    attribute->name           = name;
-    attribute->nameByteCount  = nameByteCount;
-    attribute->value          = value;
-    attribute->valueByteCount = valueByteCount;
-    attribute->next           = NULL;
 
     if (NULL != node->lastAttribute)
     {

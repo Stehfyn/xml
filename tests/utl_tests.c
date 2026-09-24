@@ -285,9 +285,18 @@ static void TestXmlNodeInitialization(void)
     assert((sizeof(data) - 1) == instruction.valueByteCount);
     assert(NULL == instruction.firstChild);
 
-    Utl_Xml_AddAttribute(&root, &attribute, attribute_name, (uint32_t)(sizeof(attribute_name) - 1), attribute_value, (uint32_t)(sizeof(attribute_value) - 1));
-    Utl_Xml_AddAttribute(&root, &utf8_attribute, utf8_name, (uint32_t)(sizeof(utf8_name) - 1), utf8_value, (uint32_t)(sizeof(utf8_value) - 1));
-    Utl_Xml_AddAttribute(&root, &longer_attribute, longer_name, (uint32_t)(sizeof(longer_name) - 1), attribute_value, (uint32_t)(sizeof(attribute_value) - 1));
+    attribute.next = &utf8_attribute;
+    Utl_Xml_InitializeAttribute(&attribute, attribute_name, (uint32_t)(sizeof(attribute_name) - 1), attribute_value, (uint32_t)(sizeof(attribute_value) - 1));
+    assert(attribute_name == attribute.name);
+    assert((sizeof(attribute_name) - 1) == attribute.nameByteCount);
+    assert(attribute_value == attribute.value);
+    assert((sizeof(attribute_value) - 1) == attribute.valueByteCount);
+    assert(NULL == attribute.next);
+    Utl_Xml_AddAttribute(&root, &attribute);
+    Utl_Xml_InitializeAttribute(&utf8_attribute, utf8_name, (uint32_t)(sizeof(utf8_name) - 1), utf8_value, (uint32_t)(sizeof(utf8_value) - 1));
+    Utl_Xml_AddAttribute(&root, &utf8_attribute);
+    Utl_Xml_InitializeAttribute(&longer_attribute, longer_name, (uint32_t)(sizeof(longer_name) - 1), attribute_value, (uint32_t)(sizeof(attribute_value) - 1));
+    Utl_Xml_AddAttribute(&root, &longer_attribute);
     Utl_Xml_AppendChild(&root, &text_node);
     Utl_Xml_AppendChild(&root, &comment);
     Utl_Xml_AppendChild(&root, &instruction);
@@ -397,7 +406,8 @@ static void TestXmlDocumentWrite(void)
     Utl_Xml_InitializeNode(&inner_comment, UTL_XML_NODE_COMMENT, NULL, 0, inside, (uint32_t)(sizeof(inside) - 1));
     Utl_Xml_InitializeNode(&epilog_comment, UTL_XML_NODE_COMMENT, NULL, 0, after, (uint32_t)(sizeof(after) - 1));
 
-    Utl_Xml_AddAttribute(&root, &attribute, attribute_name, (uint32_t)(sizeof(attribute_name) - 1), attribute_value, (uint32_t)(sizeof(attribute_value) - 1));
+    Utl_Xml_InitializeAttribute(&attribute, attribute_name, (uint32_t)(sizeof(attribute_name) - 1), attribute_value, (uint32_t)(sizeof(attribute_value) - 1));
+    Utl_Xml_AddAttribute(&root, &attribute);
     Utl_Xml_AppendChild(&root, &text_node);
     Utl_Xml_AppendChild(&root, &child);
     Utl_Xml_AppendChild(&child, &grandchild);
