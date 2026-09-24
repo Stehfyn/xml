@@ -118,17 +118,6 @@ static uint32_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t offs
 
 /*************************************************************************************************/
 /**
- * \brief Finds child in parent's ancestor chain, including parent.
- *
- * \param[in] parent   Node whose parent chain is searched
- * \param[in] child    Node to find
- *
- * \return Matching ancestor, or NULL if child is absent.
- */
-static const Utl_Xml_Node_t* FindAncestor(const Utl_Xml_Node_t* parent, const Utl_Xml_Node_t* child);
-
-/*************************************************************************************************/
-/**
  * \brief Finds an attribute with the requested name.
  *
  * \param[in] node            Element whose attributes are searched
@@ -139,6 +128,17 @@ static const Utl_Xml_Node_t* FindAncestor(const Utl_Xml_Node_t* parent, const Ut
  * \return Matching attribute, or NULL if the name is absent.
  */
 static const Utl_Xml_Attribute_t* FindAttribute(const Utl_Xml_Node_t* node, const Utl_Xml_Attribute_t* attribute, const byte_t* name, uint32_t nameByteCount);
+
+/*************************************************************************************************/
+/**
+ * \brief Finds child in parent's ancestor chain, including parent.
+ *
+ * \param[in] parent   Node whose parent chain is searched
+ * \param[in] child    Node to find
+ *
+ * \return Matching ancestor, or NULL if child is absent.
+ */
+static const Utl_Xml_Node_t* FindAncestor(const Utl_Xml_Node_t* parent, const Utl_Xml_Node_t* child);
 
 /*************************************************************************************************/
 /**
@@ -459,44 +459,6 @@ static uint32_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t offs
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
- */
-static const Utl_Xml_Node_t* FindAncestor(const Utl_Xml_Node_t* parent, const Utl_Xml_Node_t* child)
-{
-    const Utl_Xml_Node_t* current_node;
-    const Utl_Xml_Node_t* matching_ancestor;
-    bool_t                is_ancestor;
-    uint32_t              node_depth;
-
-    current_node = parent;
-    matching_ancestor = NULL;
-
-    for (node_depth = 0; node_depth < UTL_XML_NODE_MAX_DEPTH; ++node_depth)
-    {
-        if (NULL == current_node)
-        {
-            break;
-        }
-
-        is_ancestor = (child == current_node);
-
-        if (is_ancestor)
-        {
-            matching_ancestor = current_node;
-            break;
-        }
-
-        current_node = current_node->parent;
-    }
-
-    LOGASSERT((NULL != matching_ancestor) || (NULL == current_node));
-
-    return matching_ancestor;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
  *  Compares byte contents only when the names have the same byte count.
  */
 static const Utl_Xml_Attribute_t* FindAttribute(const Utl_Xml_Node_t* node, const Utl_Xml_Attribute_t* attribute, const byte_t* name, uint32_t nameByteCount)
@@ -534,6 +496,44 @@ static const Utl_Xml_Attribute_t* FindAttribute(const Utl_Xml_Node_t* node, cons
     LOGASSERT((NULL != found_attribute) || (NULL == current_attribute));
 
     return found_attribute;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  None
+ */
+static const Utl_Xml_Node_t* FindAncestor(const Utl_Xml_Node_t* parent, const Utl_Xml_Node_t* child)
+{
+    const Utl_Xml_Node_t* current_node;
+    const Utl_Xml_Node_t* matching_ancestor;
+    bool_t                is_ancestor;
+    uint32_t              node_depth;
+
+    current_node = parent;
+    matching_ancestor = NULL;
+
+    for (node_depth = 0; node_depth < UTL_XML_NODE_MAX_DEPTH; ++node_depth)
+    {
+        if (NULL == current_node)
+        {
+            break;
+        }
+
+        is_ancestor = (child == current_node);
+
+        if (is_ancestor)
+        {
+            matching_ancestor = current_node;
+            break;
+        }
+
+        current_node = current_node->parent;
+    }
+
+    LOGASSERT((NULL != matching_ancestor) || (NULL == current_node));
+
+    return matching_ancestor;
 }
 
 /*************************************************************************************************/
@@ -1257,38 +1257,6 @@ void Utl_Xml_InitializeDocument(Utl_Xml_Document_t* document)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Links an unlinked child at the end of the element's child list.
- */
-void Utl_Xml_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child)
-{
-    const Utl_Xml_Node_t* ancestor;
-
-    LOGASSERT(NULL != parent);
-    LOGASSERT(NULL != child);
-    LOGASSERT(UTL_XML_NODE_ELEMENT == parent->type);
-    LOGASSERT(NULL == child->parent);
-    LOGASSERT(NULL == child->nextSibling);
-    LOGASSERT(UTL_XML_NODE_ELEMENT == child->type);
-
-    ancestor = FindAncestor(parent, child);
-    LOGASSERT(NULL == ancestor);
-
-    if (NULL != parent->lastChild)
-    {
-        parent->lastChild->nextSibling = child;
-    }
-    else
-    {
-        parent->firstChild = child;
-    }
-
-    parent->lastChild = child;
-    child->parent     = parent;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
  *  Validates the caller's attribute and appends it in source order. The writer copies values
  *  without references, so a value must not contain <, &, ", or whitespace other than spaces.
  */
@@ -1340,6 +1308,38 @@ void Utl_Xml_AppendAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribut
     node->lastAttribute = attribute;
 
     node->attributeCount += 1;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Links an unlinked child at the end of the element's child list.
+ */
+void Utl_Xml_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child)
+{
+    const Utl_Xml_Node_t* ancestor;
+
+    LOGASSERT(NULL != parent);
+    LOGASSERT(NULL != child);
+    LOGASSERT(UTL_XML_NODE_ELEMENT == parent->type);
+    LOGASSERT(NULL == child->parent);
+    LOGASSERT(NULL == child->nextSibling);
+    LOGASSERT(UTL_XML_NODE_ELEMENT == child->type);
+
+    ancestor = FindAncestor(parent, child);
+    LOGASSERT(NULL == ancestor);
+
+    if (NULL != parent->lastChild)
+    {
+        parent->lastChild->nextSibling = child;
+    }
+    else
+    {
+        parent->firstChild = child;
+    }
+
+    parent->lastChild = child;
+    child->parent     = parent;
 }
 
 /*************************************************************************************************/

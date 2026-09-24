@@ -305,22 +305,6 @@ void Utl_Xml_InitializeDocument(Utl_Xml_Document_t* document);
 
 /*************************************************************************************************/
 /**
- * \brief Appends a caller-owned child while constructing a serializable element.
- *
- * \par Requirements:
- *  - 001 This function shall preserve the order in which children are appended.
- *  - 002 This function shall fail an assertion for NULL arguments, a non-element parent or child, an attached child, or a cycle.
- *  - 003 This function shall check at most UTL_XML_NODE_MAX_DEPTH ancestor links.
- *
- * \param[in,out] parent   Element receiving the child
- * \param[in,out] child    Unlinked caller-owned child
- *
- * \retval        None
- */
-void Utl_Xml_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child);
-
-/*************************************************************************************************/
-/**
  * \brief Appends an initialized caller-owned attribute while constructing a serializable element.
  *
  * \par Requirements:
@@ -334,6 +318,22 @@ void Utl_Xml_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child);
  * \retval        None
  */
 void Utl_Xml_AppendAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribute);
+
+/*************************************************************************************************/
+/**
+ * \brief Appends a caller-owned child while constructing a serializable element.
+ *
+ * \par Requirements:
+ *  - 001 This function shall preserve the order in which children are appended.
+ *  - 002 This function shall fail an assertion for NULL arguments, a non-element parent or child, an attached child, or a cycle.
+ *  - 003 This function shall check at most UTL_XML_NODE_MAX_DEPTH ancestor links.
+ *
+ * \param[in,out] parent   Element receiving the child
+ * \param[in,out] child    Unlinked caller-owned child
+ *
+ * \retval        None
+ */
+void Utl_Xml_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child);
 
 /*************************************************************************************************/
 /**
