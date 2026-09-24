@@ -1545,7 +1545,7 @@ void Utl_Xml_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child)
  * \par Details:
  *  Validates the caller's attribute and appends it in source order.
  */
-void Utl_Xml_AddAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribute)
+void Utl_Xml_AppendAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribute)
 {
     bool_t                     is_name;
     bool_t                     is_xml_string;
