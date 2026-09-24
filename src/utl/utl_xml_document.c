@@ -746,7 +746,6 @@ uint64_t Utl_Xml_Document_Write(const Utl_Xml_Document_t* document, byte_t* outp
 {
     const Utl_Xml_Node_t* current_node;
     uint64_t              byte_count;
-    bool_t                has_root;
     uint32_t              node_index;
 
     LOGASSERT(NULL != document);
@@ -755,7 +754,6 @@ uint64_t Utl_Xml_Document_Write(const Utl_Xml_Document_t* document, byte_t* outp
     byte_count = 0;
 
     current_node = document->firstNode;
-    has_root     = FALSE;
 
     for (node_index = 0; node_index < UTL_XML_DOCUMENT_MAX_NODES; ++node_index)
     {
@@ -779,7 +777,6 @@ uint64_t Utl_Xml_Document_Write(const Utl_Xml_Document_t* document, byte_t* outp
             case UTL_XML_NODE_ELEMENT:
             {
                 WriteElement(output, capacity, &byte_count, current_node);
-                has_root = TRUE;
                 break;
             }
             case UTL_XML_NODE_TEXT:
@@ -795,7 +792,6 @@ uint64_t Utl_Xml_Document_Write(const Utl_Xml_Document_t* document, byte_t* outp
     }
 
     LOGASSERT(NULL == current_node);
-    LOGASSERT(has_root);
 
     return byte_count;
 }
