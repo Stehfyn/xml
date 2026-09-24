@@ -18,8 +18,7 @@ UTF-8 into caller-provided storage. The document supports comments, processing
 instructions, one root element, and optional XML declaration and DOCTYPE markup.
 Declaration and DOCTYPE suffixes are supplied by the caller.
 
-`utl_util` provides `Utl_WriteBits` and `Utl_WriteByte` for most-significant-bit-first
-writes at arbitrary bit offsets.
+`utl_util` provides string helpers; the XML reader uses `Utl_StrStr` to locate markup.
 
 To write a schema hint, append attributes named `xmlns:xsi` and
 `xsi:noNamespaceSchemaLocation` to the root element. Attributes appear in the

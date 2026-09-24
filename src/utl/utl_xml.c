@@ -160,11 +160,11 @@ static const Utl_Xml_Node_t* FindNode(const Utl_Xml_Document_t* document, Utl_Xm
  * \param[in]     byteCount   Number of bytes
  * \param[in,out] position    Offset of the next unread byte
  * \param[in]     token       XML token from utl_xml.h
+ * \param[out]    hasToken    Optional result indicating whether the token was read; may be NULL
  *
- * \retval        TRUE        if the token was read.
- * \retval        FALSE       otherwise
+ * \retval        None
  */
-static bool_t ReadToken(const byte_t* bytes, uint32_t byteCount, uint32_t* position, const char_t* token);
+static void ReadToken(const byte_t* bytes, uint32_t byteCount, uint32_t* position, const char_t* token, bool_t* hasToken);
 
 /*************************************************************************************************/
 /**
@@ -174,11 +174,11 @@ static bool_t ReadToken(const byte_t* bytes, uint32_t byteCount, uint32_t* posit
  * \param[in]     bytes       UTF-8 bytes
  * \param[in]     byteCount   Number of bytes
  * \param[in,out] position    Offset of the next unread byte
+ * \param[out]    hasWhitespace Optional result indicating whether whitespace was read; may be NULL
  *
- * \retval        TRUE        if whitespace was read.
- * \retval        FALSE       otherwise
+ * \retval        None
  */
-static bool_t ReadWhitespace(const byte_t* bytes, uint32_t byteCount, uint32_t* position);
+static void ReadWhitespace(const byte_t* bytes, uint32_t byteCount, uint32_t* position, bool_t* hasWhitespace);
 
 /*************************************************************************************************/
 /**
@@ -188,11 +188,12 @@ static bool_t ReadWhitespace(const byte_t* bytes, uint32_t byteCount, uint32_t* 
  * \param[in]     bytes           UTF-8 bytes
  * \param[in]     byteCount       Number of bytes
  * \param[in,out] position        Offset of the next unread byte
+ * \param[out]    name            Name bytes
  * \param[out]    nameByteCount   Number of name bytes
  *
- * \return        Name bytes.
+ * \retval        None
  */
-static const byte_t* ReadName(const byte_t* bytes, uint32_t byteCount, uint32_t* position, uint32_t* nameByteCount);
+static void ReadName(const byte_t* bytes, uint32_t byteCount, uint32_t* position, const byte_t** name, uint32_t* nameByteCount);
 
 /*************************************************************************************************/
 /**
@@ -203,11 +204,12 @@ static const byte_t* ReadName(const byte_t* bytes, uint32_t byteCount, uint32_t*
  * \param[in]     bytes       UTF-8 bytes
  * \param[in]     byteCount   Number of bytes
  * \param[in,out] position    Offset of the next unread byte
+ * \param[out]    value       Value bytes
  * \param[out]    numBytes    Number of value bytes
  *
- * \return        Value bytes.
+ * \retval        None
  */
-static const byte_t* ReadAttributeValue(const byte_t* bytes, uint32_t byteCount, uint32_t* position, uint32_t* numBytes);
+static void ReadAttributeValue(const byte_t* bytes, uint32_t byteCount, uint32_t* position, const byte_t** value, uint32_t* numBytes);
 
 /*************************************************************************************************/
 /**
@@ -222,11 +224,11 @@ static const byte_t* ReadAttributeValue(const byte_t* bytes, uint32_t byteCount,
  * \param[out]    attributes          Caller-owned attribute storage
  * \param[in]     attributeCapacity   Number of attributes in attributes
  * \param[in,out] attributeCount      Number of attributes used
+ * \param[out]    isStartTag          TRUE for a start tag, FALSE for an empty-element tag
  *
- * \retval        TRUE                for a start tag.
- * \retval        FALSE               otherwise
+ * \retval        None
  */
-static bool_t ReadElementStart(const byte_t* markup, uint32_t markupByteCount, uint32_t* position, Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity, uint32_t* attributeCount);
+static void ReadElementStart(const byte_t* markup, uint32_t markupByteCount, uint32_t* position, Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity, uint32_t* attributeCount, bool_t* isStartTag);
 
 /*************************************************************************************************/
 /**
@@ -583,7 +585,7 @@ static const Utl_Xml_Node_t* FindNode(const Utl_Xml_Document_t* document, Utl_Xm
  * \par Details:
  *  Advances position only when the token is present.
  */
-static bool_t ReadToken(const byte_t* bytes, uint32_t byteCount, uint32_t* position, const char_t* token)
+static void ReadToken(const byte_t* bytes, uint32_t byteCount, uint32_t* position, const char_t* token, bool_t* hasToken)
 {
     uint32_t byte_index;
     byte_t   token_byte;
@@ -607,7 +609,10 @@ static bool_t ReadToken(const byte_t* bytes, uint32_t byteCount, uint32_t* posit
         (*position) += byte_index;
     }
 
-    return has_token;
+    if (NULL != hasToken)
+    {
+        (*hasToken) = has_token;
+    }
 }
 
 /*************************************************************************************************/
@@ -615,11 +620,10 @@ static bool_t ReadToken(const byte_t* bytes, uint32_t byteCount, uint32_t* posit
  * \par Details:
  *  None
  */
-static bool_t ReadWhitespace(const byte_t* bytes, uint32_t byteCount, uint32_t* position)
+static void ReadWhitespace(const byte_t* bytes, uint32_t byteCount, uint32_t* position, bool_t* hasWhitespace)
 {
     uint32_t byte_index;
     bool_t   is_whitespace;
-    bool_t   has_whitespace;
 
     for (byte_index = (*position); byte_index < byteCount; ++byte_index)
     {
@@ -631,10 +635,12 @@ static bool_t ReadWhitespace(const byte_t* bytes, uint32_t byteCount, uint32_t* 
         }
     }
 
-    has_whitespace = ((*position) < byte_index);
-    (*position)    = byte_index;
+    if (NULL != hasWhitespace)
+    {
+        (*hasWhitespace) = ((*position) < byte_index);
+    }
 
-    return has_whitespace;
+    (*position) = byte_index;
 }
 
 /*************************************************************************************************/
@@ -642,15 +648,15 @@ static bool_t ReadWhitespace(const byte_t* bytes, uint32_t byteCount, uint32_t* 
  * \par Details:
  *  The name ends at whitespace, =, /, or >.
  */
-static const byte_t* ReadName(const byte_t* bytes, uint32_t byteCount, uint32_t* position, uint32_t* nameByteCount)
+static void ReadName(const byte_t* bytes, uint32_t byteCount, uint32_t* position, const byte_t** name, uint32_t* nameByteCount)
 {
-    const byte_t* name;
+    const byte_t* parsed_name;
     uint32_t      byte_index;
     bool_t        is_whitespace;
     bool_t        is_name_end;
     bool_t        is_name;
 
-    name = bytes + (*position);
+    parsed_name = bytes + (*position);
 
     for (byte_index = (*position); byte_index < byteCount; ++byte_index)
     {
@@ -666,10 +672,10 @@ static const byte_t* ReadName(const byte_t* bytes, uint32_t byteCount, uint32_t*
     (*nameByteCount) = byte_index - (*position);
     (*position)      = byte_index;
 
-    is_name = Utl_Xml_IsName(name, (*nameByteCount));
+    is_name = Utl_Xml_IsName(parsed_name, (*nameByteCount));
     LOGASSERT(is_name);
 
-    return name;
+    (*name) = parsed_name;
 }
 
 /*************************************************************************************************/
@@ -677,9 +683,9 @@ static const byte_t* ReadName(const byte_t* bytes, uint32_t byteCount, uint32_t*
  * \par Details:
  *  Utl_Xml_AppendAttribute checks the value's characters.
  */
-static const byte_t* ReadAttributeValue(const byte_t* bytes, uint32_t byteCount, uint32_t* position, uint32_t* numBytes)
+static void ReadAttributeValue(const byte_t* bytes, uint32_t byteCount, uint32_t* position, const byte_t** value, uint32_t* numBytes)
 {
-    const byte_t* value;
+    const byte_t* parsed_value;
     uint32_t      byte_index;
     bool_t        is_value_open;
     bool_t        is_value_close;
@@ -688,7 +694,7 @@ static const byte_t* ReadAttributeValue(const byte_t* bytes, uint32_t byteCount,
     LOGASSERT(is_value_open);
 
     (*position) += 2;
-    value        = bytes + (*position);
+    parsed_value = bytes + (*position);
 
     for (byte_index = (*position); byte_index < byteCount; ++byte_index)
     {
@@ -705,7 +711,7 @@ static const byte_t* ReadAttributeValue(const byte_t* bytes, uint32_t byteCount,
     (*numBytes) = byte_index - (*position);
     (*position) = byte_index + 1;
 
-    return value;
+    (*value) = parsed_value;
 }
 
 /*************************************************************************************************/
@@ -713,7 +719,7 @@ static const byte_t* ReadAttributeValue(const byte_t* bytes, uint32_t byteCount,
  * \par Details:
  *  Utl_Xml_AppendAttribute checks attribute names, values, and uniqueness.
  */
-static bool_t ReadElementStart(const byte_t* markup, uint32_t markupByteCount, uint32_t* position, Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity, uint32_t* attributeCount)
+static void ReadElementStart(const byte_t* markup, uint32_t markupByteCount, uint32_t* position, Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity, uint32_t* attributeCount, bool_t* isStartTag)
 {
     Utl_Xml_Attribute_t* attribute;
     const byte_t*        name;
@@ -726,14 +732,14 @@ static bool_t ReadElementStart(const byte_t* markup, uint32_t markupByteCount, u
     bool_t               is_tag_close;
     bool_t               is_start_tag;
 
-    (void)ReadToken(markup, markupByteCount, position, UTL_XML_STAG_OPEN);
+    ReadToken(markup, markupByteCount, position, UTL_XML_STAG_OPEN, NULL);
 
-    name = ReadName(markup, markupByteCount, position, &name_byte_count);
+    ReadName(markup, markupByteCount, position, &name, &name_byte_count);
     Utl_Xml_InitializeNode(node, UTL_XML_NODE_ELEMENT, name, name_byte_count);
 
     for (attribute_index = 0; attribute_index < UTL_XML_NODE_MAX_ATTRIBUTES; ++attribute_index)
     {
-        has_whitespace = ReadWhitespace(markup, markupByteCount, position);
+        ReadWhitespace(markup, markupByteCount, position, &has_whitespace);
 
         if (FALSE == has_whitespace)
         {
@@ -742,8 +748,8 @@ static bool_t ReadElementStart(const byte_t* markup, uint32_t markupByteCount, u
 
         LOGASSERT((*attributeCount) < attributeCapacity);
 
-        name      = ReadName(markup, markupByteCount, position, &name_byte_count);
-        value     = ReadAttributeValue(markup, markupByteCount, position, &value_byte_count);
+        ReadName(markup, markupByteCount, position, &name, &name_byte_count);
+        ReadAttributeValue(markup, markupByteCount, position, &value, &value_byte_count);
         attribute = &attributes[(*attributeCount)];
 
         Utl_Xml_InitializeAttribute(attribute, name, name_byte_count, value, value_byte_count);
@@ -752,16 +758,16 @@ static bool_t ReadElementStart(const byte_t* markup, uint32_t markupByteCount, u
         (*attributeCount) += 1;
     }
 
-    is_empty_elem_tag_close = ReadToken(markup, markupByteCount, position, UTL_XML_EMPTY_ELEM_TAG_CLOSE);
+    ReadToken(markup, markupByteCount, position, UTL_XML_EMPTY_ELEM_TAG_CLOSE, &is_empty_elem_tag_close);
     is_start_tag            = (FALSE == is_empty_elem_tag_close);
 
     if (is_start_tag)
     {
-        is_tag_close = ReadToken(markup, markupByteCount, position, UTL_XML_TAG_CLOSE);
+        ReadToken(markup, markupByteCount, position, UTL_XML_TAG_CLOSE, &is_tag_close);
         LOGASSERT(is_tag_close);
     }
 
-    return is_start_tag;
+    (*isStartTag) = is_start_tag;
 }
 
 /*************************************************************************************************/
@@ -1421,7 +1427,7 @@ void Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToReadDocu
     attribute_count  = 0;
     parent           = NULL;
 
-    (void)ReadWhitespace(bufferToReadDocumentFrom, sizeOfDocumentBuffer, &position);
+    ReadWhitespace(bufferToReadDocumentFrom, sizeOfDocumentBuffer, &position, NULL);
 
     markup = bufferToReadDocumentFrom + position;
 
@@ -1439,26 +1445,26 @@ void Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToReadDocu
         markup_byte_count = (uint32_t)strlen((const char_t*)markup);
         position          = 0;
         is_declaration    = FALSE;
-        is_end_tag        = ReadToken(markup, markup_byte_count, &position, UTL_XML_ETAG_OPEN);
+        ReadToken(markup, markup_byte_count, &position, UTL_XML_ETAG_OPEN, &is_end_tag);
 
         if (FALSE == is_end_tag)
         {
-            is_declaration = ReadToken(markup, markup_byte_count, &position, UTL_XML_DECL_OPEN);
+            ReadToken(markup, markup_byte_count, &position, UTL_XML_DECL_OPEN, &is_declaration);
         }
 
         if (is_end_tag)
         {
             LOGASSERT(NULL != parent);
 
-            name = ReadName(markup, markup_byte_count, &position, &name_byte_count);
+            ReadName(markup, markup_byte_count, &position, &name, &name_byte_count);
             LOGASSERT(parent->nameByteCount == name_byte_count);
 
             is_valid = (0 == memcmp(parent->name, name, name_byte_count));
             LOGASSERT(is_valid);
 
-            (void)ReadWhitespace(markup, markup_byte_count, &position);
+            ReadWhitespace(markup, markup_byte_count, &position, NULL);
 
-            is_valid = ReadToken(markup, markup_byte_count, &position, UTL_XML_TAG_CLOSE);
+            ReadToken(markup, markup_byte_count, &position, UTL_XML_TAG_CLOSE, &is_valid);
             LOGASSERT(is_valid);
 
             parent = parent->parent;
@@ -1474,24 +1480,24 @@ void Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToReadDocu
             {
                 LOGASSERT(bufferToReadDocumentFrom == markup);
 
-                is_valid = ReadWhitespace(markup, markup_byte_count, &position);
+                ReadWhitespace(markup, markup_byte_count, &position, &is_valid);
                 LOGASSERT(is_valid);
 
-                is_valid = ReadToken(markup, markup_byte_count, &position, UTL_XML_VERSION_NAME);
+                ReadToken(markup, markup_byte_count, &position, UTL_XML_VERSION_NAME, &is_valid);
                 LOGASSERT(is_valid);
 
-                version  = ReadAttributeValue(markup, markup_byte_count, &position, &version_byte_count);
+                ReadAttributeValue(markup, markup_byte_count, &position, &version, &version_byte_count);
                 is_valid = ((sizeof(UTL_XML_VERSION_1_0) - 1) == version_byte_count) && (0 == memcmp(version, UTL_XML_VERSION_1_0, version_byte_count));
                 LOGASSERT(is_valid);
 
-                is_valid = ReadToken(markup, markup_byte_count, &position, UTL_XML_DECL_CLOSE);
+                ReadToken(markup, markup_byte_count, &position, UTL_XML_DECL_CLOSE, &is_valid);
                 LOGASSERT(is_valid);
 
                 Utl_Xml_InitializeNode(node, UTL_XML_NODE_XML_DECLARATION, NULL, 0);
             }
             else
             {
-                is_start_tag = ReadElementStart(markup, markup_byte_count, &position, node, attributes, attributeCapacity, &attribute_count);
+                ReadElementStart(markup, markup_byte_count, &position, node, attributes, attributeCapacity, &attribute_count, &is_start_tag);
             }
 
             if (NULL == parent)
@@ -1511,7 +1517,7 @@ void Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToReadDocu
             }
         }
 
-        (void)ReadWhitespace(markup, markup_byte_count, &position);
+        ReadWhitespace(markup, markup_byte_count, &position, NULL);
         LOGASSERT(markup_byte_count == position);
 
         markup += markup_byte_count;

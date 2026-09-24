@@ -1,5 +1,4 @@
 #include "utl/utl_defines.h"
-#include "utl/utl_util.h"
 #include "utl/utl_xml.h"
 
 /* Keep assertions enabled in Release builds. */
@@ -8,46 +7,6 @@
 #endif
 #include <assert.h>
 #include <stdio.h>
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Checks bit order, unaligned writes, and preservation of bits outside the write range.
- */
-static void TestBitWrites(void)
-{
-    byte_t   buffer[4];
-    uint32_t bit_offset;
-
-    (void)memset(buffer, 0, sizeof(buffer));
-    bit_offset = 2u;
-    Utl_WriteBits(buffer, sizeof(buffer), &bit_offset, 5u, 3u);
-    assert(5u == bit_offset);
-    assert(0x28u == buffer[0]);
-
-    Utl_WriteByte(buffer, sizeof(buffer), &bit_offset, 0x07u);
-    assert(13u == bit_offset);
-    assert(0x28u == buffer[0]);
-    assert(0x38u == buffer[1]);
-
-    (void)memset(buffer, 0xFF, sizeof(buffer));
-    bit_offset = 3u;
-    Utl_WriteBits(buffer, sizeof(buffer), &bit_offset, 0u, 10u);
-    assert(13u == bit_offset);
-    assert(0xE0u == buffer[0]);
-    assert(0x07u == buffer[1]);
-    assert(0xFFu == buffer[2]);
-    assert(0xFFu == buffer[3]);
-
-    (void)memset(buffer, 0, sizeof(buffer));
-    bit_offset = 0u;
-    Utl_WriteBits(buffer, sizeof(buffer), &bit_offset, 0x89ABCDEFu, 32u);
-    assert(32u == bit_offset);
-    assert(0x89u == buffer[0]);
-    assert(0xABu == buffer[1]);
-    assert(0xCDu == buffer[2]);
-    assert(0xEFu == buffer[3]);
-}
 
 /*************************************************************************************************/
 /**
@@ -435,7 +394,6 @@ static void TestXmlDocumentRoundTrip(void)
  */
 int main(void)
 {
-    TestBitWrites();
     TestCharacterClasses();
     TestXmlByteSpans();
     TestXmlNodeInitialization();
