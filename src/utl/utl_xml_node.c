@@ -191,6 +191,8 @@ void Utl_Xml_Node_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child)
     LOGASSERT(UTL_XML_NODE_ELEMENT == parent->type);
     LOGASSERT(NULL == child->parent);
     LOGASSERT(NULL == child->nextSibling);
+    LOGASSERT(UTL_XML_NODE_XML_DECLARATION != child->type);
+    LOGASSERT(UTL_XML_NODE_DOCTYPE != child->type);
 
     ancestor = FindAncestor(parent, child);
     LOGASSERT(NULL == ancestor);

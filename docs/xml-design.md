@@ -20,9 +20,9 @@ The node and document modules provide the tree model and a serializer.
   and the ordered children of an element. Element attributes form a separate
   collection. The model must retain text before, between, and after child
   elements.
-- `utl_xml_document` borrows caller-owned nodes and represents the XML declaration,
-  optional document type declaration, one root element, and document-level
-  comments and processing instructions.
+- `utl_xml_document` appends caller-owned top-level nodes in source order.
+  Declaration nodes borrow complete XML declaration or document type markup;
+  one element node is the document root.
 
 The caller owns node storage and UTF-8 byte spans. Tree operations preserve parent-child
 relationships and reject cycles, duplicate attributes, and a second root.

@@ -322,7 +322,9 @@ static void TestDeferredNodeContentValidation(void)
 static void TestXmlDocumentSerialization(void)
 {
     Utl_Xml_Document_t document;
+    Utl_Xml_Node_t     declaration_node;
     Utl_Xml_Node_t     prolog_comment;
+    Utl_Xml_Node_t     doctype_node;
     Utl_Xml_Node_t     prolog_instruction;
     Utl_Xml_Node_t     root;
     Utl_Xml_Node_t     text_node;
@@ -356,9 +358,11 @@ static void TestXmlDocumentSerialization(void)
     Utl_Xml_Document_Initialize(&document);
     assert(NULL == document.root);
     assert(NULL == document.firstNode);
-    assert(NULL == document.doctype);
+    assert(NULL == document.lastNode);
 
+    Utl_Xml_Node_Initialize(&declaration_node, UTL_XML_NODE_XML_DECLARATION, NULL, 0, declaration, (uint32_t)(sizeof(declaration) - 1));
     Utl_Xml_Node_Initialize(&prolog_comment, UTL_XML_NODE_COMMENT, NULL, 0, before, (uint32_t)(sizeof(before) - 1));
+    Utl_Xml_Node_Initialize(&doctype_node, UTL_XML_NODE_DOCTYPE, NULL, 0, doctype, (uint32_t)(sizeof(doctype) - 1));
     Utl_Xml_Node_Initialize(&prolog_instruction, UTL_XML_NODE_PROCESSING_INSTRUCTION, target, (uint32_t)(sizeof(target) - 1), data, (uint32_t)(sizeof(data) - 1));
     Utl_Xml_Node_Initialize(&root, UTL_XML_NODE_ELEMENT, root_name, (uint32_t)(sizeof(root_name) - 1), NULL, 0);
     Utl_Xml_Node_Initialize(&text_node, UTL_XML_NODE_TEXT, NULL, 0, text_value, (uint32_t)(sizeof(text_value) - 1));
@@ -373,20 +377,23 @@ static void TestXmlDocumentSerialization(void)
     Utl_Xml_Node_AppendChild(&root, &tail_node);
     Utl_Xml_Node_AppendChild(&root, &inner_comment);
 
-    Utl_Xml_Document_SetXmlDeclaration(&document, declaration, (uint32_t)(sizeof(declaration) - 1));
+    Utl_Xml_Document_AppendNode(&document, &declaration_node);
     Utl_Xml_Document_AppendNode(&document, &prolog_comment);
-    Utl_Xml_Document_SetDoctype(&document, doctype, (uint32_t)(sizeof(doctype) - 1));
+    Utl_Xml_Document_AppendNode(&document, &doctype_node);
     Utl_Xml_Document_AppendNode(&document, &prolog_instruction);
     Utl_Xml_Document_AppendNode(&document, &root);
     Utl_Xml_Document_AppendNode(&document, &epilog_comment);
 
-    assert(&prolog_comment == document.firstNode);
-    assert(&prolog_comment == document.nodeBeforeDoctype);
-    assert(&root == document.root);
-    assert(&epilog_comment == document.lastNode);
-    assert(&prolog_instruction == prolog_comment.nextSibling);
+    assert(&declaration_node == document.firstNode);
+    assert(&prolog_comment == declaration_node.nextSibling);
+    assert(&doctype_node == prolog_comment.nextSibling);
+    assert(&prolog_instruction == doctype_node.nextSibling);
     assert(&root == prolog_instruction.nextSibling);
     assert(&epilog_comment == root.nextSibling);
+    assert(NULL == epilog_comment.nextSibling);
+    assert(&root == document.root);
+    assert(&doctype_node == document.doctype);
+    assert(&epilog_comment == document.lastNode);
 
     is_serialized = Utl_Xml_Document_Serialize(&document, NULL, 0, &byte_count);
     assert(TRUE == is_serialized);

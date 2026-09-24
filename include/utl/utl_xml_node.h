@@ -41,7 +41,9 @@ typedef enum Utl_Xml_NodeType_e
     UTL_XML_NODE_ELEMENT,
     UTL_XML_NODE_TEXT,
     UTL_XML_NODE_COMMENT,
-    UTL_XML_NODE_PROCESSING_INSTRUCTION
+    UTL_XML_NODE_PROCESSING_INSTRUCTION,
+    UTL_XML_NODE_XML_DECLARATION,
+    UTL_XML_NODE_DOCTYPE
 } Utl_Xml_NodeType_t;
 
 /*************************************************************************************************/
@@ -66,7 +68,7 @@ typedef struct Utl_Xml_Node_s
     Utl_Xml_NodeType_t     type;           ///< Element, text, comment, or processing instruction.
     const byte_t*          name;           ///< Borrowed element name or PI target; NULL otherwise.
     uint32_t               nameByteCount;  ///< Number of name bytes; zero when name is NULL.
-    const byte_t*          value;          ///< Borrowed text, comment, or PI data; NULL for elements.
+    const byte_t*          value;          ///< Borrowed content or complete declaration markup; NULL for elements.
     uint32_t               valueByteCount; ///< Number of value bytes; zero when value is NULL.
     struct Utl_Xml_Node_s* parent;         ///< Parent set when appended, or NULL.
     struct Utl_Xml_Node_s* firstChild;     ///< First child of an element, or NULL.
@@ -103,7 +105,8 @@ typedef struct Utl_Xml_Node_s
  * \par Details:
  *  Elements use name and set value to NULL. Text and comments set name to NULL
  *  and use value for content. Processing instructions use name for the target
- *  and value for data. XML validation and escaping are deferred until serialization.
+ *  and value for data. XML declaration and DOCTYPE nodes use value for complete
+ *  markup and a NULL name. XML validation and escaping are deferred until serialization.
  *
  * \param[out] node            Uninitialized caller-owned node storage
  * \param[in]  type            XML node kind
@@ -122,7 +125,7 @@ void Utl_Xml_Node_Initialize(Utl_Xml_Node_t* node, Utl_Xml_NodeType_t type, cons
  *
  * \par Requirements:
  *  - 001 This function shall preserve the order in which children are appended.
- *  - 002 This function shall fail an assertion for NULL arguments, a non-element parent, an attached child, or a cycle.
+ *  - 002 This function shall fail an assertion for NULL arguments, a non-element parent, an attached child, a document-only declaration, or a cycle.
  *  - 003 This function shall check at most UTL_XML_NODE_MAX_DEPTH ancestor links.
  *
  * \param[in,out] parent   Element receiving the child
