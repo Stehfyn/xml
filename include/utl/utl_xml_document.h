@@ -52,6 +52,9 @@ typedef struct Utl_Xml_Document_s
 /**
  * \brief Initializes caller-provided storage as an empty XML document.
  *
+ * \par Details:
+ *  None
+ *
  * \par Requirements:
  *  - 001 This function shall fail an assertion if document is NULL.
  *  - 002 This function shall clear the document's top-level node links.
@@ -66,12 +69,6 @@ void Utl_Xml_Document_Initialize(Utl_Xml_Document_t* document);
 /**
  * \brief Appends a caller-owned top-level node in source order.
  *
- * \par Requirements:
- *  - 001 An XML declaration shall be first, if present.
- *  - 002 A DOCTYPE shall appear at most once and before the root element.
- *  - 003 At most one element may be appended; only comments and processing instructions may follow it.
- *  - 004 The node shall not already belong to a document or element.
- *
  * \par Details:
  *  XML 1.0 (Fifth Edition), productions [1] document and [22] prolog:
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-document
@@ -80,6 +77,12 @@ void Utl_Xml_Document_Initialize(Utl_Xml_Document_t* document);
  *  Initialize XML declaration and DOCTYPE nodes with their complete UTF-8 markup
  *  in value and a NULL name. The markup is borrowed and written verbatim after
  *  XML character and delimiter checks; its internal grammar is the caller's responsibility.
+ *
+ * \par Requirements:
+ *  - 001 An XML declaration shall be first, if present.
+ *  - 002 A DOCTYPE shall appear at most once and before the root element.
+ *  - 003 At most one element may be appended; only comments and processing instructions may follow it.
+ *  - 004 The node shall not already belong to a document or element.
  *
  * \param[in,out] document  Document receiving the node
  * \param[in,out] node      Unlinked caller-owned node

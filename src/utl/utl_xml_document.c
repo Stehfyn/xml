@@ -63,12 +63,7 @@ static const Utl_Xml_Node_t* FindNode(const Utl_Xml_Document_t* document, Utl_Xm
  *
  * \retval None
  */
-static void WriteBytes(
-    byte_t* output,
-    uint32_t capacity,
-    uint32_t* byteCount,
-    const byte_t* bytes,
-    uint32_t numBytes);
+static void WriteBytes(byte_t* output, uint32_t capacity, uint32_t* byteCount, const byte_t* bytes, uint32_t numBytes);
 
 /*************************************************************************************************/
 /**
@@ -112,13 +107,7 @@ static void WriteHexCharReference(byte_t* output, uint32_t capacity, uint32_t* b
  *
  * \retval None
  */
-static void WriteEscaped(
-    byte_t* output,
-    uint32_t capacity,
-    uint32_t* byteCount,
-    const byte_t* utf8Text,
-    uint32_t numBytes,
-    bool_t isAttribute);
+static void WriteEscaped(byte_t* output, uint32_t capacity, uint32_t* byteCount, const byte_t* utf8Text, uint32_t numBytes, bool_t isAttribute);
 
 /*************************************************************************************************/
 /**
@@ -238,12 +227,7 @@ static const Utl_Xml_Node_t* FindNode(const Utl_Xml_Document_t* document, Utl_Xm
  * \par Details:
  *  Checks the output bound before copying. A zero-length span copies nothing.
  */
-static void WriteBytes(
-    byte_t* output,
-    uint32_t capacity,
-    uint32_t* byteCount,
-    const byte_t* bytes,
-    uint32_t numBytes)
+static void WriteBytes(byte_t* output, uint32_t capacity, uint32_t* byteCount, const byte_t* bytes, uint32_t numBytes)
 {
     bool_t fits_capacity;
 
@@ -300,13 +284,7 @@ static void WriteHexCharReference(byte_t* output, uint32_t capacity, uint32_t* b
  * \par Details:
  *  Preserves text bytes except for XML delimiters and carriage returns.
  */
-static void WriteEscaped(
-    byte_t* output,
-    uint32_t capacity,
-    uint32_t* byteCount,
-    const byte_t* utf8Text,
-    uint32_t numBytes,
-    bool_t isAttribute)
+static void WriteEscaped(byte_t* output, uint32_t capacity, uint32_t* byteCount, const byte_t* utf8Text, uint32_t numBytes, bool_t isAttribute)
 {
     uint32_t byte_index;
     bool_t   is_xml_string;
@@ -862,11 +840,7 @@ void Utl_Xml_Document_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* n
  * \par Details:
  *  Writes the document once and asserts before any write that exceeds capacity.
  */
-void Utl_Xml_Document_Serialize(
-    const Utl_Xml_Document_t* document,
-    byte_t* output,
-    uint32_t capacity,
-    uint32_t* byteCount)
+void Utl_Xml_Document_Serialize(const Utl_Xml_Document_t* document, byte_t* output, uint32_t capacity, uint32_t* byteCount)
 {
     LOGASSERT(NULL != document);
     LOGASSERT(NULL != output);
