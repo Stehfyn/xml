@@ -34,16 +34,16 @@
 
 /*************************************************************************************************/
 /**
- * \brief XML element, text, comment, processing instruction, or declaration kind.
+ * \brief XML document type, element, text, comment, processing instruction, or declaration kind.
  */
 typedef enum Utl_Xml_NodeType_e
 {
+    UTL_XML_NODE_DOCTYPE,
     UTL_XML_NODE_ELEMENT,
     UTL_XML_NODE_TEXT,
     UTL_XML_NODE_COMMENT,
     UTL_XML_NODE_PROCESSING_INSTRUCTION,
-    UTL_XML_NODE_XML_DECLARATION,
-    UTL_XML_NODE_DOCTYPE
+    UTL_XML_NODE_XML_DECLARATION
 } Utl_Xml_NodeType_t;
 
 /*************************************************************************************************/
@@ -65,7 +65,7 @@ typedef struct Utl_Xml_Attribute_s
  */
 typedef struct Utl_Xml_Node_s
 {
-    Utl_Xml_NodeType_t     type;           ///< Element, text, comment, or processing instruction.
+    Utl_Xml_NodeType_t     type;           ///< Kind of XML node.
     const byte_t*          name;           ///< Borrowed element name or PI target; NULL otherwise.
     uint32_t               nameByteCount;  ///< Number of name bytes; zero when name is NULL.
     const byte_t*          value;          ///< Borrowed content or complete declaration markup; NULL for elements.

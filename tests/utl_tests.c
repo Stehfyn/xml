@@ -319,7 +319,7 @@ static void TestDeferredNodeContentValidation(void)
  * \par Details:
  *  Builds a document in source order and checks its exact serialized byte span.
  */
-static void TestXmlDocumentSerialization(void)
+static void TestXmlDocumentWrite(void)
 {
     Utl_Xml_Document_t document;
     Utl_Xml_Node_t     declaration_node;
@@ -329,6 +329,7 @@ static void TestXmlDocumentSerialization(void)
     Utl_Xml_Node_t     root;
     Utl_Xml_Node_t     text_node;
     Utl_Xml_Node_t     child;
+    Utl_Xml_Node_t     grandchild;
     Utl_Xml_Node_t     tail_node;
     Utl_Xml_Node_t     inner_comment;
     Utl_Xml_Node_t     epilog_comment;
@@ -340,6 +341,7 @@ static void TestXmlDocumentSerialization(void)
     const byte_t       data[] = "data";
     const byte_t       root_name[] = "root";
     const byte_t       child_name[] = "child";
+    const byte_t       grandchild_name[] = "grandchild";
     const byte_t       attribute_name[] = "a";
     const byte_t       attribute_value[] = "A&\"<\t\n\r";
     const byte_t       text_value[] = "<&>\r";
@@ -349,7 +351,7 @@ static void TestXmlDocumentSerialization(void)
     const byte_t       expected[] =
         "<?xml version=\"1.0\"?><!--before--><!DOCTYPE root><?target data?>"
         "<root a=\"A&amp;&quot;&lt;&#x9;&#xA;&#xD;\">&lt;&amp;&gt;&#xD;"
-        "<child/>tail<!--inside--></root><!--after-->";
+        "<child><grandchild/></child>tail<!--inside--></root><!--after-->";
     byte_t             output[256];
     uint32_t           byte_count;
 
@@ -364,6 +366,7 @@ static void TestXmlDocumentSerialization(void)
     Utl_Xml_Node_Initialize(&root, UTL_XML_NODE_ELEMENT, root_name, (uint32_t)(sizeof(root_name) - 1), NULL, 0);
     Utl_Xml_Node_Initialize(&text_node, UTL_XML_NODE_TEXT, NULL, 0, text_value, (uint32_t)(sizeof(text_value) - 1));
     Utl_Xml_Node_Initialize(&child, UTL_XML_NODE_ELEMENT, child_name, (uint32_t)(sizeof(child_name) - 1), NULL, 0);
+    Utl_Xml_Node_Initialize(&grandchild, UTL_XML_NODE_ELEMENT, grandchild_name, (uint32_t)(sizeof(grandchild_name) - 1), NULL, 0);
     Utl_Xml_Node_Initialize(&tail_node, UTL_XML_NODE_TEXT, NULL, 0, tail, (uint32_t)(sizeof(tail) - 1));
     Utl_Xml_Node_Initialize(&inner_comment, UTL_XML_NODE_COMMENT, NULL, 0, inside, (uint32_t)(sizeof(inside) - 1));
     Utl_Xml_Node_Initialize(&epilog_comment, UTL_XML_NODE_COMMENT, NULL, 0, after, (uint32_t)(sizeof(after) - 1));
@@ -371,6 +374,7 @@ static void TestXmlDocumentSerialization(void)
     Utl_Xml_Node_AddAttribute(&root, &attribute, attribute_name, (uint32_t)(sizeof(attribute_name) - 1), attribute_value, (uint32_t)(sizeof(attribute_value) - 1));
     Utl_Xml_Node_AppendChild(&root, &text_node);
     Utl_Xml_Node_AppendChild(&root, &child);
+    Utl_Xml_Node_AppendChild(&child, &grandchild);
     Utl_Xml_Node_AppendChild(&root, &tail_node);
     Utl_Xml_Node_AppendChild(&root, &inner_comment);
 
@@ -391,7 +395,7 @@ static void TestXmlDocumentSerialization(void)
     assert(&epilog_comment == document.lastNode);
 
     memset(output, 0xA5, sizeof(output));
-    Utl_Xml_Document_Serialize(&document, output, (uint32_t)sizeof(output), &byte_count);
+    Utl_Xml_Document_Write(&document, output, (uint32_t)sizeof(output), &byte_count);
     assert((sizeof(expected) - 1) == byte_count);
     assert(0 == memcmp(output, expected, byte_count));
     assert(0xA5 == output[byte_count]);
@@ -409,6 +413,6 @@ int main(void)
     TestUtf8StringsAndNames();
     TestXmlNodeInitialization();
     TestDeferredNodeContentValidation();
-    TestXmlDocumentSerialization();
+    TestXmlDocumentWrite();
     return 0;
 }

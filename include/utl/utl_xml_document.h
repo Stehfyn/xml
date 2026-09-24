@@ -22,6 +22,8 @@
 ** 3.1 Macros
 **===============================================================================================*/
 
+#define UTL_XML_DOCUMENT_MAX_NODES (65536) ///< Maximum nodes visited in one document traversal.
+
 /*=================================================================================================
 ** 3.2 Types
 **===============================================================================================*/
@@ -92,26 +94,25 @@ void Utl_Xml_Document_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* n
 
 /*************************************************************************************************/
 /**
- * \brief Serializes the document into caller-provided UTF-8 byte storage.
+ * \brief Writes the document into caller-provided UTF-8 byte storage.
  *
  * \par Details:
  *  XML 1.0 (Fifth Edition), production [1] document:
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-document
  *
- *  XML declaration and DOCTYPE markup is checked for XML characters and opening
- *  and closing delimiters; the caller supplies valid internal markup grammar.
+ *  XML declaration and DOCTYPE markup is supplied complete by the caller and
+ *  written verbatim.
  *  The caller keeps nodes, attributes, and borrowed byte spans valid while
  *  serializing, with output storage disjoint from them.
  *
  * \par Requirements:
  *  - 001 This function shall fail an assertion if document, output, or byteCount is NULL.
- *  - 002 This function shall fail an assertion unless the document has exactly one element and its lastNode matches the top-level list.
- *  - 003 This function shall require any XML declaration first, any DOCTYPE once and before the element, and only comments or processing instructions otherwise.
- *  - 004 This function shall fail an assertion for invalid XML names, UTF-8, XML characters, comment content, or processing instruction content or target.
- *  - 005 This function shall fail an assertion if declaration or DOCTYPE markup lacks its opening or closing delimiter.
- *  - 006 This function shall write nodes, children, and attributes in append order, escaping text and attribute values and writing declaration and DOCTYPE markup verbatim.
- *  - 007 This function shall set byteCount to the number of bytes written, without writing a zero terminator.
- *  - 008 This function shall fail an assertion before writing beyond capacity.
+ *  - 002 This function shall fail an assertion if the document has no element.
+ *  - 003 This function shall fail an assertion for invalid element, attribute, or processing-instruction names and invalid text, attribute, comment, or processing-instruction content.
+ *  - 004 This function shall write declaration and DOCTYPE markup verbatim.
+ *  - 005 This function shall write nodes, children, and attributes in append order, escaping text and attribute values.
+ *  - 006 This function shall set byteCount to the number of bytes written, without writing a zero terminator.
+ *  - 007 This function shall fail an assertion before writing beyond capacity.
  *
  * \param[in]  document   Document to serialize
  * \param[out] output     Caller-provided byte storage
@@ -120,6 +121,6 @@ void Utl_Xml_Document_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* n
  *
  * \retval None
  */
-void Utl_Xml_Document_Serialize(const Utl_Xml_Document_t* document, byte_t* output, uint32_t capacity, uint32_t* byteCount);
+void Utl_Xml_Document_Write(const Utl_Xml_Document_t* document, byte_t* output, uint32_t capacity, uint32_t* byteCount);
 
 #endif /* UTL_XML_DOCUMENT_H */
