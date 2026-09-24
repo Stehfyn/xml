@@ -248,26 +248,29 @@ bool_t Utl_Xml_IsChar(uint32_t codePoint)
  */
 bool_t Utl_Xml_IsString(const byte_t* utf8Text, uint32_t byteCount)
 {
+    bool_t   is_xml_string;
     uint32_t byte_offset;
     uint32_t code_point;
     uint32_t decoded_byte_count;
-    bool_t   is_xml_string;
+    bool_t   decode_failed;
+    bool_t   is_invalid_code_point;
 
     LOGASSERT(NULL != utf8Text);
+    LOGASSERT(UTL_XML_MAX_VALUE_BYTES >= byteCount);
 
-    is_xml_string = (byteCount <= UTL_XML_MAX_VALUE_BYTES);
+    is_xml_string = TRUE;
 
-    if (is_xml_string)
+    for (byte_offset = 0; byte_offset < byteCount; byte_offset += decoded_byte_count)
     {
-        for (byte_offset = 0; byte_offset < byteCount; byte_offset += decoded_byte_count)
-        {
-            code_point = DecodeUtf8(utf8Text, byteCount, byte_offset, &decoded_byte_count);
+        code_point = DecodeUtf8(utf8Text, byteCount, byte_offset, &decoded_byte_count);
 
-            if ((0 == decoded_byte_count) || (FALSE == Utl_Xml_IsChar(code_point)))
-            {
-                is_xml_string = FALSE;
-                break;
-            }
+        decode_failed         = (0 == decoded_byte_count);
+        is_invalid_code_point = (FALSE == Utl_Xml_IsChar(code_point));
+
+        if (decode_failed || is_invalid_code_point)
+        {
+            is_xml_string = FALSE;
+            break;
         }
     }
 
