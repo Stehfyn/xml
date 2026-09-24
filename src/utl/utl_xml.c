@@ -23,7 +23,7 @@
 ** 3.1 Macros
 **===============================================================================================*/
 
-#define XML_INDENT_SPACES_PER_LEVEL (4)
+#define INDENT_SPACES_PER_LEVEL (4)
 
 /*=================================================================================================
 ** 3.2 Types
@@ -200,11 +200,11 @@ static void WriteToken(byte_t* output, uint32_t capacity, uint64_t* byteCount, c
  * \param[in,out] output     Caller-provided byte storage
  * \param[in]     capacity   Number of bytes in output
  * \param[in,out] byteCount  Number of bytes already written
- * \param[in]     indentSpaceCount  Number of spaces to write
+ * \param[in]     numSpaces  Number of spaces to write
  *
  * \retval None
  */
-static void WriteIndent(byte_t* output, uint32_t capacity, uint64_t* byteCount, uint32_t indentSpaceCount);
+static void WriteIndent(byte_t* output, uint32_t capacity, uint64_t* byteCount, uint32_t numSpaces);
 
 /*************************************************************************************************/
 /**
@@ -660,11 +660,11 @@ static void WriteToken(byte_t* output, uint32_t capacity, uint64_t* byteCount, c
  * \par Details:
  *  Writes only spaces; callers write line breaks separately.
  */
-static void WriteIndent(byte_t* output, uint32_t capacity, uint64_t* byteCount, uint32_t indentSpaceCount)
+static void WriteIndent(byte_t* output, uint32_t capacity, uint64_t* byteCount, uint32_t numSpaces)
 {
     uint32_t space_index;
 
-    for (space_index = 0; space_index < indentSpaceCount; ++space_index)
+    for (space_index = 0; space_index < numSpaces; ++space_index)
     {
         WriteByte(output, capacity, byteCount, UTL_XML_CHAR_SPACE);
     }
@@ -934,7 +934,7 @@ static void WriteElement(byte_t* output, uint32_t capacity, uint64_t* byteCount,
         if (current_node != root)
         {
             WriteByte(output, capacity, byteCount, UTL_XML_CHAR_LF);
-            WriteIndent(output, capacity, byteCount, depth * XML_INDENT_SPACES_PER_LEVEL);
+            WriteIndent(output, capacity, byteCount, depth * INDENT_SPACES_PER_LEVEL);
         }
 
         if (UTL_XML_NODE_ELEMENT == current_node->type)
@@ -969,7 +969,7 @@ static void WriteElement(byte_t* output, uint32_t capacity, uint64_t* byteCount,
             --depth;
 
             WriteByte(output, capacity, byteCount, UTL_XML_CHAR_LF);
-            WriteIndent(output, capacity, byteCount, depth * XML_INDENT_SPACES_PER_LEVEL);
+            WriteIndent(output, capacity, byteCount, depth * INDENT_SPACES_PER_LEVEL);
             WriteElementEnd(output, capacity, byteCount, current_node);
 
             should_close_parent = (current_node != root) && (NULL == current_node->nextSibling);
