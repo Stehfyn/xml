@@ -311,6 +311,48 @@ static void TestXmlDocumentWrite(void)
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  Writes a schema-instance declaration and a qualified schema-location attribute.
+ */
+static void TestXmlSchemaLocationWrite(void)
+{
+    Utl_Xml_Document_t  document;
+    Utl_Xml_Node_t      configuration;
+    Utl_Xml_Node_t      setting;
+    Utl_Xml_Attribute_t namespace_attribute;
+    Utl_Xml_Attribute_t schema_attribute;
+    const byte_t        configuration_name[] = "configuration";
+    const byte_t        setting_name[] = "setting";
+    const byte_t        namespace_name[] = "xmlns:xsi";
+    const byte_t        namespace_uri[] = "http://www.w3.org/2001/XMLSchema-instance";
+    const byte_t        schema_name[] = "xsi:noNamespaceSchemaLocation";
+    const byte_t        schema_location[] = "H3.xsd";
+    const byte_t        expected[] =
+        "<configuration xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
+        "xsi:noNamespaceSchemaLocation=\"H3.xsd\">\n"
+        "    <setting/>\n"
+        "</configuration>\n";
+    byte_t              output[sizeof(expected)];
+    uint64_t            byte_count;
+
+    Utl_Xml_InitializeDocument(&document);
+    Utl_Xml_InitializeNode(&configuration, UTL_XML_NODE_ELEMENT, configuration_name, (uint32_t)(sizeof(configuration_name) - 1));
+    Utl_Xml_InitializeNode(&setting, UTL_XML_NODE_ELEMENT, setting_name, (uint32_t)(sizeof(setting_name) - 1));
+    Utl_Xml_InitializeAttribute(&namespace_attribute, namespace_name, (uint32_t)(sizeof(namespace_name) - 1), namespace_uri, (uint32_t)(sizeof(namespace_uri) - 1));
+    Utl_Xml_InitializeAttribute(&schema_attribute, schema_name, (uint32_t)(sizeof(schema_name) - 1), schema_location, (uint32_t)(sizeof(schema_location) - 1));
+
+    Utl_Xml_AppendAttribute(&configuration, &namespace_attribute);
+    Utl_Xml_AppendAttribute(&configuration, &schema_attribute);
+    Utl_Xml_AppendChild(&configuration, &setting);
+    Utl_Xml_AppendNode(&document, &configuration);
+
+    byte_count = Utl_Xml_WriteDocument(&document, output, (uint32_t)sizeof(output));
+    assert((sizeof(expected) - 1) == byte_count);
+    assert(0 == memcmp(output, expected, byte_count));
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Reads an ARINC 661 Definition File excerpt and checks that writing it reproduces the input.
  */
 static void TestXmlDocumentRoundTrip(void)
@@ -357,6 +399,7 @@ int main(void)
     TestXmlNodeInitialization();
     TestDeferredNodeContentValidation();
     TestXmlDocumentWrite();
+    TestXmlSchemaLocationWrite();
     TestXmlDocumentRoundTrip();
     return 0;
 }

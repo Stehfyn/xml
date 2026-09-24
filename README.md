@@ -18,6 +18,20 @@ UTF-8 into caller-provided storage. The document supports comments, processing
 instructions, one root element, and optional XML declaration and DOCTYPE markup.
 Declaration and DOCTYPE suffixes are supplied by the caller.
 
+To write a schema hint, append attributes named `xmlns:xsi` and
+`xsi:noNamespaceSchemaLocation` to the root element. Attributes appear in the
+order appended. For example, an element with a child is written as:
+
+```xml
+<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="H3.xsd">
+    <setting/>
+</configuration>
+```
+
+The attribute values passed to `Utl_Xml_InitializeAttribute` are unquoted;
+`Utl_Xml_WriteDocument` writes the quotes. The XML module writes these names
+as supplied and leaves namespace and schema validation to the caller.
+
 Requires CMake 3.25+ and a C17 compiler.
 
 ```sh

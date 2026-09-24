@@ -1387,7 +1387,7 @@ void Utl_Xml_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node)
  *  strtok splits the input at each <, so every token holds one tag and the whitespace after it.
  *  The open element is the parent of the elements that follow it.
  */
-void Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* input, uint32_t byteCount, Utl_Xml_Node_t* nodes, uint32_t nodeCapacity, Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity)
+void Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToReadDocumentFrom, uint32_t sizeOfDocumentBuffer, Utl_Xml_Node_t* nodes, uint32_t nodeCapacity, Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity)
 {
     Utl_Xml_Node_t*       node;
     Utl_Xml_Node_t*       parent;
@@ -1410,20 +1410,20 @@ void Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* input, uint32_t 
     bool_t                is_valid;
 
     LOGASSERT(NULL != document);
-    LOGASSERT(NULL != input);
+    LOGASSERT(NULL != bufferToReadDocumentFrom);
     LOGASSERT(NULL != nodes);
     LOGASSERT(NULL != attributes);
     LOGASSERT(NULL == document->firstNode);
 
-    input[byteCount] = '\0';
+    bufferToReadDocumentFrom[sizeOfDocumentBuffer] = '\0';
     position         = 0;
     node_count       = 0;
     attribute_count  = 0;
     parent           = NULL;
 
-    (void)ReadWhitespace(input, byteCount, &position);
+    (void)ReadWhitespace(bufferToReadDocumentFrom, sizeOfDocumentBuffer, &position);
 
-    markup       = input + position;
+    markup       = bufferToReadDocumentFrom + position;
     strtok_input = (char_t*)markup;
 
     for (token_index = 0; token_index < UTL_XML_DOCUMENT_MAX_NODES; ++token_index)
@@ -1475,7 +1475,7 @@ void Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* input, uint32_t 
 
             if (is_declaration)
             {
-                LOGASSERT(input == markup);
+                LOGASSERT(bufferToReadDocumentFrom == markup);
 
                 is_valid = ReadWhitespace(markup, markup_byte_count, &position);
                 LOGASSERT(is_valid);
@@ -1520,7 +1520,7 @@ void Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* input, uint32_t 
         markup += markup_byte_count;
     }
 
-    LOGASSERT((input + byteCount) == markup);
+    LOGASSERT((bufferToReadDocumentFrom + sizeOfDocumentBuffer) == markup);
     LOGASSERT(NULL == parent);
 
     root_node = FindNode(document, UTL_XML_NODE_ELEMENT);
@@ -1532,14 +1532,14 @@ void Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* input, uint32_t 
  * \par Details:
  *  None
  */
-uint64_t Utl_Xml_WriteDocument(const Utl_Xml_Document_t* document, byte_t* output, uint32_t capacity)
+uint64_t Utl_Xml_WriteDocument(const Utl_Xml_Document_t* document, byte_t* bufferToWriteDocumentIn, uint32_t sizeOfDocumentBuffer)
 {
     const Utl_Xml_Node_t* current_node;
     uint64_t              byte_count;
     uint32_t              node_index;
 
     LOGASSERT(NULL != document);
-    LOGASSERT(NULL != output);
+    LOGASSERT(NULL != bufferToWriteDocumentIn);
 
     current_node = document->firstNode;
     byte_count   = 0;
@@ -1551,8 +1551,8 @@ uint64_t Utl_Xml_WriteDocument(const Utl_Xml_Document_t* document, byte_t* outpu
             break;
         }
 
-        WriteRootNode(output, capacity, &byte_count, current_node);
-        WriteByte(output, capacity, &byte_count, UTL_XML_CHAR_LF);
+        WriteRootNode(bufferToWriteDocumentIn, sizeOfDocumentBuffer, &byte_count, current_node);
+        WriteByte(bufferToWriteDocumentIn, sizeOfDocumentBuffer, &byte_count, UTL_XML_CHAR_LF);
 
         current_node = current_node->nextSibling;
     }

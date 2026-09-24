@@ -252,9 +252,9 @@ bool_t Utl_Xml_IsName(const byte_t* utf8Text, uint32_t byteCount);
  *
  * \par Requirements:
  *  - 001 This function shall store name, value, and their byte counts without checking XML syntax or length.
- *  - 002 This function shall fail an assertion if attribute, name, or value is NULL.
- *  - 003 This function shall borrow the byte spans; the caller shall keep them valid while referenced.
- *  - 004 This function shall clear the attribute's next link.
+ *  - 002 This function shall borrow the byte spans; the caller shall keep them valid while referenced.
+ *  - 003 This function shall clear the attribute's next link.
+ *  - 004 This function shall fail an assertion if attribute, name, or value is NULL.
  *
  * \param[out] attribute        Uninitialized caller-owned attribute storage
  * \param[in]  name             Borrowed UTF-8 name byte span
@@ -272,10 +272,10 @@ void Utl_Xml_InitializeAttribute(Utl_Xml_Attribute_t* attribute, const byte_t* n
  *
  * \par Requirements:
  *  - 001 This function shall store type, name, and its byte count without checking XML syntax or length.
- *  - 002 This function shall fail an assertion if node is NULL.
- *  - 003 This function shall borrow a non-NULL name; the caller shall keep it valid while referenced.
- *  - 004 This function shall clear the node's tree and attribute links.
- *  - 005 This function shall require a zero byte count when name is NULL.
+ *  - 002 This function shall borrow a non-NULL name; the caller shall keep it valid while referenced.
+ *  - 003 This function shall clear the node's tree and attribute links.
+ *  - 004 This function shall require a zero byte count when name is NULL.
+ *  - 005 This function shall fail an assertion if node is NULL.
  *
  * \par Details:
  *  Elements use name. The XML declaration uses a NULL name.
@@ -294,8 +294,8 @@ void Utl_Xml_InitializeNode(Utl_Xml_Node_t* node, Utl_Xml_NodeType_t type, const
  * \brief Initializes caller-provided storage as an empty XML document.
  *
  * \par Requirements:
- *  - 001 This function shall fail an assertion if document is NULL.
- *  - 002 This function shall set firstNode and lastNode to NULL.
+ *  - 001 This function shall set firstNode and lastNode to NULL.
+ *  - 002 This function shall fail an assertion if document is NULL.
  *
  * \param[out] document   Uninitialized document storage
  *
@@ -309,8 +309,8 @@ void Utl_Xml_InitializeDocument(Utl_Xml_Document_t* document);
  *
  * \par Requirements:
  *  - 001 This function shall require a valid XML name and an XML character value without <, &, ", or whitespace other than spaces.
- *  - 002 This function shall fail an assertion for NULL arguments, a non-element node, a duplicate name, or an attribute already linked to the element.
- *  - 003 This function shall enforce UTL_XML_NODE_MAX_ATTRIBUTES and preserve the borrowed byte spans.
+ *  - 002 This function shall enforce UTL_XML_NODE_MAX_ATTRIBUTES and preserve the borrowed byte spans.
+ *  - 003 This function shall fail an assertion for NULL arguments, a non-element node, a duplicate name, or an attribute already linked to the element.
  *
  * \param[in,out] node        Element receiving the attribute
  * \param[in,out] attribute   Initialized, unlinked caller-owned attribute
@@ -325,8 +325,8 @@ void Utl_Xml_AppendAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribut
  *
  * \par Requirements:
  *  - 001 This function shall preserve the order in which children are appended.
- *  - 002 This function shall fail an assertion for NULL arguments, a non-element parent or child, an attached child, or a cycle.
- *  - 003 This function shall check at most UTL_XML_NODE_MAX_DEPTH ancestor links.
+ *  - 002 This function shall check at most UTL_XML_NODE_MAX_DEPTH ancestor links.
+ *  - 003 This function shall fail an assertion for NULL arguments, a non-element parent or child, an attached child, or a cycle.
  *
  * \param[in,out] parent   Element receiving the child
  * \param[in,out] child    Unlinked caller-owned child
@@ -345,12 +345,12 @@ void Utl_Xml_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child);
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-XMLDecl
  *
  * \par Requirements:
- *  - 001 This function shall fail an assertion if document or node is NULL.
- *  - 002 This function shall fail an assertion if node has a parent or next sibling, or is document->lastNode.
- *  - 003 This function shall fail an assertion for a type other than XML declaration or element.
- *  - 004 This function shall fail an assertion unless an XML declaration is the first node.
- *  - 005 This function shall fail an assertion for a second element.
- *  - 006 This function shall link node after lastNode, set firstNode if empty, and update lastNode.
+ *  - 001 This function shall link node after lastNode, set firstNode if empty, and update lastNode.
+ *  - 002 This function shall fail an assertion if document or node is NULL.
+ *  - 003 This function shall fail an assertion if node has a parent or next sibling, or is document->lastNode.
+ *  - 004 This function shall fail an assertion for a type other than XML declaration or element.
+ *  - 005 This function shall fail an assertion unless an XML declaration is the first node.
+ *  - 006 This function shall fail an assertion for a second element.
  *
  * \param[in,out] document   Document receiving the node
  * \param[in,out] node       Unlinked caller-owned node
@@ -369,31 +369,31 @@ void Utl_Xml_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node);
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-XMLDecl
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-element
  *
- *  The input holds an optional XML declaration with version="1.0" and no other
+ *  The input buffer holds an optional XML declaration with version="1.0" and no other
  *  fields, then one element tree. Attribute values are double-quoted and contain
  *  no references and no whitespace other than spaces. Whitespace between tags is
  *  not stored, so writing the document reproduces the writer's formatting.
- *  The reader writes a zero terminator at input[byteCount] and splits the input
- *  at each < with strtok. Names and values borrow input. The caller keeps input,
- *  nodes, and attributes valid while the document is used, and does not use
- *  strtok concurrently.
+ *  The reader writes a zero terminator at bufferToReadDocumentFrom[sizeOfDocumentBuffer]
+ *  and splits the input at each < with strtok. Names and values borrow the buffer.
+ *  The caller keeps bufferToReadDocumentFrom, nodes, and attributes valid while the
+ *  document is used, and does not use strtok concurrently.
  *
  * \par Requirements:
- *  - 001 This function shall fail an assertion if document, input, nodes, or attributes is NULL, or if document is not empty.
- *  - 002 This function shall fail an assertion for input outside the supported form or for insufficient storage.
- *  - 003 This function shall append nodes and attributes in source order.
+ *  - 001 This function shall append nodes and attributes in source order.
+ *  - 002 This function shall fail an assertion if document, bufferToReadDocumentFrom, nodes, or attributes is NULL, or if document is not empty.
+ *  - 003 This function shall fail an assertion for input outside the supported form or for insufficient storage.
  *
  * \param[in,out] document            Initialized, empty document
- * \param[in,out] input               UTF-8 input with one writable byte after byteCount bytes
- * \param[in]     byteCount           Number of bytes in input
- * \param[out]    nodes               Caller-owned node storage
- * \param[in]     nodeCapacity        Number of nodes in nodes
- * \param[out]    attributes          Caller-owned attribute storage
- * \param[in]     attributeCapacity   Number of attributes in attributes
+ * \param[in,out] bufferToReadDocumentFrom UTF-8 XML bytes with one writable byte after sizeOfDocumentBuffer bytes
+ * \param[in]     sizeOfDocumentBuffer     Number of XML bytes to read, excluding the extra writable byte
+ * \param[out]    nodes                    Caller-owned node storage
+ * \param[in]     nodeCapacity             Number of nodes in nodes
+ * \param[out]    attributes               Caller-owned attribute storage
+ * \param[in]     attributeCapacity        Number of attributes in attributes
  *
  * \retval        None
  */
-void Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* input, uint32_t byteCount, Utl_Xml_Node_t* nodes, uint32_t nodeCapacity, Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity);
+void Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToReadDocumentFrom, uint32_t sizeOfDocumentBuffer, Utl_Xml_Node_t* nodes, uint32_t nodeCapacity, Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity);
 
 /*************************************************************************************************/
 /**
@@ -411,23 +411,23 @@ void Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* input, uint32_t 
  *  XML declaration markup is written with version="1.0".
  *  The writer uses LF line endings and four spaces per nesting level.
  *  The caller keeps nodes, attributes, and borrowed byte spans valid while
- *  serializing, with output storage disjoint from them.
+ *  serializing, with bufferToWriteDocumentIn disjoint from them.
  *
  * \par Requirements:
- *  - 001 This function shall fail an assertion if document or output is NULL.
- *  - 002 This function shall fail an assertion for invalid element or attribute names.
- *  - 003 This function shall construct XML declaration markup.
- *  - 004 This function shall write nodes, children, and attributes in append order.
- *  - 005 This function shall return the number of bytes written, without writing a zero terminator.
- *  - 006 This function shall fail an assertion before writing beyond capacity.
- *  - 007 This function shall place nested nodes on indented LF-separated lines.
+ *  - 001 This function shall construct XML declaration markup.
+ *  - 002 This function shall write nodes, children, and attributes in append order.
+ *  - 003 This function shall return the number of bytes written, without writing a zero terminator.
+ *  - 004 This function shall place nested nodes on indented LF-separated lines.
+ *  - 005 This function shall fail an assertion if document or bufferToWriteDocumentIn is NULL.
+ *  - 006 This function shall fail an assertion for invalid element or attribute names.
+ *  - 007 This function shall fail an assertion before writing beyond sizeOfDocumentBuffer.
  *
- * \param[in]  document   Document to write
- * \param[out] output     Caller-provided byte storage
- * \param[in]  capacity   Number of bytes available in output
+ * \param[in]  document              Document to write
+ * \param[out] bufferToWriteDocumentIn Caller-provided byte storage
+ * \param[in]  sizeOfDocumentBuffer   Number of bytes available in bufferToWriteDocumentIn
  *
  * \return     Number of bytes written.
  */
-uint64_t Utl_Xml_WriteDocument(const Utl_Xml_Document_t* document, byte_t* output, uint32_t capacity);
+uint64_t Utl_Xml_WriteDocument(const Utl_Xml_Document_t* document, byte_t* bufferToWriteDocumentIn, uint32_t sizeOfDocumentBuffer);
 
 #endif /* UTL_XML_H */
