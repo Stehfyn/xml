@@ -13,6 +13,7 @@
 
 #include "utl/utl_xml.h"
 #include "utl/utl_defines.h"
+#include "utl/utl_util.h"
 
 #include "os/os_assert.h"
 
@@ -1384,7 +1385,7 @@ void Utl_Xml_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  strtok splits the input at each <, so every token holds one tag and the whitespace after it.
+ *  Utl_StrStr finds each <, so every token holds one tag and the whitespace after it.
  *  The open element is the parent of the elements that follow it.
  */
 void Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToReadDocumentFrom, uint32_t sizeOfDocumentBuffer, Utl_Xml_Node_t* nodes, uint32_t nodeCapacity, Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity)
@@ -1392,9 +1393,8 @@ void Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToReadDocu
     Utl_Xml_Node_t*       node;
     Utl_Xml_Node_t*       parent;
     const Utl_Xml_Node_t* root_node;
-    byte_t*               token;
     byte_t*               markup;
-    char_t*               strtok_input;
+    byte_t*               next_markup;
     const byte_t*         name;
     const byte_t*         version;
     uint32_t              markup_byte_count;
@@ -1423,22 +1423,19 @@ void Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToReadDocu
 
     (void)ReadWhitespace(bufferToReadDocumentFrom, sizeOfDocumentBuffer, &position);
 
-    markup       = bufferToReadDocumentFrom + position;
-    strtok_input = (char_t*)markup;
+    markup = bufferToReadDocumentFrom + position;
 
     for (token_index = 0; token_index < UTL_XML_DOCUMENT_MAX_NODES; ++token_index)
     {
-        token        = (byte_t*)strtok(strtok_input, UTL_XML_STAG_OPEN);
-        strtok_input = NULL;
+        LOGASSERT(UTL_XML_CHAR_LT == markup[0]);
 
-        if (NULL == token)
+        next_markup = (byte_t*)Utl_StrStr((const char_t*)(markup + 1), UTL_XML_STAG_OPEN, FALSE);
+
+        if (NULL != next_markup)
         {
-            break;
+            next_markup[0] = '\0';
         }
 
-        LOGASSERT((markup + 1) == token);
-
-        markup[0]         = UTL_XML_CHAR_LT;
         markup_byte_count = (uint32_t)strlen((const char_t*)markup);
         position          = 0;
         is_declaration    = FALSE;
@@ -1518,6 +1515,13 @@ void Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToReadDocu
         LOGASSERT(markup_byte_count == position);
 
         markup += markup_byte_count;
+
+        if (NULL == next_markup)
+        {
+            break;
+        }
+
+        markup[0] = UTL_XML_CHAR_LT;
     }
 
     LOGASSERT((bufferToReadDocumentFrom + sizeOfDocumentBuffer) == markup);

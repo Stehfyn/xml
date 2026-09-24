@@ -374,9 +374,9 @@ void Utl_Xml_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node);
  *  no references and no whitespace other than spaces. Whitespace between tags is
  *  not stored, so writing the document reproduces the writer's formatting.
  *  The reader writes a zero terminator at bufferToReadDocumentFrom[sizeOfDocumentBuffer]
- *  and splits the input at each < with strtok. Names and values borrow the buffer.
+ *  and uses Utl_StrStr to split the input at each <. Names and values borrow the buffer.
  *  The caller keeps bufferToReadDocumentFrom, nodes, and attributes valid while the
- *  document is used, and does not use strtok concurrently.
+ *  document is used.
  *
  * \par Requirements:
  *  - 001 This function shall append nodes and attributes in source order.
