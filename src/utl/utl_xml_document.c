@@ -662,7 +662,6 @@ void Utl_Xml_Document_Write(const Utl_Xml_Document_t* document, byte_t* output, 
 {
     const Utl_Xml_Node_t* current_node;
     uint32_t              node_index;
-    bool_t                has_node;
     bool_t                has_root;
 
     LOGASSERT(NULL != document);
@@ -675,9 +674,7 @@ void Utl_Xml_Document_Write(const Utl_Xml_Document_t* document, byte_t* output, 
 
     for (node_index = 0; node_index < UTL_XML_DOCUMENT_MAX_NODES; ++node_index)
     {
-        has_node = (NULL != current_node);
-
-        if (FALSE == has_node)
+        if (NULL == current_node)
         {
             break;
         }
