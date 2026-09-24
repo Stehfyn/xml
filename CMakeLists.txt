@@ -56,10 +56,13 @@ if(WIN32)
         "${IMGUI_DIR}/imgui_tables.cpp"
         "${IMGUI_DIR}/imgui_widgets.cpp"
         "${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp"
-        "${IMGUI_DIR}/backends/imgui_impl_win32.cpp")
+        "${IMGUI_DIR}/backends/imgui_impl_win32.cpp"
+        "${IMGUI_DIR}/misc/cpp/imgui_stdlib.cpp")
     target_compile_features(arinc661_configuration PRIVATE cxx_std_11)
     target_include_directories(arinc661_configuration PRIVATE "${IMGUI_DIR}" "${IMGUI_DIR}/backends")
-    target_link_libraries(arinc661_configuration PRIVATE opengl32 gdi32 dwmapi)
+    target_compile_definitions(arinc661_configuration PRIVATE ARINC661_CONFIGURATION_XML_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/arinc661_configuration.xml")
+    target_link_libraries(arinc661_configuration PRIVATE utl opengl32 gdi32 dwmapi)
+    set_target_properties(arinc661_configuration PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 endif()
 
 add_custom_target(arinc661_definition_xml
