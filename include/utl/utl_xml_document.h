@@ -52,9 +52,6 @@ typedef struct Utl_Xml_Document_s
 /**
  * \brief Initializes caller-provided storage as an empty XML document.
  *
- * \par Details:
- *  None
- *
  * \par Requirements:
  *  - 001 This function shall fail an assertion if document is NULL.
  *  - 002 This function shall clear the document's top-level node links.
