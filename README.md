@@ -12,12 +12,11 @@ reject zero bytes, and enforce the documented byte limits. Character classifiers
 count. The functions check XML lexical syntax, including colons, with namespace
 and schema rules left to their respective modules.
 
-`utl_xml_node` builds element content from caller-owned nodes and attributes.
-`utl_xml_document` appends caller-owned top-level nodes for comments, processing
-instructions, one root element, and optional XML declaration and DOCTYPE markup
-in source order. Its
-serializer writes escaped UTF-8 into caller-provided byte storage; declaration
-and DOCTYPE markup are supplied as complete, well-formed spans by the caller.
+`utl_xml` builds element content from caller-owned nodes and attributes,
+appends caller-owned top-level nodes in source order, and serializes escaped
+UTF-8 into caller-provided storage. The document supports comments, processing
+instructions, one root element, and optional XML declaration and DOCTYPE markup.
+Declaration and DOCTYPE suffixes are supplied by the caller.
 
 Requires CMake 3.25+ and a C17 compiler.
 

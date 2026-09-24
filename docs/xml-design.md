@@ -9,18 +9,18 @@ an eventual consumer of this generic layer; widget types and ARINC rules do not
 belong in the XML model.
 
 The character helpers classify decoded Unicode code points. The string and
-name validators decode counted UTF-8 byte spans. `utl_xml_document` builds a
+name validators decode counted UTF-8 byte spans. `utl_xml` builds a
 document sequentially and serializes it; no parser is implemented yet.
 
 ## Tree model
 
-The node and document modules provide the tree model and a serializer.
+The XML module provides the tree model and a serializer.
 
-- `utl_xml_node` represents elements, text, comments, processing instructions,
+- `utl_xml` represents elements, text, comments, processing instructions,
   and the ordered children of an element. Element attributes form a separate
   collection. The model must retain text before, between, and after child
   elements.
-- `utl_xml_document` appends caller-owned top-level nodes in source order.
+- `utl_xml` appends caller-owned top-level nodes in source order.
   XML declaration nodes borrow optional encoding and standalone fields. DOCTYPE
   nodes borrow a root name and an optional ExternalID and/or internal subset
   suffix. One element node is the document root.

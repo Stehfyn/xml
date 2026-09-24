@@ -26,6 +26,11 @@
 #define UTL_XML_MAX_NAME_BYTES  (1024)
 #define UTL_XML_MAX_VALUE_BYTES (1048576)
 
+#define UTL_XML_NODE_MAX_ATTRIBUTES (256)     ///< Maximum attributes on one element.
+#define UTL_XML_NODE_MAX_DEPTH      (65536)   ///< Maximum ancestor links checked when appending a child.
+
+#define UTL_XML_DOCUMENT_MAX_NODES (65536) ///< Maximum nodes visited in one document traversal.
+
 /* XML 1.0 sections 2.2 and 2.3, productions [2] Char and [3] S. */
 #define UTL_XML_CHAR_TAB   ('\t') ///< Horizontal tab.
 #define UTL_XML_CHAR_LF    ('\n') ///< Line feed; normalized line ending (section 2.11).
@@ -103,6 +108,64 @@
 /*=================================================================================================
 ** 3.2 Types
 **===============================================================================================*/
+
+
+/*************************************************************************************************/
+/**
+ * \brief XML 1.0 node type.
+ */
+typedef enum Utl_Xml_NodeType_e
+{
+    UTL_XML_NODE_XML_DECLARATION,
+    UTL_XML_NODE_DOCTYPE,
+    UTL_XML_NODE_ELEMENT,
+    UTL_XML_NODE_TEXT,
+    UTL_XML_NODE_COMMENT,
+    UTL_XML_NODE_PROCESSING_INSTRUCTION
+} Utl_Xml_NodeType_t;
+
+/*************************************************************************************************/
+/**
+ * \brief Caller-owned XML attribute for an element's forward list.
+ */
+typedef struct Utl_Xml_Attribute_s
+{
+    const byte_t*               name;           ///< Borrowed UTF-8 XML name bytes.
+    uint32_t                    nameByteCount;  ///< Number of name bytes.
+    const byte_t*               value;          ///< Borrowed UTF-8 XML value bytes.
+    uint32_t                    valueByteCount; ///< Number of value bytes.
+    struct Utl_Xml_Attribute_s* next;           ///< Next attribute in insertion order, or NULL.
+} Utl_Xml_Attribute_t;
+
+/*************************************************************************************************/
+/**
+ * \brief Caller-owned XML node with borrowed strings and forward links for serialization.
+ */
+typedef struct Utl_Xml_Node_s
+{
+    Utl_Xml_NodeType_t     type;           ///< Kind of XML node.
+    const byte_t*          name;           ///< Borrowed element or DOCTYPE name, or PI target; NULL otherwise.
+    uint32_t               nameByteCount;  ///< Number of name bytes; zero when name is NULL.
+    const byte_t*          value;          ///< Borrowed content or optional declaration suffix; NULL for elements.
+    uint32_t               valueByteCount; ///< Number of value bytes; zero when value is NULL.
+    struct Utl_Xml_Node_s* parent;         ///< Parent set when appended, or NULL.
+    struct Utl_Xml_Node_s* firstChild;     ///< First child of an element, or NULL.
+    struct Utl_Xml_Node_s* lastChild;      ///< Last child of an element, or NULL.
+    struct Utl_Xml_Node_s* nextSibling;    ///< Next node at the same level, or NULL.
+    Utl_Xml_Attribute_t*   firstAttribute; ///< First attribute of an element, or NULL.
+    Utl_Xml_Attribute_t*   lastAttribute;  ///< Last attribute of an element, or NULL.
+    uint32_t               attributeCount; ///< Number of linked attributes.
+} Utl_Xml_Node_t;
+
+/*************************************************************************************************/
+/**
+ * \brief Caller-owned XML 1.0 document built by appending top-level nodes in order.
+ */
+typedef struct Utl_Xml_Document_s
+{
+    Utl_Xml_Node_t* firstNode; ///< First top-level node, or NULL.
+    Utl_Xml_Node_t* lastNode;  ///< Last top-level node, or NULL.
+} Utl_Xml_Document_t;
 
 /*=================================================================================================
 ** 3.3 Constants
@@ -322,5 +385,156 @@ bool_t Utl_Xml_IsPI(const byte_t* utf8Text, uint32_t byteCount);
  * \retval FALSE         otherwise
  */
 bool_t Utl_Xml_IsPITarget(const byte_t* utf8Text, uint32_t byteCount);
+
+
+/*************************************************************************************************/
+/**
+ * \brief Initializes caller-provided storage as an unlinked XML node.
+ *
+ * \par Requirements:
+ *  - 001 This function shall store type, name, value, and their byte counts without checking XML syntax or length.
+ *  - 002 This function shall fail an assertion if node is NULL.
+ *  - 003 This function shall borrow non-NULL byte spans; the caller shall keep them valid while referenced.
+ *  - 004 This function shall clear the node's tree and attribute links.
+ *  - 005 This function shall require a zero byte count when the corresponding pointer is NULL.
+ *
+ * \par Details:
+ *  Elements use name and set value to NULL. Text and comments set name to NULL
+ *  and use value for content. Processing instructions use name for the target
+ *  and value for data. XML declarations use a NULL name and optionally use value
+ *  for encoding and standalone fields after version="1.0". DOCTYPE nodes use name
+ *  for the root element type and optionally use value for a suffix containing an
+ *  ExternalID, an internal subset, or both. Declaration suffixes omit the leading space.
+ *
+ * \param[out] node            Uninitialized caller-owned node storage
+ * \param[in]  type            XML node kind
+ * \param[in]  name            Borrowed UTF-8 name byte span or NULL
+ * \param[in]  nameByteCount   Number of name bytes
+ * \param[in]  value           Borrowed UTF-8 value byte span or NULL
+ * \param[in]  valueByteCount  Number of value bytes
+ *
+ * \retval None
+ */
+void Utl_Xml_Node_Initialize(Utl_Xml_Node_t* node, Utl_Xml_NodeType_t type, const byte_t* name, uint32_t nameByteCount, const byte_t* value, uint32_t valueByteCount);
+
+/*************************************************************************************************/
+/**
+ * \brief Appends a caller-owned child while constructing a serializable element.
+ *
+ * \par Requirements:
+ *  - 001 This function shall preserve the order in which children are appended.
+ *  - 002 This function shall fail an assertion for NULL arguments, a non-element parent, an attached child, a document-only declaration, or a cycle.
+ *  - 003 This function shall check at most UTL_XML_NODE_MAX_DEPTH ancestor links.
+ *
+ * \param[in,out] parent   Element receiving the child
+ * \param[in,out] child    Unlinked caller-owned child
+ *
+ * \retval None
+ */
+void Utl_Xml_Node_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child);
+
+/*************************************************************************************************/
+/**
+ * \brief Appends a caller-owned attribute while constructing a serializable element.
+ *
+ * \par Requirements:
+ *  - 001 This function shall require a valid XML name and XML character value.
+ *  - 002 This function shall fail an assertion for NULL arguments, a non-element node, a duplicate name, or an attribute already linked to the element.
+ *  - 003 This function shall enforce UTL_XML_NODE_MAX_ATTRIBUTES and borrow both byte spans.
+ *
+ * \param[in,out] node            Element receiving the attribute
+ * \param[out]    attribute       Unlinked caller-owned attribute storage
+ * \param[in]     name            Non-NULL UTF-8 attribute name byte span
+ * \param[in]     nameByteCount   Number of name bytes
+ * \param[in]     value           Non-NULL UTF-8 expanded value byte span
+ * \param[in]     valueByteCount  Number of value bytes
+ *
+ * \retval None
+ */
+void Utl_Xml_Node_AddAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribute, const byte_t* name, uint32_t nameByteCount, const byte_t* value, uint32_t valueByteCount);
+
+/*************************************************************************************************/
+/**
+ * \brief Initializes caller-provided storage as an empty XML document.
+ *
+ * \par Requirements:
+ *  - 001 This function shall fail an assertion if document is NULL.
+ *  - 002 This function shall set firstNode and lastNode to NULL.
+ *
+ * \param[out] document  Uninitialized document storage
+ *
+ * \retval None
+ */
+void Utl_Xml_Document_Initialize(Utl_Xml_Document_t* document);
+
+/*************************************************************************************************/
+/**
+ * \brief Appends a caller-owned top-level node in source order.
+ *
+ * \par Details:
+ *  XML 1.0 (Fifth Edition), productions [1] document, [22] prolog,
+ *  [23] XMLDecl, and [28] doctypedecl:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-document
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-prolog
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-XMLDecl
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-doctypedecl
+ *
+ *  XML declaration nodes may use value for optional encoding and standalone
+ *  fields. DOCTYPE nodes use name for the root element type and may use value
+ *  for an ExternalID, an internal subset, or both. The caller supplies valid
+ *  suffix grammar without a leading space.
+ *
+ * \par Requirements:
+ *  - 001 This function shall fail an assertion if document or node is NULL.
+ *  - 002 This function shall fail an assertion if node has a parent or next sibling, or is document->lastNode.
+ *  - 003 This function shall fail an assertion for a type other than XML declaration, DOCTYPE, element, comment, or processing instruction.
+ *  - 004 This function shall fail an assertion unless an XML declaration is the first node.
+ *  - 005 This function shall fail an assertion for a second DOCTYPE or a DOCTYPE after an element.
+ *  - 006 This function shall fail an assertion for a second element.
+ *  - 007 This function shall link node after lastNode, set firstNode if empty, and update lastNode.
+ *
+ * \param[in,out] document  Document receiving the node
+ * \param[in,out] node      Unlinked caller-owned node
+ *
+ * \retval None
+ */
+void Utl_Xml_Document_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node);
+
+/*************************************************************************************************/
+/**
+ * \brief Writes the document into caller-provided UTF-8 byte storage.
+ *
+ * \par Details:
+ *  XML 1.0 (Fifth Edition), productions [1] document, [22] prolog,
+ *  [23] XMLDecl, and [28] doctypedecl:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-document
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-prolog
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-XMLDecl
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-doctypedecl
+ *
+ *  Production [1] requires one document element. This function also writes the
+ *  current node sequence before that element has been appended; such output is
+ *  not a well-formed XML document.
+ *
+ *  XML declaration markup is written with version="1.0" and optional fields.
+ *  DOCTYPE markup is written from its name and optional suffix.
+ *  The caller keeps nodes, attributes, and borrowed byte spans valid while
+ *  serializing, with output storage disjoint from them.
+ *
+ * \par Requirements:
+ *  - 001 This function shall fail an assertion if document or output is NULL.
+ *  - 002 This function shall fail an assertion for invalid element, DOCTYPE, or attribute names, invalid processing-instruction targets, and invalid text, attribute, comment, or processing-instruction content.
+ *  - 003 This function shall construct XML declaration and DOCTYPE markup from their node data.
+ *  - 004 This function shall write nodes, children, and attributes in append order, escaping text and attribute values.
+ *  - 005 This function shall return the number of bytes written, without writing a zero terminator.
+ *  - 006 This function shall fail an assertion before writing beyond capacity.
+ *
+ * \param[in]  document   Document to write
+ * \param[out] output     Caller-provided byte storage
+ * \param[in]  capacity   Number of bytes available in output
+ *
+ * \return Number of bytes written.
+ */
+uint64_t Utl_Xml_Document_Write(const Utl_Xml_Document_t* document, byte_t* output, uint32_t capacity);
 
 #endif /* UTL_XML_H */

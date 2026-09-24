@@ -1,7 +1,5 @@
 #include "utl/utl_defines.h"
 #include "utl/utl_xml.h"
-#include "utl/utl_xml_document.h"
-#include "utl/utl_xml_node.h"
 
 /* Keep assertions enabled in Release builds. */
 #ifdef NDEBUG
@@ -9,7 +7,6 @@
 #endif
 #include <assert.h>
 #include <stdio.h>
-#include <string.h>
 
 /*************************************************************************************************/
 /**

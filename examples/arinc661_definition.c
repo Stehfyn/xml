@@ -12,8 +12,7 @@
 **===============================================================================================*/
 
 #include "utl/utl_defines.h"
-#include "utl/utl_xml_document.h"
-#include "utl/utl_xml_node.h"
+#include "utl/utl_xml.h"
 
 #include "os/os_assert.h"
 
