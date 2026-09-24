@@ -352,8 +352,6 @@ static void TestXmlDocumentSerialization(void)
         "<child/>tail<!--inside--></root><!--after-->";
     byte_t             output[256];
     uint32_t           byte_count;
-    uint32_t           byte_index;
-    bool_t             is_serialized;
 
     Utl_Xml_Document_Initialize(&document);
     assert(NULL == document.firstNode);
@@ -392,49 +390,11 @@ static void TestXmlDocumentSerialization(void)
     assert(NULL == epilog_comment.nextSibling);
     assert(&epilog_comment == document.lastNode);
 
-    is_serialized = Utl_Xml_Document_Serialize(&document, NULL, 0, &byte_count);
-    assert(TRUE == is_serialized);
-    assert((sizeof(expected) - 1) == byte_count);
-
     memset(output, 0xA5, sizeof(output));
-    is_serialized = Utl_Xml_Document_Serialize(&document, output, byte_count - 1, &byte_count);
-    assert(FALSE == is_serialized);
-    assert((sizeof(expected) - 1) == byte_count);
-
-    for (byte_index = 0; byte_index < (uint32_t)sizeof(output); ++byte_index)
-    {
-        assert(0xA5 == output[byte_index]);
-    }
-
-    is_serialized = Utl_Xml_Document_Serialize(&document, output, (uint32_t)sizeof(output), &byte_count);
-    assert(TRUE == is_serialized);
+    Utl_Xml_Document_Serialize(&document, output, (uint32_t)sizeof(output), &byte_count);
     assert((sizeof(expected) - 1) == byte_count);
     assert(0 == memcmp(output, expected, byte_count));
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Invalid borrowed content fails validation before any output bytes are written.
- */
-static void TestXmlDocumentInvalidContent(void)
-{
-    Utl_Xml_Document_t document;
-    Utl_Xml_Node_t     root;
-    const byte_t       invalid_name[] = {'a', 0, 'b'};
-    byte_t             output[32];
-    uint32_t           byte_count;
-    bool_t             is_serialized;
-
-    Utl_Xml_Document_Initialize(&document);
-    Utl_Xml_Node_Initialize(&root, UTL_XML_NODE_ELEMENT, invalid_name, (uint32_t)sizeof(invalid_name), NULL, 0);
-    Utl_Xml_Document_AppendNode(&document, &root);
-
-    memset(output, 0xA5, sizeof(output));
-    is_serialized = Utl_Xml_Document_Serialize(&document, output, (uint32_t)sizeof(output), &byte_count);
-    assert(FALSE == is_serialized);
-    assert(0 == byte_count);
-    assert(0xA5 == output[0]);
+    assert(0xA5 == output[byte_count]);
 }
 
 /*************************************************************************************************/
@@ -450,6 +410,5 @@ int main(void)
     TestXmlNodeInitialization();
     TestDeferredNodeContentValidation();
     TestXmlDocumentSerialization();
-    TestXmlDocumentInvalidContent();
     return 0;
 }
