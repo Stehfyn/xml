@@ -258,7 +258,7 @@ static void WriteNode(byte_t* output, uint32_t capacity, uint64_t* byteCount, co
  *
  * \retval None
  */
-static void WriteTopLevelNode(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
+static void WriteRootNode(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
 
 /*=================================================================================================
 ** 4. PRIVATE FUNCTIONS
@@ -360,8 +360,7 @@ static void WriteToken(byte_t* output, uint32_t capacity, uint64_t* byteCount, c
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The caller supplies an ExternalID, an internal subset, or both in value,
- *  without a leading space.
+ *  The caller supplies an ExternalID, an internal subset, or both in value, without a leading space.
  */
 static void WriteDoctype(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
 {
@@ -417,7 +416,7 @@ static void WriteDeclaration(byte_t* output, uint32_t capacity, uint64_t* byteCo
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Uses the character-reference delimiters in utl_xml.h.
+ *  None
  */
 static void WriteHexCharReference(byte_t* output, uint32_t capacity, uint64_t* byteCount, byte_t hexDigit)
 {
@@ -500,7 +499,7 @@ static void WriteEscaped(byte_t* output, uint32_t capacity, uint64_t* byteCount,
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Attributes are appended and checked for uniqueness by utl_xml_node.
+ *  None
  */
 static void WriteElementStart(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
 {
@@ -577,7 +576,7 @@ static void WriteText(byte_t* output, uint32_t capacity, uint64_t* byteCount, co
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Checks content with Utl_Xml_IsCommentContent.
+ *  None
  */
 static void WriteComment(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
 {
@@ -601,7 +600,7 @@ static void WriteComment(byte_t* output, uint32_t capacity, uint64_t* byteCount,
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Checks the target and data with the XML 1.0 validators.
+ *  None
  */
 static void WriteProcessingInstruction(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
 {
@@ -635,7 +634,7 @@ static void WriteProcessingInstruction(byte_t* output, uint32_t capacity, uint64
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Traverses element children without allocating a stack.
+ *  None
  */
 static void WriteElement(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* root)
 {
@@ -693,7 +692,6 @@ static void WriteElement(byte_t* output, uint32_t capacity, uint64_t* byteCount,
         {
             current_node = current_node->nextSibling;
         }
-
     }
 
     LOGASSERT(NULL == current_node);
@@ -733,7 +731,7 @@ static void WriteNode(byte_t* output, uint32_t capacity, uint64_t* byteCount, co
  * \par Details:
  *  Dispatches top-level nodes; element descendants use the iterative element writer.
  */
-static void WriteTopLevelNode(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
+static void WriteRootNode(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
 {
     switch (node->type)
     {
@@ -869,7 +867,7 @@ uint64_t Utl_Xml_Document_Write(const Utl_Xml_Document_t* document, byte_t* outp
             break;
         }
 
-        WriteTopLevelNode(output, capacity, &byte_count, current_node);
+        WriteRootNode(output, capacity, &byte_count, current_node);
 
         current_node = current_node->nextSibling;
     }
