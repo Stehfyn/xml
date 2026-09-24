@@ -78,7 +78,7 @@ void Utl_Xml_Document_Initialize(Utl_Xml_Document_t* document);
  * \par Requirements:
  *  - 001 This function shall fail an assertion if document or node is NULL.
  *  - 002 This function shall fail an assertion if node has a parent or next sibling, or is document->lastNode.
- *  - 003 This function shall accept only XML declarations, DOCTYPEs, elements, comments, and processing instructions.
+ *  - 003 This function shall fail an assertion for a type other than XML declaration, DOCTYPE, element, comment, or processing instruction.
  *  - 004 This function shall fail an assertion unless an XML declaration is the first node.
  *  - 005 This function shall fail an assertion for a second DOCTYPE or a DOCTYPE after an element.
  *  - 006 This function shall fail an assertion for a second element.
@@ -98,6 +98,7 @@ void Utl_Xml_Document_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* n
  * \par Details:
  *  XML 1.0 (Fifth Edition), production [1] document:
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-document
+ *
  *  XML declaration and DOCTYPE markup is checked for XML characters and opening
  *  and closing delimiters; the caller supplies valid internal markup grammar.
  *  The caller keeps nodes, attributes, and borrowed byte spans valid while
@@ -105,12 +106,13 @@ void Utl_Xml_Document_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* n
  *
  * \par Requirements:
  *  - 001 This function shall fail an assertion if document, output, or byteCount is NULL.
- *  - 002 This function shall fail an assertion unless the document has one element and valid top-level order and links.
- *  - 003 This function shall fail an assertion for invalid XML names, UTF-8 or XML characters, comment or PI delimiters, or declaration and DOCTYPE framing.
- *  - 004 This function shall write nodes, children, and attributes in append order, escaping text and attribute values.
- *  - 005 This function shall write declaration and DOCTYPE markup verbatim.
- *  - 006 This function shall set byteCount to the number of bytes written, without writing a zero terminator.
- *  - 007 This function shall fail an assertion before writing beyond capacity.
+ *  - 002 This function shall fail an assertion unless the document has exactly one element and its lastNode matches the top-level list.
+ *  - 003 This function shall require any XML declaration first, any DOCTYPE once and before the element, and only comments or processing instructions otherwise.
+ *  - 004 This function shall fail an assertion for invalid XML names, UTF-8, XML characters, comment content, or processing instruction content or target.
+ *  - 005 This function shall fail an assertion if declaration or DOCTYPE markup lacks its opening or closing delimiter.
+ *  - 006 This function shall write nodes, children, and attributes in append order, escaping text and attribute values and writing declaration and DOCTYPE markup verbatim.
+ *  - 007 This function shall set byteCount to the number of bytes written, without writing a zero terminator.
+ *  - 008 This function shall fail an assertion before writing beyond capacity.
  *
  * \param[in]  document   Document to serialize
  * \param[out] output     Caller-provided byte storage
