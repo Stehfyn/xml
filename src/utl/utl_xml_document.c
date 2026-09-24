@@ -328,73 +328,72 @@ static bool_t WriteEscaped(XmlOutput_t* output, const byte_t* utf8Text, uint32_t
         is_valid = (0 == byteCount);
     }
 
-    if (FALSE == is_valid)
+    if (is_valid)
     {
-        return FALSE;
+        for (byte_index = 0; byte_index < byteCount; ++byte_index)
+        {
+            switch (utf8Text[byte_index])
+            {
+                case '&':
+                    is_written = WriteBytes(output, (const byte_t*)UTL_XML_ENTITY_REF_AMP,
+                                            (uint32_t)(sizeof(UTL_XML_ENTITY_REF_AMP) - 1));
+                    break;
+                case '<':
+                    is_written = WriteBytes(output, (const byte_t*)UTL_XML_ENTITY_REF_LT,
+                                            (uint32_t)(sizeof(UTL_XML_ENTITY_REF_LT) - 1));
+                    break;
+                case '>':
+                    is_written = WriteBytes(output, (const byte_t*)UTL_XML_ENTITY_REF_GT,
+                                            (uint32_t)(sizeof(UTL_XML_ENTITY_REF_GT) - 1));
+                    break;
+                case UTL_XML_QUOTE_QUOT:
+                    if (isAttribute)
+                    {
+                        is_written = WriteBytes(output, (const byte_t*)UTL_XML_ENTITY_REF_QUOT,
+                                                (uint32_t)(sizeof(UTL_XML_ENTITY_REF_QUOT) - 1));
+                    }
+                    else
+                    {
+                        is_written = WriteByte(output, UTL_XML_QUOTE_QUOT);
+                    }
+                    break;
+                case UTL_XML_CHAR_TAB:
+                    if (isAttribute)
+                    {
+                        is_written = WriteBytes(output, (const byte_t*)"&#x9;", (uint32_t)(sizeof("&#x9;") - 1));
+                    }
+                    else
+                    {
+                        is_written = WriteByte(output, UTL_XML_CHAR_TAB);
+                    }
+                    break;
+                case UTL_XML_CHAR_LF:
+                    if (isAttribute)
+                    {
+                        is_written = WriteBytes(output, (const byte_t*)"&#xA;", (uint32_t)(sizeof("&#xA;") - 1));
+                    }
+                    else
+                    {
+                        is_written = WriteByte(output, UTL_XML_CHAR_LF);
+                    }
+                    break;
+                case UTL_XML_CHAR_CR:
+                    is_written = WriteBytes(output, (const byte_t*)"&#xD;", (uint32_t)(sizeof("&#xD;") - 1));
+                    break;
+                default:
+                    is_written = WriteByte(output, utf8Text[byte_index]);
+                    break;
+            }
+
+            if (FALSE == is_written)
+            {
+                is_valid = FALSE;
+                break;
+            }
+        }
     }
 
-    for (byte_index = 0; byte_index < byteCount; ++byte_index)
-    {
-        switch (utf8Text[byte_index])
-        {
-            case '&':
-                is_written = WriteBytes(output, (const byte_t*)UTL_XML_ENTITY_REF_AMP,
-                                        (uint32_t)(sizeof(UTL_XML_ENTITY_REF_AMP) - 1));
-                break;
-            case '<':
-                is_written = WriteBytes(output, (const byte_t*)UTL_XML_ENTITY_REF_LT,
-                                        (uint32_t)(sizeof(UTL_XML_ENTITY_REF_LT) - 1));
-                break;
-            case '>':
-                is_written = WriteBytes(output, (const byte_t*)UTL_XML_ENTITY_REF_GT,
-                                        (uint32_t)(sizeof(UTL_XML_ENTITY_REF_GT) - 1));
-                break;
-            case '"':
-                if (isAttribute)
-                {
-                    is_written = WriteBytes(output, (const byte_t*)UTL_XML_ENTITY_REF_QUOT,
-                                            (uint32_t)(sizeof(UTL_XML_ENTITY_REF_QUOT) - 1));
-                }
-                else
-                {
-                    is_written = WriteByte(output, '"');
-                }
-                break;
-            case '\t':
-                if (isAttribute)
-                {
-                    is_written = WriteBytes(output, (const byte_t*)"&#x9;", (uint32_t)(sizeof("&#x9;") - 1));
-                }
-                else
-                {
-                    is_written = WriteByte(output, '\t');
-                }
-                break;
-            case '\n':
-                if (isAttribute)
-                {
-                    is_written = WriteBytes(output, (const byte_t*)"&#xA;", (uint32_t)(sizeof("&#xA;") - 1));
-                }
-                else
-                {
-                    is_written = WriteByte(output, '\n');
-                }
-                break;
-            case '\r':
-                is_written = WriteBytes(output, (const byte_t*)"&#xD;", (uint32_t)(sizeof("&#xD;") - 1));
-                break;
-            default:
-                is_written = WriteByte(output, utf8Text[byte_index]);
-                break;
-        }
-
-        if (FALSE == is_written)
-        {
-            return FALSE;
-        }
-    }
-
-    return TRUE;
+    return is_valid;
 }
 
 /*************************************************************************************************/
@@ -439,11 +438,9 @@ static bool_t WriteRawMarkup(XmlOutput_t* output, const Utl_Xml_Node_t* node, co
  */
 static bool_t WriteXmlDeclaration(XmlOutput_t* output, const Utl_Xml_Node_t* node)
 {
-    static const byte_t prefix[] = "<?xml";
-    static const byte_t suffix[] = "?>";
-
     return WriteRawMarkup(output, node,
-                          prefix, (uint32_t)(sizeof(prefix) - 1), suffix, (uint32_t)(sizeof(suffix) - 1));
+                          (const byte_t*)UTL_XML_DECL_OPEN, (uint32_t)(sizeof(UTL_XML_DECL_OPEN) - 1),
+                          (const byte_t*)UTL_XML_DECL_CLOSE, (uint32_t)(sizeof(UTL_XML_DECL_CLOSE) - 1));
 }
 
 /*************************************************************************************************/
@@ -453,11 +450,9 @@ static bool_t WriteXmlDeclaration(XmlOutput_t* output, const Utl_Xml_Node_t* nod
  */
 static bool_t WriteDoctype(XmlOutput_t* output, const Utl_Xml_Node_t* node)
 {
-    static const byte_t prefix[] = "<!DOCTYPE";
-    static const byte_t suffix[] = ">";
-
     return WriteRawMarkup(output, node,
-                          prefix, (uint32_t)(sizeof(prefix) - 1), suffix, (uint32_t)(sizeof(suffix) - 1));
+                          (const byte_t*)UTL_XML_DOCTYPE_OPEN, (uint32_t)(sizeof(UTL_XML_DOCTYPE_OPEN) - 1),
+                          (const byte_t*)UTL_XML_DOCTYPE_CLOSE, (uint32_t)(sizeof(UTL_XML_DOCTYPE_CLOSE) - 1));
 }
 
 /*************************************************************************************************/
@@ -473,81 +468,117 @@ static bool_t WriteElementStart(XmlOutput_t* output, const Utl_Xml_Node_t* node)
     uint32_t                   attribute_index;
     bool_t                     has_same_name_byte_count;
     bool_t                     has_same_name;
+    bool_t                     is_valid;
 
-    if ((NULL == node->name) || (FALSE == Utl_Xml_IsName(node->name, node->nameByteCount)) ||
-        (NULL != node->value) || (0 != node->valueByteCount) ||
-        ((NULL == node->firstChild) != (NULL == node->lastChild)) ||
-        (UTL_XML_NODE_MAX_ATTRIBUTES < node->attributeCount))
+    is_valid = (NULL != node->name) && (NULL == node->value) &&
+               (0 == node->valueByteCount) &&
+               ((NULL == node->firstChild) == (NULL == node->lastChild)) &&
+               (node->attributeCount <= UTL_XML_NODE_MAX_ATTRIBUTES);
+
+    if (is_valid)
     {
-        return FALSE;
+        is_valid = Utl_Xml_IsName(node->name, node->nameByteCount);
     }
 
-    if ((FALSE == WriteByte(output, '<')) ||
-        (FALSE == WriteBytes(output, node->name, node->nameByteCount)))
+    if (is_valid)
     {
-        return FALSE;
+        is_valid = WriteBytes(output, (const byte_t*)UTL_XML_STAG_OPEN,
+                              (uint32_t)(sizeof(UTL_XML_STAG_OPEN) - 1));
+    }
+
+    if (is_valid)
+    {
+        is_valid = WriteBytes(output, node->name, node->nameByteCount);
     }
 
     current_attribute = node->firstAttribute;
     last_attribute = NULL;
 
-    for (attribute_index = 0; attribute_index < node->attributeCount; ++attribute_index)
+    if (is_valid)
     {
-        if ((NULL == current_attribute) || (NULL == current_attribute->name) ||
-            (FALSE == Utl_Xml_IsName(current_attribute->name, current_attribute->nameByteCount)))
+        for (attribute_index = 0; attribute_index < node->attributeCount; ++attribute_index)
         {
-            return FALSE;
-        }
+            is_valid = (NULL != current_attribute);
 
-        for (previous_attribute = node->firstAttribute;
-             previous_attribute != current_attribute;
-             previous_attribute = previous_attribute->next)
-        {
-            if (NULL == previous_attribute)
+            if (is_valid)
             {
-                return FALSE;
+                is_valid = (NULL != current_attribute->name);
             }
 
-            has_same_name_byte_count = (previous_attribute->nameByteCount == current_attribute->nameByteCount);
-
-            if (has_same_name_byte_count)
+            if (is_valid)
             {
-                has_same_name = (0 == memcmp(previous_attribute->name, current_attribute->name,
-                                             current_attribute->nameByteCount));
+                is_valid = Utl_Xml_IsName(current_attribute->name, current_attribute->nameByteCount);
+            }
 
-                if (has_same_name)
+            if (FALSE == is_valid)
+            {
+                break;
+            }
+
+            for (previous_attribute = node->firstAttribute;
+                 previous_attribute != current_attribute;
+                 previous_attribute = previous_attribute->next)
+            {
+                if (NULL == previous_attribute)
                 {
-                    return FALSE;
+                    is_valid = FALSE;
+                    break;
+                }
+
+                has_same_name_byte_count = (previous_attribute->nameByteCount == current_attribute->nameByteCount);
+
+                if (has_same_name_byte_count)
+                {
+                    has_same_name = (0 == memcmp(previous_attribute->name, current_attribute->name,
+                                                 current_attribute->nameByteCount));
+
+                    if (has_same_name)
+                    {
+                        is_valid = FALSE;
+                        break;
+                    }
                 }
             }
+
+            if (FALSE == is_valid)
+            {
+                break;
+            }
+
+            is_valid = WriteByte(output, UTL_XML_CHAR_SPACE) &&
+                       WriteBytes(output, current_attribute->name, current_attribute->nameByteCount) &&
+                       WriteByte(output, UTL_XML_EQ) &&
+                       WriteByte(output, UTL_XML_QUOTE_QUOT) &&
+                       WriteEscaped(output, current_attribute->value, current_attribute->valueByteCount, TRUE) &&
+                       WriteByte(output, UTL_XML_QUOTE_QUOT);
+
+            if (FALSE == is_valid)
+            {
+                break;
+            }
+
+            last_attribute = current_attribute;
+            current_attribute = current_attribute->next;
         }
-
-        if ((FALSE == WriteByte(output, ' ')) ||
-            (FALSE == WriteBytes(output, current_attribute->name, current_attribute->nameByteCount)) ||
-            (FALSE == WriteByte(output, UTL_XML_EQ)) ||
-            (FALSE == WriteByte(output, UTL_XML_QUOTE_QUOT)) ||
-            (FALSE == WriteEscaped(output, current_attribute->value, current_attribute->valueByteCount, TRUE)) ||
-            (FALSE == WriteByte(output, '"')))
-        {
-            return FALSE;
-        }
-
-        last_attribute = current_attribute;
-        current_attribute = current_attribute->next;
     }
 
-    if ((NULL != current_attribute) || (last_attribute != node->lastAttribute))
+    if (is_valid)
     {
-        return FALSE;
+        is_valid = (NULL == current_attribute) && (last_attribute == node->lastAttribute);
     }
 
-    if (NULL == node->firstChild)
+    if (is_valid && (NULL == node->firstChild))
     {
-        return WriteBytes(output, (const byte_t*)UTL_XML_EMPTY_ELEM_TAG_CLOSE,
-                          (uint32_t)(sizeof(UTL_XML_EMPTY_ELEM_TAG_CLOSE) - 1));
+        is_valid = WriteBytes(output, (const byte_t*)UTL_XML_EMPTY_ELEM_TAG_CLOSE,
+                              (uint32_t)(sizeof(UTL_XML_EMPTY_ELEM_TAG_CLOSE) - 1));
+    }
+    else if (is_valid)
+    {
+        is_valid = WriteBytes(output, (const byte_t*)UTL_XML_TAG_CLOSE,
+                              (uint32_t)(sizeof(UTL_XML_TAG_CLOSE) - 1));
     }
 
-    return WriteByte(output, '>');
+    return is_valid;
 }
 
 /*************************************************************************************************/
@@ -569,7 +600,8 @@ static bool_t WriteElementEnd(XmlOutput_t* output, const Utl_Xml_Node_t* node)
 
     if (is_written)
     {
-        is_written = WriteByte(output, '>');
+        is_written = WriteBytes(output, (const byte_t*)UTL_XML_TAG_CLOSE,
+                                (uint32_t)(sizeof(UTL_XML_TAG_CLOSE) - 1));
     }
 
     return is_written;
@@ -612,9 +644,17 @@ static bool_t WriteComment(XmlOutput_t* output, const Utl_Xml_Node_t* node)
         is_valid = Utl_Xml_IsString(node->value, node->valueByteCount);
     }
 
-    for (byte_index = 1; is_valid && (byte_index < node->valueByteCount); ++byte_index)
+    if (is_valid)
     {
-        is_valid = (('-' != node->value[byte_index - 1]) || ('-' != node->value[byte_index]));
+        for (byte_index = 1; byte_index < node->valueByteCount; ++byte_index)
+        {
+            is_valid = (('-' != node->value[byte_index - 1]) || ('-' != node->value[byte_index]));
+
+            if (FALSE == is_valid)
+            {
+                break;
+            }
+        }
     }
 
     if (is_valid && (0 < node->valueByteCount))
@@ -671,9 +711,17 @@ static bool_t WriteProcessingInstruction(XmlOutput_t* output, const Utl_Xml_Node
         is_valid = (FALSE == is_reserved_target);
     }
 
-    for (byte_index = 1; is_valid && (byte_index < node->valueByteCount); ++byte_index)
+    if (is_valid)
     {
-        is_valid = (('?' != node->value[byte_index - 1]) || ('>' != node->value[byte_index]));
+        for (byte_index = 1; byte_index < node->valueByteCount; ++byte_index)
+        {
+            is_valid = (('?' != node->value[byte_index - 1]) || ('>' != node->value[byte_index]));
+
+            if (FALSE == is_valid)
+            {
+                break;
+            }
+        }
     }
 
     if (is_valid)
@@ -689,7 +737,7 @@ static bool_t WriteProcessingInstruction(XmlOutput_t* output, const Utl_Xml_Node
 
     if (is_valid && (0 < node->valueByteCount))
     {
-        is_valid = WriteByte(output, ' ');
+        is_valid = WriteByte(output, UTL_XML_CHAR_SPACE);
 
         if (is_valid)
         {
@@ -844,75 +892,80 @@ static bool_t WriteDocument(XmlOutput_t* output, const Utl_Xml_Document_t* docum
     bool_t                is_misc;
     bool_t                has_root;
     bool_t                has_doctype;
-    bool_t                is_written;
-
-    if ((NULL == document->firstNode) || (NULL == document->lastNode))
-    {
-        return FALSE;
-    }
+    bool_t                is_valid;
 
     has_root = FALSE;
     has_doctype = FALSE;
     last_node = NULL;
+    is_valid = (NULL != document->firstNode) && (NULL != document->lastNode);
 
-    for (current_node = document->firstNode; NULL != current_node; current_node = current_node->nextSibling)
+    if (is_valid)
     {
-        if (NULL != current_node->parent)
+        for (current_node = document->firstNode; NULL != current_node; current_node = current_node->nextSibling)
         {
-            return FALSE;
-        }
+            is_valid = (NULL == current_node->parent);
 
-        if (UTL_XML_NODE_XML_DECLARATION == current_node->type)
-        {
-            if (current_node != document->firstNode)
+            if (FALSE == is_valid)
             {
-                return FALSE;
+                break;
             }
 
-            is_written = WriteXmlDeclaration(output, current_node);
-        }
-        else if (UTL_XML_NODE_DOCTYPE == current_node->type)
-        {
-            if (has_doctype || has_root)
+            if (UTL_XML_NODE_XML_DECLARATION == current_node->type)
             {
-                return FALSE;
-            }
+                is_valid = (current_node == document->firstNode);
 
-            is_written = WriteDoctype(output, current_node);
-            has_doctype = TRUE;
-        }
-        else
-        {
-            is_root = (UTL_XML_NODE_ELEMENT == current_node->type);
-            is_misc = (UTL_XML_NODE_COMMENT == current_node->type) ||
-                      (UTL_XML_NODE_PROCESSING_INSTRUCTION == current_node->type);
-
-            if (is_root)
-            {
-                if (has_root)
+                if (is_valid)
                 {
-                    return FALSE;
+                    is_valid = WriteXmlDeclaration(output, current_node);
+                }
+            }
+            else if (UTL_XML_NODE_DOCTYPE == current_node->type)
+            {
+                is_valid = (FALSE == has_doctype) && (FALSE == has_root);
+
+                if (is_valid)
+                {
+                    is_valid = WriteDoctype(output, current_node);
+                    has_doctype = TRUE;
+                }
+            }
+            else
+            {
+                is_root = (UTL_XML_NODE_ELEMENT == current_node->type);
+                is_misc = (UTL_XML_NODE_COMMENT == current_node->type) ||
+                          (UTL_XML_NODE_PROCESSING_INSTRUCTION == current_node->type);
+
+                if (is_root)
+                {
+                    is_valid = (FALSE == has_root);
+                    has_root = TRUE;
+                }
+                else
+                {
+                    is_valid = is_misc;
                 }
 
-                has_root = TRUE;
+                if (is_valid)
+                {
+                    is_valid = WriteSubtree(output, current_node);
+                }
             }
-            else if (FALSE == is_misc)
+
+            if (FALSE == is_valid)
             {
-                return FALSE;
+                break;
             }
 
-            is_written = WriteSubtree(output, current_node);
+            last_node = current_node;
         }
-
-        if (FALSE == is_written)
-        {
-            return FALSE;
-        }
-
-        last_node = current_node;
     }
 
-    return has_root && (last_node == document->lastNode);
+    if (is_valid)
+    {
+        is_valid = has_root && (last_node == document->lastNode);
+    }
+
+    return is_valid;
 }
 
 /*=================================================================================================
