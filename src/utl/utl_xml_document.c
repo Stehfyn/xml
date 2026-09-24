@@ -195,16 +195,16 @@ static void WriteLeaf(byte_t* output, uint32_t capacity, uint64_t* byteCount, co
 
 /*************************************************************************************************/
 /**
- * \brief Writes a node and its descendants without recursion.
+ * \brief Writes an element and its descendants without recursion.
  *
  * \param[in,out] output     Caller-provided byte storage
  * \param[in]     capacity   Number of bytes in output
  * \param[in,out] byteCount  Number of bytes already written
- * \param[in]     root       Root of the subtree
+ * \param[in]     root       Root element to write
  *
  * \retval None
  */
-static void WriteSubtree(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* root);
+static void WriteElement(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* root);
 
 /*=================================================================================================
 ** 4. PRIVATE FUNCTIONS
@@ -599,7 +599,7 @@ static void WriteLeaf(byte_t* output, uint32_t capacity, uint64_t* byteCount, co
  * \par Details:
  *  Traverses element children without allocating a stack.
  */
-static void WriteSubtree(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* root)
+static void WriteElement(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* root)
 {
     const Utl_Xml_Node_t* current_node;
     uint32_t              node_index;
@@ -778,7 +778,7 @@ uint64_t Utl_Xml_Document_Write(const Utl_Xml_Document_t* document, byte_t* outp
             }
             case UTL_XML_NODE_ELEMENT:
             {
-                WriteSubtree(output, capacity, &byte_count, current_node);
+                WriteElement(output, capacity, &byte_count, current_node);
                 has_root = TRUE;
                 break;
             }
