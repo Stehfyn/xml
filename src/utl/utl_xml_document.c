@@ -689,6 +689,8 @@ void Utl_Xml_Document_Write(const Utl_Xml_Document_t* document, byte_t* output, 
                 WriteSubtree(output, capacity, byteCount, current_node);
                 has_root = TRUE;
                 break;
+            case UTL_XML_NODE_TEXT:
+            case UTL_XML_NODE_COMMENT:
             default:
                 WriteLeaf(output, capacity, byteCount, current_node);
                 break;
