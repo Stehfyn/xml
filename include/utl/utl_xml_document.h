@@ -30,7 +30,6 @@
 
 /*************************************************************************************************/
 /**
- * \brief Caller-owned XML document built by appending top-level nodes in order.
  */
 typedef struct Utl_Xml_Document_s
 {
@@ -69,14 +68,17 @@ void Utl_Xml_Document_Initialize(Utl_Xml_Document_t* document);
  * \brief Appends a caller-owned top-level node in source order.
  *
  * \par Details:
- *  XML 1.0 (Fifth Edition), productions [1] document and [22] prolog:
+ *  XML 1.0 (Fifth Edition), productions [1] document, [22] prolog,
+ *  [23] XMLDecl, and [28] doctypedecl:
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-document
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-prolog
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-XMLDecl
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-doctypedecl
  *
  *  XML declaration nodes may use value for optional encoding and standalone
  *  fields. DOCTYPE nodes use name for the root element type and may use value
- *  for an ExternalID and/or internal subset. The caller supplies valid suffix
- *  grammar without a leading space.
+ *  for an ExternalID, an internal subset, or both. The caller supplies valid
+ *  suffix grammar without a leading space.
  *
  * \par Requirements:
  *  - 001 This function shall fail an assertion if document or node is NULL.
@@ -99,8 +101,16 @@ void Utl_Xml_Document_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* n
  * \brief Writes the document into caller-provided UTF-8 byte storage.
  *
  * \par Details:
- *  XML 1.0 (Fifth Edition), production [1] document:
+ *  XML 1.0 (Fifth Edition), productions [1] document, [22] prolog,
+ *  [23] XMLDecl, and [28] doctypedecl:
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-document
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-prolog
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-XMLDecl
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-doctypedecl
+ *
+ *  Production [1] requires one document element. This function also writes the
+ *  current node sequence before that element has been appended; such output is
+ *  not a well-formed XML document.
  *
  *  XML declaration markup is written with version="1.0" and optional fields.
  *  DOCTYPE markup is written from its name and optional suffix.

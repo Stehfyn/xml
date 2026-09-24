@@ -152,8 +152,9 @@ static void WriteEscaped(byte_t* output, uint32_t capacity, uint64_t* byteCount,
 
 /*************************************************************************************************/
 /**
- * \brief Writes an element's opening tag and attributes.
+ * \brief Writes an element's start tag or empty-element tag with attributes.
  * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-STag
+ * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-EmptyElemTag
  *
  * \param[in,out] output     Caller-provided byte storage
  * \param[in]     capacity   Number of bytes in output
@@ -180,18 +181,45 @@ static void WriteElementEnd(byte_t* output, uint32_t capacity, uint64_t* byteCou
 
 /*************************************************************************************************/
 /**
- * \brief Writes a text, comment, or processing-instruction node.
+ * \brief Writes a text node as XML character data.
+ * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-CharData
+ *
+ * \param[in,out] output     Caller-provided byte storage
+ * \param[in]     capacity   Number of bytes in output
+ * \param[in,out] byteCount  Number of bytes already written
+ * \param[in]     node       Text node to write
+ *
+ * \retval None
+ */
+static void WriteText(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
+
+/*************************************************************************************************/
+/**
+ * \brief Writes an XML comment.
  * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-Comment
+ *
+ * \param[in,out] output     Caller-provided byte storage
+ * \param[in]     capacity   Number of bytes in output
+ * \param[in,out] byteCount  Number of bytes already written
+ * \param[in]     node       Comment node to write
+ *
+ * \retval None
+ */
+static void WriteComment(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
+
+/*************************************************************************************************/
+/**
+ * \brief Writes an XML processing instruction.
  * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-PI
  *
  * \param[in,out] output     Caller-provided byte storage
  * \param[in]     capacity   Number of bytes in output
  * \param[in,out] byteCount  Number of bytes already written
- * \param[in]     node       Leaf node to write
+ * \param[in]     node       Processing-instruction node to write
  *
  * \retval None
  */
-static void WriteLeaf(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
+static void WriteProcessingInstruction(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
 
 /*************************************************************************************************/
 /**
@@ -306,7 +334,8 @@ static void WriteToken(byte_t* output, uint32_t capacity, uint64_t* byteCount, c
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The caller supplies any ExternalID or internal subset in value, without a leading space.
+ *  The caller supplies an ExternalID, an internal subset, or both in value,
+ *  without a leading space.
  */
 static void WriteDoctype(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
 {
@@ -509,9 +538,59 @@ static void WriteElementEnd(byte_t* output, uint32_t capacity, uint64_t* byteCou
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Text is escaped; comment and processing-instruction content is written verbatim.
+ *  Escapes the text without adding markup.
  */
-static void WriteLeaf(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
+static void WriteText(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
+{
+    LOGASSERT(NULL == node->name);
+    LOGASSERT(0 == node->nameByteCount);
+    WriteEscaped(output, capacity, byteCount, node->value, node->valueByteCount, FALSE);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Rejects the double-hyphen delimiter and a trailing hyphen in comment content.
+ */
+static void WriteComment(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
+{
+    uint32_t byte_index;
+    bool_t   is_xml_string;
+    bool_t   has_delimiter;
+
+    LOGASSERT(NULL == node->name);
+    LOGASSERT(0 == node->nameByteCount);
+    LOGASSERT((NULL != node->value) || (0 == node->valueByteCount));
+
+    if (NULL != node->value)
+    {
+        is_xml_string = Utl_Xml_IsString(node->value, node->valueByteCount);
+        LOGASSERT(is_xml_string);
+    }
+
+    for (byte_index = 1; byte_index < node->valueByteCount; ++byte_index)
+    {
+        has_delimiter = ('-' == node->value[byte_index - 1]) &&
+                        ('-' == node->value[byte_index]);
+        LOGASSERT(FALSE == has_delimiter);
+    }
+
+    if (0 < node->valueByteCount)
+    {
+        LOGASSERT('-' != node->value[node->valueByteCount - 1]);
+    }
+
+    WriteToken(output, capacity, byteCount, UTL_XML_COMMENT_OPEN);
+    WriteBytes(output, capacity, byteCount, node->value, node->valueByteCount);
+    WriteToken(output, capacity, byteCount, UTL_XML_COMMENT_CLOSE);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Rejects every case variant of the reserved xml target and the closing delimiter in data.
+ */
+static void WriteProcessingInstruction(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
 {
     uint32_t byte_index;
     bool_t   is_xml_string;
@@ -519,79 +598,41 @@ static void WriteLeaf(byte_t* output, uint32_t capacity, uint64_t* byteCount, co
     bool_t   is_reserved_target;
     bool_t   has_delimiter;
 
-    if (UTL_XML_NODE_TEXT == node->type)
+    LOGASSERT(NULL != node->name);
+    LOGASSERT((NULL != node->value) || (0 == node->valueByteCount));
+
+    is_name = Utl_Xml_IsName(node->name, node->nameByteCount);
+    LOGASSERT(is_name);
+
+    is_reserved_target = (3 == node->nameByteCount) &&
+                         (('x' == node->name[0]) || ('X' == node->name[0])) &&
+                         (('m' == node->name[1]) || ('M' == node->name[1])) &&
+                         (('l' == node->name[2]) || ('L' == node->name[2]));
+    LOGASSERT(FALSE == is_reserved_target);
+
+    if (NULL != node->value)
     {
-        LOGASSERT(NULL == node->name);
-        LOGASSERT(0 == node->nameByteCount);
-        WriteEscaped(output, capacity, byteCount, node->value, node->valueByteCount, FALSE);
+        is_xml_string = Utl_Xml_IsString(node->value, node->valueByteCount);
+        LOGASSERT(is_xml_string);
     }
-    else if (UTL_XML_NODE_COMMENT == node->type)
+
+    for (byte_index = 1; byte_index < node->valueByteCount; ++byte_index)
     {
-        LOGASSERT(NULL == node->name);
-        LOGASSERT(0 == node->nameByteCount);
-        LOGASSERT((NULL != node->value) || (0 == node->valueByteCount));
+        has_delimiter = ('?' == node->value[byte_index - 1]) &&
+                        ('>' == node->value[byte_index]);
+        LOGASSERT(FALSE == has_delimiter);
+    }
 
-        if (NULL != node->value)
-        {
-            is_xml_string = Utl_Xml_IsString(node->value, node->valueByteCount);
-            LOGASSERT(is_xml_string);
-        }
+    WriteToken(output, capacity, byteCount, UTL_XML_PI_OPEN);
+    WriteBytes(output, capacity, byteCount, node->name, node->nameByteCount);
 
-        for (byte_index = 1; byte_index < node->valueByteCount; ++byte_index)
-        {
-            has_delimiter = ('-' == node->value[byte_index - 1]) &&
-                            ('-' == node->value[byte_index]);
-            LOGASSERT(FALSE == has_delimiter);
-        }
-
-        if (0 < node->valueByteCount)
-        {
-            LOGASSERT('-' != node->value[node->valueByteCount - 1]);
-        }
-
-        WriteToken(output, capacity, byteCount, UTL_XML_COMMENT_OPEN);
+    if (0 < node->valueByteCount)
+    {
+        WriteByte(output, capacity, byteCount, UTL_XML_CHAR_SPACE);
         WriteBytes(output, capacity, byteCount, node->value, node->valueByteCount);
-        WriteToken(output, capacity, byteCount, UTL_XML_COMMENT_CLOSE);
     }
-    else
-    {
-        LOGASSERT(UTL_XML_NODE_PROCESSING_INSTRUCTION == node->type);
-        LOGASSERT(NULL != node->name);
-        LOGASSERT((NULL != node->value) || (0 == node->valueByteCount));
 
-        is_name = Utl_Xml_IsName(node->name, node->nameByteCount);
-        LOGASSERT(is_name);
-
-        is_reserved_target = (3 == node->nameByteCount) &&
-                             (('x' == node->name[0]) || ('X' == node->name[0])) &&
-                             (('m' == node->name[1]) || ('M' == node->name[1])) &&
-                             (('l' == node->name[2]) || ('L' == node->name[2]));
-        LOGASSERT(FALSE == is_reserved_target);
-
-        if (NULL != node->value)
-        {
-            is_xml_string = Utl_Xml_IsString(node->value, node->valueByteCount);
-            LOGASSERT(is_xml_string);
-        }
-
-        for (byte_index = 1; byte_index < node->valueByteCount; ++byte_index)
-        {
-            has_delimiter = ('?' == node->value[byte_index - 1]) &&
-                            ('>' == node->value[byte_index]);
-            LOGASSERT(FALSE == has_delimiter);
-        }
-
-        WriteToken(output, capacity, byteCount, UTL_XML_PI_OPEN);
-        WriteBytes(output, capacity, byteCount, node->name, node->nameByteCount);
-
-        if (0 < node->valueByteCount)
-        {
-            WriteByte(output, capacity, byteCount, UTL_XML_CHAR_SPACE);
-            WriteBytes(output, capacity, byteCount, node->value, node->valueByteCount);
-        }
-
-        WriteToken(output, capacity, byteCount, UTL_XML_PI_CLOSE);
-    }
+    WriteToken(output, capacity, byteCount, UTL_XML_PI_CLOSE);
 }
 
 /*************************************************************************************************/
@@ -618,19 +659,38 @@ static void WriteElement(byte_t* output, uint32_t capacity, uint64_t* byteCount,
             break;
         }
 
-        if (UTL_XML_NODE_ELEMENT == current_node->type)
+        switch (current_node->type)
         {
-            WriteElementStart(output, capacity, byteCount, current_node);
-
-            if (NULL != current_node->firstChild)
+            case UTL_XML_NODE_ELEMENT:
             {
-                current_node = current_node->firstChild;
-                continue;
+                WriteElementStart(output, capacity, byteCount, current_node);
+
+                if (NULL != current_node->firstChild)
+                {
+                    current_node = current_node->firstChild;
+                    continue;
+                }
+                break;
             }
-        }
-        else
-        {
-            WriteLeaf(output, capacity, byteCount, current_node);
+            case UTL_XML_NODE_TEXT:
+            {
+                WriteText(output, capacity, byteCount, current_node);
+                break;
+            }
+            case UTL_XML_NODE_COMMENT:
+            {
+                WriteComment(output, capacity, byteCount, current_node);
+                break;
+            }
+            case UTL_XML_NODE_PROCESSING_INSTRUCTION:
+            {
+                WriteProcessingInstruction(output, capacity, byteCount, current_node);
+                break;
+            }
+            default:
+            {
+                LOGFATAL("Invalid XML node type.");
+            }
         }
 
         should_close_parent = (current_node != root) && (NULL == current_node->nextSibling);
@@ -740,7 +800,7 @@ void Utl_Xml_Document_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* n
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Writes the document once and asserts before any write that exceeds capacity.
+ *  Writes the appended nodes once and asserts before any write that exceeds capacity.
  */
 uint64_t Utl_Xml_Document_Write(const Utl_Xml_Document_t* document, byte_t* output, uint32_t capacity)
 {
@@ -751,9 +811,8 @@ uint64_t Utl_Xml_Document_Write(const Utl_Xml_Document_t* document, byte_t* outp
     LOGASSERT(NULL != document);
     LOGASSERT(NULL != output);
 
-    byte_count = 0;
-
     current_node = document->firstNode;
+    byte_count   = 0;
 
     for (node_index = 0; node_index < UTL_XML_DOCUMENT_MAX_NODES; ++node_index)
     {
@@ -764,14 +823,14 @@ uint64_t Utl_Xml_Document_Write(const Utl_Xml_Document_t* document, byte_t* outp
 
         switch (current_node->type)
         {
-            case UTL_XML_NODE_DOCTYPE:
-            {
-                WriteDoctype(output, capacity, &byte_count, current_node);
-                break;
-            }
             case UTL_XML_NODE_XML_DECLARATION:
             {
                 WriteDeclaration(output, capacity, &byte_count, current_node);
+                break;
+            }
+            case UTL_XML_NODE_DOCTYPE:
+            {
+                WriteDoctype(output, capacity, &byte_count, current_node);
                 break;
             }
             case UTL_XML_NODE_ELEMENT:
@@ -780,12 +839,22 @@ uint64_t Utl_Xml_Document_Write(const Utl_Xml_Document_t* document, byte_t* outp
                 break;
             }
             case UTL_XML_NODE_TEXT:
-            case UTL_XML_NODE_COMMENT:
-            default:
             {
-                WriteLeaf(output, capacity, &byte_count, current_node);
+                WriteText(output, capacity, &byte_count, current_node);
                 break;
             }
+            case UTL_XML_NODE_COMMENT:
+            {
+                WriteComment(output, capacity, &byte_count, current_node);
+                break;
+            }
+            case UTL_XML_NODE_PROCESSING_INSTRUCTION:
+            {
+                WriteProcessingInstruction(output, capacity, &byte_count, current_node);
+                break;
+            }
+            default:
+                LOGFATAL("Invalid XML node type!");
         }
 
         current_node = current_node->nextSibling;

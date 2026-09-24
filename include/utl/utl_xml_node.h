@@ -107,9 +107,8 @@ typedef struct Utl_Xml_Node_s
  *  and use value for content. Processing instructions use name for the target
  *  and value for data. XML declarations use a NULL name and optionally use value
  *  for encoding and standalone fields after version="1.0". DOCTYPE nodes use name
- *  for the root element type and optionally use value for an ExternalID and/or
- *  internal subset after the name. Declaration suffixes omit the leading space.
- *  XML validation and escaping are deferred until serialization.
+ *  for the root element type and optionally use value for a suffix containing an
+ *  ExternalID, an internal subset, or both. Declaration suffixes omit the leading space.
  *
  * \param[out] node            Uninitialized caller-owned node storage
  * \param[in]  type            XML node kind
