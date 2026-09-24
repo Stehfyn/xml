@@ -30,6 +30,7 @@
 
 /*************************************************************************************************/
 /**
+ * \brief Caller-owned XML 1.0 document built by appending top-level nodes in order.
  */
 typedef struct Utl_Xml_Document_s
 {
