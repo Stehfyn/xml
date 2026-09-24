@@ -245,7 +245,7 @@ static void WriteElement(byte_t* output, uint32_t capacity, uint64_t* byteCount,
  *
  * \retval None
  */
-static void WriteNode(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
+static void WriteLeafNode(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
 
 /*************************************************************************************************/
 /**
@@ -430,8 +430,8 @@ static void WriteHexCharReference(byte_t* output, uint32_t capacity, uint64_t* b
  */
 static void WriteEscaped(byte_t* output, uint32_t capacity, uint64_t* byteCount, const byte_t* utf8Text, uint32_t numBytes, bool_t isAttribute)
 {
-    uint32_t byte_index;
     bool_t   is_xml_string;
+    uint32_t byte_index;
 
     LOGASSERT((NULL != utf8Text) || (0 == numBytes));
 
@@ -501,8 +501,8 @@ static void WriteEscaped(byte_t* output, uint32_t capacity, uint64_t* byteCount,
  */
 static void WriteElementStart(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
 {
-    const Utl_Xml_Attribute_t* current_attribute;
     bool_t                     is_name;
+    const Utl_Xml_Attribute_t* current_attribute;
     uint32_t                   attribute_index;
 
     LOGASSERT(NULL != node->name);
@@ -667,7 +667,7 @@ static void WriteElement(byte_t* output, uint32_t capacity, uint64_t* byteCount,
         }
         else
         {
-            WriteNode(output, capacity, byteCount, current_node);
+            WriteLeafNode(output, capacity, byteCount, current_node);
         }
 
         should_close_parent = (current_node != root) && (NULL == current_node->nextSibling);
@@ -681,7 +681,9 @@ static void WriteElement(byte_t* output, uint32_t capacity, uint64_t* byteCount,
 
             current_node = current_node->parent;
             LOGASSERT(NULL != current_node);
+
             WriteElementEnd(output, capacity, byteCount, current_node);
+
             should_close_parent = (current_node != root) && (NULL == current_node->nextSibling);
         }
 
@@ -705,7 +707,7 @@ static void WriteElement(byte_t* output, uint32_t capacity, uint64_t* byteCount,
  * \par Details:
  *  Dispatches text, comment, and processing-instruction nodes.
  */
-static void WriteNode(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
+static void WriteLeafNode(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
 {
     switch (node->type)
     {
