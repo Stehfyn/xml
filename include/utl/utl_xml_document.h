@@ -71,7 +71,6 @@ void Utl_Xml_Document_Initialize(Utl_Xml_Document_t* document);
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-document
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-prolog
  *
- *  The caller owns each appended node and shall not share it between documents.
  *  XML declaration and DOCTYPE nodes use value for complete UTF-8 markup and
  *  a NULL name. The caller supplies valid internal markup grammar.
  *
