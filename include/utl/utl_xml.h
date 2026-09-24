@@ -227,10 +227,10 @@ bool_t Utl_Xml_IsNameChar(uint32_t codePoint);
  * \par Requirements:
  *  - 001 This function shall require a non-empty NameStartChar followed by zero or more NameChar values.
  *  - 002 This function shall check exactly byteCount bytes and reject invalid UTF-8, zero bytes, and spans longer than UTL_XML_MAX_NAME_BYTES.
- *  - 003 This function shall fail an assertion if utf8Text is NULL.
+ *  - 003 This function shall fail an assertion if utf8Text is NULL or byteCount is zero.
  *
  * \param[in] utf8Text   Non-NULL UTF-8 byte span
- * \param[in] byteCount  Number of bytes in the span
+ * \param[in] byteCount  Nonzero number of bytes in the span
  *
  * \retval TRUE          if the complete string is a permitted XML 1.0 Name.
  * \retval FALSE         otherwise

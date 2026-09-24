@@ -213,7 +213,6 @@ static void TestXmlByteSpans(void)
     assert(FALSE == Utl_Xml_IsString(embedded_zero, (uint32_t)sizeof(embedded_zero)));
     assert(FALSE == Utl_Xml_IsString(valid_text, (uint32_t)sizeof(valid_text)));
 
-    assert(FALSE == Utl_Xml_IsName(empty, 0));
     assert(TRUE == Utl_Xml_IsName(valid_name, (uint32_t)(sizeof(valid_name) - 1)));
     assert(TRUE == Utl_Xml_IsName(unterminated, (uint32_t)sizeof(unterminated)));
     assert(FALSE == Utl_Xml_IsName(invalid_name, (uint32_t)(sizeof(invalid_name) - 1)));

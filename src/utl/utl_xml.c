@@ -364,27 +364,29 @@ bool_t Utl_Xml_IsName(const byte_t* utf8Text, uint32_t byteCount)
 {
     bool_t   is_name;
     uint32_t byte_offset;
-    uint32_t code_point_index;
     uint32_t code_point;
     uint32_t decoded_byte_count;
-    bool_t   decode_succeeded;
+    bool_t   decode_failed;
 
     LOGASSERT(NULL != utf8Text);
     LOGASSERT(0 < byteCount);
     LOGASSERT(UTL_XML_MAX_NAME_BYTES >= byteCount);
 
-    is_name     = TRUE;
-    byte_offset = 0;
+    is_name = TRUE;
 
-    for (code_point_index = 0; byte_offset < byteCount; ++code_point_index, byte_offset += decoded_byte_count)
+    for (byte_offset = 0; byte_offset < byteCount; byte_offset += decoded_byte_count)
     {
         code_point = DecodeUtf8(utf8Text, byteCount, byte_offset, &decoded_byte_count);
-        
-        decode_succeeded = (0 < decoded_byte_count);
 
-        if (decode_succeeded)
+        decode_failed = (0 == decoded_byte_count);
+
+        if (decode_failed)
         {
-            if (0 == code_point_index)
+            is_name = FALSE;
+        }
+        else
+        {
+            if (0 == byte_offset)
             {
                 is_name = Utl_Xml_IsNameStartChar(code_point);
             }
@@ -392,10 +394,6 @@ bool_t Utl_Xml_IsName(const byte_t* utf8Text, uint32_t byteCount)
             {
                 is_name = Utl_Xml_IsNameChar(code_point);
             }
-        }
-        else
-        {
-            is_name = FALSE;
         }
 
         if (FALSE == is_name)
