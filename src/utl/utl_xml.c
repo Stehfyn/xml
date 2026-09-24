@@ -255,7 +255,7 @@ bool_t Utl_Xml_IsString(const byte_t* utf8Text, uint32_t byteCount)
 
     LOGASSERT(NULL != utf8Text);
 
-    is_xml_string = (byteCount <= UTL_XML_MAX_STRING_BYTES);
+    is_xml_string = (byteCount <= UTL_XML_MAX_VALUE_BYTES);
 
     if (is_xml_string)
     {

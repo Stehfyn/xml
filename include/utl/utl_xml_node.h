@@ -23,8 +23,6 @@
 ** 3.1 Macros
 **===============================================================================================*/
 
-#define UTL_XML_NODE_MAX_NAME_BYTES  UTL_XML_MAX_NAME_BYTES   ///< Maximum UTF-8 bytes in a node or attribute name.
-#define UTL_XML_NODE_MAX_VALUE_BYTES UTL_XML_MAX_STRING_BYTES ///< Maximum UTF-8 bytes in a node or attribute value.
 #define UTL_XML_NODE_MAX_ATTRIBUTES  (256)     ///< Maximum attributes on one element.
 #define UTL_XML_NODE_MAX_DEPTH       (65536)   ///< Maximum ancestor links checked when appending a child.
 

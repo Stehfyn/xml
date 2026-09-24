@@ -22,15 +22,20 @@
 ** 3.1 Macros
 **===============================================================================================*/
 
-/* Maximum UTF-8 byte lengths accepted by the string and name validators. */
-#define UTL_XML_MAX_NAME_BYTES   (1024)
-#define UTL_XML_MAX_STRING_BYTES (1048576)
+/* Maximum accepted UTF-8 name and value byte counts. */
+#define UTL_XML_MAX_NAME_BYTES  (1024)
+#define UTL_XML_MAX_VALUE_BYTES (1048576)
 
 /* XML 1.0 sections 2.2 and 2.3, productions [2] Char and [3] S. */
 #define UTL_XML_CHAR_TAB   ('\t') ///< Horizontal tab.
 #define UTL_XML_CHAR_LF    ('\n') ///< Line feed; normalized line ending (section 2.11).
 #define UTL_XML_CHAR_CR    ('\r') ///< Carriage return.
 #define UTL_XML_CHAR_SPACE (' ')  ///< Space.
+
+/* XML 1.0 section 2.4, production [14] CharData. */
+#define UTL_XML_CHAR_AMP ('&') ///< Ampersand.
+#define UTL_XML_CHAR_LT  ('<') ///< Less-than sign.
+#define UTL_XML_CHAR_GT  ('>') ///< Greater-than sign.
 
 /* XML 1.0 section 2.3, production [10] AttValue, and section 2.8, [25] Eq. */
 #define UTL_XML_QUOTE_APOS ('\'') ///< Single-quoted literal delimiter.
@@ -78,6 +83,11 @@
 #define UTL_XML_ENTITY_REF_OPEN   ("&")   ///< EntityRef prefix.
 #define UTL_XML_PE_REFERENCE_OPEN ("%")   ///< PEReference prefix.
 #define UTL_XML_REFERENCE_CLOSE   (";")   ///< CharRef, EntityRef, and PEReference terminator.
+
+/* XML 1.0 [66] CharRef; sections 2.11 and 3.3.3. */
+#define UTL_XML_CHAR_REF_TAB ("&#x9;") ///< Preserves tab in attribute values.
+#define UTL_XML_CHAR_REF_LF  ("&#xA;") ///< Preserves line feed in attribute values.
+#define UTL_XML_CHAR_REF_CR  ("&#xD;") ///< Preserves carriage return through line-end normalization.
 
 /* XML 1.0 section 4.3.3, productions [80] EncodingDecl and [81] EncName. */
 #define UTL_XML_ENCODING_NAME  ("encoding") ///< EncodingDecl keyword.
@@ -136,7 +146,7 @@ bool_t Utl_Xml_IsChar(uint32_t codePoint);
  *
  * \par Requirements:
  *  - 001 This function shall accept an empty span and reject invalid UTF-8 or non-Char code points, including zero bytes.
- *  - 002 This function shall check exactly byteCount bytes and reject spans longer than UTL_XML_MAX_STRING_BYTES.
+ *  - 002 This function shall check exactly byteCount bytes and reject spans longer than UTL_XML_MAX_VALUE_BYTES.
  *  - 003 This function shall fail an assertion if utf8Text is NULL.
  *
  * \param[in] utf8Text   Non-NULL UTF-8 byte span
@@ -260,7 +270,7 @@ bool_t Utl_Xml_IsNmtoken(const uint32_t* codePoints, uint32_t numCodePoints);
  *
  * \par Requirements:
  *  - 001 This function shall reject a double hyphen or trailing hyphen.
- *  - 002 This function shall check exactly byteCount bytes and reject invalid UTF-8, non-Char values, and spans longer than UTL_XML_MAX_STRING_BYTES.
+ *  - 002 This function shall check exactly byteCount bytes and reject invalid UTF-8, non-Char values, and spans longer than UTL_XML_MAX_VALUE_BYTES.
  *  - 003 This function shall fail an assertion if utf8Text is NULL.
  *
  * \param[in] utf8Text   Non-NULL UTF-8 byte span
@@ -281,7 +291,7 @@ bool_t Utl_Xml_IsCommentContent(const byte_t* utf8Text, uint32_t byteCount);
  *
  * \par Requirements:
  *  - 001 This function shall reject the ?> delimiter within the data.
- *  - 002 This function shall check exactly byteCount bytes and reject invalid UTF-8, non-Char values, and spans longer than UTL_XML_MAX_STRING_BYTES.
+ *  - 002 This function shall check exactly byteCount bytes and reject invalid UTF-8, non-Char values, and spans longer than UTL_XML_MAX_VALUE_BYTES.
  *  - 003 This function shall fail an assertion if utf8Text is NULL.
  *
  * \param[in] utf8Text   Non-NULL UTF-8 byte span

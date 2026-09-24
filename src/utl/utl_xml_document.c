@@ -121,23 +121,11 @@ static void WriteDeclaration(byte_t* output, uint32_t capacity, uint64_t* byteCo
 
 /*************************************************************************************************/
 /**
- * \brief Writes a one-digit hexadecimal XML character reference.
- * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-CharRef
- *
- * \param[in,out] output     Caller-provided byte storage
- * \param[in]     capacity   Number of bytes in output
- * \param[in,out] byteCount  Number of bytes already written
- * \param[in]     hexDigit   Hexadecimal digit
- *
- * \retval None
- */
-static void WriteHexCharReference(byte_t* output, uint32_t capacity, uint64_t* byteCount, byte_t hexDigit);
-
-/*************************************************************************************************/
-/**
  * \brief Escapes XML text or a double-quoted attribute value.
  * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-AttValue
  * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-CharData
+ * https://www.w3.org/TR/2008/REC-xml-20081126/#AVNormalize
+ * https://www.w3.org/TR/2008/REC-xml-20081126/#sec-line-ends
  *
  * \param[in,out] output     Caller-provided byte storage
  * \param[in]     capacity   Number of bytes in output
@@ -181,6 +169,19 @@ static void WriteElementEnd(byte_t* output, uint32_t capacity, uint64_t* byteCou
 
 /*************************************************************************************************/
 /**
+ * \brief Writes an element and its descendants without recursion.
+ *
+ * \param[in,out] output     Caller-provided byte storage
+ * \param[in]     capacity   Number of bytes in output
+ * \param[in,out] byteCount  Number of bytes already written
+ * \param[in]     root       Root element to write
+ *
+ * \retval None
+ */
+static void WriteElement(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* root);
+
+/*************************************************************************************************/
+/**
  * \brief Writes a text node as XML character data.
  * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-CharData
  *
@@ -220,19 +221,6 @@ static void WriteComment(byte_t* output, uint32_t capacity, uint64_t* byteCount,
  * \retval None
  */
 static void WriteProcessingInstruction(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
-
-/*************************************************************************************************/
-/**
- * \brief Writes an element and its descendants without recursion.
- *
- * \param[in,out] output     Caller-provided byte storage
- * \param[in]     capacity   Number of bytes in output
- * \param[in,out] byteCount  Number of bytes already written
- * \param[in]     root       Root element to write
- *
- * \retval None
- */
-static void WriteElement(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* root);
 
 /*************************************************************************************************/
 /**
@@ -414,18 +402,6 @@ static void WriteDeclaration(byte_t* output, uint32_t capacity, uint64_t* byteCo
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
- */
-static void WriteHexCharReference(byte_t* output, uint32_t capacity, uint64_t* byteCount, byte_t hexDigit)
-{
-    WriteToken(output, capacity, byteCount, UTL_XML_CHAR_REF_HEX_OPEN);
-    WriteByte(output, capacity, byteCount, hexDigit);
-    WriteToken(output, capacity, byteCount, UTL_XML_REFERENCE_CLOSE);
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
  *  Preserves text bytes except for XML delimiters and carriage returns.
  */
 static void WriteEscaped(byte_t* output, uint32_t capacity, uint64_t* byteCount, const byte_t* utf8Text, uint32_t numBytes, bool_t isAttribute)
@@ -445,16 +421,23 @@ static void WriteEscaped(byte_t* output, uint32_t capacity, uint64_t* byteCount,
     {
         switch (utf8Text[byte_index])
         {
-            case '&':
+            case UTL_XML_CHAR_AMP:
+            {
                 WriteToken(output, capacity, byteCount, UTL_XML_ENTITY_REF_AMP);
                 break;
-            case '<':
+            }
+            case UTL_XML_CHAR_LT:
+            {
                 WriteToken(output, capacity, byteCount, UTL_XML_ENTITY_REF_LT);
                 break;
-            case '>':
+            }
+            case UTL_XML_CHAR_GT:
+            {
                 WriteToken(output, capacity, byteCount, UTL_XML_ENTITY_REF_GT);
                 break;
+            }
             case UTL_XML_QUOTE_QUOT:
+            {
                 if (isAttribute)
                 {
                     WriteToken(output, capacity, byteCount, UTL_XML_ENTITY_REF_QUOT);
@@ -464,32 +447,41 @@ static void WriteEscaped(byte_t* output, uint32_t capacity, uint64_t* byteCount,
                     WriteByte(output, capacity, byteCount, UTL_XML_QUOTE_QUOT);
                 }
                 break;
+            }
             case UTL_XML_CHAR_TAB:
+            {
                 if (isAttribute)
                 {
-                    WriteHexCharReference(output, capacity, byteCount, '9');
+                    WriteToken(output, capacity, byteCount, UTL_XML_CHAR_REF_TAB);
                 }
                 else
                 {
                     WriteByte(output, capacity, byteCount, UTL_XML_CHAR_TAB);
                 }
                 break;
+            }
             case UTL_XML_CHAR_LF:
+            {
                 if (isAttribute)
                 {
-                    WriteHexCharReference(output, capacity, byteCount, 'A');
+                    WriteToken(output, capacity, byteCount, UTL_XML_CHAR_REF_LF);
                 }
                 else
                 {
                     WriteByte(output, capacity, byteCount, UTL_XML_CHAR_LF);
                 }
                 break;
+            }
             case UTL_XML_CHAR_CR:
-                WriteHexCharReference(output, capacity, byteCount, 'D');
+            {
+                WriteToken(output, capacity, byteCount, UTL_XML_CHAR_REF_CR);
                 break;
+            }
             default:
+            {
                 WriteByte(output, capacity, byteCount, utf8Text[byte_index]);
                 break;
+            }
         }
     }
 }
@@ -557,6 +549,74 @@ static void WriteElementEnd(byte_t* output, uint32_t capacity, uint64_t* byteCou
     WriteToken(output, capacity, byteCount, UTL_XML_ETAG_OPEN);
     WriteBytes(output, capacity, byteCount, node->name, node->nameByteCount);
     WriteToken(output, capacity, byteCount, UTL_XML_TAG_CLOSE);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  None
+ */
+static void WriteElement(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* root)
+{
+    const Utl_Xml_Node_t* current_node;
+    uint32_t              node_index;
+    uint32_t              ancestor_index;
+    bool_t                should_close_parent;
+
+    current_node = root;
+
+    for (node_index = 0; node_index < UTL_XML_DOCUMENT_MAX_NODES; ++node_index)
+    {
+        if (NULL == current_node)
+        {
+            break;
+        }
+
+        if (UTL_XML_NODE_ELEMENT == current_node->type)
+        {
+            WriteElementStart(output, capacity, byteCount, current_node);
+
+            if (NULL != current_node->firstChild)
+            {
+                current_node = current_node->firstChild;
+                continue;
+            }
+        }
+        else
+        {
+            WriteLeafNode(output, capacity, byteCount, current_node);
+        }
+
+        should_close_parent = (current_node != root) && (NULL == current_node->nextSibling);
+
+        for (ancestor_index = 0; ancestor_index < UTL_XML_NODE_MAX_DEPTH; ++ancestor_index)
+        {
+            if (FALSE == should_close_parent)
+            {
+                break;
+            }
+
+            current_node = current_node->parent;
+            LOGASSERT(NULL != current_node);
+
+            WriteElementEnd(output, capacity, byteCount, current_node);
+
+            should_close_parent = (current_node != root) && (NULL == current_node->nextSibling);
+        }
+
+        LOGASSERT(FALSE == should_close_parent);
+
+        if (current_node == root)
+        {
+            current_node = NULL;
+        }
+        else
+        {
+            current_node = current_node->nextSibling;
+        }
+    }
+
+    LOGASSERT(NULL == current_node);
 }
 
 /*************************************************************************************************/
@@ -632,74 +692,6 @@ static void WriteProcessingInstruction(byte_t* output, uint32_t capacity, uint64
     }
 
     WriteToken(output, capacity, byteCount, UTL_XML_PI_CLOSE);
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  None
- */
-static void WriteElement(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* root)
-{
-    const Utl_Xml_Node_t* current_node;
-    uint32_t              node_index;
-    uint32_t              ancestor_index;
-    bool_t                should_close_parent;
-
-    current_node = root;
-
-    for (node_index = 0; node_index < UTL_XML_DOCUMENT_MAX_NODES; ++node_index)
-    {
-        if (NULL == current_node)
-        {
-            break;
-        }
-
-        if (UTL_XML_NODE_ELEMENT == current_node->type)
-        {
-            WriteElementStart(output, capacity, byteCount, current_node);
-
-            if (NULL != current_node->firstChild)
-            {
-                current_node = current_node->firstChild;
-                continue;
-            }
-        }
-        else
-        {
-            WriteLeafNode(output, capacity, byteCount, current_node);
-        }
-
-        should_close_parent = (current_node != root) && (NULL == current_node->nextSibling);
-
-        for (ancestor_index = 0; ancestor_index < UTL_XML_NODE_MAX_DEPTH; ++ancestor_index)
-        {
-            if (FALSE == should_close_parent)
-            {
-                break;
-            }
-
-            current_node = current_node->parent;
-            LOGASSERT(NULL != current_node);
-
-            WriteElementEnd(output, capacity, byteCount, current_node);
-
-            should_close_parent = (current_node != root) && (NULL == current_node->nextSibling);
-        }
-
-        LOGASSERT(FALSE == should_close_parent);
-
-        if (current_node == root)
-        {
-            current_node = NULL;
-        }
-        else
-        {
-            current_node = current_node->nextSibling;
-        }
-    }
-
-    LOGASSERT(NULL == current_node);
 }
 
 /*************************************************************************************************/
