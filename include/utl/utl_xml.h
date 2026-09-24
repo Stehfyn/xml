@@ -386,7 +386,6 @@ bool_t Utl_Xml_IsPI(const byte_t* utf8Text, uint32_t byteCount);
  */
 bool_t Utl_Xml_IsPITarget(const byte_t* utf8Text, uint32_t byteCount);
 
-
 /*************************************************************************************************/
 /**
  * \brief Initializes caller-provided storage as an unlinked XML node.
@@ -415,7 +414,21 @@ bool_t Utl_Xml_IsPITarget(const byte_t* utf8Text, uint32_t byteCount);
  *
  * \retval None
  */
-void Utl_Xml_Node_Initialize(Utl_Xml_Node_t* node, Utl_Xml_NodeType_t type, const byte_t* name, uint32_t nameByteCount, const byte_t* value, uint32_t valueByteCount);
+void Utl_Xml_InitializeNode(Utl_Xml_Node_t* node, Utl_Xml_NodeType_t type, const byte_t* name, uint32_t nameByteCount, const byte_t* value, uint32_t valueByteCount);
+
+/*************************************************************************************************/
+/**
+ * \brief Initializes caller-provided storage as an empty XML document.
+ *
+ * \par Requirements:
+ *  - 001 This function shall fail an assertion if document is NULL.
+ *  - 002 This function shall set firstNode and lastNode to NULL.
+ *
+ * \param[out] document  Uninitialized document storage
+ *
+ * \retval None
+ */
+void Utl_Xml_InitializeDocument(Utl_Xml_Document_t* document);
 
 /*************************************************************************************************/
 /**
@@ -431,7 +444,7 @@ void Utl_Xml_Node_Initialize(Utl_Xml_Node_t* node, Utl_Xml_NodeType_t type, cons
  *
  * \retval None
  */
-void Utl_Xml_Node_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child);
+void Utl_Xml_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child);
 
 /*************************************************************************************************/
 /**
@@ -451,21 +464,7 @@ void Utl_Xml_Node_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child);
  *
  * \retval None
  */
-void Utl_Xml_Node_AddAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribute, const byte_t* name, uint32_t nameByteCount, const byte_t* value, uint32_t valueByteCount);
-
-/*************************************************************************************************/
-/**
- * \brief Initializes caller-provided storage as an empty XML document.
- *
- * \par Requirements:
- *  - 001 This function shall fail an assertion if document is NULL.
- *  - 002 This function shall set firstNode and lastNode to NULL.
- *
- * \param[out] document  Uninitialized document storage
- *
- * \retval None
- */
-void Utl_Xml_Document_Initialize(Utl_Xml_Document_t* document);
+void Utl_Xml_AddAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribute, const byte_t* name, uint32_t nameByteCount, const byte_t* value, uint32_t valueByteCount);
 
 /*************************************************************************************************/
 /**
@@ -498,7 +497,7 @@ void Utl_Xml_Document_Initialize(Utl_Xml_Document_t* document);
  *
  * \retval None
  */
-void Utl_Xml_Document_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node);
+void Utl_Xml_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node);
 
 /*************************************************************************************************/
 /**
@@ -535,6 +534,6 @@ void Utl_Xml_Document_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* n
  *
  * \return Number of bytes written.
  */
-uint64_t Utl_Xml_Document_Write(const Utl_Xml_Document_t* document, byte_t* output, uint32_t capacity);
+uint64_t Utl_Xml_WriteDocument(const Utl_Xml_Document_t* document, byte_t* output, uint32_t capacity);
 
 #endif /* UTL_XML_H */

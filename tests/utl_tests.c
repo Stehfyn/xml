@@ -264,10 +264,10 @@ static void TestXmlNodeInitialization(void)
     const byte_t        utf8_value[] = "A\xE2\x82\xAC\xF0\x9F\x98\x80" "Z";
     const byte_t        longer_name[] = "id2";
 
-    Utl_Xml_Node_Initialize(&root, UTL_XML_NODE_ELEMENT, name, (uint32_t)(sizeof(name) - 1), NULL, 0);
-    Utl_Xml_Node_Initialize(&text_node, UTL_XML_NODE_TEXT, NULL, 0, text_value, (uint32_t)(sizeof(text_value) - 1));
-    Utl_Xml_Node_Initialize(&comment, UTL_XML_NODE_COMMENT, NULL, 0, comment_value, (uint32_t)(sizeof(comment_value) - 1));
-    Utl_Xml_Node_Initialize(&instruction, UTL_XML_NODE_PROCESSING_INSTRUCTION, target, (uint32_t)(sizeof(target) - 1), data, (uint32_t)(sizeof(data) - 1));
+    Utl_Xml_InitializeNode(&root, UTL_XML_NODE_ELEMENT, name, (uint32_t)(sizeof(name) - 1), NULL, 0);
+    Utl_Xml_InitializeNode(&text_node, UTL_XML_NODE_TEXT, NULL, 0, text_value, (uint32_t)(sizeof(text_value) - 1));
+    Utl_Xml_InitializeNode(&comment, UTL_XML_NODE_COMMENT, NULL, 0, comment_value, (uint32_t)(sizeof(comment_value) - 1));
+    Utl_Xml_InitializeNode(&instruction, UTL_XML_NODE_PROCESSING_INSTRUCTION, target, (uint32_t)(sizeof(target) - 1), data, (uint32_t)(sizeof(data) - 1));
 
     assert(UTL_XML_NODE_ELEMENT == root.type);
     assert(name == root.name);
@@ -285,12 +285,12 @@ static void TestXmlNodeInitialization(void)
     assert((sizeof(data) - 1) == instruction.valueByteCount);
     assert(NULL == instruction.firstChild);
 
-    Utl_Xml_Node_AddAttribute(&root, &attribute, attribute_name, (uint32_t)(sizeof(attribute_name) - 1), attribute_value, (uint32_t)(sizeof(attribute_value) - 1));
-    Utl_Xml_Node_AddAttribute(&root, &utf8_attribute, utf8_name, (uint32_t)(sizeof(utf8_name) - 1), utf8_value, (uint32_t)(sizeof(utf8_value) - 1));
-    Utl_Xml_Node_AddAttribute(&root, &longer_attribute, longer_name, (uint32_t)(sizeof(longer_name) - 1), attribute_value, (uint32_t)(sizeof(attribute_value) - 1));
-    Utl_Xml_Node_AppendChild(&root, &text_node);
-    Utl_Xml_Node_AppendChild(&root, &comment);
-    Utl_Xml_Node_AppendChild(&root, &instruction);
+    Utl_Xml_AddAttribute(&root, &attribute, attribute_name, (uint32_t)(sizeof(attribute_name) - 1), attribute_value, (uint32_t)(sizeof(attribute_value) - 1));
+    Utl_Xml_AddAttribute(&root, &utf8_attribute, utf8_name, (uint32_t)(sizeof(utf8_name) - 1), utf8_value, (uint32_t)(sizeof(utf8_value) - 1));
+    Utl_Xml_AddAttribute(&root, &longer_attribute, longer_name, (uint32_t)(sizeof(longer_name) - 1), attribute_value, (uint32_t)(sizeof(attribute_value) - 1));
+    Utl_Xml_AppendChild(&root, &text_node);
+    Utl_Xml_AppendChild(&root, &comment);
+    Utl_Xml_AppendChild(&root, &instruction);
 
     assert(&attribute == root.firstAttribute);
     assert(&utf8_attribute == attribute.next);
@@ -325,10 +325,10 @@ static void TestDeferredNodeContentValidation(void)
     const byte_t   target[] = "xml";
     const byte_t   data[] = "?>";
 
-    Utl_Xml_Node_Initialize(&element, UTL_XML_NODE_ELEMENT, name, (uint32_t)(sizeof(name) - 1), NULL, 0);
-    Utl_Xml_Node_Initialize(&text_node, UTL_XML_NODE_TEXT, NULL, 0, text, (uint32_t)(sizeof(text) - 1));
-    Utl_Xml_Node_Initialize(&comment, UTL_XML_NODE_COMMENT, NULL, 0, comment_text, (uint32_t)(sizeof(comment_text) - 1));
-    Utl_Xml_Node_Initialize(&instruction, UTL_XML_NODE_PROCESSING_INSTRUCTION, target, (uint32_t)(sizeof(target) - 1), data, (uint32_t)(sizeof(data) - 1));
+    Utl_Xml_InitializeNode(&element, UTL_XML_NODE_ELEMENT, name, (uint32_t)(sizeof(name) - 1), NULL, 0);
+    Utl_Xml_InitializeNode(&text_node, UTL_XML_NODE_TEXT, NULL, 0, text, (uint32_t)(sizeof(text) - 1));
+    Utl_Xml_InitializeNode(&comment, UTL_XML_NODE_COMMENT, NULL, 0, comment_text, (uint32_t)(sizeof(comment_text) - 1));
+    Utl_Xml_InitializeNode(&instruction, UTL_XML_NODE_PROCESSING_INSTRUCTION, target, (uint32_t)(sizeof(target) - 1), data, (uint32_t)(sizeof(data) - 1));
 
     assert(name == element.name);
     assert((sizeof(name) - 1) == element.nameByteCount);
@@ -381,35 +381,35 @@ static void TestXmlDocumentWrite(void)
     uint64_t           bytes_written;
     int                close_result;
 
-    Utl_Xml_Document_Initialize(&document);
+    Utl_Xml_InitializeDocument(&document);
     assert(NULL == document.firstNode);
     assert(NULL == document.lastNode);
 
-    Utl_Xml_Node_Initialize(&declaration_node, UTL_XML_NODE_XML_DECLARATION, NULL, 0, NULL, 0);
-    Utl_Xml_Node_Initialize(&prolog_comment, UTL_XML_NODE_COMMENT, NULL, 0, before, (uint32_t)(sizeof(before) - 1));
-    Utl_Xml_Node_Initialize(&doctype_node, UTL_XML_NODE_DOCTYPE, root_name, (uint32_t)(sizeof(root_name) - 1), NULL, 0);
-    Utl_Xml_Node_Initialize(&prolog_instruction, UTL_XML_NODE_PROCESSING_INSTRUCTION, target, (uint32_t)(sizeof(target) - 1), data, (uint32_t)(sizeof(data) - 1));
-    Utl_Xml_Node_Initialize(&root, UTL_XML_NODE_ELEMENT, root_name, (uint32_t)(sizeof(root_name) - 1), NULL, 0);
-    Utl_Xml_Node_Initialize(&text_node, UTL_XML_NODE_TEXT, NULL, 0, text_value, (uint32_t)(sizeof(text_value) - 1));
-    Utl_Xml_Node_Initialize(&child, UTL_XML_NODE_ELEMENT, child_name, (uint32_t)(sizeof(child_name) - 1), NULL, 0);
-    Utl_Xml_Node_Initialize(&grandchild, UTL_XML_NODE_ELEMENT, grandchild_name, (uint32_t)(sizeof(grandchild_name) - 1), NULL, 0);
-    Utl_Xml_Node_Initialize(&tail_node, UTL_XML_NODE_TEXT, NULL, 0, tail, (uint32_t)(sizeof(tail) - 1));
-    Utl_Xml_Node_Initialize(&inner_comment, UTL_XML_NODE_COMMENT, NULL, 0, inside, (uint32_t)(sizeof(inside) - 1));
-    Utl_Xml_Node_Initialize(&epilog_comment, UTL_XML_NODE_COMMENT, NULL, 0, after, (uint32_t)(sizeof(after) - 1));
+    Utl_Xml_InitializeNode(&declaration_node, UTL_XML_NODE_XML_DECLARATION, NULL, 0, NULL, 0);
+    Utl_Xml_InitializeNode(&prolog_comment, UTL_XML_NODE_COMMENT, NULL, 0, before, (uint32_t)(sizeof(before) - 1));
+    Utl_Xml_InitializeNode(&doctype_node, UTL_XML_NODE_DOCTYPE, root_name, (uint32_t)(sizeof(root_name) - 1), NULL, 0);
+    Utl_Xml_InitializeNode(&prolog_instruction, UTL_XML_NODE_PROCESSING_INSTRUCTION, target, (uint32_t)(sizeof(target) - 1), data, (uint32_t)(sizeof(data) - 1));
+    Utl_Xml_InitializeNode(&root, UTL_XML_NODE_ELEMENT, root_name, (uint32_t)(sizeof(root_name) - 1), NULL, 0);
+    Utl_Xml_InitializeNode(&text_node, UTL_XML_NODE_TEXT, NULL, 0, text_value, (uint32_t)(sizeof(text_value) - 1));
+    Utl_Xml_InitializeNode(&child, UTL_XML_NODE_ELEMENT, child_name, (uint32_t)(sizeof(child_name) - 1), NULL, 0);
+    Utl_Xml_InitializeNode(&grandchild, UTL_XML_NODE_ELEMENT, grandchild_name, (uint32_t)(sizeof(grandchild_name) - 1), NULL, 0);
+    Utl_Xml_InitializeNode(&tail_node, UTL_XML_NODE_TEXT, NULL, 0, tail, (uint32_t)(sizeof(tail) - 1));
+    Utl_Xml_InitializeNode(&inner_comment, UTL_XML_NODE_COMMENT, NULL, 0, inside, (uint32_t)(sizeof(inside) - 1));
+    Utl_Xml_InitializeNode(&epilog_comment, UTL_XML_NODE_COMMENT, NULL, 0, after, (uint32_t)(sizeof(after) - 1));
 
-    Utl_Xml_Node_AddAttribute(&root, &attribute, attribute_name, (uint32_t)(sizeof(attribute_name) - 1), attribute_value, (uint32_t)(sizeof(attribute_value) - 1));
-    Utl_Xml_Node_AppendChild(&root, &text_node);
-    Utl_Xml_Node_AppendChild(&root, &child);
-    Utl_Xml_Node_AppendChild(&child, &grandchild);
-    Utl_Xml_Node_AppendChild(&root, &tail_node);
-    Utl_Xml_Node_AppendChild(&root, &inner_comment);
+    Utl_Xml_AddAttribute(&root, &attribute, attribute_name, (uint32_t)(sizeof(attribute_name) - 1), attribute_value, (uint32_t)(sizeof(attribute_value) - 1));
+    Utl_Xml_AppendChild(&root, &text_node);
+    Utl_Xml_AppendChild(&root, &child);
+    Utl_Xml_AppendChild(&child, &grandchild);
+    Utl_Xml_AppendChild(&root, &tail_node);
+    Utl_Xml_AppendChild(&root, &inner_comment);
 
-    Utl_Xml_Document_AppendNode(&document, &declaration_node);
-    Utl_Xml_Document_AppendNode(&document, &prolog_comment);
-    Utl_Xml_Document_AppendNode(&document, &doctype_node);
-    Utl_Xml_Document_AppendNode(&document, &prolog_instruction);
-    Utl_Xml_Document_AppendNode(&document, &root);
-    Utl_Xml_Document_AppendNode(&document, &epilog_comment);
+    Utl_Xml_AppendNode(&document, &declaration_node);
+    Utl_Xml_AppendNode(&document, &prolog_comment);
+    Utl_Xml_AppendNode(&document, &doctype_node);
+    Utl_Xml_AppendNode(&document, &prolog_instruction);
+    Utl_Xml_AppendNode(&document, &root);
+    Utl_Xml_AppendNode(&document, &epilog_comment);
 
     assert(&declaration_node == document.firstNode);
     assert(&prolog_comment == declaration_node.nextSibling);
@@ -421,7 +421,7 @@ static void TestXmlDocumentWrite(void)
     assert(&epilog_comment == document.lastNode);
 
     memset(output, 0xA5, sizeof(output));
-    byte_count = Utl_Xml_Document_Write(&document, output, (uint32_t)sizeof(output));
+    byte_count = Utl_Xml_WriteDocument(&document, output, (uint32_t)sizeof(output));
     assert((sizeof(expected) - 1) == byte_count);
     assert(0 == memcmp(output, expected, byte_count));
     assert(0xA5 == output[byte_count]);

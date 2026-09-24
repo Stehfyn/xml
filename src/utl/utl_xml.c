@@ -1413,7 +1413,7 @@ bool_t Utl_Xml_IsPITarget(const byte_t* utf8Text, uint32_t byteCount)
  * \par Details:
  *  None
  */
-void Utl_Xml_Node_Initialize(Utl_Xml_Node_t* node, Utl_Xml_NodeType_t type, const byte_t* name, uint32_t nameByteCount, const byte_t* value, uint32_t valueByteCount)
+void Utl_Xml_InitializeNode(Utl_Xml_Node_t* node, Utl_Xml_NodeType_t type, const byte_t* name, uint32_t nameByteCount, const byte_t* value, uint32_t valueByteCount)
 {
     LOGASSERT(NULL != node);
     LOGASSERT((NULL != name) || (0 == nameByteCount));
@@ -1436,9 +1436,22 @@ void Utl_Xml_Node_Initialize(Utl_Xml_Node_t* node, Utl_Xml_NodeType_t type, cons
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  None
+ */
+void Utl_Xml_InitializeDocument(Utl_Xml_Document_t* document)
+{
+    LOGASSERT(NULL != document);
+
+    document->firstNode = NULL;
+    document->lastNode  = NULL;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Links an unlinked child at the end of the element's child list.
  */
-void Utl_Xml_Node_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child)
+void Utl_Xml_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child)
 {
     const Utl_Xml_Node_t* ancestor;
 
@@ -1471,7 +1484,7 @@ void Utl_Xml_Node_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child)
  * \par Details:
  *  Validates the caller's attribute and appends it in source order.
  */
-void Utl_Xml_Node_AddAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribute, const byte_t* name, uint32_t nameByteCount, const byte_t* value, uint32_t valueByteCount)
+void Utl_Xml_AddAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribute, const byte_t* name, uint32_t nameByteCount, const byte_t* value, uint32_t valueByteCount)
 {
     bool_t                     is_name;
     bool_t                     is_xml_string;
@@ -1516,22 +1529,9 @@ void Utl_Xml_Node_AddAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attrib
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
- */
-void Utl_Xml_Document_Initialize(Utl_Xml_Document_t* document)
-{
-    LOGASSERT(NULL != document);
-
-    document->firstNode = NULL;
-    document->lastNode  = NULL;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
  *  Links one unlinked node at the end of the top-level list.
  */
-void Utl_Xml_Document_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node)
+void Utl_Xml_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node)
 {
     const Utl_Xml_Node_t* found_node;
     bool_t                is_element;
@@ -1587,7 +1587,7 @@ void Utl_Xml_Document_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* n
  * \par Details:
  *  None
  */
-uint64_t Utl_Xml_Document_Write(const Utl_Xml_Document_t* document, byte_t* output, uint32_t capacity)
+uint64_t Utl_Xml_WriteDocument(const Utl_Xml_Document_t* document, byte_t* output, uint32_t capacity)
 {
     const Utl_Xml_Node_t* current_node;
     uint64_t              byte_count;

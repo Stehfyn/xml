@@ -133,46 +133,46 @@ int main(void)
     uint32_t            property_index;
     int                 close_result;
 
-    Utl_Xml_Document_Initialize(&document);
-    Utl_Xml_Node_Initialize(&declaration, UTL_XML_NODE_XML_DECLARATION, NULL, 0, NULL, 0);
-    Utl_Xml_Node_Initialize(&definition, UTL_XML_NODE_ELEMENT, XML_LITERAL("a661_df"), NULL, 0);
-    Utl_Xml_Node_Initialize(&layer, UTL_XML_NODE_ELEMENT, XML_LITERAL("a661_layer"), NULL, 0);
-    Utl_Xml_Node_Initialize(&panel, UTL_XML_NODE_ELEMENT, XML_LITERAL("a661_widget"), NULL, 0);
-    Utl_Xml_Node_Initialize(&label, UTL_XML_NODE_ELEMENT, XML_LITERAL("a661_widget"), NULL, 0);
+    Utl_Xml_InitializeDocument(&document);
+    Utl_Xml_InitializeNode(&declaration, UTL_XML_NODE_XML_DECLARATION, NULL, 0, NULL, 0);
+    Utl_Xml_InitializeNode(&definition, UTL_XML_NODE_ELEMENT, XML_LITERAL("a661_df"), NULL, 0);
+    Utl_Xml_InitializeNode(&layer, UTL_XML_NODE_ELEMENT, XML_LITERAL("a661_layer"), NULL, 0);
+    Utl_Xml_InitializeNode(&panel, UTL_XML_NODE_ELEMENT, XML_LITERAL("a661_widget"), NULL, 0);
+    Utl_Xml_InitializeNode(&label, UTL_XML_NODE_ELEMENT, XML_LITERAL("a661_widget"), NULL, 0);
 
     for (model_index = 0; model_index < ARINC661_MODEL_COUNT; ++model_index)
     {
-        Utl_Xml_Node_Initialize(&models[model_index], UTL_XML_NODE_ELEMENT, XML_LITERAL("model"), NULL, 0);
+        Utl_Xml_InitializeNode(&models[model_index], UTL_XML_NODE_ELEMENT, XML_LITERAL("model"), NULL, 0);
     }
 
-    Utl_Xml_Node_AddAttribute(&definition, &definition_attributes[0], XML_LITERAL("name"), XML_LITERAL("arinc661_definition"));
-    Utl_Xml_Node_AddAttribute(&definition, &definition_attributes[1], XML_LITERAL("library_version"), XML_LITERAL("0"));
-    Utl_Xml_Node_AddAttribute(&definition, &definition_attributes[2], XML_LITERAL("supp_version"), XML_LITERAL("6"));
-    Utl_Xml_Node_AddAttribute(&layer, &layer_attribute, XML_LITERAL("name"), XML_LITERAL("PrimaryLayer"));
-    Utl_Xml_Node_AddAttribute(&panel, &panel_attributes[0], XML_LITERAL("name"), XML_LITERAL("MainPanel"));
-    Utl_Xml_Node_AddAttribute(&panel, &panel_attributes[1], XML_LITERAL("type"), XML_LITERAL("A661_PANEL"));
-    Utl_Xml_Node_AddAttribute(&label, &label_attributes[0], XML_LITERAL("name"), XML_LITERAL("StatusLabel"));
-    Utl_Xml_Node_AddAttribute(&label, &label_attributes[1], XML_LITERAL("type"), XML_LITERAL("A661_LABEL"));
+    Utl_Xml_AddAttribute(&definition, &definition_attributes[0], XML_LITERAL("name"), XML_LITERAL("arinc661_definition"));
+    Utl_Xml_AddAttribute(&definition, &definition_attributes[1], XML_LITERAL("library_version"), XML_LITERAL("0"));
+    Utl_Xml_AddAttribute(&definition, &definition_attributes[2], XML_LITERAL("supp_version"), XML_LITERAL("6"));
+    Utl_Xml_AddAttribute(&layer, &layer_attribute, XML_LITERAL("name"), XML_LITERAL("PrimaryLayer"));
+    Utl_Xml_AddAttribute(&panel, &panel_attributes[0], XML_LITERAL("name"), XML_LITERAL("MainPanel"));
+    Utl_Xml_AddAttribute(&panel, &panel_attributes[1], XML_LITERAL("type"), XML_LITERAL("A661_PANEL"));
+    Utl_Xml_AddAttribute(&label, &label_attributes[0], XML_LITERAL("name"), XML_LITERAL("StatusLabel"));
+    Utl_Xml_AddAttribute(&label, &label_attributes[1], XML_LITERAL("type"), XML_LITERAL("A661_LABEL"));
 
     for (property_index = 0; property_index < (uint32_t)COUNT_OF(c_arinc661Properties); ++property_index)
     {
-        Utl_Xml_Node_Initialize(&property_nodes[property_index], UTL_XML_NODE_ELEMENT, XML_LITERAL("prop"), NULL, 0);
-        Utl_Xml_Node_AddAttribute(&property_nodes[property_index], &property_names[property_index], XML_LITERAL("name"), c_arinc661Properties[property_index].name, c_arinc661Properties[property_index].nameByteCount);
-        Utl_Xml_Node_AddAttribute(&property_nodes[property_index], &property_values[property_index], XML_LITERAL("value"), c_arinc661Properties[property_index].value, c_arinc661Properties[property_index].valueByteCount);
-        Utl_Xml_Node_AppendChild(&models[c_arinc661Properties[property_index].modelIndex], &property_nodes[property_index]);
+        Utl_Xml_InitializeNode(&property_nodes[property_index], UTL_XML_NODE_ELEMENT, XML_LITERAL("prop"), NULL, 0);
+        Utl_Xml_AddAttribute(&property_nodes[property_index], &property_names[property_index], XML_LITERAL("name"), c_arinc661Properties[property_index].name, c_arinc661Properties[property_index].nameByteCount);
+        Utl_Xml_AddAttribute(&property_nodes[property_index], &property_values[property_index], XML_LITERAL("value"), c_arinc661Properties[property_index].value, c_arinc661Properties[property_index].valueByteCount);
+        Utl_Xml_AppendChild(&models[c_arinc661Properties[property_index].modelIndex], &property_nodes[property_index]);
     }
 
-    Utl_Xml_Node_AppendChild(&definition, &models[ARINC661_DOCUMENT_MODEL]);
-    Utl_Xml_Node_AppendChild(&definition, &layer);
-    Utl_Xml_Node_AppendChild(&layer, &models[ARINC661_LAYER_MODEL]);
-    Utl_Xml_Node_AppendChild(&layer, &panel);
-    Utl_Xml_Node_AppendChild(&panel, &models[ARINC661_PANEL_MODEL]);
-    Utl_Xml_Node_AppendChild(&panel, &label);
-    Utl_Xml_Node_AppendChild(&label, &models[ARINC661_LABEL_MODEL]);
-    Utl_Xml_Document_AppendNode(&document, &declaration);
-    Utl_Xml_Document_AppendNode(&document, &definition);
+    Utl_Xml_AppendChild(&definition, &models[ARINC661_DOCUMENT_MODEL]);
+    Utl_Xml_AppendChild(&definition, &layer);
+    Utl_Xml_AppendChild(&layer, &models[ARINC661_LAYER_MODEL]);
+    Utl_Xml_AppendChild(&layer, &panel);
+    Utl_Xml_AppendChild(&panel, &models[ARINC661_PANEL_MODEL]);
+    Utl_Xml_AppendChild(&panel, &label);
+    Utl_Xml_AppendChild(&label, &models[ARINC661_LABEL_MODEL]);
+    Utl_Xml_AppendNode(&document, &declaration);
+    Utl_Xml_AppendNode(&document, &definition);
 
-    byte_count = Utl_Xml_Document_Write(&document, output, (uint32_t)sizeof(output));
+    byte_count = Utl_Xml_WriteDocument(&document, output, (uint32_t)sizeof(output));
     xml_file = fopen("examples/arinc661_definition.xml", "wb");
     LOGASSERT(NULL != xml_file);
     bytes_written = fwrite(output, 1, (uint32_t)byte_count, xml_file);
