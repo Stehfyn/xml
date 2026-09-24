@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(xml LANGUAGES C)
+project(xml LANGUAGES C CXX)
 
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -45,6 +45,23 @@ target_link_libraries(utl_tests PRIVATE utl)
 add_executable(arinc661_definition examples/arinc661_definition.c)
 target_link_libraries(arinc661_definition PRIVATE utl)
 set_target_properties(arinc661_definition PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+
+if(WIN32)
+    set(IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui-docking")
+    add_executable(arinc661_configuration
+        examples/arinc661_configuration.cpp
+        "${IMGUI_DIR}/imgui.cpp"
+        "${IMGUI_DIR}/imgui_demo.cpp"
+        "${IMGUI_DIR}/imgui_draw.cpp"
+        "${IMGUI_DIR}/imgui_tables.cpp"
+        "${IMGUI_DIR}/imgui_widgets.cpp"
+        "${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp"
+        "${IMGUI_DIR}/backends/imgui_impl_win32.cpp")
+    target_compile_features(arinc661_configuration PRIVATE cxx_std_11)
+    target_include_directories(arinc661_configuration PRIVATE "${IMGUI_DIR}" "${IMGUI_DIR}/backends")
+    target_link_libraries(arinc661_configuration PRIVATE opengl32 gdi32 dwmapi)
+endif()
+
 add_custom_target(arinc661_definition_xml
     COMMAND $<TARGET_FILE:arinc661_definition>
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
