@@ -31,8 +31,10 @@ endif()
 target_include_directories(os PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 add_library(utl STATIC
+    src/utl/utl_util.c
     src/utl/utl_xml.c
     include/utl/utl_defines.h
+    include/utl/utl_util.h
     include/utl/utl_xml.h)
 target_link_libraries(utl PUBLIC os)
 target_include_directories(utl PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
