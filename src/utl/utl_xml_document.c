@@ -308,7 +308,7 @@ static const Utl_Xml_Node_t* FindNode(const Utl_Xml_Document_t* document, Utl_Xm
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Checks the output bound before copying. A zero-length span copies nothing.
+ *  Checks the output bound before copying a nonempty span.
  */
 static void WriteBytes(byte_t* output, uint32_t capacity, uint64_t* byteCount, const byte_t* bytes, uint32_t numBytes)
 {
@@ -316,16 +316,14 @@ static void WriteBytes(byte_t* output, uint32_t capacity, uint64_t* byteCount, c
 
     LOGASSERT(NULL != output);
     LOGASSERT(NULL != byteCount);
-    LOGASSERT((NULL != bytes) || (0 == numBytes));
+    LOGASSERT(NULL != bytes);
+    LOGASSERT(0 < numBytes);
     LOGASSERT((*byteCount) <= capacity);
 
     fits_capacity = (numBytes <= capacity - (*byteCount));
     LOGASSERT(fits_capacity);
 
-    if (0 < numBytes)
-    {
-        (void)memcpy(output + (*byteCount), bytes, numBytes);
-    }
+    (void)memcpy(output + (*byteCount), bytes, numBytes);
 
     (*byteCount) += numBytes;
 }
@@ -593,7 +591,12 @@ static void WriteComment(byte_t* output, uint32_t capacity, uint64_t* byteCount,
     }
 
     WriteToken(output, capacity, byteCount, UTL_XML_COMMENT_OPEN);
-    WriteBytes(output, capacity, byteCount, node->value, node->valueByteCount);
+
+    if (0 < node->valueByteCount)
+    {
+        WriteBytes(output, capacity, byteCount, node->value, node->valueByteCount);
+    }
+
     WriteToken(output, capacity, byteCount, UTL_XML_COMMENT_CLOSE);
 }
 
