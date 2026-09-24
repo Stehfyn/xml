@@ -34,16 +34,16 @@
 
 /*************************************************************************************************/
 /**
- * \brief XML document type, element, text, comment, processing instruction, or declaration kind.
+ * \brief XML 1.0 node type.
  */
 typedef enum Utl_Xml_NodeType_e
 {
+    UTL_XML_NODE_XML_DECLARATION,
     UTL_XML_NODE_DOCTYPE,
     UTL_XML_NODE_ELEMENT,
     UTL_XML_NODE_TEXT,
     UTL_XML_NODE_COMMENT,
-    UTL_XML_NODE_PROCESSING_INSTRUCTION,
-    UTL_XML_NODE_XML_DECLARATION
+    UTL_XML_NODE_PROCESSING_INSTRUCTION
 } Utl_Xml_NodeType_t;
 
 /*************************************************************************************************/
