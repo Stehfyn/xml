@@ -279,7 +279,7 @@ bool_t Utl_Xml_IsNmtoken(const uint32_t* codePoints, uint32_t numCodePoints);
  * \retval TRUE          if the span is permitted XML 1.0 comment content.
  * \retval FALSE         otherwise
  */
-bool_t Utl_Xml_IsCommentContent(const byte_t* utf8Text, uint32_t byteCount);
+bool_t Utl_Xml_IsComment(const byte_t* utf8Text, uint32_t byteCount);
 
 /*************************************************************************************************/
 /**
@@ -300,7 +300,7 @@ bool_t Utl_Xml_IsCommentContent(const byte_t* utf8Text, uint32_t byteCount);
  * \retval TRUE          if the span is permitted XML 1.0 PI data.
  * \retval FALSE         otherwise
  */
-bool_t Utl_Xml_IsPIData(const byte_t* utf8Text, uint32_t byteCount);
+bool_t Utl_Xml_IsPI(const byte_t* utf8Text, uint32_t byteCount);
 
 /*************************************************************************************************/
 /**

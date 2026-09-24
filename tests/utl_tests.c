@@ -8,6 +8,7 @@
 #undef NDEBUG
 #endif
 #include <assert.h>
+#include <stdio.h>
 #include <string.h>
 
 /*************************************************************************************************/
@@ -227,18 +228,18 @@ static void TestXmlByteSpans(void)
     assert(FALSE == Utl_Xml_IsPITarget(invalid_name, (uint32_t)(sizeof(invalid_name) - 1)));
     assert(FALSE == Utl_Xml_IsPITarget(embedded_zero, (uint32_t)sizeof(embedded_zero)));
 
-    assert(TRUE == Utl_Xml_IsCommentContent(empty, 0));
-    assert(TRUE == Utl_Xml_IsCommentContent(valid_comment, (uint32_t)(sizeof(valid_comment) - 1)));
-    assert(FALSE == Utl_Xml_IsCommentContent(double_hyphen, (uint32_t)(sizeof(double_hyphen) - 1)));
-    assert(FALSE == Utl_Xml_IsCommentContent(trailing_hyphen, (uint32_t)(sizeof(trailing_hyphen) - 1)));
-    assert(FALSE == Utl_Xml_IsCommentContent(invalid_utf8, (uint32_t)(sizeof(invalid_utf8) - 1)));
-    assert(FALSE == Utl_Xml_IsCommentContent(embedded_zero, (uint32_t)sizeof(embedded_zero)));
+    assert(TRUE == Utl_Xml_IsComment(empty, 0));
+    assert(TRUE == Utl_Xml_IsComment(valid_comment, (uint32_t)(sizeof(valid_comment) - 1)));
+    assert(FALSE == Utl_Xml_IsComment(double_hyphen, (uint32_t)(sizeof(double_hyphen) - 1)));
+    assert(FALSE == Utl_Xml_IsComment(trailing_hyphen, (uint32_t)(sizeof(trailing_hyphen) - 1)));
+    assert(FALSE == Utl_Xml_IsComment(invalid_utf8, (uint32_t)(sizeof(invalid_utf8) - 1)));
+    assert(FALSE == Utl_Xml_IsComment(embedded_zero, (uint32_t)sizeof(embedded_zero)));
 
-    assert(TRUE == Utl_Xml_IsPIData(empty, 0));
-    assert(TRUE == Utl_Xml_IsPIData(valid_pi_data, (uint32_t)(sizeof(valid_pi_data) - 1)));
-    assert(FALSE == Utl_Xml_IsPIData(pi_close_delimiter, (uint32_t)(sizeof(pi_close_delimiter) - 1)));
-    assert(FALSE == Utl_Xml_IsPIData(invalid_utf8, (uint32_t)(sizeof(invalid_utf8) - 1)));
-    assert(FALSE == Utl_Xml_IsPIData(embedded_zero, (uint32_t)sizeof(embedded_zero)));
+    assert(TRUE == Utl_Xml_IsPI(empty, 0));
+    assert(TRUE == Utl_Xml_IsPI(valid_pi_data, (uint32_t)(sizeof(valid_pi_data) - 1)));
+    assert(FALSE == Utl_Xml_IsPI(pi_close_delimiter, (uint32_t)(sizeof(pi_close_delimiter) - 1)));
+    assert(FALSE == Utl_Xml_IsPI(invalid_utf8, (uint32_t)(sizeof(invalid_utf8) - 1)));
+    assert(FALSE == Utl_Xml_IsPI(embedded_zero, (uint32_t)sizeof(embedded_zero)));
 }
 
 /*************************************************************************************************/
@@ -344,7 +345,7 @@ static void TestDeferredNodeContentValidation(void)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Builds a document in source order and checks its exact serialized byte span.
+ *  Builds a document in source order, checks its serialized bytes, and writes an XML artifact.
  */
 static void TestXmlDocumentWrite(void)
 {
@@ -378,7 +379,10 @@ static void TestXmlDocumentWrite(void)
         "<root a=\"A&amp;&quot;&lt;&#x9;&#xA;&#xD;\">&lt;&amp;&gt;&#xD;"
         "<child><grandchild/></child>tail<!--inside--></root><!--after-->";
     byte_t             output[256];
+    FILE*              xml_file;
     uint64_t           byte_count;
+    uint64_t           bytes_written;
+    int                close_result;
 
     Utl_Xml_Document_Initialize(&document);
     assert(NULL == document.firstNode);
@@ -424,6 +428,13 @@ static void TestXmlDocumentWrite(void)
     assert((sizeof(expected) - 1) == byte_count);
     assert(0 == memcmp(output, expected, byte_count));
     assert(0xA5 == output[byte_count]);
+
+    xml_file = fopen("utl_xml_document.xml", "wb");
+    assert(NULL != xml_file);
+    bytes_written = fwrite(output, 1, (uint32_t)byte_count, xml_file);
+    assert(byte_count == bytes_written);
+    close_result = fclose(xml_file);
+    assert(0 == close_result);
 }
 
 /*************************************************************************************************/

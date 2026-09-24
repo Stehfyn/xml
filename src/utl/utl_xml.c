@@ -438,7 +438,7 @@ bool_t Utl_Xml_IsNmtoken(const uint32_t* codePoints, uint32_t numCodePoints)
  * \par Details:
  *  Comment content cannot contain a double hyphen or end with a hyphen.
  */
-bool_t Utl_Xml_IsCommentContent(const byte_t* utf8Text, uint32_t byteCount)
+bool_t Utl_Xml_IsComment(const byte_t* utf8Text, uint32_t byteCount)
 {
     uint32_t byte_index;
     bool_t   is_comment_content;
@@ -479,7 +479,7 @@ bool_t Utl_Xml_IsCommentContent(const byte_t* utf8Text, uint32_t byteCount)
  * \par Details:
  *  PI data cannot contain its closing delimiter.
  */
-bool_t Utl_Xml_IsPIData(const byte_t* utf8Text, uint32_t byteCount)
+bool_t Utl_Xml_IsPI(const byte_t* utf8Text, uint32_t byteCount)
 {
     uint32_t byte_index;
     bool_t   is_pi_data;

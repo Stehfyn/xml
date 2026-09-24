@@ -121,9 +121,24 @@ static void WriteDeclaration(byte_t* output, uint32_t capacity, uint64_t* byteCo
 
 /*************************************************************************************************/
 /**
- * \brief Escapes XML text or a double-quoted attribute value.
- * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-AttValue
+ * \brief Writes escaped XML character data.
  * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-CharData
+ * https://www.w3.org/TR/2008/REC-xml-20081126/#sec-line-ends
+ *
+ * \param[in,out] output     Caller-provided byte storage
+ * \param[in]     capacity   Number of bytes in output
+ * \param[in,out] byteCount  Number of bytes already written
+ * \param[in]     utf8Text   UTF-8 byte span, or NULL for an empty span
+ * \param[in]     numBytes   Number of input bytes
+ *
+ * \retval None
+ */
+static void WriteEscapedCharData(byte_t* output, uint32_t capacity, uint64_t* byteCount, const byte_t* utf8Text, uint32_t numBytes);
+
+/*************************************************************************************************/
+/**
+ * \brief Writes an escaped double-quoted XML attribute value.
+ * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-AttValue
  * https://www.w3.org/TR/2008/REC-xml-20081126/#AVNormalize
  * https://www.w3.org/TR/2008/REC-xml-20081126/#sec-line-ends
  *
@@ -132,11 +147,10 @@ static void WriteDeclaration(byte_t* output, uint32_t capacity, uint64_t* byteCo
  * \param[in,out] byteCount  Number of bytes already written
  * \param[in]     utf8Text   UTF-8 byte span, or NULL for an empty span
  * \param[in]     numBytes   Number of input bytes
- * \param[in]     isAttribute  TRUE for an attribute value
  *
  * \retval None
  */
-static void WriteEscaped(byte_t* output, uint32_t capacity, uint64_t* byteCount, const byte_t* utf8Text, uint32_t numBytes, bool_t isAttribute);
+static void WriteEscapedAttributeValue(byte_t* output, uint32_t capacity, uint64_t* byteCount, const byte_t* utf8Text, uint32_t numBytes);
 
 /*************************************************************************************************/
 /**
@@ -402,9 +416,9 @@ static void WriteDeclaration(byte_t* output, uint32_t capacity, uint64_t* byteCo
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Preserves text bytes except for XML delimiters and carriage returns.
+ *  Preserves character data except for XML delimiters and carriage returns.
  */
-static void WriteEscaped(byte_t* output, uint32_t capacity, uint64_t* byteCount, const byte_t* utf8Text, uint32_t numBytes, bool_t isAttribute)
+static void WriteEscapedCharData(byte_t* output, uint32_t capacity, uint64_t* byteCount, const byte_t* utf8Text, uint32_t numBytes)
 {
     bool_t   is_xml_string;
     uint32_t byte_index;
@@ -421,6 +435,72 @@ static void WriteEscaped(byte_t* output, uint32_t capacity, uint64_t* byteCount,
     {
         switch (utf8Text[byte_index])
         {
+            case UTL_XML_CHAR_CR:
+            {
+                WriteToken(output, capacity, byteCount, UTL_XML_CHAR_REF_CR);
+                break;
+            }
+            case UTL_XML_CHAR_AMP:
+            {
+                WriteToken(output, capacity, byteCount, UTL_XML_ENTITY_REF_AMP);
+                break;
+            }
+            case UTL_XML_CHAR_LT:
+            {
+                WriteToken(output, capacity, byteCount, UTL_XML_ENTITY_REF_LT);
+                break;
+            }
+            case UTL_XML_CHAR_GT:
+            {
+                WriteToken(output, capacity, byteCount, UTL_XML_ENTITY_REF_GT);
+                break;
+            }
+            default:
+            {
+                WriteByte(output, capacity, byteCount, utf8Text[byte_index]);
+                break;
+            }
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Uses character references for whitespace that attribute normalization would change.
+ */
+static void WriteEscapedAttributeValue(byte_t* output, uint32_t capacity, uint64_t* byteCount, const byte_t* utf8Text, uint32_t numBytes)
+{
+    bool_t   is_xml_string;
+    uint32_t byte_index;
+
+    LOGASSERT((NULL != utf8Text) || (0 == numBytes));
+
+    if (NULL != utf8Text)
+    {
+        is_xml_string = Utl_Xml_IsString(utf8Text, numBytes);
+        LOGASSERT(is_xml_string);
+    }
+
+    for (byte_index = 0; byte_index < numBytes; ++byte_index)
+    {
+        switch (utf8Text[byte_index])
+        {
+            case UTL_XML_CHAR_TAB:
+            {
+                WriteToken(output, capacity, byteCount, UTL_XML_CHAR_REF_TAB);
+                break;
+            }
+            case UTL_XML_CHAR_LF:
+            {
+                WriteToken(output, capacity, byteCount, UTL_XML_CHAR_REF_LF);
+                break;
+            }
+            case UTL_XML_CHAR_CR:
+            {
+                WriteToken(output, capacity, byteCount, UTL_XML_CHAR_REF_CR);
+                break;
+            }
             case UTL_XML_CHAR_AMP:
             {
                 WriteToken(output, capacity, byteCount, UTL_XML_ENTITY_REF_AMP);
@@ -438,43 +518,7 @@ static void WriteEscaped(byte_t* output, uint32_t capacity, uint64_t* byteCount,
             }
             case UTL_XML_QUOTE_QUOT:
             {
-                if (isAttribute)
-                {
-                    WriteToken(output, capacity, byteCount, UTL_XML_ENTITY_REF_QUOT);
-                }
-                else
-                {
-                    WriteByte(output, capacity, byteCount, UTL_XML_QUOTE_QUOT);
-                }
-                break;
-            }
-            case UTL_XML_CHAR_TAB:
-            {
-                if (isAttribute)
-                {
-                    WriteToken(output, capacity, byteCount, UTL_XML_CHAR_REF_TAB);
-                }
-                else
-                {
-                    WriteByte(output, capacity, byteCount, UTL_XML_CHAR_TAB);
-                }
-                break;
-            }
-            case UTL_XML_CHAR_LF:
-            {
-                if (isAttribute)
-                {
-                    WriteToken(output, capacity, byteCount, UTL_XML_CHAR_REF_LF);
-                }
-                else
-                {
-                    WriteByte(output, capacity, byteCount, UTL_XML_CHAR_LF);
-                }
-                break;
-            }
-            case UTL_XML_CHAR_CR:
-            {
-                WriteToken(output, capacity, byteCount, UTL_XML_CHAR_REF_CR);
+                WriteToken(output, capacity, byteCount, UTL_XML_ENTITY_REF_QUOT);
                 break;
             }
             default:
@@ -521,7 +565,7 @@ static void WriteElementStart(byte_t* output, uint32_t capacity, uint64_t* byteC
         WriteBytes(output, capacity, byteCount, current_attribute->name, current_attribute->nameByteCount);
         WriteByte(output, capacity, byteCount, UTL_XML_EQ);
         WriteByte(output, capacity, byteCount, UTL_XML_QUOTE_QUOT);
-        WriteEscaped(output, capacity, byteCount, current_attribute->value, current_attribute->valueByteCount, TRUE);
+        WriteEscapedAttributeValue(output, capacity, byteCount, current_attribute->value, current_attribute->valueByteCount);
         WriteByte(output, capacity, byteCount, UTL_XML_QUOTE_QUOT);
 
         current_attribute = current_attribute->next;
@@ -628,7 +672,8 @@ static void WriteText(byte_t* output, uint32_t capacity, uint64_t* byteCount, co
 {
     LOGASSERT(NULL == node->name);
     LOGASSERT(0 == node->nameByteCount);
-    WriteEscaped(output, capacity, byteCount, node->value, node->valueByteCount, FALSE);
+
+    WriteEscapedCharData(output, capacity, byteCount, node->value, node->valueByteCount);
 }
 
 /*************************************************************************************************/
@@ -646,7 +691,7 @@ static void WriteComment(byte_t* output, uint32_t capacity, uint64_t* byteCount,
 
     if (NULL != node->value)
     {
-        is_comment_content = Utl_Xml_IsCommentContent(node->value, node->valueByteCount);
+        is_comment_content = Utl_Xml_IsComment(node->value, node->valueByteCount);
         LOGASSERT(is_comment_content);
     }
 
@@ -678,7 +723,7 @@ static void WriteProcessingInstruction(byte_t* output, uint32_t capacity, uint64
 
     if (NULL != node->value)
     {
-        is_pi_data = Utl_Xml_IsPIData(node->value, node->valueByteCount);
+        is_pi_data = Utl_Xml_IsPI(node->value, node->valueByteCount);
         LOGASSERT(is_pi_data);
     }
 

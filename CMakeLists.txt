@@ -44,6 +44,15 @@ target_include_directories(utl PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 add_executable(utl_tests tests/utl_tests.c)
 target_link_libraries(utl_tests PRIVATE utl)
 
+add_executable(arinc661_definition examples/arinc661_definition.c)
+target_link_libraries(arinc661_definition PRIVATE utl)
+set_target_properties(arinc661_definition PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+add_custom_target(arinc661_definition_xml
+    COMMAND $<TARGET_FILE:arinc661_definition>
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    DEPENDS arinc661_definition)
+
 enable_testing()
 add_test(NAME utl_tests COMMAND utl_tests)
+set_tests_properties(utl_tests PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests")
 set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT utl_tests)
