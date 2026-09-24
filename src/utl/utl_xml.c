@@ -117,7 +117,6 @@ static bool_t InRange(uint32_t codePoint, uint32_t first, uint32_t last);
  */
 static uint32_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t offset, uint32_t* decodedByteCount);
 
-
 /*************************************************************************************************/
 /**
  * \brief Finds child in parent's ancestor chain, including parent.
