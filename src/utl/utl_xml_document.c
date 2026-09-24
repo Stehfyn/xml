@@ -661,16 +661,17 @@ void Utl_Xml_Document_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* n
 void Utl_Xml_Document_Write(const Utl_Xml_Document_t* document, byte_t* output, uint32_t capacity, uint32_t* byteCount)
 {
     const Utl_Xml_Node_t* current_node;
-    uint32_t              node_index;
     bool_t                has_root;
+    uint32_t              node_index;
 
     LOGASSERT(NULL != document);
     LOGASSERT(NULL != output);
     LOGASSERT(NULL != byteCount);
 
     (*byteCount) = 0;
-    has_root = FALSE;
+
     current_node = document->firstNode;
+    has_root     = FALSE;
 
     for (node_index = 0; node_index < UTL_XML_DOCUMENT_MAX_NODES; ++node_index)
     {
@@ -683,17 +684,23 @@ void Utl_Xml_Document_Write(const Utl_Xml_Document_t* document, byte_t* output, 
         {
             case UTL_XML_NODE_XML_DECLARATION:
             case UTL_XML_NODE_DOCTYPE:
+            {
                 WriteBytes(output, capacity, byteCount, current_node->value, current_node->valueByteCount);
                 break;
+            }
             case UTL_XML_NODE_ELEMENT:
+            {
                 WriteSubtree(output, capacity, byteCount, current_node);
                 has_root = TRUE;
                 break;
+            }
             case UTL_XML_NODE_TEXT:
             case UTL_XML_NODE_COMMENT:
             default:
+            {
                 WriteLeaf(output, capacity, byteCount, current_node);
                 break;
+            }
         }
 
         current_node = current_node->nextSibling;
