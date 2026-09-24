@@ -234,6 +234,32 @@ static void WriteProcessingInstruction(byte_t* output, uint32_t capacity, uint64
  */
 static void WriteElement(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* root);
 
+/*************************************************************************************************/
+/**
+ * \brief Writes a text, comment, or processing-instruction node.
+ *
+ * \param[in,out] output     Caller-provided byte storage
+ * \param[in]     capacity   Number of bytes in output
+ * \param[in,out] byteCount  Number of bytes already written
+ * \param[in]     node       Node to write
+ *
+ * \retval None
+ */
+static void WriteNode(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
+
+/*************************************************************************************************/
+/**
+ * \brief Writes one top-level XML node, including an element's descendants.
+ *
+ * \param[in,out] output     Caller-provided byte storage
+ * \param[in]     capacity   Number of bytes in output
+ * \param[in,out] byteCount  Number of bytes already written
+ * \param[in]     node       Node to write
+ *
+ * \retval None
+ */
+static void WriteTopLevelNode(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
+
 /*=================================================================================================
 ** 4. PRIVATE FUNCTIONS
 **===============================================================================================*/
@@ -627,38 +653,19 @@ static void WriteElement(byte_t* output, uint32_t capacity, uint64_t* byteCount,
             break;
         }
 
-        switch (current_node->type)
+        if (UTL_XML_NODE_ELEMENT == current_node->type)
         {
-            case UTL_XML_NODE_ELEMENT:
-            {
-                WriteElementStart(output, capacity, byteCount, current_node);
+            WriteElementStart(output, capacity, byteCount, current_node);
 
-                if (NULL != current_node->firstChild)
-                {
-                    current_node = current_node->firstChild;
-                    continue;
-                }
-                break;
-            }
-            case UTL_XML_NODE_TEXT:
+            if (NULL != current_node->firstChild)
             {
-                WriteText(output, capacity, byteCount, current_node);
-                break;
+                current_node = current_node->firstChild;
+                continue;
             }
-            case UTL_XML_NODE_COMMENT:
-            {
-                WriteComment(output, capacity, byteCount, current_node);
-                break;
-            }
-            case UTL_XML_NODE_PROCESSING_INSTRUCTION:
-            {
-                WriteProcessingInstruction(output, capacity, byteCount, current_node);
-                break;
-            }
-            default:
-            {
-                LOGFATAL("Invalid XML node type.");
-            }
+        }
+        else
+        {
+            WriteNode(output, capacity, byteCount, current_node);
         }
 
         should_close_parent = (current_node != root) && (NULL == current_node->nextSibling);
@@ -690,6 +697,71 @@ static void WriteElement(byte_t* output, uint32_t capacity, uint64_t* byteCount,
     }
 
     LOGASSERT(NULL == current_node);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Dispatches text, comment, and processing-instruction nodes.
+ */
+static void WriteNode(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
+{
+    switch (node->type)
+    {
+        case UTL_XML_NODE_TEXT:
+        {
+            WriteText(output, capacity, byteCount, node);
+            break;
+        }
+        case UTL_XML_NODE_COMMENT:
+        {
+            WriteComment(output, capacity, byteCount, node);
+            break;
+        }
+        case UTL_XML_NODE_PROCESSING_INSTRUCTION:
+        {
+            WriteProcessingInstruction(output, capacity, byteCount, node);
+            break;
+        }
+        default:
+            LOGFATAL("Invalid XML node type!");
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Dispatches top-level nodes; element descendants use the iterative element writer.
+ */
+static void WriteTopLevelNode(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
+{
+    switch (node->type)
+    {
+        case UTL_XML_NODE_XML_DECLARATION:
+        {
+            WriteDeclaration(output, capacity, byteCount, node);
+            break;
+        }
+        case UTL_XML_NODE_DOCTYPE:
+        {
+            WriteDoctype(output, capacity, byteCount, node);
+            break;
+        }
+        case UTL_XML_NODE_ELEMENT:
+        {
+            WriteElement(output, capacity, byteCount, node);
+            break;
+        }
+        case UTL_XML_NODE_TEXT:
+        case UTL_XML_NODE_COMMENT:
+        case UTL_XML_NODE_PROCESSING_INSTRUCTION:
+        {
+            WriteNode(output, capacity, byteCount, node);
+            break;
+        }
+        default:
+            LOGFATAL("Invalid XML node type!");
+    }
 }
 
 /*=================================================================================================
@@ -789,41 +861,7 @@ uint64_t Utl_Xml_Document_Write(const Utl_Xml_Document_t* document, byte_t* outp
             break;
         }
 
-        switch (current_node->type)
-        {
-            case UTL_XML_NODE_XML_DECLARATION:
-            {
-                WriteDeclaration(output, capacity, &byte_count, current_node);
-                break;
-            }
-            case UTL_XML_NODE_DOCTYPE:
-            {
-                WriteDoctype(output, capacity, &byte_count, current_node);
-                break;
-            }
-            case UTL_XML_NODE_ELEMENT:
-            {
-                WriteElement(output, capacity, &byte_count, current_node);
-                break;
-            }
-            case UTL_XML_NODE_TEXT:
-            {
-                WriteText(output, capacity, &byte_count, current_node);
-                break;
-            }
-            case UTL_XML_NODE_COMMENT:
-            {
-                WriteComment(output, capacity, &byte_count, current_node);
-                break;
-            }
-            case UTL_XML_NODE_PROCESSING_INSTRUCTION:
-            {
-                WriteProcessingInstruction(output, capacity, &byte_count, current_node);
-                break;
-            }
-            default:
-                LOGFATAL("Invalid XML node type!");
-        }
+        WriteTopLevelNode(output, capacity, &byte_count, current_node);
 
         current_node = current_node->nextSibling;
     }
