@@ -753,10 +753,18 @@ static void WriteTopLevelNode(byte_t* output, uint32_t capacity, uint64_t* byteC
             break;
         }
         case UTL_XML_NODE_TEXT:
+        {
+            WriteText(output, capacity, byteCount, node);
+            break;
+        }
         case UTL_XML_NODE_COMMENT:
+        {
+            WriteComment(output, capacity, byteCount, node);
+            break;
+        }
         case UTL_XML_NODE_PROCESSING_INSTRUCTION:
         {
-            WriteNode(output, capacity, byteCount, node);
+            WriteProcessingInstruction(output, capacity, byteCount, node);
             break;
         }
         default:
