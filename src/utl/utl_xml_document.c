@@ -63,7 +63,7 @@ static const Utl_Xml_Node_t* FindNode(const Utl_Xml_Document_t* document, Utl_Xm
  *
  * \retval None
  */
-static void WriteBytes(byte_t* output, uint32_t capacity, uint32_t* byteCount, const byte_t* bytes, uint32_t numBytes);
+static void WriteBytes(byte_t* output, uint32_t capacity, uint64_t* byteCount, const byte_t* bytes, uint32_t numBytes);
 
 /*************************************************************************************************/
 /**
@@ -76,7 +76,7 @@ static void WriteBytes(byte_t* output, uint32_t capacity, uint32_t* byteCount, c
  *
  * \retval None
  */
-static void WriteByte(byte_t* output, uint32_t capacity, uint32_t* byteCount, byte_t value);
+static void WriteByte(byte_t* output, uint32_t capacity, uint64_t* byteCount, byte_t value);
 
 /*************************************************************************************************/
 /**
@@ -89,7 +89,7 @@ static void WriteByte(byte_t* output, uint32_t capacity, uint32_t* byteCount, by
  *
  * \retval None
  */
-static void WriteToken(byte_t* output, uint32_t capacity, uint32_t* byteCount, const char_t* token);
+static void WriteToken(byte_t* output, uint32_t capacity, uint64_t* byteCount, const char_t* token);
 
 /*************************************************************************************************/
 /**
@@ -103,7 +103,7 @@ static void WriteToken(byte_t* output, uint32_t capacity, uint32_t* byteCount, c
  *
  * \retval None
  */
-static void WriteHexCharReference(byte_t* output, uint32_t capacity, uint32_t* byteCount, byte_t hexDigit);
+static void WriteHexCharReference(byte_t* output, uint32_t capacity, uint64_t* byteCount, byte_t hexDigit);
 
 /*************************************************************************************************/
 /**
@@ -120,7 +120,7 @@ static void WriteHexCharReference(byte_t* output, uint32_t capacity, uint32_t* b
  *
  * \retval None
  */
-static void WriteEscaped(byte_t* output, uint32_t capacity, uint32_t* byteCount, const byte_t* utf8Text, uint32_t numBytes, bool_t isAttribute);
+static void WriteEscaped(byte_t* output, uint32_t capacity, uint64_t* byteCount, const byte_t* utf8Text, uint32_t numBytes, bool_t isAttribute);
 
 /*************************************************************************************************/
 /**
@@ -134,7 +134,7 @@ static void WriteEscaped(byte_t* output, uint32_t capacity, uint32_t* byteCount,
  *
  * \retval None
  */
-static void WriteElementStart(byte_t* output, uint32_t capacity, uint32_t* byteCount, const Utl_Xml_Node_t* node);
+static void WriteElementStart(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
 
 /*************************************************************************************************/
 /**
@@ -148,7 +148,7 @@ static void WriteElementStart(byte_t* output, uint32_t capacity, uint32_t* byteC
  *
  * \retval None
  */
-static void WriteElementEnd(byte_t* output, uint32_t capacity, uint32_t* byteCount, const Utl_Xml_Node_t* node);
+static void WriteElementEnd(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
 
 /*************************************************************************************************/
 /**
@@ -163,7 +163,7 @@ static void WriteElementEnd(byte_t* output, uint32_t capacity, uint32_t* byteCou
  *
  * \retval None
  */
-static void WriteLeaf(byte_t* output, uint32_t capacity, uint32_t* byteCount, const Utl_Xml_Node_t* node);
+static void WriteLeaf(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
 
 /*************************************************************************************************/
 /**
@@ -176,7 +176,7 @@ static void WriteLeaf(byte_t* output, uint32_t capacity, uint32_t* byteCount, co
  *
  * \retval None
  */
-static void WriteSubtree(byte_t* output, uint32_t capacity, uint32_t* byteCount, const Utl_Xml_Node_t* root);
+static void WriteSubtree(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* root);
 
 /*=================================================================================================
 ** 4. PRIVATE FUNCTIONS
@@ -228,7 +228,7 @@ static const Utl_Xml_Node_t* FindNode(const Utl_Xml_Document_t* document, Utl_Xm
  * \par Details:
  *  Checks the output bound before copying. A zero-length span copies nothing.
  */
-static void WriteBytes(byte_t* output, uint32_t capacity, uint32_t* byteCount, const byte_t* bytes, uint32_t numBytes)
+static void WriteBytes(byte_t* output, uint32_t capacity, uint64_t* byteCount, const byte_t* bytes, uint32_t numBytes)
 {
     bool_t fits_capacity;
 
@@ -253,7 +253,7 @@ static void WriteBytes(byte_t* output, uint32_t capacity, uint32_t* byteCount, c
  * \par Details:
  *  None
  */
-static void WriteByte(byte_t* output, uint32_t capacity, uint32_t* byteCount, byte_t value)
+static void WriteByte(byte_t* output, uint32_t capacity, uint64_t* byteCount, byte_t value)
 {
     WriteBytes(output, capacity, byteCount, &value, 1);
 }
@@ -263,7 +263,7 @@ static void WriteByte(byte_t* output, uint32_t capacity, uint32_t* byteCount, by
  * \par Details:
  *  None
  */
-static void WriteToken(byte_t* output, uint32_t capacity, uint32_t* byteCount, const char_t* token)
+static void WriteToken(byte_t* output, uint32_t capacity, uint64_t* byteCount, const char_t* token)
 {
     uint32_t byte_index;
 
@@ -280,7 +280,7 @@ static void WriteToken(byte_t* output, uint32_t capacity, uint32_t* byteCount, c
  * \par Details:
  *  Uses the character-reference delimiters in utl_xml.h.
  */
-static void WriteHexCharReference(byte_t* output, uint32_t capacity, uint32_t* byteCount, byte_t hexDigit)
+static void WriteHexCharReference(byte_t* output, uint32_t capacity, uint64_t* byteCount, byte_t hexDigit)
 {
     WriteToken(output, capacity, byteCount, UTL_XML_CHAR_REF_HEX_OPEN);
     WriteByte(output, capacity, byteCount, hexDigit);
@@ -292,7 +292,7 @@ static void WriteHexCharReference(byte_t* output, uint32_t capacity, uint32_t* b
  * \par Details:
  *  Preserves text bytes except for XML delimiters and carriage returns.
  */
-static void WriteEscaped(byte_t* output, uint32_t capacity, uint32_t* byteCount, const byte_t* utf8Text, uint32_t numBytes, bool_t isAttribute)
+static void WriteEscaped(byte_t* output, uint32_t capacity, uint64_t* byteCount, const byte_t* utf8Text, uint32_t numBytes, bool_t isAttribute)
 {
     uint32_t byte_index;
     bool_t   is_xml_string;
@@ -363,7 +363,7 @@ static void WriteEscaped(byte_t* output, uint32_t capacity, uint32_t* byteCount,
  * \par Details:
  *  Attributes are appended and checked for uniqueness by utl_xml_node.
  */
-static void WriteElementStart(byte_t* output, uint32_t capacity, uint32_t* byteCount, const Utl_Xml_Node_t* node)
+static void WriteElementStart(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
 {
     const Utl_Xml_Attribute_t* current_attribute;
     uint32_t                   attribute_index;
@@ -415,7 +415,7 @@ static void WriteElementStart(byte_t* output, uint32_t capacity, uint32_t* byteC
  * \par Details:
  *  None
  */
-static void WriteElementEnd(byte_t* output, uint32_t capacity, uint32_t* byteCount, const Utl_Xml_Node_t* node)
+static void WriteElementEnd(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
 {
     WriteToken(output, capacity, byteCount, UTL_XML_ETAG_OPEN);
     WriteBytes(output, capacity, byteCount, node->name, node->nameByteCount);
@@ -427,7 +427,7 @@ static void WriteElementEnd(byte_t* output, uint32_t capacity, uint32_t* byteCou
  * \par Details:
  *  Text is escaped; comment and processing-instruction content is written verbatim.
  */
-static void WriteLeaf(byte_t* output, uint32_t capacity, uint32_t* byteCount, const Utl_Xml_Node_t* node)
+static void WriteLeaf(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
 {
     uint32_t byte_index;
     bool_t   is_xml_string;
@@ -515,7 +515,7 @@ static void WriteLeaf(byte_t* output, uint32_t capacity, uint32_t* byteCount, co
  * \par Details:
  *  Traverses element children without allocating a stack.
  */
-static void WriteSubtree(byte_t* output, uint32_t capacity, uint32_t* byteCount, const Utl_Xml_Node_t* root)
+static void WriteSubtree(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* root)
 {
     const Utl_Xml_Node_t* current_node;
     uint32_t              node_index;
@@ -658,17 +658,17 @@ void Utl_Xml_Document_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* n
  * \par Details:
  *  Writes the document once and asserts before any write that exceeds capacity.
  */
-void Utl_Xml_Document_Write(const Utl_Xml_Document_t* document, byte_t* output, uint32_t capacity, uint32_t* byteCount)
+uint64_t Utl_Xml_Document_Write(const Utl_Xml_Document_t* document, byte_t* output, uint32_t capacity)
 {
     const Utl_Xml_Node_t* current_node;
+    uint64_t              byte_count;
     bool_t                has_root;
     uint32_t              node_index;
 
     LOGASSERT(NULL != document);
     LOGASSERT(NULL != output);
-    LOGASSERT(NULL != byteCount);
 
-    (*byteCount) = 0;
+    byte_count = 0;
 
     current_node = document->firstNode;
     has_root     = FALSE;
@@ -685,12 +685,12 @@ void Utl_Xml_Document_Write(const Utl_Xml_Document_t* document, byte_t* output, 
             case UTL_XML_NODE_XML_DECLARATION:
             case UTL_XML_NODE_DOCTYPE:
             {
-                WriteBytes(output, capacity, byteCount, current_node->value, current_node->valueByteCount);
+                WriteBytes(output, capacity, &byte_count, current_node->value, current_node->valueByteCount);
                 break;
             }
             case UTL_XML_NODE_ELEMENT:
             {
-                WriteSubtree(output, capacity, byteCount, current_node);
+                WriteSubtree(output, capacity, &byte_count, current_node);
                 has_root = TRUE;
                 break;
             }
@@ -698,7 +698,7 @@ void Utl_Xml_Document_Write(const Utl_Xml_Document_t* document, byte_t* output, 
             case UTL_XML_NODE_COMMENT:
             default:
             {
-                WriteLeaf(output, capacity, byteCount, current_node);
+                WriteLeaf(output, capacity, &byte_count, current_node);
                 break;
             }
         }
@@ -708,4 +708,6 @@ void Utl_Xml_Document_Write(const Utl_Xml_Document_t* document, byte_t* output, 
 
     LOGASSERT(NULL == current_node);
     LOGASSERT(has_root);
+
+    return byte_count;
 }

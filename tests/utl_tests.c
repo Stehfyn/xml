@@ -353,7 +353,7 @@ static void TestXmlDocumentWrite(void)
         "<root a=\"A&amp;&quot;&lt;&#x9;&#xA;&#xD;\">&lt;&amp;&gt;&#xD;"
         "<child><grandchild/></child>tail<!--inside--></root><!--after-->";
     byte_t             output[256];
-    uint32_t           byte_count;
+    uint64_t           byte_count;
 
     Utl_Xml_Document_Initialize(&document);
     assert(NULL == document.firstNode);
@@ -395,7 +395,7 @@ static void TestXmlDocumentWrite(void)
     assert(&epilog_comment == document.lastNode);
 
     memset(output, 0xA5, sizeof(output));
-    Utl_Xml_Document_Write(&document, output, (uint32_t)sizeof(output), &byte_count);
+    byte_count = Utl_Xml_Document_Write(&document, output, (uint32_t)sizeof(output));
     assert((sizeof(expected) - 1) == byte_count);
     assert(0 == memcmp(output, expected, byte_count));
     assert(0xA5 == output[byte_count]);

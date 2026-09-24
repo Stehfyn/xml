@@ -106,21 +106,20 @@ void Utl_Xml_Document_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* n
  *  serializing, with output storage disjoint from them.
  *
  * \par Requirements:
- *  - 001 This function shall fail an assertion if document, output, or byteCount is NULL.
+ *  - 001 This function shall fail an assertion if document or output is NULL.
  *  - 002 This function shall fail an assertion if the document has no element.
  *  - 003 This function shall fail an assertion for invalid element, attribute, or processing-instruction names and invalid text, attribute, comment, or processing-instruction content.
  *  - 004 This function shall write declaration and DOCTYPE markup verbatim.
  *  - 005 This function shall write nodes, children, and attributes in append order, escaping text and attribute values.
- *  - 006 This function shall set byteCount to the number of bytes written, without writing a zero terminator.
+ *  - 006 This function shall return the number of bytes written, without writing a zero terminator.
  *  - 007 This function shall fail an assertion before writing beyond capacity.
  *
- * \param[in]  document   Document to serialize
+ * \param[in]  document   Document to write
  * \param[out] output     Caller-provided byte storage
  * \param[in]  capacity   Number of bytes available in output
- * \param[out] byteCount  Number of bytes written
  *
- * \retval None
+ * \return Number of bytes written.
  */
-void Utl_Xml_Document_Write(const Utl_Xml_Document_t* document, byte_t* output, uint32_t capacity, uint32_t* byteCount);
+uint64_t Utl_Xml_Document_Write(const Utl_Xml_Document_t* document, byte_t* output, uint32_t capacity);
 
 #endif /* UTL_XML_DOCUMENT_H */
