@@ -362,41 +362,39 @@ bool_t Utl_Xml_IsNameChar(uint32_t codePoint)
  */
 bool_t Utl_Xml_IsName(const byte_t* utf8Text, uint32_t byteCount)
 {
-    uint32_t byte_offset;
-    uint32_t code_point;
-    uint32_t code_point_index;
-    uint32_t decoded_byte_count;
     bool_t   is_name;
+    uint32_t byte_offset;
+    uint32_t code_point_index;
+    uint32_t code_point;
+    uint32_t decoded_byte_count;
 
     LOGASSERT(NULL != utf8Text);
+    LOGASSERT(0 < byteCount);
+    LOGASSERT(UTL_XML_MAX_NAME_BYTES >= byteCount);
 
-    is_name = (0 < byteCount) && (byteCount <= UTL_XML_MAX_NAME_BYTES);
+    is_name     = TRUE;
+    byte_offset = 0;
 
-    if (is_name)
+    for (code_point_index = 0; byte_offset < byteCount; ++code_point_index, byte_offset += decoded_byte_count)
     {
-        byte_offset = 0;
+        code_point = DecodeUtf8(utf8Text, byteCount, byte_offset, &decoded_byte_count);
+        is_name = (0 < decoded_byte_count);
 
-        for (code_point_index = 0; byte_offset < byteCount; ++code_point_index, byte_offset += decoded_byte_count)
+        if (is_name)
         {
-            code_point = DecodeUtf8(utf8Text, byteCount, byte_offset, &decoded_byte_count);
-            is_name = (0 < decoded_byte_count);
-
-            if (is_name)
+            if (0 == code_point_index)
             {
-                if (0 == code_point_index)
-                {
-                    is_name = Utl_Xml_IsNameStartChar(code_point);
-                }
-                else
-                {
-                    is_name = Utl_Xml_IsNameChar(code_point);
-                }
+                is_name = Utl_Xml_IsNameStartChar(code_point);
             }
-
-            if (FALSE == is_name)
+            else
             {
-                break;
+                is_name = Utl_Xml_IsNameChar(code_point);
             }
+        }
+
+        if (FALSE == is_name)
+        {
+            break;
         }
     }
 
