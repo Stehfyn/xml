@@ -122,8 +122,8 @@ static uint32_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t offs
 /**
  * \brief Finds child in parent's ancestor chain, including parent.
  *
- * \param[in] parent  Node whose parent chain is searched
- * \param[in] child   Node to find
+ * \param[in] parent   Node whose parent chain is searched
+ * \param[in] child    Node to find
  *
  * \return Matching ancestor, or NULL if child is absent.
  */
@@ -133,10 +133,10 @@ static const Utl_Xml_Node_t* FindAncestor(const Utl_Xml_Node_t* parent, const Ut
 /**
  * \brief Finds an attribute with the requested name.
  *
- * \param[in] node           Element whose attributes are searched
- * \param[in] attribute      Attribute to be appended; must not already be linked
- * \param[in] name           Name bytes to find
- * \param[in] nameByteCount  Number of name bytes
+ * \param[in] node            Element whose attributes are searched
+ * \param[in] attribute       Attribute to be appended; must not already be linked
+ * \param[in] name            Name bytes to find
+ * \param[in] nameByteCount   Number of name bytes
  *
  * \return Matching attribute, or NULL if the name is absent.
  */
@@ -146,10 +146,10 @@ static const Utl_Xml_Attribute_t* FindAttribute(const Utl_Xml_Node_t* node, cons
 /**
  * \brief Finds a top-level node of the requested type.
  *
- * \param[in] document  Document to search
- * \param[in] type      Node type to find
+ * \param[in] document   Document to search
+ * \param[in] type       Node type to find
  *
- * \return Matching node, or NULL if absent.
+ * \return    Matching node, or NULL if absent.
  */
 static const Utl_Xml_Node_t* FindNode(const Utl_Xml_Document_t* document, Utl_Xml_NodeType_t type);
 
@@ -157,13 +157,13 @@ static const Utl_Xml_Node_t* FindNode(const Utl_Xml_Document_t* document, Utl_Xm
 /**
  * \brief Appends an exact byte span to the caller's output buffer.
  *
- * \param[in,out] output     Caller-provided byte storage
- * \param[in]     capacity   Number of bytes in output
- * \param[in,out] byteCount  Number of bytes already written
- * \param[in]     bytes      Bytes to append
- * \param[in]     numBytes   Number of bytes to append
+ * \param[in,out] output      Caller-provided byte storage
+ * \param[in]     capacity    Number of bytes in output
+ * \param[in,out] byteCount   Number of bytes already written
+ * \param[in]     bytes       Bytes to append
+ * \param[in]     numBytes    Number of bytes to append
  *
- * \retval None
+ * \retval        None
  */
 static void WriteBytes(byte_t* output, uint32_t capacity, uint64_t* byteCount, const byte_t* bytes, uint32_t numBytes);
 
@@ -171,12 +171,12 @@ static void WriteBytes(byte_t* output, uint32_t capacity, uint64_t* byteCount, c
 /**
  * \brief Appends one byte to the caller's output buffer.
  *
- * \param[in,out] output     Caller-provided byte storage
- * \param[in]     capacity   Number of bytes in output
- * \param[in,out] byteCount  Number of bytes already written
- * \param[in]     value      Byte to append
+ * \param[in,out] output      Caller-provided byte storage
+ * \param[in]     capacity    Number of bytes in output
+ * \param[in,out] byteCount   Number of bytes already written
+ * \param[in]     value       Byte to append
  *
- * \retval None
+ * \retval        None
  */
 static void WriteByte(byte_t* output, uint32_t capacity, uint64_t* byteCount, byte_t value);
 
@@ -184,12 +184,12 @@ static void WriteByte(byte_t* output, uint32_t capacity, uint64_t* byteCount, by
 /**
  * \brief Writes a null-terminated XML token.
  *
- * \param[in,out] output     Caller-provided byte storage
- * \param[in]     capacity   Number of bytes in output
- * \param[in,out] byteCount  Number of bytes already written
- * \param[in]     token      XML token from utl_xml.h
+ * \param[in,out] output      Caller-provided byte storage
+ * \param[in]     capacity    Number of bytes in output
+ * \param[in,out] byteCount   Number of bytes already written
+ * \param[in]     token       XML token from utl_xml.h
  *
- * \retval None
+ * \retval        None
  */
 static void WriteToken(byte_t* output, uint32_t capacity, uint64_t* byteCount, const char_t* token);
 
@@ -197,14 +197,14 @@ static void WriteToken(byte_t* output, uint32_t capacity, uint64_t* byteCount, c
 /**
  * \brief Writes the requested number of indentation spaces.
  *
- * \param[in,out] output     Caller-provided byte storage
- * \param[in]     capacity   Number of bytes in output
- * \param[in,out] byteCount  Number of bytes already written
- * \param[in]     numSpaces  Number of spaces to write
+ * \param[in,out] output             Caller-provided byte storage
+ * \param[in]     capacity           Number of bytes in output
+ * \param[in,out] byteCount          Number of bytes already written
+ * \param[in]     indentSpaceCount   Number of spaces to write
  *
- * \retval None
+ * \retval        None
  */
-static void WriteIndent(byte_t* output, uint32_t capacity, uint64_t* byteCount, uint32_t numSpaces);
+static void WriteIndent(byte_t* output, uint32_t capacity, uint64_t* byteCount, uint32_t indentSpaceCount);
 
 /*************************************************************************************************/
 /**
@@ -216,7 +216,7 @@ static void WriteIndent(byte_t* output, uint32_t capacity, uint64_t* byteCount, 
  * \param[in,out] byteCount  Number of bytes already written
  * \param[in]     node       DOCTYPE node to write
  *
- * \retval None
+ * \retval        None
  */
 static void WriteDoctype(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
 
@@ -230,7 +230,7 @@ static void WriteDoctype(byte_t* output, uint32_t capacity, uint64_t* byteCount,
  * \param[in,out] byteCount  Number of bytes already written
  * \param[in]     node       XML declaration node to write
  *
- * \retval None
+ * \retval        None
  */
 static void WriteDeclaration(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
 
@@ -246,7 +246,7 @@ static void WriteDeclaration(byte_t* output, uint32_t capacity, uint64_t* byteCo
  * \param[in]     utf8Text   UTF-8 byte span, or NULL for an empty span
  * \param[in]     numBytes   Number of input bytes
  *
- * \retval None
+ * \retval        None
  */
 static void WriteEscapedCharData(byte_t* output, uint32_t capacity, uint64_t* byteCount, const byte_t* utf8Text, uint32_t numBytes);
 
@@ -263,7 +263,7 @@ static void WriteEscapedCharData(byte_t* output, uint32_t capacity, uint64_t* by
  * \param[in]     utf8Text   UTF-8 byte span, or NULL for an empty span
  * \param[in]     numBytes   Number of input bytes
  *
- * \retval None
+ * \retval        None
  */
 static void WriteEscapedAttributeValue(byte_t* output, uint32_t capacity, uint64_t* byteCount, const byte_t* utf8Text, uint32_t numBytes);
 
@@ -278,7 +278,7 @@ static void WriteEscapedAttributeValue(byte_t* output, uint32_t capacity, uint64
  * \param[in,out] byteCount  Number of bytes already written
  * \param[in]     node       Element to write
  *
- * \retval None
+ * \retval        None
  */
 static void WriteElementStart(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
 
@@ -292,7 +292,7 @@ static void WriteElementStart(byte_t* output, uint32_t capacity, uint64_t* byteC
  * \param[in,out] byteCount  Number of bytes already written
  * \param[in]     node       Element to close
  *
- * \retval None
+ * \retval        None
  */
 static void WriteElementEnd(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
 
@@ -305,7 +305,7 @@ static void WriteElementEnd(byte_t* output, uint32_t capacity, uint64_t* byteCou
  * \param[in,out] byteCount  Number of bytes already written
  * \param[in]     root       Root element to write
  *
- * \retval None
+ * \retval        None
  */
 static void WriteElement(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* root);
 
@@ -319,7 +319,7 @@ static void WriteElement(byte_t* output, uint32_t capacity, uint64_t* byteCount,
  * \param[in,out] byteCount  Number of bytes already written
  * \param[in]     node       Text node to write
  *
- * \retval None
+ * \retval        None
  */
 static void WriteText(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
 
@@ -333,7 +333,7 @@ static void WriteText(byte_t* output, uint32_t capacity, uint64_t* byteCount, co
  * \param[in,out] byteCount  Number of bytes already written
  * \param[in]     node       Comment node to write
  *
- * \retval None
+ * \retval        None
  */
 static void WriteComment(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
 
@@ -347,7 +347,7 @@ static void WriteComment(byte_t* output, uint32_t capacity, uint64_t* byteCount,
  * \param[in,out] byteCount  Number of bytes already written
  * \param[in]     node       Processing-instruction node to write
  *
- * \retval None
+ * \retval        None
  */
 static void WriteProcessingInstruction(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
 
@@ -360,7 +360,7 @@ static void WriteProcessingInstruction(byte_t* output, uint32_t capacity, uint64
  * \param[in,out] byteCount  Number of bytes already written
  * \param[in]     node       Node to write
  *
- * \retval None
+ * \retval        None
  */
 static void WriteLeafNode(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
 
@@ -373,7 +373,7 @@ static void WriteLeafNode(byte_t* output, uint32_t capacity, uint64_t* byteCount
  * \param[in,out] byteCount  Number of bytes already written
  * \param[in]     node       Node to write
  *
- * \retval None
+ * \retval        None
  */
 static void WriteRootNode(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
 
@@ -660,11 +660,11 @@ static void WriteToken(byte_t* output, uint32_t capacity, uint64_t* byteCount, c
  * \par Details:
  *  Writes only spaces; callers write line breaks separately.
  */
-static void WriteIndent(byte_t* output, uint32_t capacity, uint64_t* byteCount, uint32_t numSpaces)
+static void WriteIndent(byte_t* output, uint32_t capacity, uint64_t* byteCount, uint32_t indentSpaceCount)
 {
     uint32_t space_index;
 
-    for (space_index = 0; space_index < numSpaces; ++space_index)
+    for (space_index = 0; space_index < indentSpaceCount; ++space_index)
     {
         WriteByte(output, capacity, byteCount, UTL_XML_CHAR_SPACE);
     }

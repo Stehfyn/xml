@@ -212,11 +212,11 @@ bool_t Utl_Xml_IsChar(uint32_t codePoint);
  *  - 002 This function shall check exactly byteCount bytes and reject spans longer than UTL_XML_MAX_VALUE_BYTES.
  *  - 003 This function shall fail an assertion if utf8Text is NULL.
  *
- * \param[in] utf8Text   Non-NULL UTF-8 byte span
- * \param[in] byteCount  Number of bytes in the span
+ * \param[in] utf8Text    Non-NULL UTF-8 byte span
+ * \param[in] byteCount   Number of bytes in the span
  *
- * \retval TRUE          if the complete string is valid XML character data.
- * \retval FALSE         otherwise
+ * \retval    TRUE        if the complete string is valid XML character data.
+ * \retval    FALSE       otherwise
  */
 bool_t Utl_Xml_IsString(const byte_t* utf8Text, uint32_t byteCount);
 
@@ -292,11 +292,11 @@ bool_t Utl_Xml_IsNameChar(uint32_t codePoint);
  *  - 002 This function shall check exactly byteCount bytes and reject invalid UTF-8, zero bytes, and spans longer than UTL_XML_MAX_NAME_BYTES.
  *  - 003 This function shall fail an assertion if utf8Text is NULL or byteCount is zero.
  *
- * \param[in] utf8Text   Non-NULL UTF-8 byte span
- * \param[in] byteCount  Nonzero number of bytes in the span
+ * \param[in] utf8Text    Non-NULL UTF-8 byte span
+ * \param[in] byteCount   Nonzero number of bytes in the span
  *
- * \retval TRUE          if the complete string is a permitted XML 1.0 Name.
- * \retval FALSE         otherwise
+ * \retval    TRUE        if the complete string is a permitted XML 1.0 Name.
+ * \retval    FALSE       otherwise
  */
 bool_t Utl_Xml_IsName(const byte_t* utf8Text, uint32_t byteCount);
 
@@ -336,11 +336,11 @@ bool_t Utl_Xml_IsNmtoken(const uint32_t* codePoints, uint32_t numCodePoints);
  *  - 002 This function shall check exactly byteCount bytes and reject invalid UTF-8, non-Char values, and spans longer than UTL_XML_MAX_VALUE_BYTES.
  *  - 003 This function shall fail an assertion if utf8Text is NULL.
  *
- * \param[in] utf8Text   Non-NULL UTF-8 byte span
- * \param[in] byteCount  Number of bytes in the span
+ * \param[in] utf8Text    Non-NULL UTF-8 byte span
+ * \param[in] byteCount   Number of bytes in the span
  *
- * \retval TRUE          if the span is permitted XML 1.0 comment content.
- * \retval FALSE         otherwise
+ * \retval    TRUE        if the span is permitted XML 1.0 comment content.
+ * \retval    FALSE       otherwise
  */
 bool_t Utl_Xml_IsComment(const byte_t* utf8Text, uint32_t byteCount);
 
@@ -357,11 +357,11 @@ bool_t Utl_Xml_IsComment(const byte_t* utf8Text, uint32_t byteCount);
  *  - 002 This function shall check exactly byteCount bytes and reject invalid UTF-8, non-Char values, and spans longer than UTL_XML_MAX_VALUE_BYTES.
  *  - 003 This function shall fail an assertion if utf8Text is NULL.
  *
- * \param[in] utf8Text   Non-NULL UTF-8 byte span
- * \param[in] byteCount  Number of bytes in the span
+ * \param[in] utf8Text    Non-NULL UTF-8 byte span
+ * \param[in] byteCount   Number of bytes in the span
  *
- * \retval TRUE          if the span is permitted XML 1.0 PI data.
- * \retval FALSE         otherwise
+ * \retval    TRUE        if the span is permitted XML 1.0 PI data.
+ * \retval    FALSE       otherwise
  */
 bool_t Utl_Xml_IsPI(const byte_t* utf8Text, uint32_t byteCount);
 
@@ -378,11 +378,11 @@ bool_t Utl_Xml_IsPI(const byte_t* utf8Text, uint32_t byteCount);
  *  - 002 This function shall check exactly byteCount bytes and reject invalid UTF-8, zero bytes, and spans longer than UTL_XML_MAX_NAME_BYTES.
  *  - 003 This function shall fail an assertion if utf8Text is NULL.
  *
- * \param[in] utf8Text   Non-NULL UTF-8 byte span
- * \param[in] byteCount  Number of bytes in the span
+ * \param[in] utf8Text    Non-NULL UTF-8 byte span
+ * \param[in] byteCount   Number of bytes in the span
  *
- * \retval TRUE          if the complete string is a permitted XML 1.0 PITarget.
- * \retval FALSE         otherwise
+ * \retval    TRUE        if the complete string is a permitted XML 1.0 PITarget.
+ * \retval    FALSE       otherwise
  */
 bool_t Utl_Xml_IsPITarget(const byte_t* utf8Text, uint32_t byteCount);
 
@@ -396,13 +396,13 @@ bool_t Utl_Xml_IsPITarget(const byte_t* utf8Text, uint32_t byteCount);
  *  - 003 This function shall borrow the byte spans; the caller shall keep them valid while referenced.
  *  - 004 This function shall clear the attribute's next link.
  *
- * \param[out] attribute       Uninitialized caller-owned attribute storage
- * \param[in]  name            Borrowed UTF-8 name byte span
- * \param[in]  nameByteCount   Number of name bytes
- * \param[in]  value           Borrowed UTF-8 value byte span
- * \param[in]  valueByteCount  Number of value bytes
+ * \param[out] attribute        Uninitialized caller-owned attribute storage
+ * \param[in]  name             Borrowed UTF-8 name byte span
+ * \param[in]  nameByteCount    Number of name bytes
+ * \param[in]  value            Borrowed UTF-8 value byte span
+ * \param[in]  valueByteCount   Number of value bytes
  *
- * \retval None
+ * \retval     None
  */
 void Utl_Xml_InitializeAttribute(Utl_Xml_Attribute_t* attribute, const byte_t* name, uint32_t nameByteCount, const byte_t* value, uint32_t valueByteCount);
 
@@ -432,7 +432,7 @@ void Utl_Xml_InitializeAttribute(Utl_Xml_Attribute_t* attribute, const byte_t* n
  * \param[in]  value           Borrowed UTF-8 value byte span or NULL
  * \param[in]  valueByteCount  Number of value bytes
  *
- * \retval None
+ * \retval     None
  */
 void Utl_Xml_InitializeNode(Utl_Xml_Node_t* node, Utl_Xml_NodeType_t type, const byte_t* name, uint32_t nameByteCount, const byte_t* value, uint32_t valueByteCount);
 
@@ -444,9 +444,9 @@ void Utl_Xml_InitializeNode(Utl_Xml_Node_t* node, Utl_Xml_NodeType_t type, const
  *  - 001 This function shall fail an assertion if document is NULL.
  *  - 002 This function shall set firstNode and lastNode to NULL.
  *
- * \param[out] document  Uninitialized document storage
+ * \param[out] document   Uninitialized document storage
  *
- * \retval None
+ * \retval     None
  */
 void Utl_Xml_InitializeDocument(Utl_Xml_Document_t* document);
 
@@ -462,7 +462,7 @@ void Utl_Xml_InitializeDocument(Utl_Xml_Document_t* document);
  * \param[in,out] parent   Element receiving the child
  * \param[in,out] child    Unlinked caller-owned child
  *
- * \retval None
+ * \retval        None
  */
 void Utl_Xml_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child);
 
@@ -475,10 +475,10 @@ void Utl_Xml_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child);
  *  - 002 This function shall fail an assertion for NULL arguments, a non-element node, a duplicate name, or an attribute already linked to the element.
  *  - 003 This function shall enforce UTL_XML_NODE_MAX_ATTRIBUTES and preserve the borrowed byte spans.
  *
- * \param[in,out] node            Element receiving the attribute
- * \param[in,out] attribute       Initialized, unlinked caller-owned attribute
+ * \param[in,out] node        Element receiving the attribute
+ * \param[in,out] attribute   Initialized, unlinked caller-owned attribute
  *
- * \retval None
+ * \retval        None
  */
 void Utl_Xml_AddAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribute);
 
@@ -508,10 +508,10 @@ void Utl_Xml_AddAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribute);
  *  - 006 This function shall fail an assertion for a second element.
  *  - 007 This function shall link node after lastNode, set firstNode if empty, and update lastNode.
  *
- * \param[in,out] document  Document receiving the node
- * \param[in,out] node      Unlinked caller-owned node
+ * \param[in,out] document   Document receiving the node
+ * \param[in,out] node       Unlinked caller-owned node
  *
- * \retval None
+ * \retval        None
  */
 void Utl_Xml_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node);
 
@@ -551,7 +551,7 @@ void Utl_Xml_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node);
  * \param[out] output     Caller-provided byte storage
  * \param[in]  capacity   Number of bytes available in output
  *
- * \return Number of bytes written.
+ * \return     Number of bytes written.
  */
 uint64_t Utl_Xml_WriteDocument(const Utl_Xml_Document_t* document, byte_t* output, uint32_t capacity);
 
