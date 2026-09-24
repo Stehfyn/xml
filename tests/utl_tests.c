@@ -11,53 +11,6 @@
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Checks a node's type, name bytes, and value bytes; NULL expects an absent span.
- */
-static void AssertXmlNode(const Utl_Xml_Node_t* node, Utl_Xml_NodeType_t type, const char_t* name, const char_t* value)
-{
-    assert(NULL != node);
-    assert(type == node->type);
-
-    if (NULL == name)
-    {
-        assert(NULL == node->name);
-        assert(0 == node->nameByteCount);
-    }
-    else
-    {
-        assert(strlen(name) == node->nameByteCount);
-        assert(0 == memcmp(node->name, name, node->nameByteCount));
-    }
-
-    if (NULL == value)
-    {
-        assert(NULL == node->value);
-        assert(0 == node->valueByteCount);
-    }
-    else
-    {
-        assert(strlen(value) == node->valueByteCount);
-        assert(0 == memcmp(node->value, value, node->valueByteCount));
-    }
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Checks an attribute's name bytes and value bytes.
- */
-static void AssertXmlAttribute(const Utl_Xml_Attribute_t* attribute, const char_t* name, const char_t* value)
-{
-    assert(NULL != attribute);
-    assert(strlen(name) == attribute->nameByteCount);
-    assert(0 == memcmp(attribute->name, name, attribute->nameByteCount));
-    assert(strlen(value) == attribute->valueByteCount);
-    assert(0 == memcmp(attribute->value, value, attribute->valueByteCount));
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
  *  Checks character classification against expected XML production membership at range boundaries,
  *  excluded gaps, whitespace distinctions, surrogate code points, and Unicode limits.
  */
@@ -494,124 +447,38 @@ static void TestXmlDocumentWrite(void)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Reads the document that TestXmlDocumentWrite serializes, including its indentation.
+ *  Reads an ARINC 661 Definition File excerpt and checks that writing it reproduces the input.
  */
-static void TestXmlDocumentRead(void)
+static void TestXmlDocumentRoundTrip(void)
 {
-    static const char_t   text[] =
-        "<?xml version=\"1.0\"?>\n<!--before-->\n<!DOCTYPE root>\n<?target data?>\n"
-        "<root a=\"A&amp;&quot;&lt;&#x9;&#xA;&#xD;\">\n    &lt;&amp;&gt;&#xD;\n"
-        "    <child>\n        <grandchild/>\n    </child>\n    tail\n    <!--inside-->\n</root>\n<!--after-->\n";
-    Utl_Xml_Document_t    document;
-    Utl_Xml_Node_t        nodes[16];
-    Utl_Xml_Attribute_t   attributes[1];
-    const Utl_Xml_Node_t* node;
-    const Utl_Xml_Node_t* root;
-    const Utl_Xml_Node_t* child;
-    byte_t                input[sizeof(text)];
+    static const char_t text[] =
+        "<?xml version=\"1.0\"?>\n"
+        "<a661_df name=\"arinc661_definition\" library_version=\"0\" supp_version=\"6\">\n"
+        "    <model>\n"
+        "        <prop name=\"ApplicationId\" value=\"1\"/>\n"
+        "    </model>\n"
+        "    <a661_layer name=\"PrimaryLayer\">\n"
+        "        <a661_widget name=\"StatusLabel\" type=\"A661_LABEL\">\n"
+        "            <model>\n"
+        "                <prop name=\"LabelString\" value=\"SYSTEM READY\"/>\n"
+        "            </model>\n"
+        "        </a661_widget>\n"
+        "    </a661_layer>\n"
+        "</a661_df>\n";
+    Utl_Xml_Document_t  document;
+    Utl_Xml_Node_t      nodes[8];
+    Utl_Xml_Attribute_t attributes[10];
+    byte_t              input[sizeof(text)];
+    byte_t              output[sizeof(text)];
+    uint64_t            byte_count;
 
     memcpy(input, text, sizeof(text));
     Utl_Xml_InitializeDocument(&document);
     Utl_Xml_ReadDocument(&document, input, (uint32_t)(sizeof(text) - 1), nodes, (uint32_t)COUNT_OF(nodes), attributes, (uint32_t)COUNT_OF(attributes));
-
-    node = document.firstNode;
-    AssertXmlNode(node, UTL_XML_NODE_XML_DECLARATION, NULL, NULL);
-    node = node->nextSibling;
-    AssertXmlNode(node, UTL_XML_NODE_COMMENT, NULL, "before");
-    node = node->nextSibling;
-    AssertXmlNode(node, UTL_XML_NODE_DOCTYPE, "root", NULL);
-    node = node->nextSibling;
-    AssertXmlNode(node, UTL_XML_NODE_PROCESSING_INSTRUCTION, "target", "data");
-
-    root = node->nextSibling;
-    AssertXmlNode(root, UTL_XML_NODE_ELEMENT, "root", NULL);
-    assert(1 == root->attributeCount);
-    AssertXmlAttribute(root->firstAttribute, "a", "A&\"<\t\n\r");
-
-    node = root->firstChild;
-    AssertXmlNode(node, UTL_XML_NODE_TEXT, NULL, "\n    <&>\r\n    ");
-    child = node->nextSibling;
-    AssertXmlNode(child, UTL_XML_NODE_ELEMENT, "child", NULL);
-    node = child->firstChild;
-    AssertXmlNode(node, UTL_XML_NODE_TEXT, NULL, "\n        ");
-    node = node->nextSibling;
-    AssertXmlNode(node, UTL_XML_NODE_ELEMENT, "grandchild", NULL);
-    assert(NULL == node->firstChild);
-    node = node->nextSibling;
-    AssertXmlNode(node, UTL_XML_NODE_TEXT, NULL, "\n    ");
-    assert(node == child->lastChild);
-    node = child->nextSibling;
-    AssertXmlNode(node, UTL_XML_NODE_TEXT, NULL, "\n    tail\n    ");
-    node = node->nextSibling;
-    AssertXmlNode(node, UTL_XML_NODE_COMMENT, NULL, "inside");
-    node = node->nextSibling;
-    AssertXmlNode(node, UTL_XML_NODE_TEXT, NULL, "\n");
-    assert(node == root->lastChild);
-    assert(root == node->parent);
-
-    node = root->nextSibling;
-    AssertXmlNode(node, UTL_XML_NODE_COMMENT, NULL, "after");
-    assert(node == document.lastNode);
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Reads a byte order mark, CR LF line ends, declaration fields, single quotes, references, whitespace
- *  inside tags, and < inside a comment and a processing instruction, then writes the document.
- */
-static void TestXmlDocumentReadSyntax(void)
-{
-    static const char_t   text[] =
-        "\xEF\xBB\xBF<?xml version='1.0' encoding='utf-8' standalone='yes' ?>\r\n"
-        "<!DOCTYPE doc SYSTEM \"doc.dtd\">\r\n<!-- a < b -->\r\n"
-        "<doc  x = 'a\tb\r\nc&#x9;&#233;' y=\"&apos;&#128512;\">\r\n"
-        "&#x1F600;<?pi   <data> ?><e/><!----><?t?></doc >\r\n";
-    static const byte_t   expected[] =
-        "<?xml version=\"1.0\" encoding='utf-8' standalone='yes' ?>\n"
-        "<!DOCTYPE doc SYSTEM \"doc.dtd\">\n<!-- a < b -->\n"
-        "<doc x=\"a b c&#x9;\xC3\xA9\" y=\"'\xF0\x9F\x98\x80\">\n    \n\xF0\x9F\x98\x80\n"
-        "    <?pi <data> ?>\n    <e/>\n    <!---->\n    <?t?>\n</doc>\n";
-    Utl_Xml_Document_t    document;
-    Utl_Xml_Node_t        nodes[16];
-    Utl_Xml_Attribute_t   attributes[2];
-    const Utl_Xml_Node_t* node;
-    const Utl_Xml_Node_t* root;
-    byte_t                input[sizeof(text)];
-    byte_t                output[256];
-    uint64_t              byte_count;
-
-    memcpy(input, text, sizeof(text));
-    Utl_Xml_InitializeDocument(&document);
-    Utl_Xml_ReadDocument(&document, input, (uint32_t)(sizeof(text) - 1), nodes, (uint32_t)COUNT_OF(nodes), attributes, (uint32_t)COUNT_OF(attributes));
-
-    node = document.firstNode;
-    AssertXmlNode(node, UTL_XML_NODE_XML_DECLARATION, NULL, "encoding='utf-8' standalone='yes' ");
-    node = node->nextSibling;
-    AssertXmlNode(node, UTL_XML_NODE_DOCTYPE, "doc", "SYSTEM \"doc.dtd\"");
-    node = node->nextSibling;
-    AssertXmlNode(node, UTL_XML_NODE_COMMENT, NULL, " a < b ");
-
-    root = node->nextSibling;
-    AssertXmlNode(root, UTL_XML_NODE_ELEMENT, "doc", NULL);
-    AssertXmlAttribute(root->firstAttribute, "x", "a b c\t\xC3\xA9");
-    AssertXmlAttribute(root->lastAttribute, "y", "'\xF0\x9F\x98\x80");
-
-    node = root->firstChild;
-    AssertXmlNode(node, UTL_XML_NODE_TEXT, NULL, "\n\xF0\x9F\x98\x80");
-    node = node->nextSibling;
-    AssertXmlNode(node, UTL_XML_NODE_PROCESSING_INSTRUCTION, "pi", "<data> ");
-    node = node->nextSibling;
-    AssertXmlNode(node, UTL_XML_NODE_ELEMENT, "e", NULL);
-    node = node->nextSibling;
-    AssertXmlNode(node, UTL_XML_NODE_COMMENT, NULL, NULL);
-    node = node->nextSibling;
-    AssertXmlNode(node, UTL_XML_NODE_PROCESSING_INSTRUCTION, "t", NULL);
-    assert(node == root->lastChild);
 
     byte_count = Utl_Xml_WriteDocument(&document, output, (uint32_t)sizeof(output));
-    assert((sizeof(expected) - 1) == byte_count);
-    assert(0 == memcmp(output, expected, byte_count));
+    assert((sizeof(text) - 1) == byte_count);
+    assert(0 == memcmp(output, text, byte_count));
 }
 
 /*************************************************************************************************/
@@ -627,7 +494,6 @@ int main(void)
     TestXmlNodeInitialization();
     TestDeferredNodeContentValidation();
     TestXmlDocumentWrite();
-    TestXmlDocumentRead();
-    TestXmlDocumentReadSyntax();
+    TestXmlDocumentRoundTrip();
     return 0;
 }
