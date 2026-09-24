@@ -282,21 +282,7 @@ static void WriteIndent(byte_t* output, uint32_t capacity, uint64_t* byteCount, 
 
 /*************************************************************************************************/
 /**
- * \brief Writes a document type declaration from its name and optional suffix.
- * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-doctypedecl
- *
- * \param[in,out] output     Caller-provided byte storage
- * \param[in]     capacity   Number of bytes in output
- * \param[in,out] byteCount  Number of bytes already written
- * \param[in]     node       DOCTYPE node to write
- *
- * \retval        None
- */
-static void WriteDoctype(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
-
-/*************************************************************************************************/
-/**
- * \brief Writes an XML 1.0 declaration with optional encoding and standalone fields.
+ * \brief Writes an XML 1.0 declaration.
  * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-XMLDecl
  *
  * \param[in,out] output     Caller-provided byte storage
@@ -307,39 +293,6 @@ static void WriteDoctype(byte_t* output, uint32_t capacity, uint64_t* byteCount,
  * \retval        None
  */
 static void WriteDeclaration(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
-
-/*************************************************************************************************/
-/**
- * \brief Writes escaped XML character data.
- * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-CharData
- * https://www.w3.org/TR/2008/REC-xml-20081126/#sec-line-ends
- *
- * \param[in,out] output     Caller-provided byte storage
- * \param[in]     capacity   Number of bytes in output
- * \param[in,out] byteCount  Number of bytes already written
- * \param[in]     utf8Text   UTF-8 byte span, or NULL for an empty span
- * \param[in]     numBytes   Number of input bytes
- *
- * \retval        None
- */
-static void WriteEscapedCharData(byte_t* output, uint32_t capacity, uint64_t* byteCount, const byte_t* utf8Text, uint32_t numBytes);
-
-/*************************************************************************************************/
-/**
- * \brief Writes an escaped double-quoted XML attribute value.
- * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-AttValue
- * https://www.w3.org/TR/2008/REC-xml-20081126/#AVNormalize
- * https://www.w3.org/TR/2008/REC-xml-20081126/#sec-line-ends
- *
- * \param[in,out] output     Caller-provided byte storage
- * \param[in]     capacity   Number of bytes in output
- * \param[in,out] byteCount  Number of bytes already written
- * \param[in]     utf8Text   UTF-8 byte span, or NULL for an empty span
- * \param[in]     numBytes   Number of input bytes
- *
- * \retval        None
- */
-static void WriteEscapedAttributeValue(byte_t* output, uint32_t capacity, uint64_t* byteCount, const byte_t* utf8Text, uint32_t numBytes);
 
 /*************************************************************************************************/
 /**
@@ -382,61 +335,6 @@ static void WriteElementEnd(byte_t* output, uint32_t capacity, uint64_t* byteCou
  * \retval        None
  */
 static void WriteElement(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* root);
-
-/*************************************************************************************************/
-/**
- * \brief Writes a text node as XML character data.
- * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-CharData
- *
- * \param[in,out] output     Caller-provided byte storage
- * \param[in]     capacity   Number of bytes in output
- * \param[in,out] byteCount  Number of bytes already written
- * \param[in]     node       Text node to write
- *
- * \retval        None
- */
-static void WriteText(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
-
-/*************************************************************************************************/
-/**
- * \brief Writes an XML comment.
- * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-Comment
- *
- * \param[in,out] output     Caller-provided byte storage
- * \param[in]     capacity   Number of bytes in output
- * \param[in,out] byteCount  Number of bytes already written
- * \param[in]     node       Comment node to write
- *
- * \retval        None
- */
-static void WriteComment(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
-
-/*************************************************************************************************/
-/**
- * \brief Writes an XML processing instruction.
- * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-PI
- *
- * \param[in,out] output     Caller-provided byte storage
- * \param[in]     capacity   Number of bytes in output
- * \param[in,out] byteCount  Number of bytes already written
- * \param[in]     node       Processing-instruction node to write
- *
- * \retval        None
- */
-static void WriteProcessingInstruction(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
-
-/*************************************************************************************************/
-/**
- * \brief Writes a text, comment, or processing-instruction node.
- *
- * \param[in,out] output     Caller-provided byte storage
- * \param[in]     capacity   Number of bytes in output
- * \param[in,out] byteCount  Number of bytes already written
- * \param[in]     node       Node to write
- *
- * \retval        None
- */
-static void WriteLeafNode(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
 
 /*************************************************************************************************/
 /**
@@ -776,7 +674,7 @@ static const byte_t* ReadName(const byte_t* bytes, uint32_t byteCount, uint32_t*
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Accepts the value form the writer produces when no character needs a reference.
+ *  Utl_Xml_AppendAttribute checks the value's characters.
  */
 static const byte_t* ReadAttributeValue(const byte_t* bytes, uint32_t byteCount, uint32_t* position, uint32_t* numBytes)
 {
@@ -784,8 +682,6 @@ static const byte_t* ReadAttributeValue(const byte_t* bytes, uint32_t byteCount,
     uint32_t      byte_index;
     bool_t        is_value_open;
     bool_t        is_value_close;
-    bool_t        is_whitespace;
-    bool_t        needs_reference;
 
     is_value_open = ((*position) + 1 < byteCount) && (UTL_XML_EQ == bytes[(*position)]) && (UTL_XML_QUOTE_QUOT == bytes[(*position) + 1]);
     LOGASSERT(is_value_open);
@@ -801,10 +697,6 @@ static const byte_t* ReadAttributeValue(const byte_t* bytes, uint32_t byteCount,
         {
             break;
         }
-
-        is_whitespace   = Utl_Xml_IsWhitespace(bytes[byte_index]);
-        needs_reference = (UTL_XML_CHAR_AMP == bytes[byte_index]) || (is_whitespace && (UTL_XML_CHAR_SPACE != bytes[byte_index]));
-        LOGASSERT(FALSE == needs_reference);
     }
 
     LOGASSERT(byte_index < byteCount);
@@ -836,7 +728,7 @@ static bool_t ReadElementStart(const byte_t* markup, uint32_t markupByteCount, u
     (void)ReadToken(markup, markupByteCount, position, UTL_XML_STAG_OPEN);
 
     name = ReadName(markup, markupByteCount, position, &name_byte_count);
-    Utl_Xml_InitializeNode(node, UTL_XML_NODE_ELEMENT, name, name_byte_count, NULL, 0);
+    Utl_Xml_InitializeNode(node, UTL_XML_NODE_ELEMENT, name, name_byte_count);
 
     for (attribute_index = 0; attribute_index < UTL_XML_NODE_MAX_ATTRIBUTES; ++attribute_index)
     {
@@ -939,41 +831,12 @@ static void WriteIndent(byte_t* output, uint32_t capacity, uint64_t* byteCount, 
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The caller supplies an ExternalID, an internal subset, or both in value, without a leading space.
- */
-static void WriteDoctype(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
-{
-    bool_t is_name;
-
-    LOGASSERT(NULL != node->name);
-    LOGASSERT((NULL != node->value) || (0 == node->valueByteCount));
-
-    is_name = Utl_Xml_IsName(node->name, node->nameByteCount);
-    LOGASSERT(is_name);
-
-    WriteToken(output, capacity, byteCount, UTL_XML_DOCTYPE_OPEN);
-    WriteByte(output, capacity, byteCount, UTL_XML_CHAR_SPACE);
-    WriteBytes(output, capacity, byteCount, node->name, node->nameByteCount);
-
-    if (0 < node->valueByteCount)
-    {
-        WriteByte(output, capacity, byteCount, UTL_XML_CHAR_SPACE);
-        WriteBytes(output, capacity, byteCount, node->value, node->valueByteCount);
-    }
-
-    WriteToken(output, capacity, byteCount, UTL_XML_DOCTYPE_CLOSE);
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  The caller supplies any encoding and standalone fields in value, without a leading space.
+ *  None
  */
 static void WriteDeclaration(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
 {
     LOGASSERT(NULL == node->name);
     LOGASSERT(0 == node->nameByteCount);
-    LOGASSERT((NULL != node->value) || (0 == node->valueByteCount));
 
     WriteToken(output, capacity, byteCount, UTL_XML_DECL_OPEN);
     WriteByte(output, capacity, byteCount, UTL_XML_CHAR_SPACE);
@@ -982,131 +845,7 @@ static void WriteDeclaration(byte_t* output, uint32_t capacity, uint64_t* byteCo
     WriteByte(output, capacity, byteCount, UTL_XML_QUOTE_QUOT);
     WriteToken(output, capacity, byteCount, UTL_XML_VERSION_1_0);
     WriteByte(output, capacity, byteCount, UTL_XML_QUOTE_QUOT);
-
-    if (0 < node->valueByteCount)
-    {
-        WriteByte(output, capacity, byteCount, UTL_XML_CHAR_SPACE);
-        WriteBytes(output, capacity, byteCount, node->value, node->valueByteCount);
-    }
-
     WriteToken(output, capacity, byteCount, UTL_XML_DECL_CLOSE);
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Preserves character data except for XML delimiters and carriage returns.
- */
-static void WriteEscapedCharData(byte_t* output, uint32_t capacity, uint64_t* byteCount, const byte_t* utf8Text, uint32_t numBytes)
-{
-    bool_t   is_xml_string;
-    uint32_t byte_index;
-
-    LOGASSERT((NULL != utf8Text) || (0 == numBytes));
-
-    if (NULL != utf8Text)
-    {
-        is_xml_string = Utl_Xml_IsString(utf8Text, numBytes);
-        LOGASSERT(is_xml_string);
-    }
-
-    for (byte_index = 0; byte_index < numBytes; ++byte_index)
-    {
-        switch (utf8Text[byte_index])
-        {
-            case UTL_XML_CHAR_CR:
-            {
-                WriteToken(output, capacity, byteCount, UTL_XML_CHAR_REF_CR);
-                break;
-            }
-            case UTL_XML_CHAR_AMP:
-            {
-                WriteToken(output, capacity, byteCount, UTL_XML_ENTITY_REF_AMP);
-                break;
-            }
-            case UTL_XML_CHAR_LT:
-            {
-                WriteToken(output, capacity, byteCount, UTL_XML_ENTITY_REF_LT);
-                break;
-            }
-            case UTL_XML_CHAR_GT:
-            {
-                WriteToken(output, capacity, byteCount, UTL_XML_ENTITY_REF_GT);
-                break;
-            }
-            default:
-            {
-                WriteByte(output, capacity, byteCount, utf8Text[byte_index]);
-                break;
-            }
-        }
-    }
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Uses character references for whitespace that attribute normalization would change.
- */
-static void WriteEscapedAttributeValue(byte_t* output, uint32_t capacity, uint64_t* byteCount, const byte_t* utf8Text, uint32_t numBytes)
-{
-    bool_t   is_xml_string;
-    uint32_t byte_index;
-
-    LOGASSERT((NULL != utf8Text) || (0 == numBytes));
-
-    if (NULL != utf8Text)
-    {
-        is_xml_string = Utl_Xml_IsString(utf8Text, numBytes);
-        LOGASSERT(is_xml_string);
-    }
-
-    for (byte_index = 0; byte_index < numBytes; ++byte_index)
-    {
-        switch (utf8Text[byte_index])
-        {
-            case UTL_XML_CHAR_TAB:
-            {
-                WriteToken(output, capacity, byteCount, UTL_XML_CHAR_REF_TAB);
-                break;
-            }
-            case UTL_XML_CHAR_LF:
-            {
-                WriteToken(output, capacity, byteCount, UTL_XML_CHAR_REF_LF);
-                break;
-            }
-            case UTL_XML_CHAR_CR:
-            {
-                WriteToken(output, capacity, byteCount, UTL_XML_CHAR_REF_CR);
-                break;
-            }
-            case UTL_XML_CHAR_AMP:
-            {
-                WriteToken(output, capacity, byteCount, UTL_XML_ENTITY_REF_AMP);
-                break;
-            }
-            case UTL_XML_CHAR_LT:
-            {
-                WriteToken(output, capacity, byteCount, UTL_XML_ENTITY_REF_LT);
-                break;
-            }
-            case UTL_XML_CHAR_GT:
-            {
-                WriteToken(output, capacity, byteCount, UTL_XML_ENTITY_REF_GT);
-                break;
-            }
-            case UTL_XML_QUOTE_QUOT:
-            {
-                WriteToken(output, capacity, byteCount, UTL_XML_ENTITY_REF_QUOT);
-                break;
-            }
-            default:
-            {
-                WriteByte(output, capacity, byteCount, utf8Text[byte_index]);
-                break;
-            }
-        }
-    }
 }
 
 /*************************************************************************************************/
@@ -1121,8 +860,6 @@ static void WriteElementStart(byte_t* output, uint32_t capacity, uint64_t* byteC
     uint32_t                   attribute_index;
 
     LOGASSERT(NULL != node->name);
-    LOGASSERT(NULL == node->value);
-    LOGASSERT(0 == node->valueByteCount);
 
     is_name = Utl_Xml_IsName(node->name, node->nameByteCount);
     LOGASSERT(is_name);
@@ -1144,7 +881,12 @@ static void WriteElementStart(byte_t* output, uint32_t capacity, uint64_t* byteC
         WriteBytes(output, capacity, byteCount, current_attribute->name, current_attribute->nameByteCount);
         WriteByte(output, capacity, byteCount, UTL_XML_EQ);
         WriteByte(output, capacity, byteCount, UTL_XML_QUOTE_QUOT);
-        WriteEscapedAttributeValue(output, capacity, byteCount, current_attribute->value, current_attribute->valueByteCount);
+
+        if (0 < current_attribute->valueByteCount)
+        {
+            WriteBytes(output, capacity, byteCount, current_attribute->value, current_attribute->valueByteCount);
+        }
+
         WriteByte(output, capacity, byteCount, UTL_XML_QUOTE_QUOT);
 
         current_attribute = current_attribute->next;
@@ -1203,21 +945,14 @@ static void WriteElement(byte_t* output, uint32_t capacity, uint64_t* byteCount,
             WriteIndent(output, capacity, byteCount, depth * INDENT_SPACES_PER_LEVEL);
         }
 
-        if (UTL_XML_NODE_ELEMENT == current_node->type)
-        {
-            WriteElementStart(output, capacity, byteCount, current_node);
+        WriteElementStart(output, capacity, byteCount, current_node);
 
-            if (NULL != current_node->firstChild)
-            {
-                LOGASSERT(depth < UTL_XML_NODE_MAX_DEPTH);
-                current_node = current_node->firstChild;
-                ++depth;
-                continue;
-            }
-        }
-        else
+        if (NULL != current_node->firstChild)
         {
-            WriteLeafNode(output, capacity, byteCount, current_node);
+            LOGASSERT(depth < UTL_XML_NODE_MAX_DEPTH);
+            current_node = current_node->firstChild;
+            ++depth;
+            continue;
         }
 
         should_close_parent = (current_node != root) && (NULL == current_node->nextSibling);
@@ -1260,111 +995,6 @@ static void WriteElement(byte_t* output, uint32_t capacity, uint64_t* byteCount,
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Escapes the text without adding markup.
- */
-static void WriteText(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
-{
-    LOGASSERT(NULL == node->name);
-    LOGASSERT(0 == node->nameByteCount);
-
-    WriteEscapedCharData(output, capacity, byteCount, node->value, node->valueByteCount);
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  None
- */
-static void WriteComment(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
-{
-    bool_t is_comment_content;
-
-    LOGASSERT(NULL == node->name);
-    LOGASSERT(0 == node->nameByteCount);
-    LOGASSERT((NULL != node->value) || (0 == node->valueByteCount));
-
-    if (NULL != node->value)
-    {
-        is_comment_content = Utl_Xml_IsComment(node->value, node->valueByteCount);
-        LOGASSERT(is_comment_content);
-    }
-
-    WriteToken(output, capacity, byteCount, UTL_XML_COMMENT_OPEN);
-
-    if (0 < node->valueByteCount)
-    {
-        WriteBytes(output, capacity, byteCount, node->value, node->valueByteCount);
-    }
-
-    WriteToken(output, capacity, byteCount, UTL_XML_COMMENT_CLOSE);
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  None
- */
-static void WriteProcessingInstruction(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
-{
-    bool_t is_pi_target;
-    bool_t is_pi_data;
-
-    LOGASSERT(NULL != node->name);
-    LOGASSERT((NULL != node->value) || (0 == node->valueByteCount));
-
-    is_pi_target = Utl_Xml_IsPITarget(node->name, node->nameByteCount);
-    LOGASSERT(is_pi_target);
-
-    if (NULL != node->value)
-    {
-        is_pi_data = Utl_Xml_IsPI(node->value, node->valueByteCount);
-        LOGASSERT(is_pi_data);
-    }
-
-    WriteToken(output, capacity, byteCount, UTL_XML_PI_OPEN);
-    WriteBytes(output, capacity, byteCount, node->name, node->nameByteCount);
-
-    if (0 < node->valueByteCount)
-    {
-        WriteByte(output, capacity, byteCount, UTL_XML_CHAR_SPACE);
-        WriteBytes(output, capacity, byteCount, node->value, node->valueByteCount);
-    }
-
-    WriteToken(output, capacity, byteCount, UTL_XML_PI_CLOSE);
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Dispatches text, comment, and processing-instruction nodes.
- */
-static void WriteLeafNode(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
-{
-    switch (node->type)
-    {
-        case UTL_XML_NODE_TEXT:
-        {
-            WriteText(output, capacity, byteCount, node);
-            break;
-        }
-        case UTL_XML_NODE_COMMENT:
-        {
-            WriteComment(output, capacity, byteCount, node);
-            break;
-        }
-        case UTL_XML_NODE_PROCESSING_INSTRUCTION:
-        {
-            WriteProcessingInstruction(output, capacity, byteCount, node);
-            break;
-        }
-        default:
-            LOGFATAL("Invalid XML node type!");
-    }
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
  *  Dispatches top-level nodes; element descendants use the iterative element writer.
  */
 static void WriteRootNode(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
@@ -1376,29 +1006,9 @@ static void WriteRootNode(byte_t* output, uint32_t capacity, uint64_t* byteCount
             WriteDeclaration(output, capacity, byteCount, node);
             break;
         }
-        case UTL_XML_NODE_DOCTYPE:
-        {
-            WriteDoctype(output, capacity, byteCount, node);
-            break;
-        }
         case UTL_XML_NODE_ELEMENT:
         {
             WriteElement(output, capacity, byteCount, node);
-            break;
-        }
-        case UTL_XML_NODE_TEXT:
-        {
-            WriteText(output, capacity, byteCount, node);
-            break;
-        }
-        case UTL_XML_NODE_COMMENT:
-        {
-            WriteComment(output, capacity, byteCount, node);
-            break;
-        }
-        case UTL_XML_NODE_PROCESSING_INSTRUCTION:
-        {
-            WriteProcessingInstruction(output, capacity, byteCount, node);
             break;
         }
         default:
@@ -1430,7 +1040,7 @@ bool_t Utl_Xml_IsChar(uint32_t codePoint)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Empty strings are permitted as text and attribute values.
+ *  Empty strings are permitted as attribute values.
  */
 bool_t Utl_Xml_IsString(const byte_t* utf8Text, uint32_t byteCount)
 {
@@ -1594,134 +1204,6 @@ bool_t Utl_Xml_IsName(const byte_t* utf8Text, uint32_t byteCount)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
- */
-bool_t Utl_Xml_IsNmtoken(const uint32_t* codePoints, uint32_t numCodePoints)
-{
-    bool_t   is_nmtoken;
-    uint32_t code_point_index;
-
-    LOGASSERT(NULL != codePoints);
-    LOGASSERT(0 < numCodePoints);
-
-    is_nmtoken = TRUE;
-
-    for (code_point_index = 0; code_point_index < numCodePoints; ++code_point_index)
-    {
-        is_nmtoken = Utl_Xml_IsNameChar(codePoints[code_point_index]);
-
-        if (FALSE == is_nmtoken)
-        {
-            break;
-        }
-    }
-
-    return is_nmtoken;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Comment content cannot contain a double hyphen or end with a hyphen.
- */
-bool_t Utl_Xml_IsComment(const byte_t* utf8Text, uint32_t byteCount)
-{
-    uint32_t byte_index;
-    bool_t   is_comment_content;
-    bool_t   has_delimiter;
-
-    LOGASSERT(NULL != utf8Text);
-
-    is_comment_content = Utl_Xml_IsString(utf8Text, byteCount);
-
-    if (is_comment_content)
-    {
-        for (byte_index = 1; byte_index < byteCount; ++byte_index)
-        {
-            has_delimiter = ('-' == utf8Text[byte_index - 1]) &&
-                            ('-' == utf8Text[byte_index]);
-
-            if (has_delimiter)
-            {
-                is_comment_content = FALSE;
-                break;
-            }
-        }
-    }
-
-    if (is_comment_content)
-    {
-        if (0 < byteCount)
-        {
-            is_comment_content = ('-' != utf8Text[byteCount - 1]);
-        }
-    }
-
-    return is_comment_content;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  PI data cannot contain its closing delimiter.
- */
-bool_t Utl_Xml_IsPI(const byte_t* utf8Text, uint32_t byteCount)
-{
-    uint32_t byte_index;
-    bool_t   is_pi_data;
-    bool_t   has_delimiter;
-
-    LOGASSERT(NULL != utf8Text);
-
-    is_pi_data = Utl_Xml_IsString(utf8Text, byteCount);
-
-    if (is_pi_data)
-    {
-        for (byte_index = 1; byte_index < byteCount; ++byte_index)
-        {
-            has_delimiter = ('?' == utf8Text[byte_index - 1]) &&
-                            ('>' == utf8Text[byte_index]);
-
-            if (has_delimiter)
-            {
-                is_pi_data = FALSE;
-                break;
-            }
-        }
-    }
-
-    return is_pi_data;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  PITarget excludes xml in every ASCII letter case after checking Name.
- */
-bool_t Utl_Xml_IsPITarget(const byte_t* utf8Text, uint32_t byteCount)
-{
-    bool_t is_pi_target;
-    bool_t is_reserved_target;
-
-    LOGASSERT(NULL != utf8Text);
-
-    is_pi_target = Utl_Xml_IsName(utf8Text, byteCount);
-
-    if (is_pi_target)
-    {
-        is_reserved_target = (3 == byteCount) &&
-                             (('x' == utf8Text[0]) || ('X' == utf8Text[0])) &&
-                             (('m' == utf8Text[1]) || ('M' == utf8Text[1])) &&
-                             (('l' == utf8Text[2]) || ('L' == utf8Text[2]));
-        is_pi_target = (FALSE == is_reserved_target);
-    }
-
-    return is_pi_target;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
  *  Stores borrowed byte spans and clears the attribute link.
  */
 void Utl_Xml_InitializeAttribute(Utl_Xml_Attribute_t* attribute, const byte_t* name, uint32_t nameByteCount, const byte_t* value, uint32_t valueByteCount)
@@ -1742,17 +1224,14 @@ void Utl_Xml_InitializeAttribute(Utl_Xml_Attribute_t* attribute, const byte_t* n
  * \par Details:
  *  None
  */
-void Utl_Xml_InitializeNode(Utl_Xml_Node_t* node, Utl_Xml_NodeType_t type, const byte_t* name, uint32_t nameByteCount, const byte_t* value, uint32_t valueByteCount)
+void Utl_Xml_InitializeNode(Utl_Xml_Node_t* node, Utl_Xml_NodeType_t type, const byte_t* name, uint32_t nameByteCount)
 {
     LOGASSERT(NULL != node);
     LOGASSERT((NULL != name) || (0 == nameByteCount));
-    LOGASSERT((NULL != value) || (0 == valueByteCount));
 
     node->type           = type;
     node->name           = name;
     node->nameByteCount  = nameByteCount;
-    node->value          = value;
-    node->valueByteCount = valueByteCount;
     node->parent         = NULL;
     node->firstChild     = NULL;
     node->lastChild      = NULL;
@@ -1789,8 +1268,7 @@ void Utl_Xml_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child)
     LOGASSERT(UTL_XML_NODE_ELEMENT == parent->type);
     LOGASSERT(NULL == child->parent);
     LOGASSERT(NULL == child->nextSibling);
-    LOGASSERT(UTL_XML_NODE_XML_DECLARATION != child->type);
-    LOGASSERT(UTL_XML_NODE_DOCTYPE != child->type);
+    LOGASSERT(UTL_XML_NODE_ELEMENT == child->type);
 
     ancestor = FindAncestor(parent, child);
     LOGASSERT(NULL == ancestor);
@@ -1811,12 +1289,17 @@ void Utl_Xml_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Validates the caller's attribute and appends it in source order.
+ *  Validates the caller's attribute and appends it in source order. The writer copies values
+ *  without references, so a value must not contain <, &, ", or whitespace other than spaces.
  */
 void Utl_Xml_AppendAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribute)
 {
     bool_t                     is_name;
     bool_t                     is_xml_string;
+    bool_t                     is_whitespace;
+    bool_t                     needs_reference;
+    uint32_t                   byte_index;
+    byte_t                     value_byte;
     const Utl_Xml_Attribute_t* found_attribute;
 
     LOGASSERT(NULL != node);
@@ -1832,6 +1315,15 @@ void Utl_Xml_AppendAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribut
 
     is_xml_string = Utl_Xml_IsString(attribute->value, attribute->valueByteCount);
     LOGASSERT(is_xml_string);
+
+    for (byte_index = 0; byte_index < attribute->valueByteCount; ++byte_index)
+    {
+        value_byte      = attribute->value[byte_index];
+        is_whitespace   = Utl_Xml_IsWhitespace(value_byte);
+        needs_reference = (UTL_XML_CHAR_LT == value_byte) || (UTL_XML_CHAR_AMP == value_byte) || (UTL_XML_QUOTE_QUOT == value_byte) ||
+                          (is_whitespace && (UTL_XML_CHAR_SPACE != value_byte));
+        LOGASSERT(FALSE == needs_reference);
+    }
 
     found_attribute = FindAttribute(node, attribute, attribute->name, attribute->nameByteCount);
     LOGASSERT(NULL == found_attribute);
@@ -1858,9 +1350,6 @@ void Utl_Xml_AppendAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribut
 void Utl_Xml_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node)
 {
     const Utl_Xml_Node_t* found_node;
-    bool_t                is_element;
-    bool_t                is_comment;
-    bool_t                is_processing_instruction;
 
     LOGASSERT(NULL != document);
     LOGASSERT(NULL != node);
@@ -1872,26 +1361,12 @@ void Utl_Xml_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node)
     {
         LOGASSERT(NULL == document->firstNode);
     }
-    else if (UTL_XML_NODE_DOCTYPE == node->type)
+    else
     {
-        found_node = FindNode(document, UTL_XML_NODE_DOCTYPE);
-        LOGASSERT(NULL == found_node);
+        LOGASSERT(UTL_XML_NODE_ELEMENT == node->type);
 
         found_node = FindNode(document, UTL_XML_NODE_ELEMENT);
         LOGASSERT(NULL == found_node);
-    }
-    else
-    {
-        is_element                = (UTL_XML_NODE_ELEMENT == node->type);
-        is_comment                = (UTL_XML_NODE_COMMENT == node->type);
-        is_processing_instruction = (UTL_XML_NODE_PROCESSING_INSTRUCTION == node->type);
-        LOGASSERT(is_element || is_comment || is_processing_instruction);
-
-        if (is_element)
-        {
-            found_node = FindNode(document, UTL_XML_NODE_ELEMENT);
-            LOGASSERT(NULL == found_node);
-        }
     }
 
     if (NULL != document->lastNode)
@@ -2015,7 +1490,7 @@ void Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* input, uint32_t 
                 is_valid = ReadToken(markup, markup_byte_count, &position, UTL_XML_DECL_CLOSE);
                 LOGASSERT(is_valid);
 
-                Utl_Xml_InitializeNode(node, UTL_XML_NODE_XML_DECLARATION, NULL, 0, NULL, 0);
+                Utl_Xml_InitializeNode(node, UTL_XML_NODE_XML_DECLARATION, NULL, 0);
             }
             else
             {

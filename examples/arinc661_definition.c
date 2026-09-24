@@ -151,16 +151,16 @@ int main(void)
     int                 close_result;
 
     Utl_Xml_InitializeDocument(&document);
-    Utl_Xml_InitializeNode(&declaration, UTL_XML_NODE_XML_DECLARATION, NULL, 0, NULL, 0);
-    Utl_Xml_InitializeNode(&definition, UTL_XML_NODE_ELEMENT, XML_LITERAL("a661_df"), NULL, 0);
-    Utl_Xml_InitializeNode(&layer, UTL_XML_NODE_ELEMENT, XML_LITERAL("a661_layer"), NULL, 0);
-    Utl_Xml_InitializeNode(&panel, UTL_XML_NODE_ELEMENT, XML_LITERAL("a661_widget"), NULL, 0);
-    Utl_Xml_InitializeNode(&label, UTL_XML_NODE_ELEMENT, XML_LITERAL("a661_widget"), NULL, 0);
-    Utl_Xml_InitializeNode(&second_label, UTL_XML_NODE_ELEMENT, XML_LITERAL("a661_widget"), NULL, 0);
+    Utl_Xml_InitializeNode(&declaration, UTL_XML_NODE_XML_DECLARATION, NULL, 0);
+    Utl_Xml_InitializeNode(&definition, UTL_XML_NODE_ELEMENT, XML_LITERAL("a661_df"));
+    Utl_Xml_InitializeNode(&layer, UTL_XML_NODE_ELEMENT, XML_LITERAL("a661_layer"));
+    Utl_Xml_InitializeNode(&panel, UTL_XML_NODE_ELEMENT, XML_LITERAL("a661_widget"));
+    Utl_Xml_InitializeNode(&label, UTL_XML_NODE_ELEMENT, XML_LITERAL("a661_widget"));
+    Utl_Xml_InitializeNode(&second_label, UTL_XML_NODE_ELEMENT, XML_LITERAL("a661_widget"));
 
     for (index = 0; index < ARINC661_MODEL_COUNT; ++index)
     {
-        Utl_Xml_InitializeNode(&models[index], UTL_XML_NODE_ELEMENT, XML_LITERAL("model"), NULL, 0);
+        Utl_Xml_InitializeNode(&models[index], UTL_XML_NODE_ELEMENT, XML_LITERAL("model"));
     }
 
     Utl_Xml_InitializeAttribute(&definition_attributes[0], XML_LITERAL("name"), XML_LITERAL("arinc661_definition"));
@@ -186,7 +186,7 @@ int main(void)
 
     for (index = 0; index < (uint32_t)COUNT_OF(c_arinc661Properties); ++index)
     {
-        Utl_Xml_InitializeNode(&property_nodes[index], UTL_XML_NODE_ELEMENT, XML_LITERAL("prop"), NULL, 0);
+        Utl_Xml_InitializeNode(&property_nodes[index], UTL_XML_NODE_ELEMENT, XML_LITERAL("prop"));
         Utl_Xml_InitializeAttribute(&property_names[index], XML_LITERAL("name"), c_arinc661Properties[index].name, c_arinc661Properties[index].nameByteCount);
         Utl_Xml_AppendAttribute(&property_nodes[index], &property_names[index]);
         Utl_Xml_InitializeAttribute(&property_values[index], XML_LITERAL("value"), c_arinc661Properties[index].value, c_arinc661Properties[index].valueByteCount);
