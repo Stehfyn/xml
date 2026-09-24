@@ -840,7 +840,7 @@ void Utl_Xml_Document_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* n
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Writes the appended nodes once and asserts before any write that exceeds capacity.
+ *  None
  */
 uint64_t Utl_Xml_Document_Write(const Utl_Xml_Document_t* document, byte_t* output, uint32_t capacity)
 {
