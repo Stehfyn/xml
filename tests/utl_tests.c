@@ -310,14 +310,14 @@ static void TestXmlDocumentWrite(void)
     assert(&root == document.lastNode);
 
     memset(output, 0xA5, sizeof(output));
-    byte_count = Utl_Xml_WriteDocument(&document, output, (uint32_t)sizeof(output));
+    byte_count = Utl_Xml_WriteDocument(&document, output, (uint64_t)sizeof(output));
     assert((sizeof(expected) - 1) == byte_count);
     assert(0 == memcmp(output, expected, byte_count));
     assert(0xA5 == output[byte_count]);
 
     xml_file = fopen("utl_xml_document.xml", "wb");
     assert(NULL != xml_file);
-    bytes_written = fwrite(output, 1, (uint32_t)byte_count, xml_file);
+    bytes_written = fwrite(output, 1, (size_t)byte_count, xml_file);
     assert(byte_count == bytes_written);
     close_result = fclose(xml_file);
     assert(0 == close_result);
@@ -360,7 +360,7 @@ static void TestXmlSchemaLocationWrite(void)
     Utl_Xml_AppendChild(&configuration, &setting);
     Utl_Xml_AppendNode(&document, &configuration);
 
-    byte_count = Utl_Xml_WriteDocument(&document, output, (uint32_t)sizeof(output));
+    byte_count = Utl_Xml_WriteDocument(&document, output, (uint64_t)sizeof(output));
     assert((sizeof(expected) - 1) == byte_count);
     assert(0 == memcmp(output, expected, byte_count));
 }
@@ -395,9 +395,9 @@ static void TestXmlDocumentRoundTrip(void)
 
     memcpy(input, text, sizeof(text));
     Utl_Xml_InitializeDocument(&document);
-    Utl_Xml_ReadDocument(&document, input, (uint32_t)(sizeof(text) - 1), nodes, (uint32_t)COUNT_OF(nodes), attributes, (uint32_t)COUNT_OF(attributes));
+    Utl_Xml_ReadDocument(&document, input, (uint64_t)(sizeof(text) - 1), nodes, (uint32_t)COUNT_OF(nodes), attributes, (uint32_t)COUNT_OF(attributes));
 
-    byte_count = Utl_Xml_WriteDocument(&document, output, (uint32_t)sizeof(output));
+    byte_count = Utl_Xml_WriteDocument(&document, output, (uint64_t)sizeof(output));
     assert((sizeof(text) - 1) == byte_count);
     assert(0 == memcmp(output, text, byte_count));
 }

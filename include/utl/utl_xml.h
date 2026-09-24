@@ -171,8 +171,14 @@ bool_t Utl_Xml_IsString(const byte_t* utf8Text, uint32_t byteCount);
  * \brief Checks a counted UTF-8 byte span for a directly writable XML attribute value.
  *
  * \par Details:
+ *  XML 1.0 (Fifth Edition), production [10] AttValue:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-AttValue
+ *
  *  The writer uses double quotes and does not escape values. Apostrophes and > are allowed;
- *  <, &, double quotes, tabs, line feeds, and carriage returns require references.
+ *  <, &, double quotes, tabs, line feeds, and carriage returns require references
+ *  to preserve their value. This validator accepts only that reference-free subset.
+ *  XML 1.0 section 3.3.3 describes normalization of literal attribute whitespace:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#AVNormalize
  *
  * \par Requirements:
  *  - 001 This function shall accept an empty span and reject invalid UTF-8 or non-Char code points.
@@ -414,7 +420,7 @@ void Utl_Xml_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node);
  *
  * \retval        None
  */
-void Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToReadDocumentFrom, uint32_t sizeOfDocumentBuffer, Utl_Xml_Node_t* nodes, uint32_t nodeCapacity, Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity);
+void Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToReadDocumentFrom, uint64_t sizeOfDocumentBuffer, Utl_Xml_Node_t* nodes, uint32_t nodeCapacity, Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity);
 
 /*************************************************************************************************/
 /**
@@ -449,6 +455,6 @@ void Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToReadDocu
  *
  * \return     Number of bytes written.
  */
-uint64_t Utl_Xml_WriteDocument(const Utl_Xml_Document_t* document, byte_t* bufferToWriteDocumentIn, uint32_t sizeOfDocumentBuffer);
+uint64_t Utl_Xml_WriteDocument(const Utl_Xml_Document_t* document, byte_t* bufferToWriteDocumentIn, uint64_t sizeOfDocumentBuffer);
 
 #endif /* UTL_XML_H */

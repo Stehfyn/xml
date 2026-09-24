@@ -206,10 +206,10 @@ int main(void)
     Utl_Xml_AppendNode(&document, &declaration);
     Utl_Xml_AppendNode(&document, &definition);
 
-    byte_count = Utl_Xml_WriteDocument(&document, output, (uint32_t)sizeof(output));
+    byte_count = Utl_Xml_WriteDocument(&document, output, (uint64_t)sizeof(output));
     xml_file = fopen("examples/arinc661_definition.xml", "wb");
     LOGASSERT(NULL != xml_file);
-    bytes_written = fwrite(output, 1, (uint32_t)byte_count, xml_file);
+    bytes_written = fwrite(output, 1, (size_t)byte_count, xml_file);
     LOGASSERT(byte_count == bytes_written);
     close_result = fclose(xml_file);
     LOGASSERT(0 == close_result);
