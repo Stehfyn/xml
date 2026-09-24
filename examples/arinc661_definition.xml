@@ -1,1 +1,64 @@
-<?xml version="1.0"?><a661_df name="arinc661_definition" library_version="0" supp_version="6"><model><prop name="ApplicationId" value="1"/></model><a661_layer name="PrimaryLayer"><model><prop name="LayerId" value="1"/><prop name="ContextNumber" value="0"/><prop name="Height" value="10000"/><prop name="Width" value="10000"/></model><a661_widget name="MainPanel" type="A661_PANEL"><model><prop name="WidgetIdent" value="1"/><prop name="Enable" value="A661_TRUE"/><prop name="Visible" value="A661_TRUE"/><prop name="PosX" value="0"/><prop name="PosY" value="0"/><prop name="SizeX" value="10000"/><prop name="SizeY" value="10000"/><prop name="StyleSet" value="0"/></model><a661_widget name="StatusLabel" type="A661_LABEL"><model><prop name="WidgetIdent" value="2"/><prop name="Anonymous" value="A661_FALSE"/><prop name="Visible" value="A661_TRUE"/><prop name="PosX" value="3000"/><prop name="PosY" value="4000"/><prop name="SizeX" value="4000"/><prop name="SizeY" value="1000"/><prop name="RotationAngle" value="0.0"/><prop name="StyleSet" value="0"/><prop name="MaxStringLength" value="32"/><prop name="MotionAllowed" value="A661_TRUE"/><prop name="Font" value="t2"/><prop name="ColorIndex" value="red"/><prop name="Alignment" value="A661_CENTER"/><prop name="LabelString" value="SYSTEM READY"/></model></a661_widget><a661_widget name="SecondaryLabel" type="A661_LABEL"><model><prop name="WidgetIdent" value="3"/><prop name="Anonymous" value="A661_FALSE"/><prop name="Visible" value="A661_TRUE"/><prop name="PosX" value="3000"/><prop name="PosY" value="5500"/><prop name="SizeX" value="4000"/><prop name="SizeY" value="1000"/><prop name="RotationAngle" value="0.0"/><prop name="StyleSet" value="0"/><prop name="MaxStringLength" value="32"/><prop name="MotionAllowed" value="A661_TRUE"/><prop name="Font" value="t2"/><prop name="ColorIndex" value="red"/><prop name="Alignment" value="A661_CENTER"/><prop name="LabelString" value="SECONDARY STATUS"/></model></a661_widget></a661_widget></a661_layer></a661_df>
+<?xml version="1.0"?>
+<a661_df name="arinc661_definition" library_version="0" supp_version="6">
+    <model>
+        <prop name="ApplicationId" value="1"/>
+    </model>
+    <a661_layer name="PrimaryLayer">
+        <model>
+            <prop name="LayerId" value="1"/>
+            <prop name="ContextNumber" value="0"/>
+            <prop name="Height" value="10000"/>
+            <prop name="Width" value="10000"/>
+        </model>
+        <a661_widget name="MainPanel" type="A661_PANEL">
+            <model>
+                <prop name="WidgetIdent" value="1"/>
+                <prop name="Enable" value="A661_TRUE"/>
+                <prop name="Visible" value="A661_TRUE"/>
+                <prop name="PosX" value="0"/>
+                <prop name="PosY" value="0"/>
+                <prop name="SizeX" value="10000"/>
+                <prop name="SizeY" value="10000"/>
+                <prop name="StyleSet" value="0"/>
+            </model>
+            <a661_widget name="StatusLabel" type="A661_LABEL">
+                <model>
+                    <prop name="WidgetIdent" value="2"/>
+                    <prop name="Anonymous" value="A661_FALSE"/>
+                    <prop name="Visible" value="A661_TRUE"/>
+                    <prop name="PosX" value="3000"/>
+                    <prop name="PosY" value="4000"/>
+                    <prop name="SizeX" value="4000"/>
+                    <prop name="SizeY" value="1000"/>
+                    <prop name="RotationAngle" value="0.0"/>
+                    <prop name="StyleSet" value="0"/>
+                    <prop name="MaxStringLength" value="32"/>
+                    <prop name="MotionAllowed" value="A661_TRUE"/>
+                    <prop name="Font" value="t2"/>
+                    <prop name="ColorIndex" value="red"/>
+                    <prop name="Alignment" value="A661_CENTER"/>
+                    <prop name="LabelString" value="SYSTEM READY"/>
+                </model>
+            </a661_widget>
+            <a661_widget name="SecondaryLabel" type="A661_LABEL">
+                <model>
+                    <prop name="WidgetIdent" value="3"/>
+                    <prop name="Anonymous" value="A661_FALSE"/>
+                    <prop name="Visible" value="A661_TRUE"/>
+                    <prop name="PosX" value="3000"/>
+                    <prop name="PosY" value="5500"/>
+                    <prop name="SizeX" value="4000"/>
+                    <prop name="SizeY" value="1000"/>
+                    <prop name="RotationAngle" value="0.0"/>
+                    <prop name="StyleSet" value="0"/>
+                    <prop name="MaxStringLength" value="32"/>
+                    <prop name="MotionAllowed" value="A661_TRUE"/>
+                    <prop name="Font" value="t2"/>
+                    <prop name="ColorIndex" value="red"/>
+                    <prop name="Alignment" value="A661_CENTER"/>
+                    <prop name="LabelString" value="SECONDARY STATUS"/>
+                </model>
+            </a661_widget>
+        </a661_widget>
+    </a661_layer>
+</a661_df>

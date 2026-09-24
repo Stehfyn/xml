@@ -23,6 +23,8 @@
 ** 3.1 Macros
 **===============================================================================================*/
 
+#define XML_INDENT_SPACES_PER_LEVEL (4)
+
 /*=================================================================================================
 ** 3.2 Types
 **===============================================================================================*/
@@ -190,6 +192,19 @@ static void WriteByte(byte_t* output, uint32_t capacity, uint64_t* byteCount, by
  * \retval None
  */
 static void WriteToken(byte_t* output, uint32_t capacity, uint64_t* byteCount, const char_t* token);
+
+/*************************************************************************************************/
+/**
+ * \brief Writes the requested number of indentation spaces.
+ *
+ * \param[in,out] output     Caller-provided byte storage
+ * \param[in]     capacity   Number of bytes in output
+ * \param[in,out] byteCount  Number of bytes already written
+ * \param[in]     indentSpaceCount  Number of spaces to write
+ *
+ * \retval None
+ */
+static void WriteIndent(byte_t* output, uint32_t capacity, uint64_t* byteCount, uint32_t indentSpaceCount);
 
 /*************************************************************************************************/
 /**
@@ -643,6 +658,21 @@ static void WriteToken(byte_t* output, uint32_t capacity, uint64_t* byteCount, c
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  Writes only spaces; callers write line breaks separately.
+ */
+static void WriteIndent(byte_t* output, uint32_t capacity, uint64_t* byteCount, uint32_t indentSpaceCount)
+{
+    uint32_t space_index;
+
+    for (space_index = 0; space_index < indentSpaceCount; ++space_index)
+    {
+        WriteByte(output, capacity, byteCount, UTL_XML_CHAR_SPACE);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  The caller supplies an ExternalID, an internal subset, or both in value, without a leading space.
  */
 static void WriteDoctype(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
@@ -886,11 +916,13 @@ static void WriteElementEnd(byte_t* output, uint32_t capacity, uint64_t* byteCou
 static void WriteElement(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* root)
 {
     const Utl_Xml_Node_t* current_node;
+    uint32_t              depth;
     uint32_t              node_index;
-    uint32_t              ancestor_index;
     bool_t                should_close_parent;
+    uint32_t              ancestor_index;
 
     current_node = root;
+    depth        = 0;
 
     for (node_index = 0; node_index < UTL_XML_DOCUMENT_MAX_NODES; ++node_index)
     {
@@ -899,13 +931,21 @@ static void WriteElement(byte_t* output, uint32_t capacity, uint64_t* byteCount,
             break;
         }
 
+        if (current_node != root)
+        {
+            WriteByte(output, capacity, byteCount, UTL_XML_CHAR_LF);
+            WriteIndent(output, capacity, byteCount, depth * XML_INDENT_SPACES_PER_LEVEL);
+        }
+
         if (UTL_XML_NODE_ELEMENT == current_node->type)
         {
             WriteElementStart(output, capacity, byteCount, current_node);
 
             if (NULL != current_node->firstChild)
             {
+                LOGASSERT(depth < UTL_XML_NODE_MAX_DEPTH);
                 current_node = current_node->firstChild;
+                ++depth;
                 continue;
             }
         }
@@ -925,7 +965,11 @@ static void WriteElement(byte_t* output, uint32_t capacity, uint64_t* byteCount,
 
             current_node = current_node->parent;
             LOGASSERT(NULL != current_node);
+            LOGASSERT(0 < depth);
+            --depth;
 
+            WriteByte(output, capacity, byteCount, UTL_XML_CHAR_LF);
+            WriteIndent(output, capacity, byteCount, depth * XML_INDENT_SPACES_PER_LEVEL);
             WriteElementEnd(output, capacity, byteCount, current_node);
 
             should_close_parent = (current_node != root) && (NULL == current_node->nextSibling);
@@ -944,6 +988,7 @@ static void WriteElement(byte_t* output, uint32_t capacity, uint64_t* byteCount,
     }
 
     LOGASSERT(NULL == current_node);
+    LOGASSERT(0 == depth);
 }
 
 /*************************************************************************************************/
@@ -1620,6 +1665,7 @@ uint64_t Utl_Xml_WriteDocument(const Utl_Xml_Document_t* document, byte_t* outpu
         }
 
         WriteRootNode(output, capacity, &byte_count, current_node);
+        WriteByte(output, capacity, &byte_count, UTL_XML_CHAR_LF);
 
         current_node = current_node->nextSibling;
     }

@@ -533,6 +533,8 @@ void Utl_Xml_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node);
  *
  *  XML declaration markup is written with version="1.0" and optional fields.
  *  DOCTYPE markup is written from its name and optional suffix.
+ *  The writer uses LF line endings and four spaces per nesting level.
+ *  Indentation is included in the serialized text content.
  *  The caller keeps nodes, attributes, and borrowed byte spans valid while
  *  serializing, with output storage disjoint from them.
  *
@@ -543,6 +545,7 @@ void Utl_Xml_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node);
  *  - 004 This function shall write nodes, children, and attributes in append order, escaping text and attribute values.
  *  - 005 This function shall return the number of bytes written, without writing a zero terminator.
  *  - 006 This function shall fail an assertion before writing beyond capacity.
+ *  - 007 This function shall place nested nodes on indented LF-separated lines.
  *
  * \param[in]  document   Document to write
  * \param[out] output     Caller-provided byte storage

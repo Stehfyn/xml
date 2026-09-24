@@ -381,9 +381,9 @@ static void TestXmlDocumentWrite(void)
     const byte_t       inside[] = "inside";
     const byte_t       after[] = "after";
     const byte_t       expected[] =
-        "<?xml version=\"1.0\"?><!--before--><!DOCTYPE root><?target data?>"
-        "<root a=\"A&amp;&quot;&lt;&#x9;&#xA;&#xD;\">&lt;&amp;&gt;&#xD;"
-        "<child><grandchild/></child>tail<!--inside--></root><!--after-->";
+        "<?xml version=\"1.0\"?>\n<!--before-->\n<!DOCTYPE root>\n<?target data?>\n"
+        "<root a=\"A&amp;&quot;&lt;&#x9;&#xA;&#xD;\">\n    &lt;&amp;&gt;&#xD;\n"
+        "    <child>\n        <grandchild/>\n    </child>\n    tail\n    <!--inside-->\n</root>\n<!--after-->\n";
     byte_t             output[256];
     FILE*              xml_file;
     uint64_t           byte_count;
