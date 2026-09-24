@@ -479,14 +479,15 @@ static void WriteEscaped(byte_t* output, uint32_t capacity, uint64_t* byteCount,
 static void WriteElementStart(byte_t* output, uint32_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
 {
     const Utl_Xml_Attribute_t* current_attribute;
-    uint32_t                   attribute_index;
     bool_t                     is_name;
+    uint32_t                   attribute_index;
 
     LOGASSERT(NULL != node->name);
-    is_name = Utl_Xml_IsName(node->name, node->nameByteCount);
-    LOGASSERT(is_name);
     LOGASSERT(NULL == node->value);
     LOGASSERT(0 == node->valueByteCount);
+
+    is_name = Utl_Xml_IsName(node->name, node->nameByteCount);
+    LOGASSERT(is_name);
 
     WriteToken(output, capacity, byteCount, UTL_XML_STAG_OPEN);
     WriteBytes(output, capacity, byteCount, node->name, node->nameByteCount);
