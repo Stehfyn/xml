@@ -49,7 +49,9 @@ set_target_properties(arinc661_definition PROPERTIES VS_DEBUGGER_WORKING_DIRECTO
 if(WIN32)
     set(IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui-docking")
     add_executable(arinc661_configuration
+        examples/main.cpp
         examples/arinc661_configuration.cpp
+        examples/arinc661_configuration.h
         "${IMGUI_DIR}/imgui.cpp"
         "${IMGUI_DIR}/imgui_demo.cpp"
         "${IMGUI_DIR}/imgui_draw.cpp"

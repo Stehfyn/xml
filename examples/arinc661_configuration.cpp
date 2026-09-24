@@ -2,32 +2,20 @@
 ** 1. References
 **===============================================================================================*/
 
-/* Win32 and OpenGL setup adapted from imgui-docking/examples/example_win32_opengl3/main.cpp. */
+/* ARINC 661 configuration editor and visualizer. */
 
 /*=================================================================================================
 ** 2. INCLUDE FILES
 **===============================================================================================*/
 
+#include "arinc661_configuration.h"
 #include "imgui.h"
 #include "imgui_internal.h"
-#include "imgui_impl_opengl3.h"
-#include "imgui_impl_win32.h"
-#include "misc/cpp/imgui_stdlib.h"
 
 extern "C"
 {
 #include "os/os_assert.h"
-#include "utl/utl_xml.h"
 }
-
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
-#include <GL/gl.h>
 
 #include <algorithm>
 #include <cerrno>
@@ -35,13 +23,7 @@ extern "C"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <deque>
-#include <fstream>
-#include <iterator>
 #include <limits.h>
-#include <string>
-#include <unordered_map>
-#include <vector>
 
 /*=================================================================================================
 ** 3. DECLARATIONS
@@ -49,76 +31,13 @@ extern "C"
 ** 3.1 Macros
 **===============================================================================================*/
 
-#ifndef ARINC661_CONFIGURATION_XML_PATH
-#define ARINC661_CONFIGURATION_XML_PATH "examples/arinc661_configuration.xml"
-#endif
-
 #define CONFIGURATION_WINDOW_NAME ("ARINC 661 Configuration")
 #define VISUALIZER_WINDOW_NAME ("Visualizer")
 #define DOCKSPACE_NAME ("ARINC661DockSpace")
 
-#define OPENGL_MAJOR_VERSION_PARAMETER (0x821B)
-#define OPENGL_MINOR_VERSION_PARAMETER (0x821C)
-#define OPENGL_VERSION_3_0 (300)
-#define WGL_MAJOR_VERSION_ATTRIBUTE (0x2091)
-#define WGL_MINOR_VERSION_ATTRIBUTE (0x2092)
-#define WGL_PROFILE_MASK_ATTRIBUTE (0x9126)
-#define WGL_CORE_PROFILE_BIT (0x0001)
-
 /*=================================================================================================
 ** 3.2 Types
 **===============================================================================================*/
-
-/*************************************************************************************************/
-/**
- * \brief Editable attribute values keyed by stable XML attribute addresses.
- */
-typedef std::unordered_map<Utl_Xml_Attribute_t*, std::string> AttributeValues_t;
-
-/*************************************************************************************************/
-/**
- * \brief Parsed configuration and editable copies of its attribute values.
- */
-typedef struct ConfigurationEditor_s
-{
-    std::vector<byte_t>              inputBuffer;         ///< Mutable XML bytes borrowed by parsed nodes.
-    std::vector<Utl_Xml_Node_t>      nodes;               ///< Parsed node storage.
-    std::vector<Utl_Xml_Attribute_t> attributes;          ///< Parsed attribute storage.
-    std::deque<Utl_Xml_Node_t>       addedNodes;          ///< Stable storage for newly added nodes.
-    std::deque<Utl_Xml_Attribute_t>  addedAttributes;     ///< Stable storage for newly added attributes.
-    Utl_Xml_Document_t               document;            ///< Parsed and edited XML tree.
-    AttributeValues_t                attributeValues;     ///< Editable values for linked attributes.
-    Utl_Xml_Node_t*                  selectedNode;        ///< Selected screen, layout, or window.
-    std::string                      status;              ///< Current load or build message.
-    bool_t                           isLoaded;            ///< TRUE once the document has been read.
-    bool_t                           isLayoutInitialized; ///< TRUE once the dock layout has been built.
-} ConfigurationEditor_t;
-
-/*************************************************************************************************/
-/**
- * \brief Screen dimensions read from the editable XML tree.
- */
-typedef struct ScreenPreview_s
-{
-    Utl_Xml_Node_t* node;   ///< Screen element in the XML tree.
-    float           width;  ///< Pixel width shown in the preview.
-    float           height; ///< Pixel height shown in the preview.
-} ScreenPreview_t;
-
-/*************************************************************************************************/
-/**
- * \brief Device context owned by an ImGui platform viewport.
- */
-typedef struct WglWindowData_s
-{
-    HDC deviceContext; ///< Win32 device context for the viewport.
-} WglWindowData_t;
-
-/*************************************************************************************************/
-/**
- * \brief WGL extension signature for creating an OpenGL context.
- */
-typedef HGLRC(WINAPI* WglCreateContextAttribsFunction_t)(HDC, HGLRC, const int*);
 
 /*=================================================================================================
 ** 3.3 External global variables
@@ -130,18 +49,14 @@ typedef HGLRC(WINAPI* WglCreateContextAttribsFunction_t)(HDC, HGLRC, const int*)
 
 /*************************************************************************************************/
 /**
- * \brief Rendering state shared with Dear ImGui platform viewport callbacks.
- */
-static HGLRC           g_renderContext;
-static WglWindowData_t g_mainWindow;
-static int             g_renderWidth;
-static int             g_renderHeight;
-
-/*************************************************************************************************/
-/**
  * \brief Unit choices used by the configuration example.
  */
-static const char_t* const c_unitOptions[] = {"pixel", "inch", "screen"};
+static const char_t* const c_unitOptions[] =
+{
+    "pixel",
+    "inch",
+    "screen"
+};
 
 /*=================================================================================================
 ** 3.5 Static function prototypes
@@ -156,7 +71,18 @@ static const char_t* const c_unitOptions[] = {"pixel", "inch", "screen"};
  *
  * \retval None
  */
-static void CollectAttributes(ConfigurationEditor_t* editor, Utl_Xml_Node_t* node);
+static bool_t CollectAttributes(ConfigurationEditor_t* editor, Utl_Xml_Node_t* node);
+
+/*************************************************************************************************/
+/**
+ * \brief Finds an editable value by its XML attribute address.
+ *
+ * \param[in] editor      Editor state
+ * \param[in] attribute   XML attribute
+ *
+ * \return Editable value index, or the array capacity when absent.
+ */
+static uint32_t FindEditableValueIndex(const ConfigurationEditor_t* editor, const Utl_Xml_Attribute_t* attribute);
 
 /*************************************************************************************************/
 /**
@@ -167,29 +93,6 @@ static void CollectAttributes(ConfigurationEditor_t* editor, Utl_Xml_Node_t* nod
  * \retval None
  */
 static void LoadConfiguration(ConfigurationEditor_t* editor);
-
-/*************************************************************************************************/
-/**
- * \brief Adds a byte count without overflowing the output capacity.
- *
- * \param[in]     byteCount   Number of bytes to add
- * \param[in,out] capacity    Accumulated output capacity
- *
- * \return TRUE if the byte count fits; FALSE on overflow.
- */
-static bool_t AddOutputBytes(uint64_t byteCount, uint64_t* capacity);
-
-/*************************************************************************************************/
-/**
- * \brief Bounds the writer's markup, values, and indentation for one subtree.
- *
- * \param[in]     node       XML node
- * \param[in]     depth      Depth of the current XML node
- * \param[in,out] capacity   Accumulated output capacity
- *
- * \return TRUE if the subtree fits; FALSE on overflow.
- */
-static bool_t AddNodeOutputCapacity(const Utl_Xml_Node_t* node, uint32_t depth, uint64_t* capacity);
 
 /*************************************************************************************************/
 /**
@@ -356,7 +259,7 @@ static bool_t AttributeHasName(const Utl_Xml_Attribute_t* attribute, const char_
  *
  * \return TRUE for a valid unsigned value; FALSE otherwise.
  */
-static bool_t ParseUnsignedValue(const std::string* text, uint32_t* value);
+static bool_t ParseUnsignedValue(const char_t* text, uint32_t* value);
 
 /*************************************************************************************************/
 /**
@@ -368,7 +271,7 @@ static bool_t ParseUnsignedValue(const std::string* text, uint32_t* value);
  *
  * \retval None
  */
-static void DrawAttributeControl(const Utl_Xml_Node_t* ownerNode, Utl_Xml_Attribute_t* attribute, std::string* value);
+static void DrawAttributeControl(const Utl_Xml_Node_t* ownerNode, Utl_Xml_Attribute_t* attribute, char_t* value);
 
 /*************************************************************************************************/
 /**
@@ -434,7 +337,7 @@ static Utl_Xml_Node_t* FindChild(Utl_Xml_Node_t* parent, const char_t* name);
  *
  * \return Editable value, or NULL when the attribute is absent.
  */
-static const std::string* FindAttributeValue(const ConfigurationEditor_t* editor, Utl_Xml_Node_t* node, const char_t* name);
+static const char_t* FindAttributeValue(const ConfigurationEditor_t* editor, Utl_Xml_Node_t* node, const char_t* name);
 
 /*************************************************************************************************/
 /**
@@ -445,7 +348,7 @@ static const std::string* FindAttributeValue(const ConfigurationEditor_t* editor
  *
  * \return TRUE for a finite nonnegative value; FALSE otherwise.
  */
-static bool_t ParsePixelValue(const std::string* text, float* value);
+static bool_t ParsePixelValue(const char_t* text, float* value);
 
 /*************************************************************************************************/
 /**
@@ -461,6 +364,19 @@ static bool_t ParsePixelValue(const std::string* text, float* value);
  * \return TRUE if all four coordinates are valid; FALSE otherwise.
  */
 static bool_t ReadPixelRectangle(const ConfigurationEditor_t* editor, Utl_Xml_Node_t* node, float* x, float* y, float* width, float* height);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads positive screen dimensions from the current editor values.
+ *
+ * \param[in]  editor   Editor state
+ * \param[in]  screen   Screen element
+ * \param[out] width    Pixel width
+ * \param[out] height   Pixel height
+ *
+ * \return TRUE when both dimensions are positive; FALSE otherwise.
+ */
+static bool_t ReadScreenDimensions(const ConfigurationEditor_t* editor, Utl_Xml_Node_t* screen, float* width, float* height);
 
 /*************************************************************************************************/
 /**
@@ -496,112 +412,6 @@ static void DrawVisualizer(const ConfigurationEditor_t* editor);
  */
 static void BuildDockLayout(ImGuiID dockspaceId);
 
-/*************************************************************************************************/
-/**
- * \brief Starts a new Dear ImGui frame.
- *
- * \retval None
- */
-static void BeginFrame(void);
-
-/*************************************************************************************************/
-/**
- * \brief Draws the dockspace, configuration editor, and visualizer.
- *
- * \param[in,out] editor   Editor state
- *
- * \retval None
- */
-static void DrawApp(ConfigurationEditor_t* editor);
-
-/*************************************************************************************************/
-/**
- * \brief Renders the Dear ImGui frame and presents the window.
- *
- * \retval None
- */
-static void EndFrame(void);
-
-/*************************************************************************************************/
-/**
- * \brief Creates a Win32 OpenGL context for the main or platform window.
- *
- * \param[in]     windowHandle   Win32 window handle
- * \param[in,out] windowData     Window rendering data
- *
- * \return TRUE when rendering setup succeeds; FALSE otherwise.
- */
-static bool_t CreateDeviceWGL(HWND windowHandle, WglWindowData_t* windowData);
-
-/*************************************************************************************************/
-/**
- * \brief Releases a Win32 window device context.
- *
- * \param[in]     windowHandle   Win32 window handle
- * \param[in,out] windowData     Window rendering data
- *
- * \retval None
- */
-static void CleanupDeviceWGL(HWND windowHandle, WglWindowData_t* windowData);
-
-/*************************************************************************************************/
-/**
- * \brief Creates renderer data for an ImGui platform viewport.
- *
- * \param[in,out] viewport   ImGui platform viewport
- *
- * \retval None
- */
-static void HookRendererCreateWindow(ImGuiViewport* viewport);
-
-/*************************************************************************************************/
-/**
- * \brief Releases renderer data for an ImGui platform viewport.
- *
- * \param[in,out] viewport   ImGui platform viewport
- *
- * \retval None
- */
-static void HookRendererDestroyWindow(ImGuiViewport* viewport);
-
-/*************************************************************************************************/
-/**
- * \brief Activates the shared OpenGL context for a platform viewport.
- *
- * \param[in]     viewport   ImGui platform viewport
- * \param[in]     data       Unused renderer callback data
- *
- * \retval None
- */
-static void HookPlatformRenderWindow(ImGuiViewport* viewport, void* data);
-
-/*************************************************************************************************/
-/**
- * \brief Presents a platform viewport.
- *
- * \param[in]     viewport   ImGui platform viewport
- * \param[in]     data       Unused renderer callback data
- *
- * \retval None
- */
-static void HookRendererSwapBuffers(ImGuiViewport* viewport, void* data);
-
-/*************************************************************************************************/
-/**
- * \brief Routes Win32 input and window events to ImGui and the renderer.
- *
- * \param[in]     windowHandle    Win32 window handle
- * \param[in]     message         Win32 message identifier
- * \param[in]     wordParameter   Win32 message word parameter
- * \param[in]     longParameter   Win32 message long parameter
- *
- * \return Win32 message result.
- */
-static LRESULT WINAPI WindowProcedure(HWND windowHandle, UINT message, WPARAM wordParameter, LPARAM longParameter);
-
-/* The Win32 backend exposes this handler without declaring it in its public header. */
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND windowHandle, UINT message, WPARAM wordParameter, LPARAM longParameter);
-
 /*=================================================================================================
 ** 4. PRIVATE FUNCTIONS
 **===============================================================================================*/
@@ -611,19 +421,53 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND windowHandle, 
  * \par Details:
  *  Copies parsed attribute values into editable storage.
  */
-static void CollectAttributes(ConfigurationEditor_t* editor, Utl_Xml_Node_t* node)
+static bool_t CollectAttributes(ConfigurationEditor_t* editor, Utl_Xml_Node_t* node)
 {
     Utl_Xml_Attribute_t* attribute;
     Utl_Xml_Node_t*      child;
+    AttributeValue_t*    editable_value;
 
     for (attribute = node->firstAttribute; NULL != attribute; attribute = attribute->next)
     {
-        editor->attributeValues.emplace(attribute, std::string(reinterpret_cast<const char_t*>(attribute->value), attribute->valueByteCount));
+        if ((CONFIGURATION_MAX_EDITABLE_ATTRIBUTES == editor->attributeValueCount) ||
+            (CONFIGURATION_MAX_ATTRIBUTE_VALUE_BYTES < attribute->valueByteCount))
+        {
+            strcpy(editor->status, "The XML file exceeds the editor's attribute limits.");
+            return FALSE;
+        }
+        editable_value            = &editor->attributeValues[editor->attributeValueCount];
+        ++editor->attributeValueCount;
+        editable_value->attribute = attribute;
+        memcpy(editable_value->value, attribute->value, attribute->valueByteCount);
+        editable_value->value[attribute->valueByteCount] = '\0';
     }
     for (child = node->firstChild; NULL != child; child = child->nextSibling)
     {
-        CollectAttributes(editor, child);
+        if (FALSE == CollectAttributes(editor, child))
+        {
+            return FALSE;
+        }
     }
+    return TRUE;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Finds an editable value by its XML attribute address.
+ */
+static uint32_t FindEditableValueIndex(const ConfigurationEditor_t* editor, const Utl_Xml_Attribute_t* attribute)
+{
+    uint32_t value_index;
+
+    for (value_index = 0; value_index < editor->attributeValueCount; ++value_index)
+    {
+        if (attribute == editor->attributeValues[value_index].attribute)
+        {
+            return value_index;
+        }
+    }
+    return CONFIGURATION_MAX_EDITABLE_ATTRIBUTES;
 }
 
 /*************************************************************************************************/
@@ -633,116 +477,75 @@ static void CollectAttributes(ConfigurationEditor_t* editor, Utl_Xml_Node_t* nod
  */
 static void LoadConfiguration(ConfigurationEditor_t* editor)
 {
-    std::ifstream   xml_file;
-    std::string     xml_text;
-    size_t          tag_count;
-    size_t          equals_count;
+    FILE*           xml_file;
+    size_t          document_byte_count;
+    int             read_error;
+    int             close_result;
     Utl_Xml_Node_t* node;
     Utl_Xml_Node_t* first_screen;
 
     editor->isLoaded     = FALSE;
     editor->selectedNode = NULL;
-    editor->attributeValues.clear();
-    editor->nodes.clear();
-    editor->attributes.clear();
-    editor->addedNodes.clear();
-    editor->addedAttributes.clear();
-    editor->inputBuffer.clear();
+    editor->attributeValueCount = 0;
+    editor->addedNodeCount = 0;
+    editor->addedAttributeCount = 0;
 
-    xml_file.open(ARINC661_CONFIGURATION_XML_PATH, std::ios::binary);
-    if (!xml_file)
+    xml_file = fopen(ARINC661_CONFIGURATION_XML_PATH, "rb");
+    if (NULL == xml_file)
     {
-        editor->status = "Could not open arinc661_configuration.xml.";
+        strcpy(editor->status, "Could not open arinc661_configuration.xml.");
         return;
     }
-    xml_text.assign(std::istreambuf_iterator<char_t>(xml_file), std::istreambuf_iterator<char_t>());
-    if (xml_file.bad())
+    document_byte_count = fread(editor->inputBuffer, 1, CONFIGURATION_MAX_DOCUMENT_BYTES + 1, xml_file);
+    read_error          = ferror(xml_file);
+    close_result        = fclose(xml_file);
+    if ((0 != read_error) || (0 != close_result))
     {
-        editor->status = "Could not read arinc661_configuration.xml.";
+        strcpy(editor->status, "Could not read arinc661_configuration.xml.");
         return;
     }
-
-    tag_count    = std::count(xml_text.begin(), xml_text.end(), '<');
-    equals_count = std::count(xml_text.begin(), xml_text.end(), '=');
-    if ((0 == tag_count) || (UTL_XML_DOCUMENT_MAX_NODES < tag_count) || (UINT32_MAX <= equals_count))
+    if (CONFIGURATION_MAX_DOCUMENT_BYTES < document_byte_count)
     {
-        editor->status = "The XML file exceeds the reader's storage limits.";
+        strcpy(editor->status, "The XML file exceeds the reader's storage limits.");
         return;
     }
-
-    editor->inputBuffer.assign(xml_text.begin(), xml_text.end());
-    editor->inputBuffer.push_back(0);
-    editor->nodes.resize(tag_count);
-    editor->attributes.resize(equals_count + 1);
+    if (0 == document_byte_count)
+    {
+        strcpy(editor->status, "The XML file is empty.");
+        return;
+    }
+    editor->inputBuffer[document_byte_count] = 0;
     Utl_Xml_InitializeDocument(&editor->document);
-    Utl_Xml_ReadDocument(&editor->document, editor->inputBuffer.data(), static_cast<uint64_t>(xml_text.size()),
-                         editor->nodes.data(), static_cast<uint32_t>(editor->nodes.size()),
-                         editor->attributes.data(), static_cast<uint32_t>(editor->attributes.size()));
+    Utl_Xml_ReadDocument(
+        &editor->document,
+        editor->inputBuffer,
+        (uint64_t)document_byte_count,
+        editor->nodes,
+        UTL_XML_DOCUMENT_MAX_NODES,
+        editor->attributes,
+        CONFIGURATION_MAX_PARSED_ATTRIBUTES);
 
     for (node = editor->document.firstNode; NULL != node; node = node->nextSibling)
     {
-        CollectAttributes(editor, node);
+        if (FALSE == CollectAttributes(editor, node))
+        {
+            return;
+        }
         if ((NULL == editor->selectedNode) && (UTL_XML_NODE_ELEMENT == node->type))
         {
             editor->selectedNode = node;
         }
     }
-    first_screen = FindChild(editor->selectedNode, "screen");
-    if (NULL != first_screen)
+    if (NULL != editor->selectedNode)
     {
-        editor->selectedNode = first_screen;
+        first_screen = FindChild(editor->selectedNode, "screen");
+        if (NULL != first_screen)
+        {
+            editor->selectedNode = first_screen;
+        }
     }
     editor->isLoaded = TRUE;
-    editor->status   = "Loaded arinc661_configuration.xml.";
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Adds a byte count without overflowing the output capacity.
- */
-static bool_t AddOutputBytes(uint64_t byteCount, uint64_t* capacity)
-{
-    if (byteCount > UINT64_MAX - *capacity)
-    {
-        return FALSE;
-    }
-    *capacity += byteCount;
-    return TRUE;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Bounds the writer's markup, values, and indentation for one subtree.
- */
-static bool_t AddNodeOutputCapacity(const Utl_Xml_Node_t* node, uint32_t depth, uint64_t* capacity)
-{
-    const Utl_Xml_Node_t*      child;
-    const Utl_Xml_Attribute_t* attribute;
-
-    if ((UTL_XML_NODE_MAX_DEPTH < depth) ||
-        (FALSE == AddOutputBytes(64 + 8 * static_cast<uint64_t>(depth), capacity)) ||
-        (FALSE == AddOutputBytes(2 * static_cast<uint64_t>(node->nameByteCount), capacity)))
-    {
-        return FALSE;
-    }
-    for (attribute = node->firstAttribute; NULL != attribute; attribute = attribute->next)
-    {
-        if ((FALSE == AddOutputBytes(static_cast<uint64_t>(attribute->nameByteCount) + 4, capacity)) ||
-            (FALSE == AddOutputBytes(attribute->valueByteCount, capacity)))
-        {
-            return FALSE;
-        }
-    }
-    for (child = node->firstChild; NULL != child; child = child->nextSibling)
-    {
-        if (FALSE == AddNodeOutputCapacity(child, depth + 1, capacity))
-        {
-            return FALSE;
-        }
-    }
-    return TRUE;
+    strcpy(editor->status, "Loaded arinc661_configuration.xml.");
 }
 
 /*************************************************************************************************/
@@ -752,67 +555,62 @@ static bool_t AddNodeOutputCapacity(const Utl_Xml_Node_t* node, uint32_t depth, 
  */
 static void BuildConfiguration(ConfigurationEditor_t* editor)
 {
-    AttributeValues_t::iterator value_iterator;
-    const std::string*          value;
-    const Utl_Xml_Attribute_t*  attribute;
-    const Utl_Xml_Node_t*       node;
-    std::vector<byte_t>         output_buffer;
-    FILE*                       xml_file;
-    uint64_t                    output_capacity;
-    uint64_t                    output_byte_count;
-    size_t                      bytes_written;
-    int                         close_result;
+    AttributeValue_t* value;
+    FILE*             xml_file;
+    uint32_t          value_index;
+    uint32_t          value_byte_count;
+    uint64_t          output_byte_count;
+    size_t            bytes_written;
+    int               close_result;
 
-    output_capacity = 0;
-    for (value_iterator = editor->attributeValues.begin(); value_iterator != editor->attributeValues.end(); ++value_iterator)
+    for (value_index = 0; value_index < editor->attributeValueCount; ++value_index)
     {
-        value = &value_iterator->second;
-        if ((UTL_XML_MAX_VALUE_BYTES < value->size()) ||
-            (FALSE == Utl_Xml_IsAttributeValue(reinterpret_cast<const byte_t*>(value->c_str()), static_cast<uint32_t>(value->size()))))
+        value = &editor->attributeValues[value_index];
+        if (NULL == value->attribute)
         {
-            attribute      = value_iterator->first;
-            editor->status = "Invalid XML attribute value: " +
-                             std::string(reinterpret_cast<const char_t*>(attribute->name), attribute->nameByteCount);
+            continue;
+        }
+        value_byte_count = (uint32_t)strlen(value->value);
+        if (FALSE == Utl_Xml_IsAttributeValue((const byte_t*)value->value, value_byte_count))
+        {
+            snprintf(
+                editor->status,
+                sizeof(editor->status),
+                "Invalid XML attribute value: %.*s",
+                (int)value->attribute->nameByteCount,
+                (const char_t*)value->attribute->name);
             return;
         }
     }
 
-    for (value_iterator = editor->attributeValues.begin(); value_iterator != editor->attributeValues.end(); ++value_iterator)
+    for (value_index = 0; value_index < editor->attributeValueCount; ++value_index)
     {
-        value_iterator->first->value          = reinterpret_cast<const byte_t*>(value_iterator->second.c_str());
-        value_iterator->first->valueByteCount = static_cast<uint32_t>(value_iterator->second.size());
-    }
-    for (node = editor->document.firstNode; NULL != node; node = node->nextSibling)
-    {
-        if (FALSE == AddNodeOutputCapacity(node, 0, &output_capacity))
+        value = &editor->attributeValues[value_index];
+        if (NULL != value->attribute)
         {
-            editor->status = "The XML output is too large.";
-            return;
+            value->attribute->value          = (const byte_t*)value->value;
+            value->attribute->valueByteCount = (uint32_t)strlen(value->value);
         }
     }
-    if (output_capacity > SIZE_MAX)
-    {
-        editor->status = "The XML output is too large.";
-        return;
-    }
-
-    output_buffer.resize(static_cast<size_t>(output_capacity));
-    output_byte_count = Utl_Xml_WriteDocument(&editor->document, output_buffer.data(), output_capacity);
+    output_byte_count = Utl_Xml_WriteDocument(
+        &editor->document,
+        editor->outputBuffer,
+        CONFIGURATION_MAX_DOCUMENT_BYTES);
 
     xml_file = fopen(ARINC661_CONFIGURATION_XML_PATH, "wb");
     if (NULL == xml_file)
     {
-        editor->status = "Could not write arinc661_configuration.xml.";
+        strcpy(editor->status, "Could not write arinc661_configuration.xml.");
         return;
     }
-    bytes_written = fwrite(output_buffer.data(), 1, static_cast<size_t>(output_byte_count), xml_file);
+    bytes_written = fwrite(editor->outputBuffer, 1, (size_t)output_byte_count, xml_file);
     close_result  = fclose(xml_file);
     if ((output_byte_count != bytes_written) || (0 != close_result))
     {
-        editor->status = "Could not finish writing arinc661_configuration.xml.";
+        strcpy(editor->status, "Could not finish writing arinc661_configuration.xml.");
         return;
     }
-    editor->status = "Built arinc661_configuration.xml.";
+    strcpy(editor->status, "Built arinc661_configuration.xml.");
 }
 
 /*************************************************************************************************/
@@ -824,9 +622,10 @@ static Utl_Xml_Node_t* CreateElement(ConfigurationEditor_t* editor, const char_t
 {
     Utl_Xml_Node_t* node;
 
-    editor->addedNodes.emplace_back();
-    node = &editor->addedNodes.back();
-    Utl_Xml_InitializeNode(node, UTL_XML_NODE_ELEMENT, reinterpret_cast<const byte_t*>(name), static_cast<uint32_t>(strlen(name)));
+    LOGASSERT(editor->addedNodeCount < CONFIGURATION_MAX_ADDED_NODES);
+    node = &editor->addedNodes[editor->addedNodeCount];
+    ++editor->addedNodeCount;
+    Utl_Xml_InitializeNode(node, UTL_XML_NODE_ELEMENT, (const byte_t*)name, (uint32_t)strlen(name));
     return node;
 }
 
@@ -838,14 +637,23 @@ static Utl_Xml_Node_t* CreateElement(ConfigurationEditor_t* editor, const char_t
 static void CreateAttribute(ConfigurationEditor_t* editor, Utl_Xml_Node_t* node, const char_t* name, const char_t* value)
 {
     Utl_Xml_Attribute_t* attribute;
-    std::string*         stored_value;
+    AttributeValue_t*    editable_value;
 
-    editor->addedAttributes.emplace_back();
-    attribute     = &editor->addedAttributes.back();
-    stored_value  = &editor->attributeValues[attribute];
-    *stored_value = value;
-    Utl_Xml_InitializeAttribute(attribute, reinterpret_cast<const byte_t*>(name), static_cast<uint32_t>(strlen(name)),
-                                reinterpret_cast<const byte_t*>(stored_value->c_str()), static_cast<uint32_t>(stored_value->size()));
+    LOGASSERT(editor->addedAttributeCount < CONFIGURATION_MAX_ADDED_ATTRIBUTES);
+    LOGASSERT(editor->attributeValueCount < CONFIGURATION_MAX_EDITABLE_ATTRIBUTES);
+    LOGASSERT(strlen(value) <= CONFIGURATION_MAX_ATTRIBUTE_VALUE_BYTES);
+    attribute = &editor->addedAttributes[editor->addedAttributeCount];
+    ++editor->addedAttributeCount;
+    editable_value = &editor->attributeValues[editor->attributeValueCount];
+    ++editor->attributeValueCount;
+    editable_value->attribute = attribute;
+    strcpy(editable_value->value, value);
+    Utl_Xml_InitializeAttribute(
+        attribute,
+        (const byte_t*)name,
+        (uint32_t)strlen(name),
+        (const byte_t*)editable_value->value,
+        (uint32_t)strlen(editable_value->value));
     Utl_Xml_AppendAttribute(node, attribute);
 }
 
@@ -856,9 +664,9 @@ static void CreateAttribute(ConfigurationEditor_t* editor, Utl_Xml_Node_t* node,
  */
 static void FindMaximumId(const ConfigurationEditor_t* editor, Utl_Xml_Node_t* node, const char_t* elementName, uint32_t* maximumId, bool_t* foundId)
 {
-    const std::string* id_text;
-    Utl_Xml_Node_t*    child;
-    uint32_t           id;
+    const char_t*   id_text;
+    Utl_Xml_Node_t* child;
+    uint32_t        id;
 
     if (TRUE == NodeHasName(node, elementName))
     {
@@ -927,10 +735,13 @@ static void ForgetNodeValues(ConfigurationEditor_t* editor, Utl_Xml_Node_t* node
 {
     Utl_Xml_Attribute_t* attribute;
     Utl_Xml_Node_t*      child;
+    uint32_t             value_index;
 
     for (attribute = node->firstAttribute; NULL != attribute; attribute = attribute->next)
     {
-        editor->attributeValues.erase(attribute);
+        value_index = FindEditableValueIndex(editor, attribute);
+        LOGASSERT(value_index < editor->attributeValueCount);
+        editor->attributeValues[value_index].attribute = NULL;
     }
     for (child = node->firstChild; NULL != child; child = child->nextSibling)
     {
@@ -950,17 +761,24 @@ static void AddScreen(ConfigurationEditor_t* editor)
     Utl_Xml_Node_t* pixel_size;
     Utl_Xml_Node_t* physical_dimensions;
     uint32_t        next_id;
-    std::string     id_text;
+    char_t          id_text[16];
 
     root = FindDocumentElement(editor);
-    if ((NULL == root) || (FALSE == NextElementId(editor, root, "screen", &next_id)))
+    if ((3 > CONFIGURATION_MAX_ADDED_NODES - editor->addedNodeCount) ||
+        (7 > CONFIGURATION_MAX_ADDED_ATTRIBUTES - editor->addedAttributeCount) ||
+        (7 > CONFIGURATION_MAX_EDITABLE_ATTRIBUTES - editor->attributeValueCount))
     {
-        editor->status = "Could not allocate a screen ID.";
+        strcpy(editor->status, "The editor's storage is full.");
         return;
     }
-    id_text = std::to_string(next_id);
-    screen  = CreateElement(editor, "screen");
-    CreateAttribute(editor, screen, "id", id_text.c_str());
+    if ((NULL == root) || (FALSE == NextElementId(editor, root, "screen", &next_id)))
+    {
+        strcpy(editor->status, "Could not allocate a screen ID.");
+        return;
+    }
+    snprintf(id_text, sizeof(id_text), "%u", next_id);
+    screen = CreateElement(editor, "screen");
+    CreateAttribute(editor, screen, "id", id_text);
 
     pixel_size = CreateElement(editor, "pixelSize");
     CreateAttribute(editor, pixel_size, "width", "640");
@@ -976,7 +794,7 @@ static void AddScreen(ConfigurationEditor_t* editor)
 
     Utl_Xml_AppendChild(root, screen);
     editor->selectedNode = screen;
-    editor->status       = "Added screen. Build XML to save.";
+    strcpy(editor->status, "Added screen. Build XML to save.");
 }
 
 /*************************************************************************************************/
@@ -988,19 +806,26 @@ static void AddLayout(ConfigurationEditor_t* editor, Utl_Xml_Node_t* screen)
 {
     Utl_Xml_Node_t* layout;
     uint32_t        next_id;
-    std::string     id_text;
+    char_t          id_text[16];
 
-    if (FALSE == NextElementId(editor, screen, "layout", &next_id))
+    if ((1 > CONFIGURATION_MAX_ADDED_NODES - editor->addedNodeCount) ||
+        (1 > CONFIGURATION_MAX_ADDED_ATTRIBUTES - editor->addedAttributeCount) ||
+        (1 > CONFIGURATION_MAX_EDITABLE_ATTRIBUTES - editor->attributeValueCount))
     {
-        editor->status = "Could not allocate a layout ID.";
+        strcpy(editor->status, "The editor's storage is full.");
         return;
     }
-    id_text = std::to_string(next_id);
-    layout  = CreateElement(editor, "layout");
-    CreateAttribute(editor, layout, "id", id_text.c_str());
+    if (FALSE == NextElementId(editor, screen, "layout", &next_id))
+    {
+        strcpy(editor->status, "Could not allocate a layout ID.");
+        return;
+    }
+    snprintf(id_text, sizeof(id_text), "%u", next_id);
+    layout = CreateElement(editor, "layout");
+    CreateAttribute(editor, layout, "id", id_text);
     Utl_Xml_AppendChild(screen, layout);
     editor->selectedNode = layout;
-    editor->status       = "Added layout. Build XML to save.";
+    strcpy(editor->status, "Added layout. Build XML to save.");
 }
 
 /*************************************************************************************************/
@@ -1016,20 +841,27 @@ static void AddWindow(ConfigurationEditor_t* editor, Utl_Xml_Node_t* layout)
     Utl_Xml_Node_t*    window;
     Utl_Xml_Node_t*    pixel_area;
     Utl_Xml_Node_t*    scaling_factor;
-    const std::string* edited_width;
-    const std::string* edited_height;
-    uint32_t           next_id;
-    uint32_t           width;
-    uint32_t           height;
-    std::string        id_text;
-    std::string        name_text;
-    std::string        width_text;
-    std::string        height_text;
+    const char_t*    edited_width;
+    const char_t*    edited_height;
+    const char_t*    width_text;
+    const char_t*    height_text;
+    uint32_t         next_id;
+    uint32_t         width;
+    uint32_t         height;
+    char_t           id_text[16];
+    char_t           name_text[32];
 
+    if ((3 > CONFIGURATION_MAX_ADDED_NODES - editor->addedNodeCount) ||
+        (10 > CONFIGURATION_MAX_ADDED_ATTRIBUTES - editor->addedAttributeCount) ||
+        (10 > CONFIGURATION_MAX_EDITABLE_ATTRIBUTES - editor->attributeValueCount))
+    {
+        strcpy(editor->status, "The editor's storage is full.");
+        return;
+    }
     root = FindDocumentElement(editor);
     if ((NULL == root) || (FALSE == NextElementId(editor, root, "window", &next_id)))
     {
-        editor->status = "Could not allocate a window ID.";
+        strcpy(editor->status, "Could not allocate a window ID.");
         return;
     }
     screen      = layout->parent;
@@ -1042,25 +874,25 @@ static void AddWindow(ConfigurationEditor_t* editor, Utl_Xml_Node_t* layout)
         edited_height = FindAttributeValue(editor, pixel_size, "height");
         if ((NULL != edited_width) && (TRUE == ParseUnsignedValue(edited_width, &width)) && (0 < width))
         {
-            width_text = *edited_width;
+            width_text = edited_width;
         }
         if ((NULL != edited_height) && (TRUE == ParseUnsignedValue(edited_height, &height)) && (0 < height))
         {
-            height_text = *edited_height;
+            height_text = edited_height;
         }
     }
 
-    id_text   = std::to_string(next_id);
-    name_text = "window" + id_text;
-    window    = CreateElement(editor, "window");
-    CreateAttribute(editor, window, "id", id_text.c_str());
-    CreateAttribute(editor, window, "name", name_text.c_str());
+    snprintf(id_text, sizeof(id_text), "%u", next_id);
+    snprintf(name_text, sizeof(name_text), "window%s", id_text);
+    window = CreateElement(editor, "window");
+    CreateAttribute(editor, window, "id", id_text);
+    CreateAttribute(editor, window, "name", name_text);
 
     pixel_area = CreateElement(editor, "pixelArea");
     CreateAttribute(editor, pixel_area, "x", "0");
     CreateAttribute(editor, pixel_area, "y", "0");
-    CreateAttribute(editor, pixel_area, "width", width_text.c_str());
-    CreateAttribute(editor, pixel_area, "height", height_text.c_str());
+    CreateAttribute(editor, pixel_area, "width", width_text);
+    CreateAttribute(editor, pixel_area, "height", height_text);
     Utl_Xml_AppendChild(window, pixel_area);
 
     scaling_factor = CreateElement(editor, "scalingFactor");
@@ -1072,7 +904,7 @@ static void AddWindow(ConfigurationEditor_t* editor, Utl_Xml_Node_t* layout)
 
     Utl_Xml_AppendChild(layout, window);
     editor->selectedNode = window;
-    editor->status       = "Added window. Build XML to save.";
+    strcpy(editor->status, "Added window. Build XML to save.");
 }
 
 /*************************************************************************************************/
@@ -1125,7 +957,7 @@ static void RemoveSelectedNode(ConfigurationEditor_t* editor)
     node->parent         = NULL;
     node->nextSibling    = NULL;
     editor->selectedNode = next_selection;
-    editor->status       = "Removed selection. Build XML to save.";
+    strcpy(editor->status, "Removed selection. Build XML to save.");
 }
 
 /*************************************************************************************************/
@@ -1148,9 +980,7 @@ static bool_t IsHierarchyNode(const Utl_Xml_Node_t* node)
 static void DrawConfigurationNode(ConfigurationEditor_t* editor, Utl_Xml_Node_t* node)
 {
     Utl_Xml_Node_t*    child;
-    const std::string* identifier;
-    std::string        node_name;
-    std::string        label;
+    const char_t*      identifier;
     ImGuiTreeNodeFlags flags;
     bool_t             is_open;
     bool_t             has_hierarchy_child;
@@ -1160,16 +990,10 @@ static void DrawConfigurationNode(ConfigurationEditor_t* editor, Utl_Xml_Node_t*
         return;
     }
 
-    node_name.assign(reinterpret_cast<const char_t*>(node->name), node->nameByteCount);
-    label      = node_name;
     identifier = FindAttributeValue(editor, node, "name");
     if (NULL == identifier)
     {
         identifier = FindAttributeValue(editor, node, "id");
-    }
-    if (NULL != identifier)
-    {
-        label += " (" + *identifier + ")";
     }
     flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_DefaultOpen;
     if (editor->selectedNode == node)
@@ -1190,7 +1014,14 @@ static void DrawConfigurationNode(ConfigurationEditor_t* editor, Utl_Xml_Node_t*
         flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
     }
     ImGui::PushID(node);
-    is_open = ImGui::TreeNodeEx("node", flags, "%s", label.c_str());
+    if (NULL != identifier)
+    {
+        is_open = ImGui::TreeNodeEx("node", flags, "%.*s (%s)", (int)node->nameByteCount, (const char_t*)node->name, identifier);
+    }
+    else
+    {
+        is_open = ImGui::TreeNodeEx("node", flags, "%.*s", (int)node->nameByteCount, (const char_t*)node->name);
+    }
     if (ImGui::IsItemClicked())
     {
         editor->selectedNode = node;
@@ -1224,22 +1055,22 @@ static bool_t AttributeHasName(const Utl_Xml_Attribute_t* attribute, const char_
  * \par Details:
  *  Parses an unsigned integer for an inspector number field.
  */
-static bool_t ParseUnsignedValue(const std::string* text, uint32_t* value)
+static bool_t ParseUnsignedValue(const char_t* text, uint32_t* value)
 {
     char_t*            end;
     unsigned long long parsed_value;
 
-    if (text->empty() || ('-' == (*text)[0]))
+    if ((NULL == text) || ('\0' == text[0]) || ('-' == text[0]))
     {
         return FALSE;
     }
     errno        = 0;
-    parsed_value = std::strtoull(text->c_str(), &end, 10);
+    parsed_value = std::strtoull(text, &end, 10);
     if ((ERANGE == errno) || ('\0' != *end) || (UINT32_MAX < parsed_value))
     {
         return FALSE;
     }
-    *value = static_cast<uint32_t>(parsed_value);
+    *value = (uint32_t)parsed_value;
     return TRUE;
 }
 
@@ -1248,11 +1079,10 @@ static bool_t ParseUnsignedValue(const std::string* text, uint32_t* value)
  * \par Details:
  *  Uses numeric fields and unit choices for known configuration attributes.
  */
-static void DrawAttributeControl(const Utl_Xml_Node_t* ownerNode, Utl_Xml_Attribute_t* attribute, std::string* value)
+static void DrawAttributeControl(const Utl_Xml_Node_t* ownerNode, Utl_Xml_Attribute_t* attribute, char_t* value)
 {
     uint32_t integer_value;
     float    float_value;
-    char_t   formatted_value[64];
     size_t   option_index;
     bool_t   is_selected;
 
@@ -1269,12 +1099,12 @@ static void DrawAttributeControl(const Utl_Xml_Node_t* ownerNode, Utl_Xml_Attrib
             ImGui::SameLine();
             if (ImGui::SmallButton("Set 0"))
             {
-                *value = "0";
+                strcpy(value, "0");
             }
         }
         else if (ImGui::InputScalar("##value", ImGuiDataType_U32, &integer_value))
         {
-            *value = std::to_string(integer_value);
+            snprintf(value, CONFIGURATION_MAX_ATTRIBUTE_VALUE_BYTES + 1, "%u", integer_value);
         }
     }
     else if ((TRUE == AttributeHasName(attribute, "xScale")) ||
@@ -1288,27 +1118,26 @@ static void DrawAttributeControl(const Utl_Xml_Node_t* ownerNode, Utl_Xml_Attrib
             ImGui::SameLine();
             if (ImGui::SmallButton("Set 0"))
             {
-                *value = "0";
+                strcpy(value, "0");
             }
         }
         else if (ImGui::InputFloat("##value", &float_value, 0.0f, 0.0f, "%.6g"))
         {
-            std::snprintf(formatted_value, sizeof(formatted_value), "%.9g", float_value);
-            *value = formatted_value;
+            snprintf(value, CONFIGURATION_MAX_ATTRIBUTE_VALUE_BYTES + 1, "%.9g", float_value);
         }
     }
     else if ((TRUE == AttributeHasName(attribute, "units")) ||
              (TRUE == AttributeHasName(attribute, "baseUnit")) ||
              (TRUE == AttributeHasName(attribute, "perUnit")))
     {
-        if (ImGui::BeginCombo("##value", value->c_str()))
+        if (ImGui::BeginCombo("##value", value))
         {
             for (option_index = 0; option_index < (sizeof(c_unitOptions) / sizeof(c_unitOptions[0])); ++option_index)
             {
-                is_selected = (*value == c_unitOptions[option_index]);
+                is_selected = (0 == strcmp(value, c_unitOptions[option_index]));
                 if (ImGui::Selectable(c_unitOptions[option_index], TRUE == is_selected))
                 {
-                    *value = c_unitOptions[option_index];
+                    strcpy(value, c_unitOptions[option_index]);
                 }
                 if (TRUE == is_selected)
                 {
@@ -1320,7 +1149,7 @@ static void DrawAttributeControl(const Utl_Xml_Node_t* ownerNode, Utl_Xml_Attrib
     }
     else
     {
-        ImGui::InputText("##value", value);
+        ImGui::InputText("##value", value, CONFIGURATION_MAX_ATTRIBUTE_VALUE_BYTES + 1);
     }
 }
 
@@ -1332,7 +1161,7 @@ static void DrawAttributeControl(const Utl_Xml_Node_t* ownerNode, Utl_Xml_Attrib
 static void DrawAttributeSection(ConfigurationEditor_t* editor, Utl_Xml_Node_t* node, const char_t* heading)
 {
     Utl_Xml_Attribute_t* attribute;
-    std::string          attribute_name;
+    uint32_t             value_index;
 
     if (NULL == node)
     {
@@ -1352,14 +1181,15 @@ static void DrawAttributeSection(ConfigurationEditor_t* editor, Utl_Xml_Node_t* 
         ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
         for (attribute = node->firstAttribute; NULL != attribute; attribute = attribute->next)
         {
-            attribute_name.assign(reinterpret_cast<const char_t*>(attribute->name), attribute->nameByteCount);
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
-            ImGui::TextUnformatted(attribute_name.c_str());
+            ImGui::TextUnformatted((const char_t*)attribute->name, (const char_t*)attribute->name + attribute->nameByteCount);
             ImGui::TableSetColumnIndex(1);
             ImGui::PushID(attribute);
             ImGui::SetNextItemWidth(-1.0f);
-            DrawAttributeControl(node, attribute, &editor->attributeValues.at(attribute));
+            value_index = FindEditableValueIndex(editor, attribute);
+            LOGASSERT(value_index < editor->attributeValueCount);
+            DrawAttributeControl(node, attribute, editor->attributeValues[value_index].value);
             ImGui::PopID();
         }
         ImGui::EndTable();
@@ -1423,7 +1253,7 @@ static void DrawConfigurationEditor(ConfigurationEditor_t* editor)
     {
         BuildConfiguration(editor);
     }
-    ImGui::TextWrapped("%s", editor->status.c_str());
+    ImGui::TextWrapped("%s", editor->status);
     if (TRUE == editor->isLoaded)
     {
         root = FindDocumentElement(editor);
@@ -1529,9 +1359,10 @@ static Utl_Xml_Node_t* FindChild(Utl_Xml_Node_t* parent, const char_t* name)
  * \par Details:
  *  Finds an edited value by its XML attribute name.
  */
-static const std::string* FindAttributeValue(const ConfigurationEditor_t* editor, Utl_Xml_Node_t* node, const char_t* name)
+static const char_t* FindAttributeValue(const ConfigurationEditor_t* editor, Utl_Xml_Node_t* node, const char_t* name)
 {
     Utl_Xml_Attribute_t* attribute;
+    uint32_t             value_index;
     size_t               name_byte_count;
 
     name_byte_count = strlen(name);
@@ -1539,7 +1370,9 @@ static const std::string* FindAttributeValue(const ConfigurationEditor_t* editor
     {
         if ((attribute->nameByteCount == name_byte_count) && (0 == memcmp(attribute->name, name, name_byte_count)))
         {
-            return &editor->attributeValues.at(attribute);
+            value_index = FindEditableValueIndex(editor, attribute);
+            LOGASSERT(value_index < editor->attributeValueCount);
+            return editor->attributeValues[value_index].value;
         }
     }
     return NULL;
@@ -1550,17 +1383,17 @@ static const std::string* FindAttributeValue(const ConfigurationEditor_t* editor
  * \par Details:
  *  Reads a nonnegative finite pixel coordinate from an edited value.
  */
-static bool_t ParsePixelValue(const std::string* text, float* value)
+static bool_t ParsePixelValue(const char_t* text, float* value)
 {
     char_t* end;
     float   parsed_value;
 
-    if ((NULL == text) || text->empty())
+    if ((NULL == text) || ('\0' == text[0]))
     {
         return FALSE;
     }
     errno        = 0;
-    parsed_value = std::strtof(text->c_str(), &end);
+    parsed_value = std::strtof(text, &end);
     if ((ERANGE == errno) || ('\0' != *end) || !std::isfinite(parsed_value) || (0.0f > parsed_value))
     {
         return FALSE;
@@ -1576,10 +1409,44 @@ static bool_t ParsePixelValue(const std::string* text, float* value)
  */
 static bool_t ReadPixelRectangle(const ConfigurationEditor_t* editor, Utl_Xml_Node_t* node, float* x, float* y, float* width, float* height)
 {
-    return (TRUE == ParsePixelValue(FindAttributeValue(editor, node, "x"), x)) &&
-           (TRUE == ParsePixelValue(FindAttributeValue(editor, node, "y"), y)) &&
-           (TRUE == ParsePixelValue(FindAttributeValue(editor, node, "width"), width)) &&
-           (TRUE == ParsePixelValue(FindAttributeValue(editor, node, "height"), height));
+    if (FALSE == ParsePixelValue(FindAttributeValue(editor, node, "x"), x))
+    {
+        return FALSE;
+    }
+    if (FALSE == ParsePixelValue(FindAttributeValue(editor, node, "y"), y))
+    {
+        return FALSE;
+    }
+    if (FALSE == ParsePixelValue(FindAttributeValue(editor, node, "width"), width))
+    {
+        return FALSE;
+    }
+    return ParsePixelValue(FindAttributeValue(editor, node, "height"), height);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Reads positive screen dimensions from the current editor values.
+ */
+static bool_t ReadScreenDimensions(const ConfigurationEditor_t* editor, Utl_Xml_Node_t* screen, float* width, float* height)
+{
+    Utl_Xml_Node_t* pixel_size;
+
+    pixel_size = FindChild(screen, "pixelSize");
+    if (NULL == pixel_size)
+    {
+        return FALSE;
+    }
+    if (FALSE == ParsePixelValue(FindAttributeValue(editor, pixel_size, "width"), width))
+    {
+        return FALSE;
+    }
+    if (FALSE == ParsePixelValue(FindAttributeValue(editor, pixel_size, "height"), height))
+    {
+        return FALSE;
+    }
+    return (0.0f < *width) && (0.0f < *height);
 }
 
 /*************************************************************************************************/
@@ -1592,7 +1459,7 @@ static void DrawScreenWindows(const ConfigurationEditor_t* editor, Utl_Xml_Node_
     Utl_Xml_Node_t*    layout;
     Utl_Xml_Node_t*    window;
     Utl_Xml_Node_t*    pixel_area;
-    const std::string* window_name;
+    const char_t*      window_name;
     ImVec2             area_min;
     ImVec2             area_max;
     float              x;
@@ -1622,9 +1489,9 @@ static void DrawScreenWindows(const ConfigurationEditor_t* editor, Utl_Xml_Node_
             drawList->AddRectFilled(area_min, area_max, IM_COL32(42, 154, 188, 80));
             drawList->AddRect(area_min, area_max, IM_COL32(97, 221, 245, 255), 0.0f, 0, 2.0f);
             window_name = FindAttributeValue(editor, window, "name");
-            if ((NULL != window_name) && !window_name->empty())
+            if ((NULL != window_name) && ('\0' != window_name[0]))
             {
-                drawList->AddText(ImVec2(area_min.x + 6.0f, area_min.y + 6.0f), IM_COL32(240, 248, 255, 255), window_name->c_str());
+                drawList->AddText(ImVec2(area_min.x + 6.0f, area_min.y + 6.0f), IM_COL32(240, 248, 255, 255), window_name);
             }
         }
     }
@@ -1637,31 +1504,30 @@ static void DrawScreenWindows(const ConfigurationEditor_t* editor, Utl_Xml_Node_
  */
 static void DrawVisualizer(const ConfigurationEditor_t* editor)
 {
-    Utl_Xml_Node_t*              root;
-    Utl_Xml_Node_t*              screen;
-    Utl_Xml_Node_t*              pixel_size;
-    const std::string*           screen_id;
-    std::vector<ScreenPreview_t> screens;
-    ScreenPreview_t              preview;
-    ImDrawList*                  draw_list;
-    ImVec2                       canvas_min;
-    ImVec2                       canvas_size;
-    ImVec2                       screen_min;
-    ImVec2                       screen_max;
-    std::string                  screen_label;
-    float                        total_width;
-    float                        maximum_height;
-    float                        available_width;
-    float                        available_height;
-    float                        scale;
-    float                        x;
-    float                        y;
-    size_t                       screen_index;
+    Utl_Xml_Node_t* root;
+    Utl_Xml_Node_t* screen;
+    const char_t*   screen_id;
+    ImDrawList*     draw_list;
+    ImVec2          canvas_min;
+    ImVec2          canvas_size;
+    ImVec2          screen_min;
+    ImVec2          screen_max;
+    char_t          screen_label[CONFIGURATION_MAX_ATTRIBUTE_VALUE_BYTES + 16];
+    float           total_width;
+    float           maximum_height;
+    float           available_width;
+    float           available_height;
+    float           screen_width;
+    float           screen_height;
+    float           scale;
+    float           x;
+    float           y;
+    uint32_t        screen_count;
 
     ImGui::Begin(VISUALIZER_WINDOW_NAME);
     if (FALSE == editor->isLoaded)
     {
-        ImGui::TextUnformatted(editor->status.c_str());
+        ImGui::TextUnformatted(editor->status);
         ImGui::End();
         return;
     }
@@ -1680,28 +1546,19 @@ static void DrawVisualizer(const ConfigurationEditor_t* editor)
 
     total_width    = 0.0f;
     maximum_height = 0.0f;
+    screen_count   = 0;
     for (screen = root->firstChild; NULL != screen; screen = screen->nextSibling)
     {
-        if (FALSE == NodeHasName(screen, "screen"))
+        if ((FALSE == NodeHasName(screen, "screen")) ||
+            (FALSE == ReadScreenDimensions(editor, screen, &screen_width, &screen_height)))
         {
             continue;
         }
-        pixel_size     = FindChild(screen, "pixelSize");
-        preview.node   = screen;
-        preview.width  = 0.0f;
-        preview.height = 0.0f;
-        if ((NULL == pixel_size) ||
-            (FALSE == ParsePixelValue(FindAttributeValue(editor, pixel_size, "width"), &preview.width)) ||
-            (FALSE == ParsePixelValue(FindAttributeValue(editor, pixel_size, "height"), &preview.height)) ||
-            (0.0f == preview.width) || (0.0f == preview.height))
-        {
-            continue;
-        }
-        screens.push_back(preview);
-        total_width += preview.width;
-        maximum_height = (std::max)(maximum_height, preview.height);
+        ++screen_count;
+        total_width += screen_width;
+        maximum_height = (std::max)(maximum_height, screen_height);
     }
-    if (screens.empty())
+    if (0 == screen_count)
     {
         ImGui::TextUnformatted("No screens with valid pixel dimensions.");
         ImGui::End();
@@ -1710,7 +1567,7 @@ static void DrawVisualizer(const ConfigurationEditor_t* editor)
 
     canvas_min       = ImGui::GetCursorScreenPos();
     canvas_size      = ImGui::GetContentRegionAvail();
-    available_width  = canvas_size.x - 40.0f - 20.0f * static_cast<float>(screens.size() - 1);
+    available_width  = canvas_size.x - 40.0f - 20.0f * (float)(screen_count - 1);
     available_height = canvas_size.y - 60.0f;
     if ((0.0f >= available_width) || (0.0f >= available_height))
     {
@@ -1727,20 +1584,25 @@ static void DrawVisualizer(const ConfigurationEditor_t* editor)
     scale = (std::min)(available_width / total_width, available_height / maximum_height);
     x     = canvas_min.x + 20.0f;
     y     = canvas_min.y + 35.0f + (available_height - maximum_height * scale) * 0.5f;
-    for (screen_index = 0; screen_index < screens.size(); ++screen_index)
+    for (screen = root->firstChild; NULL != screen; screen = screen->nextSibling)
     {
+        if ((FALSE == NodeHasName(screen, "screen")) ||
+            (FALSE == ReadScreenDimensions(editor, screen, &screen_width, &screen_height)))
+        {
+            continue;
+        }
         screen_min = ImVec2(x, y);
-        screen_max = ImVec2(x + screens[screen_index].width * scale, y + screens[screen_index].height * scale);
+        screen_max = ImVec2(x + screen_width * scale, y + screen_height * scale);
         draw_list->AddRectFilled(screen_min, screen_max, IM_COL32(42, 50, 64, 255));
         draw_list->AddRect(screen_min, screen_max, IM_COL32(220, 230, 245, 255), 0.0f, 0, 2.0f);
-        screen_id = FindAttributeValue(editor, screens[screen_index].node, "id");
+        screen_id = FindAttributeValue(editor, screen, "id");
         if (NULL != screen_id)
         {
-            screen_label = "Screen " + *screen_id;
-            draw_list->AddText(ImVec2(x, y - 22.0f), IM_COL32(240, 248, 255, 255), screen_label.c_str());
+            snprintf(screen_label, sizeof(screen_label), "Screen %s", screen_id);
+            draw_list->AddText(ImVec2(x, y - 22.0f), IM_COL32(240, 248, 255, 255), screen_label);
         }
         draw_list->PushClipRect(screen_min, screen_max, true);
-        DrawScreenWindows(editor, screens[screen_index].node, draw_list, &screen_min, scale);
+        DrawScreenWindows(editor, screen, draw_list, &screen_min, scale);
         draw_list->PopClipRect();
         x = screen_max.x + 20.0f;
     }
@@ -1770,24 +1632,27 @@ static void BuildDockLayout(ImGuiID dockspaceId)
     ImGui::DockBuilderFinish(dockspaceId);
 }
 
+/*=================================================================================================
+** 5. PUBLIC FUNCTIONS
+**===============================================================================================*/
+
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Starts the OpenGL, Win32, and Dear ImGui frame state.
+ *  Loads XML and prepares the default dock layout.
  */
-static void BeginFrame(void)
+void InitializeConfiguration(ConfigurationEditor_t* editor)
 {
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplWin32_NewFrame();
-    ImGui::NewFrame();
+    editor->isLayoutInitialized = FALSE;
+    LoadConfiguration(editor);
 }
 
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Draws the dockspace and both application windows for the current frame.
+ *  Draws the configuration editor and visualizer in their docked windows.
  */
-static void DrawApp(ConfigurationEditor_t* editor)
+void DrawConfiguration(ConfigurationEditor_t* editor)
 {
     ImGuiID dockspace_id;
 
@@ -1800,373 +1665,4 @@ static void DrawApp(ConfigurationEditor_t* editor)
     ImGui::DockSpaceOverViewport(dockspace_id);
     DrawConfigurationEditor(editor);
     DrawVisualizer(editor);
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Renders Dear ImGui draw data and presents the main and platform windows.
- */
-static void EndFrame(void)
-{
-    ImGui::Render();
-    glViewport(0, 0, g_renderWidth, g_renderHeight);
-    glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
-    glClear(GL_COLOR_BUFFER_BIT);
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-    if (0 != (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable))
-    {
-        ImGui::UpdatePlatformWindows();
-        ImGui::RenderPlatformWindowsDefault();
-        wglMakeCurrent(g_mainWindow.deviceContext, g_renderContext);
-    }
-    ::SwapBuffers(g_mainWindow.deviceContext);
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Creates a Win32 OpenGL context for the main or platform window.
- */
-static bool_t CreateDeviceWGL(HWND windowHandle, WglWindowData_t* windowData)
-{
-    HDC                               device_context;
-    PIXELFORMATDESCRIPTOR             pixel_format_description;
-    int                               pixel_format;
-    HGLRC                             temporary_context;
-    HGLRC                             new_context;
-    GLint                             major;
-    GLint                             minor;
-    const char_t*                     version_string;
-    GLuint                            version;
-    WglCreateContextAttribsFunction_t create_context_attribs;
-    int                               context_attributes[7];
-
-    windowData->deviceContext = NULL;
-    device_context            = ::GetDC(windowHandle);
-    if (NULL == device_context)
-    {
-        return FALSE;
-    }
-    memset(&pixel_format_description, 0, sizeof(pixel_format_description));
-    pixel_format_description.nSize      = sizeof(pixel_format_description);
-    pixel_format_description.nVersion   = 1;
-    pixel_format_description.dwFlags    = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
-    pixel_format_description.iPixelType = PFD_TYPE_RGBA;
-    pixel_format_description.cColorBits = 32;
-
-    pixel_format = ::ChoosePixelFormat(device_context, &pixel_format_description);
-    if ((0 == pixel_format) || (FALSE == ::SetPixelFormat(device_context, pixel_format, &pixel_format_description)))
-    {
-        ::ReleaseDC(windowHandle, device_context);
-        return FALSE;
-    }
-    ::ReleaseDC(windowHandle, device_context);
-
-    windowData->deviceContext = ::GetDC(windowHandle);
-    if (NULL == windowData->deviceContext)
-    {
-        return FALSE;
-    }
-    if (NULL != g_renderContext)
-    {
-        return TRUE;
-    }
-
-    temporary_context = wglCreateContext(windowData->deviceContext);
-    if (NULL == temporary_context)
-    {
-        CleanupDeviceWGL(windowHandle, windowData);
-        return FALSE;
-    }
-    if (FALSE == wglMakeCurrent(windowData->deviceContext, temporary_context))
-    {
-        wglDeleteContext(temporary_context);
-        CleanupDeviceWGL(windowHandle, windowData);
-        return FALSE;
-    }
-
-    major = 0;
-    minor = 0;
-    glGetIntegerv(OPENGL_MAJOR_VERSION_PARAMETER, &major);
-    glGetIntegerv(OPENGL_MINOR_VERSION_PARAMETER, &minor);
-    version_string = reinterpret_cast<const char_t*>(glGetString(GL_VERSION));
-    if ((0 == major) && (0 == minor) && (NULL != version_string))
-    {
-        sscanf_s(version_string, "%d.%d", &major, &minor);
-    }
-    version         = static_cast<GLuint>(major * 100 + minor * 10);
-    g_renderContext = temporary_context;
-    if (OPENGL_VERSION_3_0 <= version)
-    {
-        return TRUE;
-    }
-
-    create_context_attribs = reinterpret_cast<WglCreateContextAttribsFunction_t>(wglGetProcAddress("wglCreateContextAttribsARB"));
-    context_attributes[0]  = WGL_MAJOR_VERSION_ATTRIBUTE;
-    context_attributes[1]  = 3;
-    context_attributes[2]  = WGL_MINOR_VERSION_ATTRIBUTE;
-    context_attributes[3]  = 0;
-    context_attributes[4]  = WGL_PROFILE_MASK_ATTRIBUTE;
-    context_attributes[5]  = WGL_CORE_PROFILE_BIT;
-    context_attributes[6]  = 0;
-    new_context            = NULL;
-    if (NULL != create_context_attribs)
-    {
-        new_context = create_context_attribs(windowData->deviceContext, NULL, context_attributes);
-    }
-    if (NULL != new_context)
-    {
-        wglMakeCurrent(NULL, NULL);
-        wglDeleteContext(temporary_context);
-        g_renderContext = new_context;
-        wglMakeCurrent(windowData->deviceContext, g_renderContext);
-    }
-    return TRUE;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Releases a Win32 window device context.
- */
-static void CleanupDeviceWGL(HWND windowHandle, WglWindowData_t* windowData)
-{
-    if (NULL != windowData->deviceContext)
-    {
-        wglMakeCurrent(NULL, NULL);
-        ::ReleaseDC(windowHandle, windowData->deviceContext);
-        windowData->deviceContext = NULL;
-    }
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Creates renderer data for an ImGui platform viewport.
- */
-static void HookRendererCreateWindow(ImGuiViewport* viewport)
-{
-    WglWindowData_t* window_data;
-
-    LOGASSERT(NULL == viewport->RendererUserData);
-    window_data = IM_NEW(WglWindowData_t);
-    LOGASSERT(TRUE == CreateDeviceWGL(static_cast<HWND>(viewport->PlatformHandle), window_data));
-    viewport->RendererUserData = window_data;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Releases renderer data for an ImGui platform viewport.
- */
-static void HookRendererDestroyWindow(ImGuiViewport* viewport)
-{
-    WglWindowData_t* window_data;
-
-    if (NULL != viewport->RendererUserData)
-    {
-        window_data = static_cast<WglWindowData_t*>(viewport->RendererUserData);
-        CleanupDeviceWGL(static_cast<HWND>(viewport->PlatformHandle), window_data);
-        IM_DELETE(window_data);
-        viewport->RendererUserData = NULL;
-    }
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Activates the shared OpenGL context for a platform viewport.
- */
-static void HookPlatformRenderWindow(ImGuiViewport* viewport, void* data)
-{
-    WglWindowData_t* window_data;
-
-    (void)data;
-    window_data = static_cast<WglWindowData_t*>(viewport->RendererUserData);
-    if (NULL != window_data)
-    {
-        wglMakeCurrent(window_data->deviceContext, g_renderContext);
-    }
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Presents a platform viewport.
- */
-static void HookRendererSwapBuffers(ImGuiViewport* viewport, void* data)
-{
-    WglWindowData_t* window_data;
-
-    (void)data;
-    window_data = static_cast<WglWindowData_t*>(viewport->RendererUserData);
-    if (NULL != window_data)
-    {
-        ::SwapBuffers(window_data->deviceContext);
-    }
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Routes Win32 input and window events to ImGui and the renderer.
- */
-static LRESULT WINAPI WindowProcedure(HWND windowHandle, UINT message, WPARAM wordParameter, LPARAM longParameter)
-{
-    if (0 != ImGui_ImplWin32_WndProcHandler(windowHandle, message, wordParameter, longParameter))
-    {
-        return TRUE;
-    }
-    switch (message)
-    {
-    case WM_SIZE:
-    {
-        if (SIZE_MINIMIZED != wordParameter)
-        {
-            g_renderWidth  = LOWORD(longParameter);
-            g_renderHeight = HIWORD(longParameter);
-        }
-        return 0;
-    }
-    case WM_SYSCOMMAND:
-    {
-        if (SC_KEYMENU == (wordParameter & 0xfff0))
-        {
-            return 0;
-        }
-        break;
-    }
-    case WM_DESTROY:
-    {
-        ::PostQuitMessage(0);
-        return 0;
-    }
-    default:
-    {
-        break;
-    }
-    }
-    return ::DefWindowProcW(windowHandle, message, wordParameter, longParameter);
-}
-
-/*=================================================================================================
-** 5. PUBLIC FUNCTIONS
-**===============================================================================================*/
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Opens the configuration editor and its live screen visualizer.
- */
-int main(void)
-{
-    float                 main_scale;
-    WNDCLASSEXW           window_class;
-    HWND                  window_handle;
-    ImGuiIO*              io;
-    ImGuiStyle*           style;
-    ImGuiPlatformIO*      platform_io;
-    ConfigurationEditor_t configuration_editor;
-    bool_t                is_done;
-    MSG                   message;
-
-    ImGui_ImplWin32_EnableDpiAwareness();
-    main_scale = ImGui_ImplWin32_GetDpiScaleForMonitor(::MonitorFromPoint(POINT{0, 0}, MONITOR_DEFAULTTOPRIMARY));
-
-    memset(&window_class, 0, sizeof(window_class));
-    window_class.cbSize        = sizeof(window_class);
-    window_class.style         = CS_OWNDC;
-    window_class.lpfnWndProc   = WindowProcedure;
-    window_class.hInstance     = GetModuleHandle(NULL);
-    window_class.lpszClassName = L"ARINC661Configuration";
-    ::RegisterClassExW(&window_class);
-    window_handle = ::CreateWindowW(window_class.lpszClassName, L"ARINC 661 Configuration", WS_OVERLAPPEDWINDOW,
-                                    100, 100, static_cast<int>(1280 * main_scale), static_cast<int>(800 * main_scale),
-                                    NULL, NULL, window_class.hInstance, NULL);
-    if (FALSE == CreateDeviceWGL(window_handle, &g_mainWindow))
-    {
-        CleanupDeviceWGL(window_handle, &g_mainWindow);
-        ::DestroyWindow(window_handle);
-        ::UnregisterClassW(window_class.lpszClassName, window_class.hInstance);
-        return 1;
-    }
-    wglMakeCurrent(g_mainWindow.deviceContext, g_renderContext);
-    ::ShowWindow(window_handle, SW_SHOWDEFAULT);
-    ::UpdateWindow(window_handle);
-
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    io = &ImGui::GetIO();
-    io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    io->ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
-    io->ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    io->ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-
-    ImGui::StyleColorsDark();
-    style = &ImGui::GetStyle();
-    style->ScaleAllSizes(main_scale);
-    style->FontScaleDpi         = main_scale;
-    io->ConfigDpiScaleFonts     = TRUE;
-    io->ConfigDpiScaleViewports = TRUE;
-    if (0 != (io->ConfigFlags & ImGuiConfigFlags_ViewportsEnable))
-    {
-        style->WindowRounding              = 0.0f;
-        style->Colors[ImGuiCol_WindowBg].w = 1.0f;
-    }
-
-    ImGui_ImplWin32_InitForOpenGL(window_handle);
-    ImGui_ImplOpenGL3_Init();
-    if (0 != (io->ConfigFlags & ImGuiConfigFlags_ViewportsEnable))
-    {
-        platform_io = &ImGui::GetPlatformIO();
-        LOGASSERT(NULL == platform_io->Renderer_CreateWindow);
-        LOGASSERT(NULL == platform_io->Renderer_DestroyWindow);
-        LOGASSERT(NULL == platform_io->Renderer_SwapBuffers);
-        LOGASSERT(NULL == platform_io->Platform_RenderWindow);
-        platform_io->Renderer_CreateWindow  = HookRendererCreateWindow;
-        platform_io->Renderer_DestroyWindow = HookRendererDestroyWindow;
-        platform_io->Renderer_SwapBuffers   = HookRendererSwapBuffers;
-        platform_io->Platform_RenderWindow  = HookPlatformRenderWindow;
-    }
-
-    configuration_editor.isLayoutInitialized = FALSE;
-    LoadConfiguration(&configuration_editor);
-    is_done = FALSE;
-    while (FALSE == is_done)
-    {
-        while (::PeekMessage(&message, NULL, 0U, 0U, PM_REMOVE))
-        {
-            ::TranslateMessage(&message);
-            ::DispatchMessage(&message);
-            if (WM_QUIT == message.message)
-            {
-                is_done = TRUE;
-            }
-        }
-        if (TRUE == is_done)
-        {
-            break;
-        }
-        if (::IsIconic(window_handle))
-        {
-            ::Sleep(10);
-            continue;
-        }
-
-        BeginFrame();
-
-        DrawApp(&configuration_editor);
-        
-        EndFrame();
-    }
-
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplWin32_Shutdown();
-    ImGui::DestroyContext();
-    CleanupDeviceWGL(window_handle, &g_mainWindow);
-    wglDeleteContext(g_renderContext);
-    ::DestroyWindow(window_handle);
-    ::UnregisterClassW(window_class.lpszClassName, window_class.hInstance);
-    return 0;
 }
