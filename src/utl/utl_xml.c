@@ -38,6 +38,16 @@ typedef struct XmlCodePointRange_s
     uint32_t last;  ///< Highest code point in the range.
 } XmlCodePointRange_t;
 
+/*************************************************************************************************/
+/**
+ * \brief Predefined entity reference and the character it represents.
+ */
+typedef struct XmlEntityReference_s
+{
+    const char_t* reference; ///< Reference token from utl_xml.h.
+    byte_t        character; ///< Character the reference represents.
+} XmlEntityReference_t;
+
 /*=================================================================================================
 ** 3.3 External global variables
 **===============================================================================================*/
@@ -86,6 +96,20 @@ static const XmlCodePointRange_t c_xmlNameCharRanges[] =
     {0x203F, 0x2040}
 };
 
+/*************************************************************************************************/
+/**
+ * \brief Predefined entities from XML 1.0 (Fifth Edition), section 4.6.
+ * https://www.w3.org/TR/2008/REC-xml-20081126/#sec-predefined-ent
+ */
+static const XmlEntityReference_t c_xmlPredefinedEntities[] =
+{
+    {UTL_XML_ENTITY_REF_LT,   UTL_XML_CHAR_LT},
+    {UTL_XML_ENTITY_REF_GT,   UTL_XML_CHAR_GT},
+    {UTL_XML_ENTITY_REF_AMP,  UTL_XML_CHAR_AMP},
+    {UTL_XML_ENTITY_REF_APOS, UTL_XML_QUOTE_APOS},
+    {UTL_XML_ENTITY_REF_QUOT, UTL_XML_QUOTE_QUOT}
+};
+
 /*=================================================================================================
 ** 3.5 Static function prototypes
 **===============================================================================================*/
@@ -115,6 +139,17 @@ static bool_t InRange(uint32_t codePoint, uint32_t first, uint32_t last);
  * \return Decoded code point, or zero for invalid UTF-8. Check decodedByteCount for success.
  */
 static uint32_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t offset, uint32_t* decodedByteCount);
+
+/*************************************************************************************************/
+/**
+ * \brief Encodes one XML character as UTF-8.
+ *
+ * \param[in]  codePoint   Code point that satisfies Utl_Xml_IsChar
+ * \param[out] bytes       Storage for up to four bytes
+ *
+ * \return     Number of bytes encoded.
+ */
+static uint32_t EncodeUtf8(uint32_t codePoint, byte_t* bytes);
 
 /*************************************************************************************************/
 /**
@@ -150,6 +185,169 @@ static const Utl_Xml_Attribute_t* FindAttribute(const Utl_Xml_Node_t* node, cons
  * \return    Matching node, or NULL if absent.
  */
 static const Utl_Xml_Node_t* FindNode(const Utl_Xml_Document_t* document, Utl_Xml_NodeType_t type);
+
+/*************************************************************************************************/
+/**
+ * \brief Normalizes line endings to LF in place.
+ * https://www.w3.org/TR/2008/REC-xml-20081126/#sec-line-ends
+ *
+ * \param[in,out] input       Writable UTF-8 input bytes
+ * \param[in]     byteCount   Number of bytes in input
+ *
+ * \return        Number of bytes after normalization.
+ */
+static uint32_t NormalizeLineEnds(byte_t* input, uint32_t byteCount);
+
+/*************************************************************************************************/
+/**
+ * \brief Checks whether an XML token begins at a position.
+ *
+ * \param[in] bytes       UTF-8 bytes
+ * \param[in] byteCount   Number of bytes
+ * \param[in] position    Offset to check
+ * \param[in] token       XML token from utl_xml.h
+ *
+ * \retval    TRUE        if the token is present.
+ * \retval    FALSE       otherwise
+ */
+static bool_t HasToken(const byte_t* bytes, uint32_t byteCount, uint32_t position, const char_t* token);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads an XML token when it is present.
+ *
+ * \param[in]     bytes       UTF-8 bytes
+ * \param[in]     byteCount   Number of bytes
+ * \param[in,out] position    Offset of the next unread byte
+ * \param[in]     token       XML token from utl_xml.h
+ *
+ * \retval        TRUE        if the token was read.
+ * \retval        FALSE       otherwise
+ */
+static bool_t ReadToken(const byte_t* bytes, uint32_t byteCount, uint32_t* position, const char_t* token);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads optional XML whitespace.
+ * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-S
+ *
+ * \param[in]     bytes       UTF-8 bytes
+ * \param[in]     byteCount   Number of bytes
+ * \param[in,out] position    Offset of the next unread byte
+ *
+ * \retval        TRUE        if whitespace was read.
+ * \retval        FALSE       otherwise
+ */
+static bool_t ReadWhitespace(const byte_t* bytes, uint32_t byteCount, uint32_t* position);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads an XML name.
+ * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-Name
+ *
+ * \param[in]     bytes           UTF-8 bytes
+ * \param[in]     byteCount       Number of bytes
+ * \param[in,out] position        Offset of the next unread byte
+ * \param[out]    nameByteCount   Number of name bytes
+ *
+ * \return        Name bytes.
+ */
+static const byte_t* ReadName(const byte_t* bytes, uint32_t byteCount, uint32_t* position, uint32_t* nameByteCount);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads a predefined entity or character reference and writes its character at target.
+ * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-Reference
+ *
+ * \param[in,out] bytes       Writable UTF-8 bytes
+ * \param[in]     byteCount   Number of bytes
+ * \param[in,out] position    Offset of the next unread byte
+ * \param[in,out] target      Offset of the next decoded byte
+ *
+ * \retval        None
+ */
+static void ReadReference(byte_t* bytes, uint32_t byteCount, uint32_t* position, uint32_t* target);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads escaped character data or an attribute value up to a delimiter.
+ * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-CharData
+ * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-AttValue
+ * https://www.w3.org/TR/2008/REC-xml-20081126/#AVNormalize
+ *
+ * \param[in,out] bytes       Writable UTF-8 bytes
+ * \param[in]     byteCount   Number of bytes
+ * \param[in,out] position    Offset of the next unread byte
+ * \param[in]     delimiter   < for character data, or the closing quote
+ * \param[out]    numBytes    Number of decoded bytes
+ *
+ * \return        Decoded bytes.
+ */
+static const byte_t* ReadEscaped(byte_t* bytes, uint32_t byteCount, uint32_t* position, byte_t delimiter, uint32_t* numBytes);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads Eq and a quoted attribute value.
+ * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-Eq
+ * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-AttValue
+ *
+ * \param[in,out] bytes       Writable UTF-8 bytes
+ * \param[in]     byteCount   Number of bytes
+ * \param[in,out] position    Offset of the next unread byte
+ * \param[out]    numBytes    Number of decoded value bytes
+ *
+ * \return        Decoded value bytes.
+ */
+static const byte_t* ReadAttributeValue(byte_t* bytes, uint32_t byteCount, uint32_t* position, uint32_t* numBytes);
+
+/*************************************************************************************************/
+/**
+ * \brief Finds a closing delimiter in markup, joining the following strtok tokens as needed.
+ *
+ * \param[in,out] markup            Markup that begins with <
+ * \param[in,out] markupByteCount   Number of markup bytes
+ * \param[in]     position          Offset where the search starts
+ * \param[in]     close             Closing delimiter from utl_xml.h
+ *
+ * \return        Offset of the closing delimiter.
+ */
+static uint32_t ExtendMarkup(byte_t* markup, uint32_t* markupByteCount, uint32_t position, const char_t* close);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads an element's start tag or empty-element tag with attributes.
+ * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-STag
+ * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-EmptyElemTag
+ *
+ * \param[in,out] markup              Markup that begins with <
+ * \param[in]     markupByteCount     Number of markup bytes
+ * \param[in,out] position            Offset of the next unread byte
+ * \param[out]    node                Node storage to initialize
+ * \param[out]    attributes          Caller-owned attribute storage
+ * \param[in]     attributeCapacity   Number of attributes in attributes
+ * \param[in,out] attributeCount      Number of attributes used
+ *
+ * \retval        TRUE                for a start tag.
+ * \retval        FALSE               otherwise
+ */
+static bool_t ReadElementStart(byte_t* markup, uint32_t markupByteCount, uint32_t* position, Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity, uint32_t* attributeCount);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads a comment, DOCTYPE, XML declaration, processing instruction, or element start tag.
+ *
+ * \param[in,out] markup              Markup that begins with <
+ * \param[in,out] markupByteCount     Number of markup bytes
+ * \param[in,out] position            Offset of the next unread byte
+ * \param[out]    node                Node storage to initialize
+ * \param[out]    attributes          Caller-owned attribute storage
+ * \param[in]     attributeCapacity   Number of attributes in attributes
+ * \param[in,out] attributeCount      Number of attributes used
+ *
+ * \retval        TRUE                for an element start tag.
+ * \retval        FALSE               otherwise
+ */
+static bool_t ReadNode(byte_t* markup, uint32_t* markupByteCount, uint32_t* position, Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity, uint32_t* attributeCount);
 
 /*************************************************************************************************/
 /**
@@ -481,6 +679,48 @@ static uint32_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t offs
     return code_point;
 }
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Writes the shortest UTF-8 form.
+ */
+static uint32_t EncodeUtf8(uint32_t codePoint, byte_t* bytes)
+{
+    uint32_t encoded_byte_count;
+    bool_t   is_xml_char;
+
+    is_xml_char = Utl_Xml_IsChar(codePoint);
+    LOGASSERT(is_xml_char);
+
+    if (codePoint <= 0x7F)
+    {
+        bytes[0]           = (byte_t)codePoint;
+        encoded_byte_count = 1;
+    }
+    else if (codePoint <= 0x7FF)
+    {
+        bytes[0]           = (byte_t)(0xC0 | (codePoint >> 6));
+        bytes[1]           = (byte_t)(0x80 | (codePoint & 0x3F));
+        encoded_byte_count = 2;
+    }
+    else if (codePoint <= 0xFFFF)
+    {
+        bytes[0]           = (byte_t)(0xE0 | (codePoint >> 12));
+        bytes[1]           = (byte_t)(0x80 | ((codePoint >> 6) & 0x3F));
+        bytes[2]           = (byte_t)(0x80 | (codePoint & 0x3F));
+        encoded_byte_count = 3;
+    }
+    else
+    {
+        bytes[0]           = (byte_t)(0xF0 | (codePoint >> 18));
+        bytes[1]           = (byte_t)(0x80 | ((codePoint >> 12) & 0x3F));
+        bytes[2]           = (byte_t)(0x80 | ((codePoint >> 6) & 0x3F));
+        bytes[3]           = (byte_t)(0x80 | (codePoint & 0x3F));
+        encoded_byte_count = 4;
+    }
+
+    return encoded_byte_count;
+}
 
 /*************************************************************************************************/
 /**
@@ -601,6 +841,599 @@ static const Utl_Xml_Node_t* FindNode(const Utl_Xml_Document_t* document, Utl_Xm
     }
 
     return found_node;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Replaces CR LF and each remaining CR with LF.
+ */
+static uint32_t NormalizeLineEnds(byte_t* input, uint32_t byteCount)
+{
+    uint32_t source_index;
+    uint32_t target_index;
+    bool_t   is_carriage_return;
+    bool_t   follows_carriage_return;
+
+    target_index            = 0;
+    follows_carriage_return = FALSE;
+
+    for (source_index = 0; source_index < byteCount; ++source_index)
+    {
+        is_carriage_return = (UTL_XML_CHAR_CR == input[source_index]);
+
+        if (is_carriage_return)
+        {
+            input[target_index] = UTL_XML_CHAR_LF;
+            ++target_index;
+        }
+        else if ((UTL_XML_CHAR_LF != input[source_index]) || (FALSE == follows_carriage_return))
+        {
+            input[target_index] = input[source_index];
+            ++target_index;
+        }
+
+        follows_carriage_return = is_carriage_return;
+    }
+
+    return target_index;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  None
+ */
+static bool_t HasToken(const byte_t* bytes, uint32_t byteCount, uint32_t position, const char_t* token)
+{
+    uint32_t byte_index;
+    byte_t   token_byte;
+    bool_t   has_token;
+
+    has_token = TRUE;
+
+    for (byte_index = 0; '\0' != token[byte_index]; ++byte_index)
+    {
+        token_byte = token[byte_index];
+        has_token  = (position + byte_index < byteCount) && (token_byte == bytes[position + byte_index]);
+
+        if (FALSE == has_token)
+        {
+            break;
+        }
+    }
+
+    return has_token;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Advances position only when the token is present.
+ */
+static bool_t ReadToken(const byte_t* bytes, uint32_t byteCount, uint32_t* position, const char_t* token)
+{
+    uint32_t byte_index;
+    bool_t   has_token;
+
+    has_token = HasToken(bytes, byteCount, (*position), token);
+
+    if (has_token)
+    {
+        for (byte_index = 0; '\0' != token[byte_index]; ++byte_index)
+        {
+            (*position) += 1;
+        }
+    }
+
+    return has_token;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  None
+ */
+static bool_t ReadWhitespace(const byte_t* bytes, uint32_t byteCount, uint32_t* position)
+{
+    uint32_t byte_index;
+    bool_t   is_whitespace;
+    bool_t   has_whitespace;
+
+    for (byte_index = (*position); byte_index < byteCount; ++byte_index)
+    {
+        is_whitespace = Utl_Xml_IsWhitespace(bytes[byte_index]);
+
+        if (FALSE == is_whitespace)
+        {
+            break;
+        }
+    }
+
+    has_whitespace = ((*position) < byte_index);
+    (*position)    = byte_index;
+
+    return has_whitespace;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Stops at the first byte that does not continue the name.
+ */
+static const byte_t* ReadName(const byte_t* bytes, uint32_t byteCount, uint32_t* position, uint32_t* nameByteCount)
+{
+    const byte_t* name;
+    uint32_t      byte_offset;
+    uint32_t      code_point;
+    uint32_t      decoded_byte_count;
+    bool_t        decode_failed;
+    bool_t        is_name_char;
+
+    name = bytes + (*position);
+
+    for (byte_offset = (*position); byte_offset < byteCount; byte_offset += decoded_byte_count)
+    {
+        code_point    = DecodeUtf8(bytes, byteCount, byte_offset, &decoded_byte_count);
+        decode_failed = (0 == decoded_byte_count);
+
+        if (decode_failed)
+        {
+            break;
+        }
+
+        if ((*position) == byte_offset)
+        {
+            is_name_char = Utl_Xml_IsNameStartChar(code_point);
+        }
+        else
+        {
+            is_name_char = Utl_Xml_IsNameChar(code_point);
+        }
+
+        if (FALSE == is_name_char)
+        {
+            break;
+        }
+    }
+
+    (*nameByteCount) = byte_offset - (*position);
+    (*position)      = byte_offset;
+
+    LOGASSERT(0 < (*nameByteCount));
+    LOGASSERT(UTL_XML_MAX_NAME_BYTES >= (*nameByteCount));
+
+    return name;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Writes the character at target; its UTF-8 form is never longer than the reference.
+ */
+static void ReadReference(byte_t* bytes, uint32_t byteCount, uint32_t* position, uint32_t* target)
+{
+    uint32_t entity_index;
+    uint32_t byte_index;
+    uint32_t code_point;
+    uint32_t base;
+    uint32_t digit;
+    uint32_t encoded_byte_count;
+    byte_t   value;
+    bool_t   is_entity_reference;
+    bool_t   is_char_reference;
+    bool_t   is_decimal_digit;
+    bool_t   is_lower_hex_digit;
+    bool_t   is_upper_hex_digit;
+    bool_t   is_digit;
+    bool_t   fits_code_point;
+    bool_t   is_closed;
+
+    is_entity_reference = FALSE;
+
+    for (entity_index = 0; entity_index < COUNT_OF(c_xmlPredefinedEntities); ++entity_index)
+    {
+        is_entity_reference = ReadToken(bytes, byteCount, position, c_xmlPredefinedEntities[entity_index].reference);
+
+        if (is_entity_reference)
+        {
+            bytes[(*target)] = c_xmlPredefinedEntities[entity_index].character;
+            (*target) += 1;
+            break;
+        }
+    }
+
+    if (FALSE == is_entity_reference)
+    {
+        base              = 16;
+        is_char_reference = ReadToken(bytes, byteCount, position, UTL_XML_CHAR_REF_HEX_OPEN);
+
+        if (FALSE == is_char_reference)
+        {
+            base              = 10;
+            is_char_reference = ReadToken(bytes, byteCount, position, UTL_XML_CHAR_REF_DEC_OPEN);
+        }
+
+        LOGASSERT(is_char_reference);
+
+        code_point = 0;
+
+        for (byte_index = (*position); byte_index < byteCount; ++byte_index)
+        {
+            value              = bytes[byte_index];
+            is_decimal_digit   = InRange(value, '0', '9');
+            is_lower_hex_digit = InRange(value, 'a', 'f');
+            is_upper_hex_digit = InRange(value, 'A', 'F');
+            digit              = base;
+
+            if (is_decimal_digit)
+            {
+                digit = value - '0';
+            }
+            else if (is_lower_hex_digit)
+            {
+                digit = value - 'a' + 10;
+            }
+            else if (is_upper_hex_digit)
+            {
+                digit = value - 'A' + 10;
+            }
+
+            is_digit = (digit < base);
+
+            if (FALSE == is_digit)
+            {
+                break;
+            }
+
+            fits_code_point = (code_point <= ((0x10FFFF - digit) / base));
+            LOGASSERT(fits_code_point);
+
+            code_point = (code_point * base) + digit;
+        }
+
+        LOGASSERT((*position) < byte_index);
+
+        (*position) = byte_index;
+        is_closed   = ReadToken(bytes, byteCount, position, UTL_XML_REFERENCE_CLOSE);
+        LOGASSERT(is_closed);
+
+        encoded_byte_count = EncodeUtf8(code_point, bytes + (*target));
+        (*target) += encoded_byte_count;
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Decodes references in place up to the delimiter. A quote delimits an attribute value, whose literal
+ *  whitespace becomes spaces; < delimits character data, which must not contain ]]>.
+ */
+static const byte_t* ReadEscaped(byte_t* bytes, uint32_t byteCount, uint32_t* position, byte_t delimiter, uint32_t* numBytes)
+{
+    uint32_t start;
+    uint32_t target;
+    uint32_t character_index;
+    bool_t   is_attribute_value;
+    bool_t   is_end;
+    bool_t   is_whitespace;
+    bool_t   has_cd_end;
+    bool_t   is_xml_string;
+
+    start              = (*position);
+    target             = (*position);
+    is_attribute_value = (UTL_XML_CHAR_LT != delimiter);
+
+    for (character_index = 0; character_index < byteCount; ++character_index)
+    {
+        is_end = ((*position) == byteCount) || (delimiter == bytes[(*position)]);
+
+        if (is_end)
+        {
+            break;
+        }
+
+        is_whitespace = Utl_Xml_IsWhitespace(bytes[(*position)]);
+        has_cd_end    = HasToken(bytes, byteCount, (*position), UTL_XML_CD_END);
+
+        LOGASSERT(UTL_XML_CHAR_LT != bytes[(*position)]);
+        LOGASSERT(is_attribute_value || (FALSE == has_cd_end));
+
+        if (UTL_XML_CHAR_AMP == bytes[(*position)])
+        {
+            ReadReference(bytes, byteCount, position, &target);
+        }
+        else
+        {
+            bytes[target] = bytes[(*position)];
+
+            if (is_attribute_value && is_whitespace)
+            {
+                bytes[target] = UTL_XML_CHAR_SPACE;
+            }
+
+            ++target;
+            (*position) += 1;
+        }
+    }
+
+    (*numBytes)   = target - start;
+    is_xml_string = Utl_Xml_IsString(bytes + start, (*numBytes));
+    LOGASSERT(is_xml_string);
+
+    return bytes + start;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  None
+ */
+static const byte_t* ReadAttributeValue(byte_t* bytes, uint32_t byteCount, uint32_t* position, uint32_t* numBytes)
+{
+    const byte_t* value;
+    byte_t        quote;
+    bool_t        is_eq;
+    bool_t        is_quote;
+    bool_t        is_closed;
+
+    (void)ReadWhitespace(bytes, byteCount, position);
+
+    is_eq = ((*position) < byteCount) && (UTL_XML_EQ == bytes[(*position)]);
+    LOGASSERT(is_eq);
+
+    (*position) += 1;
+    (void)ReadWhitespace(bytes, byteCount, position);
+
+    is_quote = ((*position) < byteCount) && ((UTL_XML_QUOTE_QUOT == bytes[(*position)]) || (UTL_XML_QUOTE_APOS == bytes[(*position)]));
+    LOGASSERT(is_quote);
+
+    quote       = bytes[(*position)];
+    (*position) += 1;
+    value       = ReadEscaped(bytes, byteCount, position, quote, numBytes);
+
+    is_closed = ((*position) < byteCount);
+    LOGASSERT(is_closed);
+
+    (*position) += 1;
+
+    return value;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  A comment or processing instruction that contains < spans several strtok tokens. Restores each <
+ *  that strtok replaced and joins the next token until the closing delimiter appears.
+ */
+static uint32_t ExtendMarkup(byte_t* markup, uint32_t* markupByteCount, uint32_t position, const char_t* close)
+{
+    byte_t*  next_token;
+    uint32_t token_index;
+    uint32_t byte_index;
+    bool_t   has_close;
+
+    has_close = FALSE;
+
+    for (token_index = 0; token_index < UTL_XML_DOCUMENT_MAX_NODES; ++token_index)
+    {
+        for (byte_index = position; byte_index < (*markupByteCount); ++byte_index)
+        {
+            has_close = HasToken(markup, (*markupByteCount), byte_index, close);
+
+            if (has_close)
+            {
+                break;
+            }
+        }
+
+        if (has_close)
+        {
+            break;
+        }
+
+        next_token = (byte_t*)strtok(NULL, UTL_XML_STAG_OPEN);
+        LOGASSERT(NULL != next_token);
+
+        markup[(*markupByteCount)] = UTL_XML_CHAR_LT;
+        (*markupByteCount)         = (uint32_t)(next_token - markup) + (uint32_t)strlen((const char_t*)next_token);
+    }
+
+    LOGASSERT(has_close);
+
+    return byte_index;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Utl_Xml_AppendAttribute rejects duplicate attribute names.
+ */
+static bool_t ReadElementStart(byte_t* markup, uint32_t markupByteCount, uint32_t* position, Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity, uint32_t* attributeCount)
+{
+    Utl_Xml_Attribute_t* attribute;
+    const byte_t*        name;
+    const byte_t*        value;
+    uint32_t             name_byte_count;
+    uint32_t             value_byte_count;
+    uint32_t             attribute_index;
+    bool_t               has_whitespace;
+    bool_t               is_tag_close;
+    bool_t               is_empty_elem_tag_close;
+    bool_t               is_start_tag;
+
+    (void)ReadToken(markup, markupByteCount, position, UTL_XML_STAG_OPEN);
+
+    name = ReadName(markup, markupByteCount, position, &name_byte_count);
+    Utl_Xml_InitializeNode(node, UTL_XML_NODE_ELEMENT, name, name_byte_count, NULL, 0);
+
+    for (attribute_index = 0; attribute_index < UTL_XML_NODE_MAX_ATTRIBUTES; ++attribute_index)
+    {
+        has_whitespace          = ReadWhitespace(markup, markupByteCount, position);
+        is_tag_close            = HasToken(markup, markupByteCount, (*position), UTL_XML_TAG_CLOSE);
+        is_empty_elem_tag_close = HasToken(markup, markupByteCount, (*position), UTL_XML_EMPTY_ELEM_TAG_CLOSE);
+
+        if (is_tag_close || is_empty_elem_tag_close)
+        {
+            break;
+        }
+
+        LOGASSERT(has_whitespace);
+        LOGASSERT((*attributeCount) < attributeCapacity);
+
+        name      = ReadName(markup, markupByteCount, position, &name_byte_count);
+        value     = ReadAttributeValue(markup, markupByteCount, position, &value_byte_count);
+        attribute = &attributes[(*attributeCount)];
+
+        Utl_Xml_InitializeAttribute(attribute, name, name_byte_count, value, value_byte_count);
+        Utl_Xml_AppendAttribute(node, attribute);
+
+        (*attributeCount) += 1;
+    }
+
+    (void)ReadWhitespace(markup, markupByteCount, position);
+
+    is_empty_elem_tag_close = ReadToken(markup, markupByteCount, position, UTL_XML_EMPTY_ELEM_TAG_CLOSE);
+    is_start_tag            = (FALSE == is_empty_elem_tag_close);
+
+    if (is_start_tag)
+    {
+        is_tag_close = ReadToken(markup, markupByteCount, position, UTL_XML_TAG_CLOSE);
+        LOGASSERT(is_tag_close);
+    }
+
+    return is_start_tag;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  A processing instruction whose target is exactly xml is the XML declaration. DOCTYPE and
+ *  declaration suffixes are kept as written.
+ */
+static bool_t ReadNode(byte_t* markup, uint32_t* markupByteCount, uint32_t* position, Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity, uint32_t* attributeCount)
+{
+    const byte_t* name;
+    const byte_t* value;
+    uint32_t      name_byte_count;
+    uint32_t      value_byte_count;
+    uint32_t      close;
+    bool_t        is_comment;
+    bool_t        is_doctype;
+    bool_t        is_processing_instruction;
+    bool_t        is_declaration;
+    bool_t        has_whitespace;
+    bool_t        is_valid;
+    bool_t        is_start_tag;
+
+    is_comment                = HasToken(markup, (*markupByteCount), 0, UTL_XML_COMMENT_OPEN);
+    is_doctype                = HasToken(markup, (*markupByteCount), 0, UTL_XML_DOCTYPE_OPEN);
+    is_processing_instruction = HasToken(markup, (*markupByteCount), 0, UTL_XML_PI_OPEN);
+    is_start_tag              = FALSE;
+
+    if (is_comment)
+    {
+        (void)ReadToken(markup, (*markupByteCount), position, UTL_XML_COMMENT_OPEN);
+
+        close            = ExtendMarkup(markup, markupByteCount, (*position), UTL_XML_COMMENT_CLOSE);
+        value            = NULL;
+        value_byte_count = close - (*position);
+
+        if (0 < value_byte_count)
+        {
+            value    = markup + (*position);
+            is_valid = Utl_Xml_IsComment(value, value_byte_count);
+            LOGASSERT(is_valid);
+        }
+
+        (*position) = close;
+        (void)ReadToken(markup, (*markupByteCount), position, UTL_XML_COMMENT_CLOSE);
+
+        Utl_Xml_InitializeNode(node, UTL_XML_NODE_COMMENT, NULL, 0, value, value_byte_count);
+    }
+    else if (is_doctype || is_processing_instruction)
+    {
+        if (is_doctype)
+        {
+            (void)ReadToken(markup, (*markupByteCount), position, UTL_XML_DOCTYPE_OPEN);
+
+            has_whitespace = ReadWhitespace(markup, (*markupByteCount), position);
+            LOGASSERT(has_whitespace);
+        }
+        else
+        {
+            (void)ReadToken(markup, (*markupByteCount), position, UTL_XML_PI_OPEN);
+        }
+
+        name           = ReadName(markup, (*markupByteCount), position, &name_byte_count);
+        is_declaration = HasToken(markup, (*markupByteCount), 0, UTL_XML_DECL_OPEN);
+        is_declaration = is_declaration && ((sizeof(UTL_XML_DECL_OPEN) - 1) == (*position));
+        has_whitespace = ReadWhitespace(markup, (*markupByteCount), position);
+
+        if (is_doctype)
+        {
+            close = ExtendMarkup(markup, markupByteCount, (*position), UTL_XML_DOCTYPE_CLOSE);
+        }
+        else
+        {
+            close = ExtendMarkup(markup, markupByteCount, (*position), UTL_XML_PI_CLOSE);
+        }
+
+        if (is_declaration)
+        {
+            LOGASSERT(has_whitespace);
+
+            is_valid = ReadToken(markup, close, position, UTL_XML_VERSION_NAME);
+            LOGASSERT(is_valid);
+
+            value    = ReadAttributeValue(markup, close, position, &value_byte_count);
+            is_valid = ((sizeof(UTL_XML_VERSION_1_0) - 1) == value_byte_count) && (0 == memcmp(value, UTL_XML_VERSION_1_0, value_byte_count));
+            LOGASSERT(is_valid);
+
+            has_whitespace = ReadWhitespace(markup, close, position);
+        }
+        else if (is_processing_instruction)
+        {
+            is_valid = Utl_Xml_IsPITarget(name, name_byte_count);
+            LOGASSERT(is_valid);
+        }
+
+        value            = NULL;
+        value_byte_count = close - (*position);
+
+        if (0 < value_byte_count)
+        {
+            LOGASSERT(has_whitespace);
+
+            value    = markup + (*position);
+            is_valid = Utl_Xml_IsString(value, value_byte_count);
+            LOGASSERT(is_valid);
+        }
+
+        (*position) = close;
+
+        if (is_doctype)
+        {
+            (void)ReadToken(markup, (*markupByteCount), position, UTL_XML_DOCTYPE_CLOSE);
+            Utl_Xml_InitializeNode(node, UTL_XML_NODE_DOCTYPE, name, name_byte_count, value, value_byte_count);
+        }
+        else if (is_declaration)
+        {
+            (void)ReadToken(markup, (*markupByteCount), position, UTL_XML_PI_CLOSE);
+            Utl_Xml_InitializeNode(node, UTL_XML_NODE_XML_DECLARATION, NULL, 0, value, value_byte_count);
+        }
+        else
+        {
+            (void)ReadToken(markup, (*markupByteCount), position, UTL_XML_PI_CLOSE);
+            Utl_Xml_InitializeNode(node, UTL_XML_NODE_PROCESSING_INSTRUCTION, name, name_byte_count, value, value_byte_count);
+        }
+    }
+    else
+    {
+        is_start_tag = ReadElementStart(markup, (*markupByteCount), position, node, attributes, attributeCapacity, attributeCount);
+    }
+
+    return is_start_tag;
 }
 
 /*************************************************************************************************/
@@ -1636,6 +2469,150 @@ void Utl_Xml_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node)
     }
 
     document->lastNode = node;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  strtok splits the input at each <, so every token holds one piece of markup followed by its
+ *  character data. The open element is the parent of the nodes that follow it.
+ */
+void Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* input, uint32_t byteCount, Utl_Xml_Node_t* nodes, uint32_t nodeCapacity, Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity)
+{
+    Utl_Xml_Node_t*       node;
+    Utl_Xml_Node_t*       parent;
+    const Utl_Xml_Node_t* root_node;
+    byte_t*               token;
+    byte_t*               markup;
+    char_t*               strtok_input;
+    const byte_t*         document_start;
+    const byte_t*         name;
+    const byte_t*         text;
+    uint32_t              normalized_byte_count;
+    uint32_t              markup_byte_count;
+    uint32_t              position;
+    uint32_t              name_byte_count;
+    uint32_t              text_byte_count;
+    uint32_t              node_count;
+    uint32_t              attribute_count;
+    uint32_t              depth;
+    uint32_t              token_index;
+    bool_t                is_end_tag;
+    bool_t                is_start_tag;
+    bool_t                has_same_name;
+    bool_t                is_tag_close;
+
+    LOGASSERT(NULL != document);
+    LOGASSERT(NULL != input);
+    LOGASSERT(NULL != nodes);
+    LOGASSERT(NULL != attributes);
+    LOGASSERT(NULL == document->firstNode);
+
+    normalized_byte_count        = NormalizeLineEnds(input, byteCount);
+    input[normalized_byte_count] = '\0';
+    position                     = 0;
+    node_count                   = 0;
+    attribute_count              = 0;
+    parent                       = NULL;
+    depth                        = 0;
+
+    (void)ReadToken(input, normalized_byte_count, &position, UTL_XML_BYTE_ORDER_MARK);
+    document_start = input + position;
+    (void)ReadWhitespace(input, normalized_byte_count, &position);
+
+    markup       = input + position;
+    strtok_input = (char_t*)markup;
+
+    for (token_index = 0; token_index < UTL_XML_DOCUMENT_MAX_NODES; ++token_index)
+    {
+        token        = (byte_t*)strtok(strtok_input, UTL_XML_STAG_OPEN);
+        strtok_input = NULL;
+
+        if (NULL == token)
+        {
+            break;
+        }
+
+        LOGASSERT((markup + 1) == token);
+
+        markup[0]         = UTL_XML_CHAR_LT;
+        markup_byte_count = (uint32_t)strlen((const char_t*)markup);
+        position          = 0;
+        is_end_tag        = HasToken(markup, markup_byte_count, 0, UTL_XML_ETAG_OPEN);
+
+        if (is_end_tag)
+        {
+            LOGASSERT(NULL != parent);
+
+            (void)ReadToken(markup, markup_byte_count, &position, UTL_XML_ETAG_OPEN);
+
+            name = ReadName(markup, markup_byte_count, &position, &name_byte_count);
+            LOGASSERT(parent->nameByteCount == name_byte_count);
+
+            has_same_name = (0 == memcmp(parent->name, name, name_byte_count));
+            LOGASSERT(has_same_name);
+
+            (void)ReadWhitespace(markup, markup_byte_count, &position);
+
+            is_tag_close = ReadToken(markup, markup_byte_count, &position, UTL_XML_TAG_CLOSE);
+            LOGASSERT(is_tag_close);
+
+            parent = parent->parent;
+            --depth;
+        }
+        else
+        {
+            LOGASSERT(node_count < nodeCapacity);
+
+            node         = &nodes[node_count];
+            is_start_tag = ReadNode(markup, &markup_byte_count, &position, node, attributes, attributeCapacity, &attribute_count);
+            LOGASSERT((UTL_XML_NODE_XML_DECLARATION != node->type) || (document_start == markup));
+
+            if (NULL == parent)
+            {
+                Utl_Xml_AppendNode(document, node);
+            }
+            else
+            {
+                Utl_Xml_AppendChild(parent, node);
+            }
+
+            node_count += 1;
+
+            if (is_start_tag)
+            {
+                LOGASSERT(depth < UTL_XML_NODE_MAX_DEPTH);
+                parent = node;
+                ++depth;
+            }
+        }
+
+        if (NULL == parent)
+        {
+            (void)ReadWhitespace(markup, markup_byte_count, &position);
+            LOGASSERT(markup_byte_count == position);
+        }
+        else if (position < markup_byte_count)
+        {
+            LOGASSERT(node_count < nodeCapacity);
+
+            node = &nodes[node_count];
+            text = ReadEscaped(markup, markup_byte_count, &position, UTL_XML_CHAR_LT, &text_byte_count);
+
+            Utl_Xml_InitializeNode(node, UTL_XML_NODE_TEXT, NULL, 0, text, text_byte_count);
+            Utl_Xml_AppendChild(parent, node);
+
+            node_count += 1;
+        }
+
+        markup += markup_byte_count;
+    }
+
+    LOGASSERT((input + normalized_byte_count) == markup);
+    LOGASSERT(NULL == parent);
+
+    root_node = FindNode(document, UTL_XML_NODE_ELEMENT);
+    LOGASSERT(NULL != root_node);
 }
 
 /*************************************************************************************************/

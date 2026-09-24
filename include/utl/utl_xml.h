@@ -98,6 +98,9 @@
 #define UTL_XML_ENCODING_NAME  ("encoding") ///< EncodingDecl keyword.
 #define UTL_XML_ENCODING_UTF_8 ("UTF-8")    ///< Encoding name for UTF-8 input.
 
+/* XML 1.0 section 4.3.3: UTF-8 input may begin with a byte order mark. */
+#define UTL_XML_BYTE_ORDER_MARK ("\xEF\xBB\xBF") ///< UTF-8 encoded U+FEFF; not part of the document.
+
 /* XML 1.0 section 4.6: references to the five predefined general entities. */
 #define UTL_XML_ENTITY_REF_LT   ("&lt;")   ///< Expands to <.
 #define UTL_XML_ENTITY_REF_GT   ("&gt;")   ///< Expands to >.
@@ -513,6 +516,43 @@ void Utl_Xml_AppendAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribut
  * \retval        None
  */
 void Utl_Xml_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads a UTF-8 document into caller-owned nodes and attributes.
+ *
+ * \par Details:
+ *  XML 1.0 (Fifth Edition), productions [1] document, [22] prolog,
+ *  [23] XMLDecl, and [28] doctypedecl:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-document
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-prolog
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-XMLDecl
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-doctypedecl
+ *
+ *  The reader normalizes line endings, writes a zero terminator after the
+ *  normalized input, and splits it at each < with strtok. It decodes references
+ *  in place, so names and values borrow input. The caller keeps input, nodes,
+ *  and attributes valid while the document is used, and does not use strtok
+ *  concurrently. XML declaration and DOCTYPE suffixes are kept as written.
+ *  CDATA sections and DOCTYPE internal subsets are not supported.
+ *
+ * \par Requirements:
+ *  - 001 This function shall fail an assertion if document, input, nodes, or attributes is NULL, or if document is not empty.
+ *  - 002 This function shall fail an assertion for malformed or unsupported input, or for insufficient storage.
+ *  - 003 This function shall decode character and predefined entity references and normalize attribute-value whitespace.
+ *  - 004 This function shall append nodes, children, and attributes in source order.
+ *
+ * \param[in,out] document            Initialized, empty document
+ * \param[in,out] input               Writable UTF-8 input with one writable byte after byteCount bytes
+ * \param[in]     byteCount           Number of bytes in input
+ * \param[out]    nodes               Caller-owned node storage
+ * \param[in]     nodeCapacity        Number of nodes in nodes
+ * \param[out]    attributes          Caller-owned attribute storage
+ * \param[in]     attributeCapacity   Number of attributes in attributes
+ *
+ * \retval        None
+ */
+void Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* input, uint32_t byteCount, Utl_Xml_Node_t* nodes, uint32_t nodeCapacity, Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity);
 
 /*************************************************************************************************/
 /**
