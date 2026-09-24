@@ -1,0 +1,32 @@
+<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="H3.xsd">
+    <screen id="0">
+        <pixelSize width="2560" height="1024" units="pixel"/>
+        <physicalDimensions width="20" height="8" units="inch"/>
+        <layout id="0">
+            <window id="0" name="window0">
+                <pixelArea x="0" y="0" width="2560" height="1024"/>
+                <scalingFactor xScale="20.0" yScale="20.0" baseUnit="screen" perUnit="pixel"/>
+            </window>
+        </layout>
+    </screen>
+    <screen id="1">
+        <pixelSize width="640" height="1152" units="pixel"/>
+        <physicalDimensions width="5" height="9" units="inch"/>
+        <layout id="0">
+            <window id="1" name="window1">
+                <pixelArea x="0" y="0" width="640" height="1152"/>
+                <scalingFactor xScale="20.0" yScale="20.0" baseUnit="screen" perUnit="pixel"/>
+            </window>
+        </layout>
+    </screen>
+    <screen id="2">
+        <pixelSize width="640" height="1152" units="pixel"/>
+        <physicalDimensions width="5" height="9" units="inch"/>
+        <layout id="0">
+            <window id="2" name="window2">
+                <pixelArea x="0" y="0" width="640" height="1152"/>
+                <scalingFactor xScale="20.0" yScale="20.0" baseUnit="screen" perUnit="pixel"/>
+            </window>
+        </layout>
+    </screen>
+</configuration>

@@ -25,6 +25,32 @@
 
 #define INDENT_SPACES_PER_LEVEL (4)
 
+/* UTF-8 leading-byte ranges and their payload bits. */
+#define UTF8_ASCII_MAX_BYTE              (0x7F)
+#define UTF8_TWO_BYTE_LEAD_MIN           (0xC2)
+#define UTF8_TWO_BYTE_LEAD_MAX           (0xDF)
+#define UTF8_THREE_BYTE_LEAD_MIN         (0xE0)
+#define UTF8_THREE_BYTE_LEAD_MAX         (0xEF)
+#define UTF8_FOUR_BYTE_LEAD_MIN          (0xF0)
+#define UTF8_FOUR_BYTE_LEAD_MAX          (0xF4)
+#define UTF8_TWO_BYTE_LEAD_PAYLOAD_MASK  (0x1F)
+#define UTF8_THREE_BYTE_LEAD_PAYLOAD_MASK (0x0F)
+#define UTF8_FOUR_BYTE_LEAD_PAYLOAD_MASK (0x07)
+
+/* A continuation byte has the form 10xxxxxx. */
+#define UTF8_CONTINUATION_PREFIX        (0x80)
+#define UTF8_CONTINUATION_PREFIX_MASK   (0xC0)
+#define UTF8_CONTINUATION_PAYLOAD_MASK  (0x3F)
+#define UTF8_CONTINUATION_PAYLOAD_BITS  (6)
+
+/* Shortest-form minima and Unicode scalar-value bounds. */
+#define UTF8_TWO_BYTE_MIN_CODE_POINT   (0x80)
+#define UTF8_THREE_BYTE_MIN_CODE_POINT (0x800)
+#define UTF8_FOUR_BYTE_MIN_CODE_POINT  (0x10000)
+#define UTF8_MAX_CODE_POINT            (0x10FFFF)
+#define UTF8_SURROGATE_MIN_CODE_POINT  (0xD800)
+#define UTF8_SURROGATE_MAX_CODE_POINT  (0xDFFF)
+
 /*=================================================================================================
 ** 3.2 Types
 **===============================================================================================*/
@@ -397,28 +423,28 @@ static uint32_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t offs
         position = offset;
         first    = bytes[position];
 
-        if (first <= 0x7F)
+        if (first <= UTF8_ASCII_MAX_BYTE)
         {
             decoded          = first;
             minimum          = 0;
             num_continuations = 0;
         }
-        else if ((0xC2 <= first) && (first <= 0xDF))
+        else if ((UTF8_TWO_BYTE_LEAD_MIN <= first) && (first <= UTF8_TWO_BYTE_LEAD_MAX))
         {
-            decoded          = first & 0x1F;
-            minimum          = 0x80;
+            decoded          = first & UTF8_TWO_BYTE_LEAD_PAYLOAD_MASK;
+            minimum          = UTF8_TWO_BYTE_MIN_CODE_POINT;
             num_continuations = 1;
         }
-        else if ((0xE0 <= first) && (first <= 0xEF))
+        else if ((UTF8_THREE_BYTE_LEAD_MIN <= first) && (first <= UTF8_THREE_BYTE_LEAD_MAX))
         {
-            decoded          = first & 0x0F;
-            minimum          = 0x800;
+            decoded          = first & UTF8_THREE_BYTE_LEAD_PAYLOAD_MASK;
+            minimum          = UTF8_THREE_BYTE_MIN_CODE_POINT;
             num_continuations = 2;
         }
-        else if ((0xF0 <= first) && (first <= 0xF4))
+        else if ((UTF8_FOUR_BYTE_LEAD_MIN <= first) && (first <= UTF8_FOUR_BYTE_LEAD_MAX))
         {
-            decoded          = first & 0x07;
-            minimum          = 0x10000;
+            decoded          = first & UTF8_FOUR_BYTE_LEAD_PAYLOAD_MASK;
+            minimum          = UTF8_FOUR_BYTE_MIN_CODE_POINT;
             num_continuations = 3;
         }
         else
@@ -431,21 +457,21 @@ static uint32_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t offs
             for (index = 0; index < num_continuations; ++index)
             {
                 ++position;
-                is_valid = (position < numBytes) && (0x80 == (bytes[position] & 0xC0));
+                is_valid = (position < numBytes) && (UTF8_CONTINUATION_PREFIX == (bytes[position] & UTF8_CONTINUATION_PREFIX_MASK));
 
                 if (FALSE == is_valid)
                 {
                     break;
                 }
 
-                decoded = (decoded << 6) | (bytes[position] & 0x3F);
+                decoded = (decoded << UTF8_CONTINUATION_PAYLOAD_BITS) | (bytes[position] & UTF8_CONTINUATION_PAYLOAD_MASK);
             }
         }
 
         if (is_valid)
         {
-            is_valid = (minimum <= decoded) && (decoded <= 0x10FFFF) &&
-                      ((decoded < 0xD800) || (0xDFFF < decoded));
+            is_valid = (minimum <= decoded) && (decoded <= UTF8_MAX_CODE_POINT) &&
+                      ((decoded < UTF8_SURROGATE_MIN_CODE_POINT) || (UTF8_SURROGATE_MAX_CODE_POINT < decoded));
         }
 
         if (is_valid)
