@@ -357,7 +357,7 @@ bool_t Utl_Xml_IsNameChar(uint32_t codePoint)
  * \par Details:
  *  Uses XML 1.0 NameStartChar and NameChar after strict UTF-8 decoding.
  */
-bool_t Utl_Xml_IsName(const byte_t* utf8Name, uint32_t byteCount)
+bool_t Utl_Xml_IsName(const byte_t* utf8Text, uint32_t byteCount)
 {
     uint32_t byte_offset;
     uint32_t code_point;
@@ -365,7 +365,7 @@ bool_t Utl_Xml_IsName(const byte_t* utf8Name, uint32_t byteCount)
     uint32_t decoded_byte_count;
     bool_t   is_name;
 
-    LOGASSERT(NULL != utf8Name);
+    LOGASSERT(NULL != utf8Text);
 
     is_name = (0 < byteCount) && (byteCount <= UTL_XML_MAX_NAME_BYTES);
 
@@ -375,7 +375,7 @@ bool_t Utl_Xml_IsName(const byte_t* utf8Name, uint32_t byteCount)
 
         for (code_point_index = 0; byte_offset < byteCount; ++code_point_index, byte_offset += decoded_byte_count)
         {
-            code_point = DecodeUtf8(utf8Name, byteCount, byte_offset, &decoded_byte_count);
+            code_point = DecodeUtf8(utf8Text, byteCount, byte_offset, &decoded_byte_count);
             is_name = (0 < decoded_byte_count);
 
             if (is_name)

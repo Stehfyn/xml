@@ -53,6 +53,17 @@ typedef struct XmlOutput_s
 
 /*************************************************************************************************/
 /**
+ * \brief Finds the first top-level node of a given type.
+ *
+ * \param[in] document  Document to search
+ * \param[in] type      Node type to find
+ *
+ * \return Matching node, or NULL if absent.
+ */
+static const Utl_Xml_Node_t* FindNode(const Utl_Xml_Document_t* document, Utl_Xml_NodeType_t type);
+
+/*************************************************************************************************/
+/**
  * \brief Appends or measures an exact byte span.
  *
  * \param[in,out] output     Output state
@@ -234,7 +245,32 @@ static bool_t WriteDocument(XmlOutput_t* output, const Utl_Xml_Document_t* docum
 
 /*************************************************************************************************/
 /**
- * \brief Appends bytes, or measures them when output storage is NULL.
+ * \par Details:
+ *  None
+ */
+static const Utl_Xml_Node_t* FindNode(const Utl_Xml_Document_t* document, Utl_Xml_NodeType_t type)
+{
+    const Utl_Xml_Node_t* current_node;
+    const Utl_Xml_Node_t* found_node;
+
+    found_node = NULL;
+
+    for (current_node = document->firstNode; NULL != current_node; current_node = current_node->nextSibling)
+    {
+        if (type == current_node->type)
+        {
+            found_node = current_node;
+            break;
+        }
+    }
+
+    return found_node;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Appends bytes, or measures them when output storage is NULL.
  */
 static bool_t WriteBytes(XmlOutput_t* output, const byte_t* bytes, uint32_t byteCount)
 {
@@ -262,7 +298,8 @@ static bool_t WriteBytes(XmlOutput_t* output, const byte_t* bytes, uint32_t byte
 
 /*************************************************************************************************/
 /**
- * \brief Appends one byte.
+ * \par Details:
+ *  Appends one byte.
  */
 static bool_t WriteByte(XmlOutput_t* output, byte_t value)
 {
@@ -271,7 +308,8 @@ static bool_t WriteByte(XmlOutput_t* output, byte_t value)
 
 /*************************************************************************************************/
 /**
- * \brief Escapes valid XML character data or a double-quoted attribute value.
+ * \par Details:
+ *  Escapes valid XML character data or a double-quoted attribute value.
  */
 static bool_t WriteEscaped(XmlOutput_t* output, const byte_t* utf8Text, uint32_t byteCount, bool_t isAttribute)
 {
@@ -361,7 +399,8 @@ static bool_t WriteEscaped(XmlOutput_t* output, const byte_t* utf8Text, uint32_t
 
 /*************************************************************************************************/
 /**
- * \brief Validates the byte span and framing of caller-supplied raw markup.
+ * \par Details:
+ *  Validates the byte span and framing of caller-supplied raw markup.
  */
 static bool_t WriteRawMarkup(XmlOutput_t* output, const Utl_Xml_Node_t* node, const byte_t* prefix, uint32_t prefixByteCount, const byte_t* suffix, uint32_t suffixByteCount)
 {
@@ -395,7 +434,8 @@ static bool_t WriteRawMarkup(XmlOutput_t* output, const Utl_Xml_Node_t* node, co
 
 /*************************************************************************************************/
 /**
- * \brief Writes a previously recorded XML declaration.
+ * \par Details:
+ *  Writes a previously recorded XML declaration.
  */
 static bool_t WriteXmlDeclaration(XmlOutput_t* output, const Utl_Xml_Node_t* node)
 {
@@ -408,7 +448,8 @@ static bool_t WriteXmlDeclaration(XmlOutput_t* output, const Utl_Xml_Node_t* nod
 
 /*************************************************************************************************/
 /**
- * \brief Writes a previously recorded DOCTYPE declaration.
+ * \par Details:
+ *  Writes a previously recorded DOCTYPE declaration.
  */
 static bool_t WriteDoctype(XmlOutput_t* output, const Utl_Xml_Node_t* node)
 {
@@ -421,7 +462,8 @@ static bool_t WriteDoctype(XmlOutput_t* output, const Utl_Xml_Node_t* node)
 
 /*************************************************************************************************/
 /**
- * \brief Writes and validates an element's opening tag and attributes.
+ * \par Details:
+ *  Writes and validates an element's opening tag and attributes.
  */
 static bool_t WriteElementStart(XmlOutput_t* output, const Utl_Xml_Node_t* node)
 {
@@ -510,132 +552,200 @@ static bool_t WriteElementStart(XmlOutput_t* output, const Utl_Xml_Node_t* node)
 
 /*************************************************************************************************/
 /**
- * \brief Writes an element's closing tag after its children.
+ * \par Details:
+ *  Writes an element's closing tag after its children.
  */
 static bool_t WriteElementEnd(XmlOutput_t* output, const Utl_Xml_Node_t* node)
 {
-    return WriteBytes(output, (const byte_t*)UTL_XML_ETAG_OPEN, (uint32_t)(sizeof(UTL_XML_ETAG_OPEN) - 1)) &&
-           WriteBytes(output, node->name, node->nameByteCount) &&
-           WriteByte(output, '>');
+    bool_t is_written;
+
+    is_written = WriteBytes(output, (const byte_t*)UTL_XML_ETAG_OPEN,
+                            (uint32_t)(sizeof(UTL_XML_ETAG_OPEN) - 1));
+
+    if (is_written)
+    {
+        is_written = WriteBytes(output, node->name, node->nameByteCount);
+    }
+
+    if (is_written)
+    {
+        is_written = WriteByte(output, '>');
+    }
+
+    return is_written;
 }
 
 /*************************************************************************************************/
 /**
- * \brief Writes a text, comment, or processing-instruction node.
+ * \par Details:
+ *  Escapes a text node's value.
  */
-static bool_t WriteLeaf(XmlOutput_t* output, const Utl_Xml_Node_t* node)
+static bool_t WriteText(XmlOutput_t* output, const Utl_Xml_Node_t* node)
+{
+    bool_t is_valid;
+
+    is_valid = (NULL == node->name) && (0 == node->nameByteCount);
+
+    if (is_valid)
+    {
+        is_valid = WriteEscaped(output, node->value, node->valueByteCount, FALSE);
+    }
+
+    return is_valid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Rejects the XML comment delimiter inside comment content.
+ */
+static bool_t WriteComment(XmlOutput_t* output, const Utl_Xml_Node_t* node)
+{
+    uint32_t byte_index;
+    bool_t   is_valid;
+
+    is_valid = (NULL == node->name) && (0 == node->nameByteCount) &&
+               ((NULL != node->value) || (0 == node->valueByteCount));
+
+    if (is_valid && (NULL != node->value))
+    {
+        is_valid = Utl_Xml_IsString(node->value, node->valueByteCount);
+    }
+
+    for (byte_index = 1; is_valid && (byte_index < node->valueByteCount); ++byte_index)
+    {
+        is_valid = (('-' != node->value[byte_index - 1]) || ('-' != node->value[byte_index]));
+    }
+
+    if (is_valid && (0 < node->valueByteCount))
+    {
+        is_valid = ('-' != node->value[node->valueByteCount - 1]);
+    }
+
+    if (is_valid)
+    {
+        is_valid = WriteBytes(output, (const byte_t*)UTL_XML_COMMENT_OPEN,
+                              (uint32_t)(sizeof(UTL_XML_COMMENT_OPEN) - 1));
+    }
+
+    if (is_valid)
+    {
+        is_valid = WriteBytes(output, node->value, node->valueByteCount);
+    }
+
+    if (is_valid)
+    {
+        is_valid = WriteBytes(output, (const byte_t*)UTL_XML_COMMENT_CLOSE,
+                              (uint32_t)(sizeof(UTL_XML_COMMENT_CLOSE) - 1));
+    }
+
+    return is_valid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Rejects the reserved XML target and the processing-instruction delimiter in data.
+ */
+static bool_t WriteProcessingInstruction(XmlOutput_t* output, const Utl_Xml_Node_t* node)
 {
     uint32_t byte_index;
     bool_t   is_valid;
     bool_t   is_reserved_target;
 
-    if ((NULL != node->firstChild) || (NULL != node->lastChild) ||
-        (NULL != node->firstAttribute) || (NULL != node->lastAttribute) ||
-        (0 != node->attributeCount))
-    {
-        return FALSE;
-    }
+    is_valid = (NULL != node->name) &&
+               Utl_Xml_IsName(node->name, node->nameByteCount) &&
+               ((NULL != node->value) || (0 == node->valueByteCount));
 
-    if (UTL_XML_NODE_TEXT == node->type)
-    {
-        if ((NULL != node->name) || (0 != node->nameByteCount))
-        {
-            return FALSE;
-        }
-
-        return WriteEscaped(output, node->value, node->valueByteCount, FALSE);
-    }
-
-    is_valid = (NULL != node->value);
-
-    if (is_valid)
+    if (is_valid && (NULL != node->value))
     {
         is_valid = Utl_Xml_IsString(node->value, node->valueByteCount);
     }
-    else
+
+    if (is_valid)
     {
-        is_valid = (0 == node->valueByteCount);
-    }
-
-    if (FALSE == is_valid)
-    {
-        return FALSE;
-    }
-
-    if (UTL_XML_NODE_COMMENT == node->type)
-    {
-        if ((NULL != node->name) || (0 != node->nameByteCount))
-        {
-            return FALSE;
-        }
-
-        for (byte_index = 1; byte_index < node->valueByteCount; ++byte_index)
-        {
-            if (('-' == node->value[byte_index - 1]) && ('-' == node->value[byte_index]))
-            {
-                return FALSE;
-            }
-        }
-
-        if ((0 < node->valueByteCount) && ('-' == node->value[node->valueByteCount - 1]))
-        {
-            return FALSE;
-        }
-
-        return WriteBytes(output, (const byte_t*)UTL_XML_COMMENT_OPEN, (uint32_t)(sizeof(UTL_XML_COMMENT_OPEN) - 1)) &&
-               WriteBytes(output, node->value, node->valueByteCount) &&
-               WriteBytes(output, (const byte_t*)UTL_XML_COMMENT_CLOSE, (uint32_t)(sizeof(UTL_XML_COMMENT_CLOSE) - 1));
-    }
-
-    if (UTL_XML_NODE_PROCESSING_INSTRUCTION == node->type)
-    {
-        if ((NULL == node->name) || (FALSE == Utl_Xml_IsName(node->name, node->nameByteCount)))
-        {
-            return FALSE;
-        }
-
         is_reserved_target = (3 == node->nameByteCount) &&
                              (('x' == node->name[0]) || ('X' == node->name[0])) &&
                              (('m' == node->name[1]) || ('M' == node->name[1])) &&
                              (('l' == node->name[2]) || ('L' == node->name[2]));
-
-        if (is_reserved_target)
-        {
-            return FALSE;
-        }
-
-        for (byte_index = 1; byte_index < node->valueByteCount; ++byte_index)
-        {
-            if (('?' == node->value[byte_index - 1]) && ('>' == node->value[byte_index]))
-            {
-                return FALSE;
-            }
-        }
-
-        if ((FALSE == WriteBytes(output, (const byte_t*)UTL_XML_PI_OPEN, (uint32_t)(sizeof(UTL_XML_PI_OPEN) - 1))) ||
-            (FALSE == WriteBytes(output, node->name, node->nameByteCount)))
-        {
-            return FALSE;
-        }
-
-        if (0 < node->valueByteCount)
-        {
-            if ((FALSE == WriteByte(output, ' ')) ||
-                (FALSE == WriteBytes(output, node->value, node->valueByteCount)))
-            {
-                return FALSE;
-            }
-        }
-
-        return WriteBytes(output, (const byte_t*)UTL_XML_PI_CLOSE, (uint32_t)(sizeof(UTL_XML_PI_CLOSE) - 1));
+        is_valid = (FALSE == is_reserved_target);
     }
 
-    return FALSE;
+    for (byte_index = 1; is_valid && (byte_index < node->valueByteCount); ++byte_index)
+    {
+        is_valid = (('?' != node->value[byte_index - 1]) || ('>' != node->value[byte_index]));
+    }
+
+    if (is_valid)
+    {
+        is_valid = WriteBytes(output, (const byte_t*)UTL_XML_PI_OPEN,
+                              (uint32_t)(sizeof(UTL_XML_PI_OPEN) - 1));
+    }
+
+    if (is_valid)
+    {
+        is_valid = WriteBytes(output, node->name, node->nameByteCount);
+    }
+
+    if (is_valid && (0 < node->valueByteCount))
+    {
+        is_valid = WriteByte(output, ' ');
+
+        if (is_valid)
+        {
+            is_valid = WriteBytes(output, node->value, node->valueByteCount);
+        }
+    }
+
+    if (is_valid)
+    {
+        is_valid = WriteBytes(output, (const byte_t*)UTL_XML_PI_CLOSE,
+                              (uint32_t)(sizeof(UTL_XML_PI_CLOSE) - 1));
+    }
+
+    return is_valid;
 }
 
 /*************************************************************************************************/
 /**
- * \brief Writes a subtree iteratively so allowed nesting depth does not consume call stack.
+ * \par Details:
+ *  Dispatches a childless, attribute-free node by its type.
+ */
+static bool_t WriteLeaf(XmlOutput_t* output, const Utl_Xml_Node_t* node)
+{
+    bool_t is_valid;
+
+    is_valid = (NULL == node->firstChild) && (NULL == node->lastChild) &&
+               (NULL == node->firstAttribute) && (NULL == node->lastAttribute) &&
+               (0 == node->attributeCount);
+
+    if (is_valid)
+    {
+        if (UTL_XML_NODE_TEXT == node->type)
+        {
+            is_valid = WriteText(output, node);
+        }
+        else if (UTL_XML_NODE_COMMENT == node->type)
+        {
+            is_valid = WriteComment(output, node);
+        }
+        else if (UTL_XML_NODE_PROCESSING_INSTRUCTION == node->type)
+        {
+            is_valid = WriteProcessingInstruction(output, node);
+        }
+        else
+        {
+            is_valid = FALSE;
+        }
+    }
+
+    return is_valid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Writes a subtree iteratively so allowed nesting depth does not consume call stack.
  */
 static bool_t WriteSubtree(XmlOutput_t* output, const Utl_Xml_Node_t* root)
 {
@@ -736,7 +846,7 @@ static bool_t WriteDocument(XmlOutput_t* output, const Utl_Xml_Document_t* docum
     bool_t                has_doctype;
     bool_t                is_written;
 
-    if ((NULL == document->root) || (NULL == document->firstNode) || (NULL == document->lastNode))
+    if ((NULL == document->firstNode) || (NULL == document->lastNode))
     {
         return FALSE;
     }
@@ -763,7 +873,7 @@ static bool_t WriteDocument(XmlOutput_t* output, const Utl_Xml_Document_t* docum
         }
         else if (UTL_XML_NODE_DOCTYPE == current_node->type)
         {
-            if (has_doctype || has_root || (current_node != document->doctype))
+            if (has_doctype || has_root)
             {
                 return FALSE;
             }
@@ -779,7 +889,7 @@ static bool_t WriteDocument(XmlOutput_t* output, const Utl_Xml_Document_t* docum
 
             if (is_root)
             {
-                if (has_root || (current_node != document->root))
+                if (has_root)
                 {
                     return FALSE;
                 }
@@ -802,8 +912,7 @@ static bool_t WriteDocument(XmlOutput_t* output, const Utl_Xml_Document_t* docum
         last_node = current_node;
     }
 
-    return has_root && (last_node == document->lastNode) &&
-           (has_doctype == (NULL != document->doctype));
+    return has_root && (last_node == document->lastNode);
 }
 
 /*=================================================================================================
@@ -820,9 +929,7 @@ void Utl_Xml_Document_Initialize(Utl_Xml_Document_t* document)
     LOGASSERT(NULL != document);
 
     document->firstNode = NULL;
-    document->lastNode  = NULL;
-    document->root      = NULL;
-    document->doctype   = NULL;
+    document->lastNode = NULL;
 }
 
 /*************************************************************************************************/
@@ -832,6 +939,7 @@ void Utl_Xml_Document_Initialize(Utl_Xml_Document_t* document)
  */
 void Utl_Xml_Document_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node)
 {
+    const Utl_Xml_Node_t* found_node;
     bool_t is_element;
     bool_t is_misc;
 
@@ -847,9 +955,11 @@ void Utl_Xml_Document_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* n
     }
     else if (UTL_XML_NODE_DOCTYPE == node->type)
     {
-        LOGASSERT(NULL == document->doctype);
-        LOGASSERT(NULL == document->root);
-        document->doctype = node;
+        found_node = FindNode(document, UTL_XML_NODE_DOCTYPE);
+        LOGASSERT(NULL == found_node);
+
+        found_node = FindNode(document, UTL_XML_NODE_ELEMENT);
+        LOGASSERT(NULL == found_node);
     }
     else
     {
@@ -860,8 +970,8 @@ void Utl_Xml_Document_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* n
 
         if (is_element)
         {
-            LOGASSERT(NULL == document->root);
-            document->root = node;
+            found_node = FindNode(document, UTL_XML_NODE_ELEMENT);
+            LOGASSERT(NULL == found_node);
         }
     }
 

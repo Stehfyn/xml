@@ -34,8 +34,6 @@ typedef struct Utl_Xml_Document_s
 {
     Utl_Xml_Node_t* firstNode; ///< First top-level node, or NULL.
     Utl_Xml_Node_t* lastNode;  ///< Last top-level node, or NULL.
-    Utl_Xml_Node_t* root;      ///< Sole element, or NULL while building.
-    Utl_Xml_Node_t* doctype;   ///< Document type declaration, or NULL.
 } Utl_Xml_Document_t;
 
 /*=================================================================================================
@@ -67,7 +65,7 @@ void Utl_Xml_Document_Initialize(Utl_Xml_Document_t* document);
  * \par Requirements:
  *  - 001 An XML declaration shall be first, if present.
  *  - 002 A DOCTYPE shall appear at most once and before the root element.
- *  - 003 Exactly one element may be appended; only comments and processing instructions may surround it.
+ *  - 003 At most one element may be appended; only comments and processing instructions may follow it.
  *  - 004 The node shall not already belong to a document or element.
  *
  * \par Details:

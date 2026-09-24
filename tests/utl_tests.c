@@ -356,7 +356,6 @@ static void TestXmlDocumentSerialization(void)
     bool_t             is_serialized;
 
     Utl_Xml_Document_Initialize(&document);
-    assert(NULL == document.root);
     assert(NULL == document.firstNode);
     assert(NULL == document.lastNode);
 
@@ -391,8 +390,6 @@ static void TestXmlDocumentSerialization(void)
     assert(&root == prolog_instruction.nextSibling);
     assert(&epilog_comment == root.nextSibling);
     assert(NULL == epilog_comment.nextSibling);
-    assert(&root == document.root);
-    assert(&doctype_node == document.doctype);
     assert(&epilog_comment == document.lastNode);
 
     is_serialized = Utl_Xml_Document_Serialize(&document, NULL, 0, &byte_count);
