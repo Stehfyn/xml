@@ -40,6 +40,7 @@ typedef enum Arinc661ModelIndex_e
     ARINC661_LAYER_MODEL,
     ARINC661_PANEL_MODEL,
     ARINC661_LABEL_MODEL,
+    ARINC661_SECOND_LABEL_MODEL,
     ARINC661_MODEL_COUNT
 } Arinc661ModelIndex_t;
 
@@ -97,7 +98,22 @@ static const Arinc661Property_t c_arinc661Properties[] =
     {ARINC661_LABEL_MODEL,    XML_LITERAL("Font"),            XML_LITERAL("t2")},
     {ARINC661_LABEL_MODEL,    XML_LITERAL("ColorIndex"),      XML_LITERAL("red")},
     {ARINC661_LABEL_MODEL,    XML_LITERAL("Alignment"),       XML_LITERAL("A661_CENTER")},
-    {ARINC661_LABEL_MODEL,    XML_LITERAL("LabelString"),     XML_LITERAL("SYSTEM READY")}
+    {ARINC661_LABEL_MODEL,    XML_LITERAL("LabelString"),     XML_LITERAL("SYSTEM READY")},
+    {ARINC661_SECOND_LABEL_MODEL,    XML_LITERAL("WidgetIdent"),     XML_LITERAL("3")},
+    {ARINC661_SECOND_LABEL_MODEL,    XML_LITERAL("Anonymous"),       XML_LITERAL("A661_FALSE")},
+    {ARINC661_SECOND_LABEL_MODEL,    XML_LITERAL("Visible"),         XML_LITERAL("A661_TRUE")},
+    {ARINC661_SECOND_LABEL_MODEL,    XML_LITERAL("PosX"),            XML_LITERAL("3000")},
+    {ARINC661_SECOND_LABEL_MODEL,    XML_LITERAL("PosY"),            XML_LITERAL("5500")},
+    {ARINC661_SECOND_LABEL_MODEL,    XML_LITERAL("SizeX"),           XML_LITERAL("4000")},
+    {ARINC661_SECOND_LABEL_MODEL,    XML_LITERAL("SizeY"),           XML_LITERAL("1000")},
+    {ARINC661_SECOND_LABEL_MODEL,    XML_LITERAL("RotationAngle"),   XML_LITERAL("0.0")},
+    {ARINC661_SECOND_LABEL_MODEL,    XML_LITERAL("StyleSet"),        XML_LITERAL("0")},
+    {ARINC661_SECOND_LABEL_MODEL,    XML_LITERAL("MaxStringLength"), XML_LITERAL("32")},
+    {ARINC661_SECOND_LABEL_MODEL,    XML_LITERAL("MotionAllowed"),   XML_LITERAL("A661_TRUE")},
+    {ARINC661_SECOND_LABEL_MODEL,    XML_LITERAL("Font"),            XML_LITERAL("t2")},
+    {ARINC661_SECOND_LABEL_MODEL,    XML_LITERAL("ColorIndex"),      XML_LITERAL("red")},
+    {ARINC661_SECOND_LABEL_MODEL,    XML_LITERAL("Alignment"),       XML_LITERAL("A661_CENTER")},
+    {ARINC661_SECOND_LABEL_MODEL,    XML_LITERAL("LabelString"),     XML_LITERAL("SECONDARY STATUS")}
 };
 
 /*=================================================================================================
@@ -117,20 +133,21 @@ int main(void)
     Utl_Xml_Node_t      layer;
     Utl_Xml_Node_t      panel;
     Utl_Xml_Node_t      label;
+    Utl_Xml_Node_t      second_label;
     Utl_Xml_Node_t      models[ARINC661_MODEL_COUNT];
     Utl_Xml_Node_t      property_nodes[COUNT_OF(c_arinc661Properties)];
     Utl_Xml_Attribute_t definition_attributes[3];
     Utl_Xml_Attribute_t layer_attribute;
     Utl_Xml_Attribute_t panel_attributes[2];
     Utl_Xml_Attribute_t label_attributes[2];
+    Utl_Xml_Attribute_t second_label_attributes[2];
     Utl_Xml_Attribute_t property_names[COUNT_OF(c_arinc661Properties)];
     Utl_Xml_Attribute_t property_values[COUNT_OF(c_arinc661Properties)];
     byte_t              output[4096];
     FILE*               xml_file;
     uint64_t            byte_count;
     uint64_t            bytes_written;
-    uint32_t            model_index;
-    uint32_t            property_index;
+    uint32_t            index;
     int                 close_result;
 
     Utl_Xml_InitializeDocument(&document);
@@ -139,10 +156,11 @@ int main(void)
     Utl_Xml_InitializeNode(&layer, UTL_XML_NODE_ELEMENT, XML_LITERAL("a661_layer"), NULL, 0);
     Utl_Xml_InitializeNode(&panel, UTL_XML_NODE_ELEMENT, XML_LITERAL("a661_widget"), NULL, 0);
     Utl_Xml_InitializeNode(&label, UTL_XML_NODE_ELEMENT, XML_LITERAL("a661_widget"), NULL, 0);
+    Utl_Xml_InitializeNode(&second_label, UTL_XML_NODE_ELEMENT, XML_LITERAL("a661_widget"), NULL, 0);
 
-    for (model_index = 0; model_index < ARINC661_MODEL_COUNT; ++model_index)
+    for (index = 0; index < ARINC661_MODEL_COUNT; ++index)
     {
-        Utl_Xml_InitializeNode(&models[model_index], UTL_XML_NODE_ELEMENT, XML_LITERAL("model"), NULL, 0);
+        Utl_Xml_InitializeNode(&models[index], UTL_XML_NODE_ELEMENT, XML_LITERAL("model"), NULL, 0);
     }
 
     Utl_Xml_AddAttribute(&definition, &definition_attributes[0], XML_LITERAL("name"), XML_LITERAL("arinc661_definition"));
@@ -153,13 +171,15 @@ int main(void)
     Utl_Xml_AddAttribute(&panel, &panel_attributes[1], XML_LITERAL("type"), XML_LITERAL("A661_PANEL"));
     Utl_Xml_AddAttribute(&label, &label_attributes[0], XML_LITERAL("name"), XML_LITERAL("StatusLabel"));
     Utl_Xml_AddAttribute(&label, &label_attributes[1], XML_LITERAL("type"), XML_LITERAL("A661_LABEL"));
+    Utl_Xml_AddAttribute(&second_label, &second_label_attributes[0], XML_LITERAL("name"), XML_LITERAL("SecondaryLabel"));
+    Utl_Xml_AddAttribute(&second_label, &second_label_attributes[1], XML_LITERAL("type"), XML_LITERAL("A661_LABEL"));
 
-    for (property_index = 0; property_index < (uint32_t)COUNT_OF(c_arinc661Properties); ++property_index)
+    for (index = 0; index < (uint32_t)COUNT_OF(c_arinc661Properties); ++index)
     {
-        Utl_Xml_InitializeNode(&property_nodes[property_index], UTL_XML_NODE_ELEMENT, XML_LITERAL("prop"), NULL, 0);
-        Utl_Xml_AddAttribute(&property_nodes[property_index], &property_names[property_index], XML_LITERAL("name"), c_arinc661Properties[property_index].name, c_arinc661Properties[property_index].nameByteCount);
-        Utl_Xml_AddAttribute(&property_nodes[property_index], &property_values[property_index], XML_LITERAL("value"), c_arinc661Properties[property_index].value, c_arinc661Properties[property_index].valueByteCount);
-        Utl_Xml_AppendChild(&models[c_arinc661Properties[property_index].modelIndex], &property_nodes[property_index]);
+        Utl_Xml_InitializeNode(&property_nodes[index], UTL_XML_NODE_ELEMENT, XML_LITERAL("prop"), NULL, 0);
+        Utl_Xml_AddAttribute(&property_nodes[index], &property_names[index], XML_LITERAL("name"), c_arinc661Properties[index].name, c_arinc661Properties[index].nameByteCount);
+        Utl_Xml_AddAttribute(&property_nodes[index], &property_values[index], XML_LITERAL("value"), c_arinc661Properties[index].value, c_arinc661Properties[index].valueByteCount);
+        Utl_Xml_AppendChild(&models[c_arinc661Properties[index].modelIndex], &property_nodes[index]);
     }
 
     Utl_Xml_AppendChild(&definition, &models[ARINC661_DOCUMENT_MODEL]);
@@ -169,6 +189,8 @@ int main(void)
     Utl_Xml_AppendChild(&panel, &models[ARINC661_PANEL_MODEL]);
     Utl_Xml_AppendChild(&panel, &label);
     Utl_Xml_AppendChild(&label, &models[ARINC661_LABEL_MODEL]);
+    Utl_Xml_AppendChild(&panel, &second_label);
+    Utl_Xml_AppendChild(&second_label, &models[ARINC661_SECOND_LABEL_MODEL]);
     Utl_Xml_AppendNode(&document, &declaration);
     Utl_Xml_AppendNode(&document, &definition);
 
