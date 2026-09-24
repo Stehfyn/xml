@@ -141,6 +141,9 @@ static void TestXmlByteSpans(void)
     static const byte_t invalid_name[] = "1a";
     static const byte_t embedded_zero[] = {'a', 0, 'b'};
     static const byte_t unterminated[] = {'a', 'b'};
+    static const byte_t plain_attribute_value[] = "A b'c>d";
+    static const byte_t reference_characters[] = "<&\"\t\n\r";
+    uint32_t            byte_index;
 
     assert(TRUE == Utl_Xml_IsString(empty, 0));
     assert(TRUE == Utl_Xml_IsString(valid_text, (uint32_t)(sizeof(valid_text) - 1)));
@@ -149,6 +152,18 @@ static void TestXmlByteSpans(void)
     assert(FALSE == Utl_Xml_IsString(invalid_xml_char, (uint32_t)(sizeof(invalid_xml_char) - 1)));
     assert(FALSE == Utl_Xml_IsString(embedded_zero, (uint32_t)sizeof(embedded_zero)));
     assert(FALSE == Utl_Xml_IsString(valid_text, (uint32_t)sizeof(valid_text)));
+
+    assert(TRUE == Utl_Xml_IsAttributeValue(empty, 0));
+    assert(TRUE == Utl_Xml_IsAttributeValue(valid_text, (uint32_t)(sizeof(valid_text) - 1)));
+    assert(TRUE == Utl_Xml_IsAttributeValue(plain_attribute_value, (uint32_t)(sizeof(plain_attribute_value) - 1)));
+    assert(FALSE == Utl_Xml_IsAttributeValue(invalid_utf8, (uint32_t)(sizeof(invalid_utf8) - 1)));
+    assert(FALSE == Utl_Xml_IsAttributeValue(invalid_xml_char, (uint32_t)(sizeof(invalid_xml_char) - 1)));
+    assert(FALSE == Utl_Xml_IsAttributeValue(embedded_zero, (uint32_t)sizeof(embedded_zero)));
+
+    for (byte_index = 0; byte_index < (uint32_t)(sizeof(reference_characters) - 1); ++byte_index)
+    {
+        assert(FALSE == Utl_Xml_IsAttributeValue(&reference_characters[byte_index], 1));
+    }
 
     assert(TRUE == Utl_Xml_IsName(valid_name, (uint32_t)(sizeof(valid_name) - 1)));
     assert(TRUE == Utl_Xml_IsName(unterminated, (uint32_t)sizeof(unterminated)));

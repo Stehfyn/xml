@@ -168,6 +168,27 @@ bool_t Utl_Xml_IsString(const byte_t* utf8Text, uint32_t byteCount);
 
 /*************************************************************************************************/
 /**
+ * \brief Checks a counted UTF-8 byte span for a directly writable XML attribute value.
+ *
+ * \par Details:
+ *  The writer uses double quotes and does not escape values. Apostrophes and > are allowed;
+ *  <, &, double quotes, tabs, line feeds, and carriage returns require references.
+ *
+ * \par Requirements:
+ *  - 001 This function shall accept an empty span and reject invalid UTF-8 or non-Char code points.
+ *  - 002 This function shall return FALSE for any byte that requires a reference in a double-quoted attribute value.
+ *  - 003 This function shall fail an assertion if utf8Text is NULL or byteCount exceeds UTL_XML_MAX_VALUE_BYTES.
+ *
+ * \param[in] utf8Text    Non-NULL UTF-8 byte span
+ * \param[in] byteCount   Number of bytes in the span
+ *
+ * \retval    TRUE        if the span can be written directly as an attribute value.
+ * \retval    FALSE       otherwise
+ */
+bool_t Utl_Xml_IsAttributeValue(const byte_t* utf8Text, uint32_t byteCount);
+
+/*************************************************************************************************/
+/**
  * \brief Checks whether a decoded code point is a permitted XML 1.0 whitespace character.
  *
  * \par Details:

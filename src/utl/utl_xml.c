@@ -759,7 +759,7 @@ static void ReadElementStart(const byte_t* markup, uint32_t markupByteCount, uin
     }
 
     ReadToken(markup, markupByteCount, position, UTL_XML_EMPTY_ELEM_TAG_CLOSE, &is_empty_elem_tag_close);
-    is_start_tag            = (FALSE == is_empty_elem_tag_close);
+    is_start_tag = (FALSE == is_empty_elem_tag_close);
 
     if (is_start_tag)
     {
@@ -1083,6 +1083,45 @@ bool_t Utl_Xml_IsString(const byte_t* utf8Text, uint32_t byteCount)
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  Checks XML characters first, then excludes bytes that need references in the writer.
+ */
+bool_t Utl_Xml_IsAttributeValue(const byte_t* utf8Text, uint32_t byteCount)
+{
+    bool_t   is_attribute_value;
+    bool_t   is_whitespace;
+    bool_t   needs_reference;
+    uint32_t byte_index;
+    byte_t   value_byte;
+
+    is_attribute_value = TRUE;
+
+    if (Utl_Xml_IsString(utf8Text, byteCount))
+    {
+        for (byte_index = 0; byte_index < byteCount; ++byte_index)
+        {
+            value_byte      = utf8Text[byte_index];
+            is_whitespace   = Utl_Xml_IsWhitespace(value_byte);
+            needs_reference = (UTL_XML_CHAR_LT == value_byte) || (UTL_XML_CHAR_AMP == value_byte) || (UTL_XML_QUOTE_QUOT == value_byte) ||
+                              (is_whitespace && (UTL_XML_CHAR_SPACE != value_byte));
+
+            if (needs_reference)
+            {
+                is_attribute_value = FALSE;
+                break;
+            }
+        }
+    }
+    else
+    {
+        is_attribute_value = FALSE;
+    }
+
+    return is_attribute_value;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  None
  */
 bool_t Utl_Xml_IsWhitespace(uint32_t codePoint)
@@ -1137,9 +1176,13 @@ bool_t Utl_Xml_IsNameChar(uint32_t codePoint)
     uint32_t first;
     uint32_t last;
 
-    is_name_char = Utl_Xml_IsNameStartChar(codePoint);
+    is_name_char = FALSE;
 
-    if (FALSE == is_name_char)
+    if (Utl_Xml_IsNameStartChar(codePoint))
+    {
+        is_name_char = TRUE;
+    }
+    else
     {
         for (range_index = 0; range_index < COUNT_OF(c_xmlNameCharRanges); ++range_index)
         {
@@ -1270,11 +1313,7 @@ void Utl_Xml_InitializeDocument(Utl_Xml_Document_t* document)
 void Utl_Xml_AppendAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribute)
 {
     bool_t                     is_name;
-    bool_t                     is_xml_string;
-    bool_t                     is_whitespace;
-    bool_t                     needs_reference;
-    uint32_t                   byte_index;
-    byte_t                     value_byte;
+    bool_t                     is_attribute_value;
     const Utl_Xml_Attribute_t* found_attribute;
 
     LOGASSERT(NULL != node);
@@ -1288,17 +1327,8 @@ void Utl_Xml_AppendAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribut
     is_name = Utl_Xml_IsName(attribute->name, attribute->nameByteCount);
     LOGASSERT(is_name);
 
-    is_xml_string = Utl_Xml_IsString(attribute->value, attribute->valueByteCount);
-    LOGASSERT(is_xml_string);
-
-    for (byte_index = 0; byte_index < attribute->valueByteCount; ++byte_index)
-    {
-        value_byte      = attribute->value[byte_index];
-        is_whitespace   = Utl_Xml_IsWhitespace(value_byte);
-        needs_reference = (UTL_XML_CHAR_LT == value_byte) || (UTL_XML_CHAR_AMP == value_byte) || (UTL_XML_QUOTE_QUOT == value_byte) ||
-                          (is_whitespace && (UTL_XML_CHAR_SPACE != value_byte));
-        LOGASSERT(FALSE == needs_reference);
-    }
+    is_attribute_value = Utl_Xml_IsAttributeValue(attribute->value, attribute->valueByteCount);
+    LOGASSERT(is_attribute_value);
 
     found_attribute = FindAttribute(node, attribute, attribute->name, attribute->nameByteCount);
     LOGASSERT(NULL == found_attribute);
