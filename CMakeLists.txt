@@ -7,10 +7,12 @@ set(CMAKE_C_EXTENSIONS OFF)
 
 add_library(os STATIC
     src/os/os_assert.c
+    src/os/os_file.c
     src/os/os_malloc.c
     src/os/os_message.c
     include/os/os_assert.h
     include/os/os_diagnostics.h
+    include/os/os_file.h
     include/os/os_malloc.h
     include/os/os_message.h
     include/os/os_time.h

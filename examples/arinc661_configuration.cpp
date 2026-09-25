@@ -19,6 +19,7 @@
 extern "C"
 {
 #include "os/os_assert.h"
+#include "os/os_file.h"
 #include "utl/utl_defines.h"
 }
 
@@ -316,9 +317,8 @@ static void BuildDockLayout(ImGuiID dockspaceId);
  */
 static void ReadConfigurationFile(ConfigurationEditor_t* editor)
 {
-    FILE*    xml_file;
-    uint64_t document_byte_count;
-    bool_t   is_configuration;
+    int32_t document_byte_count;
+    bool_t  is_configuration;
 
     editor->isLoaded                           = FALSE;
     editor->selectedKind                       = CONFIGURATION_SELECTION_NONE;
@@ -328,15 +328,13 @@ static void ReadConfigurationFile(ConfigurationEditor_t* editor)
     editor->configuration.userApplicationCount = 0;
     editor->configuration.externalSourceCount  = 0;
     editor->configuration.hasMetaData          = FALSE;
-    xml_file                                   = fopen(ARINC661_CONFIGURATION_XML_PATH, "rb");
-    if (NULL == xml_file)
+    document_byte_count = OS_File_ReadFile(ARINC661_CONFIGURATION_XML_PATH, editor->inputBuffer, sizeof(editor->inputBuffer));
+    if (0 > document_byte_count)
     {
-        (void)strcpy(editor->status, "Could not open arinc661_configuration.xml.");
+        (void)strcpy(editor->status, "Could not read arinc661_configuration.xml.");
     }
     else
     {
-        document_byte_count = fread(editor->inputBuffer, 1, CONFIGURATION_MAX_DOCUMENT_BYTES + 1, xml_file);
-        (void)fclose(xml_file);
         if (CONFIGURATION_MAX_DOCUMENT_BYTES < document_byte_count)
         {
             (void)strcpy(editor->status, "The XML file exceeds the input buffer.");
@@ -350,7 +348,7 @@ static void ReadConfigurationFile(ConfigurationEditor_t* editor)
             is_configuration = Utl_Arinc661_ReadDisplayManagementConfiguration(
                 &editor->configuration,
                 editor->inputBuffer,
-                document_byte_count,
+                (uint64_t)document_byte_count,
                 editor->workspace,
                 sizeof(editor->workspace));
             if (is_configuration)
