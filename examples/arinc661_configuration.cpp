@@ -1585,10 +1585,27 @@ static void MeasurePaneWidths(const Arinc661_Configuration_Editor_t* editor, flo
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Binds the fixed arrays and their capacities in the zero-initialized editor.
+ *  Initializes every editor field and its owned array storage.
  */
 void Arinc661_Configuration_Initialize(Arinc661_Configuration_Editor_t* editor)
 {
+    editor->status              = ARINC661_CONFIGURATION_STATUS_NONE;
+    editor->isLoaded            = FALSE;
+    editor->selectedKind        = ARINC661_CONFIGURATION_SELECTION_NONE;
+    editor->selectedIndex       = 0;
+    editor->totalScreenWidth    = 0.0f;
+    editor->maximumScreenHeight = 0.0f;
+    editor->drawableScreenCount = 0;
+
+    (void)memset(editor->inputBuffer, 0, sizeof(editor->inputBuffer));
+    (void)memset(editor->outputBuffer, 0, sizeof(editor->outputBuffer));
+    (void)memset(editor->workspace, 0, sizeof(editor->workspace));
+    (void)memset(editor->screens, 0, sizeof(editor->screens));
+    (void)memset(editor->layouts, 0, sizeof(editor->layouts));
+    (void)memset(editor->windows, 0, sizeof(editor->windows));
+    (void)memset(editor->userApplications, 0, sizeof(editor->userApplications));
+    (void)memset(editor->externalSources, 0, sizeof(editor->externalSources));
+    
     editor->configuration.screens                 = editor->screens;
     editor->configuration.layouts                 = editor->layouts;
     editor->configuration.windows                 = editor->windows;
@@ -1599,6 +1616,12 @@ void Arinc661_Configuration_Initialize(Arinc661_Configuration_Editor_t* editor)
     editor->configuration.windowCapacity          = ARINC661_CONFIGURATION_MAX_WINDOWS;
     editor->configuration.userApplicationCapacity = ARINC661_CONFIGURATION_MAX_USER_APPLICATIONS;
     editor->configuration.externalSourceCapacity  = ARINC661_CONFIGURATION_MAX_EXTERNAL_SOURCES;
+    editor->configuration.screenCount             = 0;
+    editor->configuration.layoutCount             = 0;
+    editor->configuration.windowCount             = 0;
+    editor->configuration.userApplicationCount    = 0;
+    editor->configuration.externalSourceCount     = 0;
+    editor->configuration.hasMetaData             = FALSE;
 }
 
 /*************************************************************************************************/

@@ -69,7 +69,6 @@ typedef enum Arinc661_Configuration_SelectionKind_e
     ARINC661_CONFIGURATION_SELECTION_WINDOW
 } Arinc661_Configuration_SelectionKind_t;
 
-
 /*************************************************************************************************/
 /**
  * \brief Caller-owned document, conversion workspace, and editor presentation state.
@@ -78,6 +77,11 @@ typedef struct Arinc661_Configuration_Editor_s
 {
     Arinc661_Configuration_Status_t        status;                                                           ///< Current status message.
     bool_t                                 isLoaded;                                                         ///< TRUE after a successful read.
+    Arinc661_Configuration_SelectionKind_t selectedKind;                                                     ///< Selected entity type.
+    uint32_t                               selectedIndex;                                                    ///< Selected array index.
+    float32_t                              totalScreenWidth;                                                 ///< Sum of drawable screen widths.
+    float32_t                              maximumScreenHeight;                                              ///< Largest drawable screen height.
+    uint32_t                               drawableScreenCount;                                              ///< Screens with positive pixel size.
     byte_t                                 inputBuffer[ARINC661_CONFIGURATION_MAX_DOCUMENT_BYTES + 1];       ///< Input file bytes.
     byte_t                                 outputBuffer[ARINC661_CONFIGURATION_MAX_DOCUMENT_BYTES];          ///< Built XML bytes.
     uint64_t                               workspace[UTL_ARINC661_WORKSPACE_BYTES / sizeof(uint64_t)];       ///< XML conversion scratch space.
@@ -87,11 +91,6 @@ typedef struct Arinc661_Configuration_Editor_s
     Utl_Arinc661_UserApplication_t         userApplications[ARINC661_CONFIGURATION_MAX_USER_APPLICATIONS];   ///< User application values.
     Utl_Arinc661_ExternalSource_t          externalSources[ARINC661_CONFIGURATION_MAX_EXTERNAL_SOURCES];     ///< External source values.
     Utl_Arinc661_Configuration_t           configuration;                                                    ///< Display management configuration values.
-    Arinc661_Configuration_SelectionKind_t selectedKind;                                                     ///< Selected entity type.
-    uint32_t                               selectedIndex;                                                    ///< Selected array index.
-    float32_t                              totalScreenWidth;                                                 ///< Sum of drawable screen widths.
-    float32_t                              maximumScreenHeight;                                              ///< Largest drawable screen height.
-    uint32_t                               drawableScreenCount;                                              ///< Screens with positive pixel size.
 } Arinc661_Configuration_Editor_t;
 
 /*=================================================================================================
@@ -108,7 +107,7 @@ typedef struct Arinc661_Configuration_Editor_s
 
 /*************************************************************************************************/
 /**
- * \brief Binds fixed arrays and their capacities in a zero-initialized editor.
+ * \brief Initializes every editor field and its owned array storage.
  *
  * \param[in,out] editor   Editor state
  *
