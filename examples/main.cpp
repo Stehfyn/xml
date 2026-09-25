@@ -445,7 +445,7 @@ static void HookRendererCreateWindow(ImGuiViewport* viewport)
 
     LOGASSERT(NULL == viewport->RendererUserData);
     window_data = IM_NEW(WglWindowData_t);
-    LOGASSERT(TRUE == CreateDeviceWGL((HWND)viewport->PlatformHandle, window_data));
+    LOGASSERT(CreateDeviceWGL((HWND)viewport->PlatformHandle, window_data));
     viewport->RendererUserData = window_data;
 }
 
@@ -714,7 +714,7 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
             ::TranslateMessage(&message);
             ::DispatchMessageW(&message);
         }
-        if (TRUE == window->isDone.load())
+        if (window->isDone.load())
         {
             break;
         }
@@ -725,7 +725,7 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
     AcquireSRWLockExclusive(&window->presentLock);
     window->isDone.store(TRUE);
     window->fPresentReady = FALSE;
-    if (TRUE == window->fGeometryPending)
+    if (window->fGeometryPending)
     {
         window->fGeometryPending = FALSE;
         WakeConditionVariable(&window->presentCondition);
@@ -799,13 +799,13 @@ int main(void)
     {
         LOGASSERT(NT_SUCCESS(D3DKMTWaitForVerticalBlankEvent(&vbe)));
         AcquireSRWLockExclusive(&window.presentLock);
-        if (TRUE == window.fGeometryPending)
+        if (window.fGeometryPending)
         {
             window.fFrameReady = FALSE;
             window.fGeometryPending = FALSE;
             WakeConditionVariable(&window.presentCondition);
         }
-        else if (TRUE == window.fFrameReady)
+        else if (window.fFrameReady)
         {
             LOGASSERT(FALSE != ::wglSwapBuffers(present_device_context));
             window.fFrameReady   = FALSE;

@@ -62,6 +62,17 @@ static const char_t* const c_unitOptions[] =
 
 /*************************************************************************************************/
 /**
+ * \brief Advances within one XML subtree without recursion.
+ *
+ * \param[in] rootNode      Root of the subtree
+ * \param[in] currentNode   Node just visited
+ *
+ * \return Next node in document order, or NULL at the end of the subtree.
+ */
+static Utl_Xml_Node_t* NextSubtreeNode(Utl_Xml_Node_t* rootNode, Utl_Xml_Node_t* currentNode);
+
+/*************************************************************************************************/
+/**
  * \brief Copies parsed attribute values into fixed storage and updates their pointers.
  *
  * \param[in,out] editor   Editor state
@@ -71,29 +82,6 @@ static const char_t* const c_unitOptions[] =
  * \retval FALSE   The editor storage limit was reached.
  */
 static bool_t CollectAttributes(ConfigurationEditor_t* editor, Utl_Xml_Node_t* node);
-
-/*************************************************************************************************/
-/**
- * \brief Chooses the inspector control for an XML attribute.
- *
- * \param[in] ownerNode   Element that owns the attribute
- * \param[in] attribute   XML attribute
- *
- * \return Control kind for the attribute.
- */
-static ConfigurationAttributeKind_t ClassifyAttribute(const Utl_Xml_Node_t* ownerNode, const Utl_Xml_Attribute_t* attribute);
-
-/*************************************************************************************************/
-/**
- * \brief Parses the initial value of a numeric inspector control.
- *
- * \param[in,out] valueState   Editable value to initialize
- * \param[in]     ownerNode    Element that owns the attribute
- * \param[in]     attribute    XML attribute
- *
- * \retval None
- */
-static void InitializeAttributeValue(ConfigurationAttributeValue_t* valueState, const Utl_Xml_Node_t* ownerNode, const Utl_Xml_Attribute_t* attribute);
 
 /*************************************************************************************************/
 /**
@@ -172,7 +160,8 @@ static void FindMaximumId(Utl_Xml_Node_t* node, const char_t* elementName, uint3
  * \param[in]     elementName   Element name to match
  * \param[out]    nextId        Generated next ID
  *
- * \return TRUE if an ID is available; FALSE on overflow.
+ * \retval TRUE    An ID is available.
+ * \retval FALSE   The ID range is exhausted.
  */
 static bool_t NextElementId(Utl_Xml_Node_t* root, const char_t* elementName, uint32_t* nextId);
 
@@ -234,7 +223,8 @@ static void RemoveSelectedNode(ConfigurationEditor_t* editor);
  *
  * \param[in]     node   XML node
  *
- * \return TRUE for a screen, layout, or window; FALSE otherwise.
+ * \retval TRUE    The node is a screen, layout, or window.
+ * \retval FALSE   The node is not in the hierarchy.
  */
 static bool_t IsHierarchyNode(const Utl_Xml_Node_t* node);
 
@@ -245,9 +235,21 @@ static bool_t IsHierarchyNode(const Utl_Xml_Node_t* node);
  * \param[in,out] editor   Editor state
  * \param[in]     node     XML node
  *
+ * \retval TRUE    Child nodes are visible and the caller must call ImGui::TreePop.
+ * \retval FALSE   Child nodes are hidden or absent.
+ */
+static bool_t DrawConfigurationNode(ConfigurationEditor_t* editor, Utl_Xml_Node_t* node);
+
+/*************************************************************************************************/
+/**
+ * \brief Shows screens, layouts, and windows without recursion.
+ *
+ * \param[in,out] editor   Editor state
+ * \param[in]     root     Configuration element
+ *
  * \retval None
  */
-static void DrawConfigurationNode(ConfigurationEditor_t* editor, Utl_Xml_Node_t* node);
+static void DrawConfigurationHierarchy(ConfigurationEditor_t* editor, Utl_Xml_Node_t* root);
 
 /*************************************************************************************************/
 /**
@@ -256,9 +258,33 @@ static void DrawConfigurationNode(ConfigurationEditor_t* editor, Utl_Xml_Node_t*
  * \param[in]     attribute   XML attribute
  * \param[in]     name        Null-terminated XML name
  *
- * \return TRUE if the attribute has the requested name; FALSE otherwise.
+ * \retval TRUE    The attribute has the requested name.
+ * \retval FALSE   The attribute has another name.
  */
 static bool_t AttributeHasName(const Utl_Xml_Attribute_t* attribute, const char_t* name);
+
+/*************************************************************************************************/
+/**
+ * \brief Chooses the inspector control for an XML attribute.
+ *
+ * \param[in] ownerNode   Element that owns the attribute
+ * \param[in] attribute   XML attribute
+ *
+ * \return Control kind for the attribute.
+ */
+static ConfigurationAttributeKind_t ClassifyAttribute(const Utl_Xml_Node_t* ownerNode, const Utl_Xml_Attribute_t* attribute);
+
+/*************************************************************************************************/
+/**
+ * \brief Parses the initial value of a numeric inspector control.
+ *
+ * \param[in,out] valueState   Editable value to initialize
+ * \param[in]     ownerNode    Element that owns the attribute
+ * \param[in]     attribute    XML attribute
+ *
+ * \retval None
+ */
+static void InitializeAttributeValue(ConfigurationAttributeValue_t* valueState, const Utl_Xml_Node_t* ownerNode, const Utl_Xml_Attribute_t* attribute);
 
 /*************************************************************************************************/
 /**
@@ -267,7 +293,8 @@ static bool_t AttributeHasName(const Utl_Xml_Attribute_t* attribute, const char_
  * \param[in]     text    Editable numeric text
  * \param[out]    value   Attribute value
  *
- * \return TRUE for a valid unsigned value; FALSE otherwise.
+ * \retval TRUE    The text is a valid unsigned value.
+ * \retval FALSE   The text is not a valid unsigned value.
  */
 static bool_t ParseUnsignedValue(const char_t* text, uint32_t* value);
 
@@ -321,7 +348,8 @@ static void DrawConfigurationEditor(ConfigurationEditor_t* editor);
  * \param[in]     node   XML node
  * \param[in]     name   Null-terminated XML name
  *
- * \return TRUE if the node has the requested name; FALSE otherwise.
+ * \retval TRUE    The node has the requested name.
+ * \retval FALSE   The node has another name.
  */
 static bool_t NodeHasName(const Utl_Xml_Node_t* node, const char_t* name);
 
@@ -354,7 +382,8 @@ static const char_t* FindAttributeValue(Utl_Xml_Node_t* node, const char_t* name
  * \param[in]     text    Editable numeric text
  * \param[out]    value   Attribute value
  *
- * \return TRUE for a finite nonnegative value; FALSE otherwise.
+ * \retval TRUE    The text is a finite nonnegative value.
+ * \retval FALSE   The text is not a finite nonnegative value.
  */
 static bool_t ParsePixelValue(const char_t* text, float32_t* value);
 
@@ -368,7 +397,8 @@ static bool_t ParsePixelValue(const char_t* text, float32_t* value);
  * \param[out]    width    Pixel width
  * \param[out]    height   Pixel height
  *
- * \return TRUE if all four coordinates are valid; FALSE otherwise.
+ * \retval TRUE    All four coordinates are valid.
+ * \retval FALSE   At least one coordinate is invalid.
  */
 static bool_t ReadPixelRectangle(Utl_Xml_Node_t* node, float32_t* x, float32_t* y, float32_t* width, float32_t* height);
 
@@ -380,7 +410,8 @@ static bool_t ReadPixelRectangle(Utl_Xml_Node_t* node, float32_t* x, float32_t* 
  * \param[out] width    Pixel width
  * \param[out] height   Pixel height
  *
- * \return TRUE when both dimensions are positive; FALSE otherwise.
+ * \retval TRUE    Both dimensions are positive.
+ * \retval FALSE   A dimension is absent or invalid.
  */
 static bool_t ReadScreenDimensions(Utl_Xml_Node_t* screen, float32_t* width, float32_t* height);
 
@@ -442,56 +473,101 @@ static void BuildDockLayout(ImGuiID dockspaceId);
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  Follows child, sibling, and parent links in bounded document order.
+ */
+static Utl_Xml_Node_t* NextSubtreeNode(Utl_Xml_Node_t* rootNode, Utl_Xml_Node_t* currentNode)
+{
+    Utl_Xml_Node_t* next_node;
+    Utl_Xml_Node_t* ancestor;
+    uint32_t        ancestor_index;
+
+    next_node = currentNode->firstChild;
+    ancestor  = currentNode;
+
+    if (NULL == next_node)
+    {
+        for (ancestor_index = 0; ancestor_index < UTL_XML_NODE_MAX_DEPTH; ++ancestor_index)
+        {
+            if (rootNode == ancestor)
+            {
+                break;
+            }
+
+            next_node = ancestor->nextSibling;
+            if (NULL != next_node)
+            {
+                break;
+            }
+
+            ancestor = ancestor->parent;
+            LOGASSERT(NULL != ancestor);
+        }
+        LOGASSERT((NULL != next_node) || (rootNode == ancestor));
+    }
+
+    return next_node;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Copies parsed attribute values into editable storage.
  */
 static bool_t CollectAttributes(ConfigurationEditor_t* editor, Utl_Xml_Node_t* node)
 {
     Utl_Xml_Attribute_t*           attribute;
-    Utl_Xml_Node_t*                child;
+    Utl_Xml_Node_t*                current_node;
     ConfigurationAttributeValue_t* value_state;
     uint32_t                       attribute_index;
-    uint32_t                       child_index;
+    uint32_t                       node_index;
     bool_t                         is_storage_full;
     bool_t                         is_value_too_long;
     bool_t                         is_over_limit;
+    bool_t                         is_valid;
 
-    attribute = node->firstAttribute;
-    for (attribute_index = 0; attribute_index < node->attributeCount; ++attribute_index)
-    {
-        LOGASSERT(NULL != attribute);
-        is_storage_full   = (CONFIGURATION_MAX_EDITABLE_ATTRIBUTES == editor->attributeValueCount);
-        is_value_too_long = (CONFIGURATION_MAX_ATTRIBUTE_VALUE_BYTES < attribute->valueByteCount);
-        is_over_limit     = is_storage_full || is_value_too_long;
-        if (is_over_limit)
-        {
-            strcpy(editor->status, "The XML file exceeds the editor's attribute limits.");
-            return FALSE;
-        }
-        value_state = &editor->attributeValues[editor->attributeValueCount];
-        memcpy(value_state->text, attribute->value, attribute->valueByteCount);
-        value_state->text[attribute->valueByteCount] = '\0';
-        attribute->value = (const byte_t*)value_state->text;
-        InitializeAttributeValue(value_state, node, attribute);
-        editor->attributeValueCount += 1;
-        attribute = attribute->next;
-    }
-    LOGASSERT(NULL == attribute);
+    current_node = node;
+    is_valid     = TRUE;
 
-    child = node->firstChild;
-    for (child_index = 0; child_index < UTL_XML_DOCUMENT_MAX_NODES; ++child_index)
+    for (node_index = 0; node_index < UTL_XML_DOCUMENT_MAX_NODES; ++node_index)
     {
-        if (NULL == child)
+        if (NULL == current_node)
         {
             break;
         }
-        if (FALSE == CollectAttributes(editor, child))
+
+        attribute = current_node->firstAttribute;
+        for (attribute_index = 0; attribute_index < current_node->attributeCount; ++attribute_index)
         {
-            return FALSE;
+            LOGASSERT(NULL != attribute);
+            is_storage_full   = (CONFIGURATION_MAX_EDITABLE_ATTRIBUTES == editor->attributeValueCount);
+            is_value_too_long = (CONFIGURATION_MAX_ATTRIBUTE_VALUE_BYTES < attribute->valueByteCount);
+            is_over_limit     = is_storage_full || is_value_too_long;
+            if (is_over_limit)
+            {
+                strcpy(editor->status, "The XML file exceeds the editor's attribute limits.");
+                is_valid = FALSE;
+                break;
+            }
+            value_state = &editor->attributeValues[editor->attributeValueCount];
+            memcpy(value_state->text, attribute->value, attribute->valueByteCount);
+            value_state->text[attribute->valueByteCount] = '\0';
+            attribute->value = (const byte_t*)value_state->text;
+            InitializeAttributeValue(value_state, current_node, attribute);
+            editor->attributeValueCount += 1;
+            attribute = attribute->next;
         }
-        child = child->nextSibling;
+        if (FALSE == is_valid)
+        {
+            break;
+        }
+        LOGASSERT(NULL == attribute);
+
+        current_node = NextSubtreeNode(node, current_node);
     }
-    LOGASSERT(NULL == child);
-    return TRUE;
+
+    LOGASSERT((FALSE == is_valid) || (NULL == current_node));
+
+    return is_valid;
 }
 
 /*************************************************************************************************/
@@ -586,46 +662,53 @@ static void LoadConfiguration(ConfigurationEditor_t* editor)
 static bool_t UpdateNodeAttributes(ConfigurationEditor_t* editor, Utl_Xml_Node_t* node)
 {
     Utl_Xml_Attribute_t* attribute;
-    Utl_Xml_Node_t*      child;
+    Utl_Xml_Node_t*      current_node;
     uint32_t             value_byte_count;
     uint32_t             attribute_index;
-    uint32_t             child_index;
+    uint32_t             node_index;
+    bool_t               is_valid;
 
-    attribute = node->firstAttribute;
-    for (attribute_index = 0; attribute_index < node->attributeCount; ++attribute_index)
-    {
-        LOGASSERT(NULL != attribute);
-        value_byte_count = (uint32_t)strlen((const char_t*)attribute->value);
-        if (FALSE == Utl_Xml_IsAttributeValue(attribute->value, value_byte_count))
-        {
-            snprintf(
-                editor->status,
-                sizeof(editor->status),
-                "Invalid XML attribute value: %.*s",
-                (int)attribute->nameByteCount,
-                (const char_t*)attribute->name);
-            return FALSE;
-        }
-        attribute->valueByteCount = value_byte_count;
-        attribute = attribute->next;
-    }
-    LOGASSERT(NULL == attribute);
+    current_node = node;
+    is_valid     = TRUE;
 
-    child = node->firstChild;
-    for (child_index = 0; child_index < UTL_XML_DOCUMENT_MAX_NODES; ++child_index)
+    for (node_index = 0; node_index < UTL_XML_DOCUMENT_MAX_NODES; ++node_index)
     {
-        if (NULL == child)
+        if (NULL == current_node)
         {
             break;
         }
-        if (FALSE == UpdateNodeAttributes(editor, child))
+
+        attribute = current_node->firstAttribute;
+        for (attribute_index = 0; attribute_index < current_node->attributeCount; ++attribute_index)
         {
-            return FALSE;
+            LOGASSERT(NULL != attribute);
+            value_byte_count = (uint32_t)strlen((const char_t*)attribute->value);
+            is_valid = Utl_Xml_IsAttributeValue(attribute->value, value_byte_count);
+            if (FALSE == is_valid)
+            {
+                snprintf(
+                    editor->status,
+                    sizeof(editor->status),
+                    "Invalid XML attribute value: %.*s",
+                    (int)attribute->nameByteCount,
+                    (const char_t*)attribute->name);
+                break;
+            }
+            attribute->valueByteCount = value_byte_count;
+            attribute = attribute->next;
         }
-        child = child->nextSibling;
+        if (FALSE == is_valid)
+        {
+            break;
+        }
+        LOGASSERT(NULL == attribute);
+
+        current_node = NextSubtreeNode(node, current_node);
     }
-    LOGASSERT(NULL == child);
-    return TRUE;
+
+    LOGASSERT((FALSE == is_valid) || (NULL == current_node));
+
+    return is_valid;
 }
 
 /*************************************************************************************************/
@@ -640,10 +723,7 @@ static void BuildConfiguration(ConfigurationEditor_t* editor)
     uint64_t        output_byte_count;
     uint64_t        bytes_written;
     uint32_t        node_index;
-    int             close_result;
     bool_t          has_write_error;
-    bool_t          has_close_error;
-    bool_t          has_file_error;
 
     node = editor->document.firstNode;
     for (node_index = 0; node_index < UTL_XML_DOCUMENT_MAX_NODES; ++node_index)
@@ -671,11 +751,10 @@ static void BuildConfiguration(ConfigurationEditor_t* editor)
         return;
     }
     bytes_written = fwrite(editor->outputBuffer, 1, output_byte_count, xml_file);
-    close_result  = fclose(xml_file);
+    fclose(xml_file);
+
     has_write_error = (output_byte_count != bytes_written);
-    has_close_error = (0 != close_result);
-    has_file_error  = has_write_error || has_close_error;
-    if (has_file_error)
+    if (has_write_error)
     {
         strcpy(editor->status, "Could not finish writing arinc661_configuration.xml.");
         return;
@@ -735,42 +814,41 @@ static void CreateAttribute(ConfigurationEditor_t* editor, Utl_Xml_Node_t* node,
 static void FindMaximumId(Utl_Xml_Node_t* node, const char_t* elementName, uint32_t* maximumId, bool_t* foundId)
 {
     const char_t*   id_text;
-    Utl_Xml_Node_t* child;
+    Utl_Xml_Node_t* current_node;
     uint32_t        id;
-    uint32_t        child_index;
+    uint32_t        node_index;
     bool_t          is_valid_id;
     bool_t          is_first_id;
     bool_t          is_larger_id;
 
-    if (TRUE == NodeHasName(node, elementName))
+    current_node = node;
+    for (node_index = 0; node_index < UTL_XML_DOCUMENT_MAX_NODES; ++node_index)
     {
-        id_text = FindAttributeValue(node, "id");
-        if (NULL != id_text)
-        {
-            is_valid_id = ParseUnsignedValue(id_text, &id);
-            if (is_valid_id)
-            {
-                is_first_id  = (FALSE == (*foundId));
-                is_larger_id = ((*maximumId) < id);
-                if (is_first_id || is_larger_id)
-                {
-                    (*maximumId) = id;
-                }
-                (*foundId) = TRUE;
-            }
-        }
-    }
-    child = node->firstChild;
-    for (child_index = 0; child_index < UTL_XML_DOCUMENT_MAX_NODES; ++child_index)
-    {
-        if (NULL == child)
+        if (NULL == current_node)
         {
             break;
         }
-        FindMaximumId(child, elementName, maximumId, foundId);
-        child = child->nextSibling;
+        if (NodeHasName(current_node, elementName))
+        {
+            id_text = FindAttributeValue(current_node, "id");
+            if (NULL != id_text)
+            {
+                is_valid_id = ParseUnsignedValue(id_text, &id);
+                if (is_valid_id)
+                {
+                    is_first_id  = (FALSE == (*foundId));
+                    is_larger_id = ((*maximumId) < id);
+                    if (is_first_id || is_larger_id)
+                    {
+                        (*maximumId) = id;
+                    }
+                    (*foundId) = TRUE;
+                }
+            }
+        }
+        current_node = NextSubtreeNode(node, current_node);
     }
-    LOGASSERT(NULL == child);
+    LOGASSERT(NULL == current_node);
 }
 
 /*************************************************************************************************/
@@ -787,12 +865,20 @@ static bool_t NextElementId(Utl_Xml_Node_t* root, const char_t* elementName, uin
     maximum_id = 0;
     found_id   = FALSE;
     FindMaximumId(root, elementName, &maximum_id, &found_id);
+
     has_exhausted_ids = found_id && (UINT32_MAX == maximum_id);
     if (has_exhausted_ids)
     {
         return FALSE;
     }
-    (*nextId) = (TRUE == found_id) ? maximum_id + 1 : 0;
+    if (found_id)
+    {
+        (*nextId) = maximum_id + 1;
+    }
+    else
+    {
+        (*nextId) = 0;
+    }
     return TRUE;
 }
 
@@ -1043,9 +1129,16 @@ static void RemoveSelectedNode(ConfigurationEditor_t* editor)
     LOGASSERT(node == current);
 
     next_selection = parent;
-    if (TRUE == NodeHasName(node, "screen"))
+    if (NodeHasName(node, "screen"))
     {
-        next_selection = (NULL != node->nextSibling) ? node->nextSibling : previous;
+        if (NULL != node->nextSibling)
+        {
+            next_selection = node->nextSibling;
+        }
+        else
+        {
+            next_selection = previous;
+        }
     }
     if (NULL == previous)
     {
@@ -1089,7 +1182,7 @@ static bool_t IsHierarchyNode(const Utl_Xml_Node_t* node)
  * \par Details:
  *  Shows one element in the configuration hierarchy.
  */
-static void DrawConfigurationNode(ConfigurationEditor_t* editor, Utl_Xml_Node_t* node)
+static bool_t DrawConfigurationNode(ConfigurationEditor_t* editor, Utl_Xml_Node_t* node)
 {
     Utl_Xml_Node_t*    child;
     const char_t*      identifier;
@@ -1099,10 +1192,7 @@ static void DrawConfigurationNode(ConfigurationEditor_t* editor, Utl_Xml_Node_t*
     bool_t             should_draw_children;
     uint32_t           child_index;
 
-    if (FALSE == IsHierarchyNode(node))
-    {
-        return;
-    }
+    LOGASSERT(IsHierarchyNode(node));
 
     identifier = FindAttributeValue(node, "name");
     if (NULL == identifier)
@@ -1122,7 +1212,7 @@ static void DrawConfigurationNode(ConfigurationEditor_t* editor, Utl_Xml_Node_t*
         {
             break;
         }
-        if (TRUE == IsHierarchyNode(child))
+        if (IsHierarchyNode(child))
         {
             has_hierarchy_child = TRUE;
             break;
@@ -1132,9 +1222,6 @@ static void DrawConfigurationNode(ConfigurationEditor_t* editor, Utl_Xml_Node_t*
     if (FALSE == has_hierarchy_child)
     {
         LOGASSERT(NULL == child);
-    }
-    if (FALSE == has_hierarchy_child)
-    {
         flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
     }
     ImGui::PushID(node);
@@ -1151,22 +1238,82 @@ static void DrawConfigurationNode(ConfigurationEditor_t* editor, Utl_Xml_Node_t*
         editor->selectedNode = node;
     }
     should_draw_children = is_open && has_hierarchy_child;
-    if (should_draw_children)
-    {
-        child = node->firstChild;
-        for (child_index = 0; child_index < UTL_XML_DOCUMENT_MAX_NODES; ++child_index)
-        {
-            if (NULL == child)
-            {
-                break;
-            }
-            DrawConfigurationNode(editor, child);
-            child = child->nextSibling;
-        }
-        LOGASSERT(NULL == child);
-        ImGui::TreePop();
-    }
     ImGui::PopID();
+
+    return should_draw_children;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The ARINC 661 hierarchy has three visible levels: screen, layout, and window.
+ */
+static void DrawConfigurationHierarchy(ConfigurationEditor_t* editor, Utl_Xml_Node_t* root)
+{
+    Utl_Xml_Node_t* screen_node;
+    Utl_Xml_Node_t* layout_node;
+    Utl_Xml_Node_t* window_node;
+    uint32_t        screen_index;
+    uint32_t        layout_index;
+    uint32_t        window_index;
+    bool_t          is_screen_open;
+    bool_t          is_layout_open;
+    bool_t          is_window_open;
+
+    screen_node = root->firstChild;
+    for (screen_index = 0; screen_index < UTL_XML_DOCUMENT_MAX_NODES; ++screen_index)
+    {
+        if (NULL == screen_node)
+        {
+            break;
+        }
+        if (NodeHasName(screen_node, "screen"))
+        {
+            is_screen_open = DrawConfigurationNode(editor, screen_node);
+            if (is_screen_open)
+            {
+                layout_node = screen_node->firstChild;
+                for (layout_index = 0; layout_index < UTL_XML_DOCUMENT_MAX_NODES; ++layout_index)
+                {
+                    if (NULL == layout_node)
+                    {
+                        break;
+                    }
+                    if (NodeHasName(layout_node, "layout"))
+                    {
+                        is_layout_open = DrawConfigurationNode(editor, layout_node);
+                        if (is_layout_open)
+                        {
+                            window_node = layout_node->firstChild;
+                            for (window_index = 0; window_index < UTL_XML_DOCUMENT_MAX_NODES; ++window_index)
+                            {
+                                if (NULL == window_node)
+                                {
+                                    break;
+                                }
+                                if (NodeHasName(window_node, "window"))
+                                {
+                                    is_window_open = DrawConfigurationNode(editor, window_node);
+                                    if (is_window_open)
+                                    {
+                                        ImGui::TreePop();
+                                    }
+                                }
+                                window_node = window_node->nextSibling;
+                            }
+                            LOGASSERT(NULL == window_node);
+                            ImGui::TreePop();
+                        }
+                    }
+                    layout_node = layout_node->nextSibling;
+                }
+                LOGASSERT(NULL == layout_node);
+                ImGui::TreePop();
+            }
+        }
+        screen_node = screen_node->nextSibling;
+    }
+    LOGASSERT(NULL == screen_node);
 }
 
 /*************************************************************************************************/
@@ -1176,11 +1323,11 @@ static void DrawConfigurationNode(ConfigurationEditor_t* editor, Utl_Xml_Node_t*
  */
 static bool_t AttributeHasName(const Utl_Xml_Attribute_t* attribute, const char_t* name)
 {
-    uint64_t name_byte_count;
+    uint32_t name_byte_count;
     bool_t   has_same_name_byte_count;
     bool_t   has_same_name;
 
-    name_byte_count = strlen(name);
+    name_byte_count = (uint32_t)strlen(name);
     has_same_name_byte_count = (attribute->nameByteCount == name_byte_count);
     has_same_name            = FALSE;
 
@@ -1200,20 +1347,41 @@ static bool_t AttributeHasName(const Utl_Xml_Attribute_t* attribute, const char_
 static ConfigurationAttributeKind_t ClassifyAttribute(const Utl_Xml_Node_t* ownerNode, const Utl_Xml_Attribute_t* attribute)
 {
     ConfigurationAttributeKind_t kind;
-    bool_t is_width_or_height;
-    bool_t is_physical_dimensions;
-    bool_t is_integer;
-    bool_t is_float;
-    bool_t is_unit;
+    bool_t                       is_width;
+    bool_t                       is_height;
+    bool_t                       is_id;
+    bool_t                       is_x;
+    bool_t                       is_y;
+    bool_t                       is_x_scale;
+    bool_t                       is_y_scale;
+    bool_t                       is_units;
+    bool_t                       is_base_unit;
+    bool_t                       is_per_unit;
+    bool_t                       is_width_or_height;
+    bool_t                       is_physical_dimensions;
+    bool_t                       is_pixel_dimension;
+    bool_t                       is_physical_dimension;
+    bool_t                       is_integer;
+    bool_t                       is_float;
+    bool_t                       is_unit;
 
-    is_width_or_height     = AttributeHasName(attribute, "width") || AttributeHasName(attribute, "height");
+    is_width               = AttributeHasName(attribute, "width");
+    is_height              = AttributeHasName(attribute, "height");
+    is_id                  = AttributeHasName(attribute, "id");
+    is_x                   = AttributeHasName(attribute, "x");
+    is_y                   = AttributeHasName(attribute, "y");
+    is_x_scale             = AttributeHasName(attribute, "xScale");
+    is_y_scale             = AttributeHasName(attribute, "yScale");
+    is_units               = AttributeHasName(attribute, "units");
+    is_base_unit           = AttributeHasName(attribute, "baseUnit");
+    is_per_unit            = AttributeHasName(attribute, "perUnit");
+    is_width_or_height     = is_width || is_height;
     is_physical_dimensions = NodeHasName(ownerNode, "physicalDimensions");
-    is_integer             = AttributeHasName(attribute, "id") || AttributeHasName(attribute, "x") ||
-                             AttributeHasName(attribute, "y") || (is_width_or_height && (FALSE == is_physical_dimensions));
-    is_float               = AttributeHasName(attribute, "xScale") || AttributeHasName(attribute, "yScale") ||
-                             (is_physical_dimensions && is_width_or_height);
-    is_unit                = AttributeHasName(attribute, "units") || AttributeHasName(attribute, "baseUnit") ||
-                             AttributeHasName(attribute, "perUnit");
+    is_pixel_dimension     = is_width_or_height && (FALSE == is_physical_dimensions);
+    is_physical_dimension  = is_width_or_height && is_physical_dimensions;
+    is_integer             = is_id || is_x || is_y || is_pixel_dimension;
+    is_float               = is_x_scale || is_y_scale || is_physical_dimension;
+    is_unit                = is_units || is_base_unit || is_per_unit;
 
     kind = CONFIGURATION_ATTRIBUTE_TEXT;
     if (is_integer)
@@ -1265,30 +1433,33 @@ static bool_t ParseUnsignedValue(const char_t* text, uint32_t* value)
     bool_t   is_negative;
     bool_t   is_out_of_range;
     bool_t   has_invalid_tail;
-    bool_t   is_invalid;
+    bool_t   is_valid;
 
-    if (NULL == text)
+    is_valid = (NULL != text);
+
+    if (is_valid)
     {
-        return FALSE;
+        is_empty    = ('\0' == text[0]);
+        is_negative = ('-' == text[0]);
+        is_valid    = (FALSE == is_empty) && (FALSE == is_negative);
+
+        if (is_valid)
+        {
+            errno        = 0;
+            parsed_value = strtoull(text, &end, 10);
+
+            is_out_of_range  = (ERANGE == errno) || (UINT32_MAX < parsed_value);
+            has_invalid_tail = ('\0' != (*end));
+            is_valid         = (FALSE == is_out_of_range) && (FALSE == has_invalid_tail);
+
+            if (is_valid)
+            {
+                (*value) = (uint32_t)parsed_value;
+            }
+        }
     }
-    is_empty    = ('\0' == text[0]);
-    is_negative = ('-' == text[0]);
-    is_invalid  = is_empty || is_negative;
-    if (is_invalid)
-    {
-        return FALSE;
-    }
-    errno        = 0;
-    parsed_value = strtoull(text, &end, 10);
-    is_out_of_range = (ERANGE == errno) || (UINT32_MAX < parsed_value);
-    has_invalid_tail = ('\0' != (*end));
-    is_invalid       = is_out_of_range || has_invalid_tail;
-    if (is_invalid)
-    {
-        return FALSE;
-    }
-    (*value) = (uint32_t)parsed_value;
-    return TRUE;
+
+    return is_valid;
 }
 
 /*************************************************************************************************/
@@ -1299,7 +1470,7 @@ static bool_t ParseUnsignedValue(const char_t* text, uint32_t* value)
 static void DrawAttributeControl(ConfigurationEditor_t* editor, Utl_Xml_Attribute_t* attribute)
 {
     ConfigurationAttributeValue_t* value_state;
-    uint64_t                       option_index;
+    uint32_t                       option_index;
     bool_t                         is_selected;
     bool_t                         is_finite;
     bool_t                         is_nonnegative;
@@ -1355,11 +1526,11 @@ static void DrawAttributeControl(ConfigurationEditor_t* editor, Utl_Xml_Attribut
             for (option_index = 0; option_index < COUNT_OF(c_unitOptions); ++option_index)
             {
                 is_selected = (0 == strcmp(value_state->text, c_unitOptions[option_index]));
-                if (ImGui::Selectable(c_unitOptions[option_index], TRUE == is_selected))
+                if (ImGui::Selectable(c_unitOptions[option_index], is_selected))
                 {
                     strcpy(value_state->text, c_unitOptions[option_index]);
                 }
-                if (TRUE == is_selected)
+                if (is_selected)
                 {
                     ImGui::SetItemDefaultFocus();
                 }
@@ -1434,17 +1605,17 @@ static void DrawSelectedNodeInspector(ConfigurationEditor_t* editor)
     {
         ImGui::TextUnformatted("Select a screen, layout, or window.");
     }
-    else if (TRUE == NodeHasName(node, "screen"))
+    else if (NodeHasName(node, "screen"))
     {
         DrawAttributeSection(editor, node, "Screen");
         DrawAttributeSection(editor, FindChild(node, "pixelSize"), "Pixel Size");
         DrawAttributeSection(editor, FindChild(node, "physicalDimensions"), "Physical Dimensions");
     }
-    else if (TRUE == NodeHasName(node, "layout"))
+    else if (NodeHasName(node, "layout"))
     {
         DrawAttributeSection(editor, node, "Layout");
     }
-    else if (TRUE == NodeHasName(node, "window"))
+    else if (NodeHasName(node, "window"))
     {
         DrawAttributeSection(editor, node, "Window");
         DrawAttributeSection(editor, FindChild(node, "pixelArea"), "Pixel Area");
@@ -1459,11 +1630,9 @@ static void DrawSelectedNodeInspector(ConfigurationEditor_t* editor)
  */
 static void DrawConfigurationEditor(ConfigurationEditor_t* editor)
 {
-    Utl_Xml_Node_t* node;
     Utl_Xml_Node_t* root;
     ImVec2          available_size;
     float32_t       hierarchy_height;
-    uint32_t        node_index;
     bool_t          is_screen_selected;
     bool_t          is_layout_selected;
     bool_t          is_window_selected;
@@ -1475,7 +1644,7 @@ static void DrawConfigurationEditor(ConfigurationEditor_t* editor)
         {
             LoadConfiguration(editor);
         }
-        if (TRUE == editor->isLoaded)
+        if (editor->isLoaded)
         {
             ImGui::SameLine();
             if (ImGui::Button("Build XML"))
@@ -1484,7 +1653,7 @@ static void DrawConfigurationEditor(ConfigurationEditor_t* editor)
             }
         }
         ImGui::TextWrapped("%s", editor->status);
-        if (TRUE == editor->isLoaded)
+        if (editor->isLoaded)
         {
             root = FindDocumentElement(editor);
             ImGui::TextUnformatted("Hierarchy");
@@ -1546,21 +1715,11 @@ static void DrawConfigurationEditor(ConfigurationEditor_t* editor)
             {
                 hierarchy_height = 150.0f;
             }
-            if (ImGui::BeginChild("Hierarchy", ImVec2(0.0f, hierarchy_height), true))
+            if (ImGui::BeginChild("Hierarchy", ImVec2(0.0f, hierarchy_height), TRUE))
             {
                 if (NULL != root)
                 {
-                    node = root->firstChild;
-                    for (node_index = 0; node_index < UTL_XML_DOCUMENT_MAX_NODES; ++node_index)
-                    {
-                        if (NULL == node)
-                        {
-                            break;
-                        }
-                        DrawConfigurationNode(editor, node);
-                        node = node->nextSibling;
-                    }
-                    LOGASSERT(NULL == node);
+                    DrawConfigurationHierarchy(editor, root);
                 }
             }
             ImGui::EndChild();
@@ -1585,11 +1744,11 @@ static void DrawConfigurationEditor(ConfigurationEditor_t* editor)
  */
 static bool_t NodeHasName(const Utl_Xml_Node_t* node, const char_t* name)
 {
-    uint64_t name_byte_count;
+    uint32_t name_byte_count;
     bool_t   has_same_name_byte_count;
     bool_t   has_same_name;
 
-    name_byte_count = strlen(name);
+    name_byte_count = (uint32_t)strlen(name);
     has_same_name_byte_count = (node->nameByteCount == name_byte_count);
     has_same_name            = FALSE;
 
@@ -1620,7 +1779,7 @@ static Utl_Xml_Node_t* FindChild(Utl_Xml_Node_t* parent, const char_t* name)
         {
             break;
         }
-        if (TRUE == NodeHasName(child, name))
+        if (NodeHasName(child, name))
         {
             found_child = child;
             break;
@@ -1650,7 +1809,7 @@ static const char_t* FindAttributeValue(Utl_Xml_Node_t* node, const char_t* name
     for (attribute_index = 0; attribute_index < node->attributeCount; ++attribute_index)
     {
         LOGASSERT(NULL != attribute);
-        if (TRUE == AttributeHasName(attribute, name))
+        if (AttributeHasName(attribute, name))
         {
             found_value = (const char_t*)attribute->value;
             break;
@@ -1678,30 +1837,35 @@ static bool_t ParsePixelValue(const char_t* text, float32_t* value)
     bool_t    has_invalid_tail;
     bool_t    is_not_finite;
     bool_t    is_negative;
-    bool_t    is_invalid;
+    bool_t    is_valid;
 
-    if (NULL == text)
+    is_valid = (NULL != text);
+
+    if (is_valid)
     {
-        return FALSE;
+        is_empty = ('\0' == text[0]);
+        is_valid = (FALSE == is_empty);
+
+        if (is_valid)
+        {
+            errno        = 0;
+            parsed_value = strtof(text, &end);
+
+            is_out_of_range  = (ERANGE == errno);
+            has_invalid_tail = ('\0' != (*end));
+            is_not_finite    = (0 == _finite(parsed_value));
+            is_negative      = (0.0f > parsed_value);
+            is_valid         = (FALSE == is_out_of_range) && (FALSE == has_invalid_tail) &&
+                              (FALSE == is_not_finite) && (FALSE == is_negative);
+
+            if (is_valid)
+            {
+                (*value) = parsed_value;
+            }
+        }
     }
-    is_empty = ('\0' == text[0]);
-    if (is_empty)
-    {
-        return FALSE;
-    }
-    errno        = 0;
-    parsed_value = strtof(text, &end);
-    is_out_of_range = (ERANGE == errno);
-    has_invalid_tail = ('\0' != (*end));
-    is_not_finite    = (0 == _finite(parsed_value));
-    is_negative      = (0.0f > parsed_value);
-    is_invalid       = is_out_of_range || has_invalid_tail || is_not_finite || is_negative;
-    if (is_invalid)
-    {
-        return FALSE;
-    }
-    (*value) = parsed_value;
-    return TRUE;
+
+    return is_valid;
 }
 
 /*************************************************************************************************/
@@ -1711,19 +1875,23 @@ static bool_t ParsePixelValue(const char_t* text, float32_t* value)
  */
 static bool_t ReadPixelRectangle(Utl_Xml_Node_t* node, float32_t* x, float32_t* y, float32_t* width, float32_t* height)
 {
-    if (FALSE == ParsePixelValue(FindAttributeValue(node, "x"), x))
+    bool_t is_valid;
+
+    is_valid = ParsePixelValue(FindAttributeValue(node, "x"), x);
+    if (is_valid)
     {
-        return FALSE;
+        is_valid = ParsePixelValue(FindAttributeValue(node, "y"), y);
     }
-    if (FALSE == ParsePixelValue(FindAttributeValue(node, "y"), y))
+    if (is_valid)
     {
-        return FALSE;
+        is_valid = ParsePixelValue(FindAttributeValue(node, "width"), width);
     }
-    if (FALSE == ParsePixelValue(FindAttributeValue(node, "width"), width))
+    if (is_valid)
     {
-        return FALSE;
+        is_valid = ParsePixelValue(FindAttributeValue(node, "height"), height);
     }
-    return ParsePixelValue(FindAttributeValue(node, "height"), height);
+
+    return is_valid;
 }
 
 /*************************************************************************************************/
@@ -1736,24 +1904,27 @@ static bool_t ReadScreenDimensions(Utl_Xml_Node_t* screen, float32_t* width, flo
     Utl_Xml_Node_t* pixel_size_node;
     bool_t          has_positive_width;
     bool_t          has_positive_height;
+    bool_t          is_valid;
 
     pixel_size_node = FindChild(screen, "pixelSize");
-    if (NULL == pixel_size_node)
-    {
-        return FALSE;
-    }
-    if (FALSE == ParsePixelValue(FindAttributeValue(pixel_size_node, "width"), width))
-    {
-        return FALSE;
-    }
-    if (FALSE == ParsePixelValue(FindAttributeValue(pixel_size_node, "height"), height))
-    {
-        return FALSE;
-    }
-    has_positive_width  = (0.0f < (*width));
-    has_positive_height = (0.0f < (*height));
+    is_valid        = (NULL != pixel_size_node);
 
-    return has_positive_width && has_positive_height;
+    if (is_valid)
+    {
+        is_valid = ParsePixelValue(FindAttributeValue(pixel_size_node, "width"), width);
+    }
+    if (is_valid)
+    {
+        is_valid = ParsePixelValue(FindAttributeValue(pixel_size_node, "height"), height);
+    }
+    if (is_valid)
+    {
+        has_positive_width  = (0.0f < (*width));
+        has_positive_height = (0.0f < (*height));
+        is_valid            = has_positive_width && has_positive_height;
+    }
+
+    return is_valid;
 }
 
 /*************************************************************************************************/
@@ -1844,7 +2015,7 @@ static void UpdatePreview(ConfigurationEditor_t* editor)
     editor->previewTotalWidth    = 0.0f;
     editor->previewMaximumHeight = 0.0f;
 
-    if (TRUE == editor->isLoaded)
+    if (editor->isLoaded)
     {
         root_node = FindDocumentElement(editor);
         if (NULL != root_node)
@@ -1928,7 +2099,7 @@ static void DrawScreenCanvas(const ConfigurationEditor_t* editor)
     {
         ImGui::InvisibleButton("Screen canvas", canvas_size);
         draw_list = ImGui::GetWindowDrawList();
-        draw_list->PushClipRect(canvas_min, ImVec2(canvas_min.x + canvas_size.x, canvas_min.y + canvas_size.y), true);
+        draw_list->PushClipRect(canvas_min, ImVec2(canvas_min.x + canvas_size.x, canvas_min.y + canvas_size.y), TRUE);
         draw_list->AddRectFilled(canvas_min, ImVec2(canvas_min.x + canvas_size.x, canvas_min.y + canvas_size.y), IM_COL32(22, 27, 34, 255));
 
         scale = available_width / editor->previewTotalWidth;
@@ -1950,7 +2121,7 @@ static void DrawScreenCanvas(const ConfigurationEditor_t* editor)
                 snprintf(screen_label, sizeof(screen_label), "Screen %s", screen->id);
                 draw_list->AddText(ImVec2(x, y - 22.0f), IM_COL32(240, 248, 255, 255), screen_label);
             }
-            draw_list->PushClipRect(screen_min, screen_max, true);
+            draw_list->PushClipRect(screen_min, screen_max, TRUE);
             for (window_index = screen->firstWindowIndex; window_index < screen->firstWindowIndex + screen->windowCount; ++window_index)
             {
                 window = &editor->previewWindows[window_index];
@@ -2046,7 +2217,7 @@ void InitializeConfiguration(ConfigurationEditor_t* editor)
  */
 void UpdateConfiguration(ConfigurationEditor_t* editor)
 {
-    if (TRUE == editor->isPreviewDirty)
+    if (editor->isPreviewDirty)
     {
         UpdatePreview(editor);
         editor->isPreviewDirty = FALSE;
