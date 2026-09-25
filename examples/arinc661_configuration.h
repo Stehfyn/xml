@@ -75,7 +75,6 @@ typedef struct Arinc661_Configuration_Editor_s
     uint32_t                            pendingSaveDocumentIndex;                                       ///< Untitled document awaiting a filename.
     bool_t                              isSaveAllPending;                                               ///< TRUE while Save All is naming untitled documents.
     char_t                              folderPath[ARINC661_CONFIGURATION_MAX_FOLDER_PATH_BYTES];       ///< Folder containing XML files.
-    char_t                              selectedXmlFileName[ARINC661_CONFIGURATION_MAX_XML_NAME_BYTES]; ///< Selected XML filename.
     char_t                              saveFolderPath[ARINC661_CONFIGURATION_MAX_FOLDER_PATH_BYTES];   ///< Folder chosen in the save dialog.
     char_t                              saveFileName[ARINC661_CONFIGURATION_MAX_XML_NAME_BYTES];        ///< Filename chosen in the save dialog.
     Arinc661_Configuration_Document_t   documents[ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS];           ///< Document slots and XML workspaces.

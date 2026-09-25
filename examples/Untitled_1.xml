@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<configuration>
+    <screen id="0">
+        <pixelSize width="640" height="480" units="pixel"/>
+        <physicalDimensions width="5" height="4" units="inch"/>
+    </screen>
+</configuration>
