@@ -21,6 +21,17 @@
 ** 3.2 Types
 **===============================================================================================*/
 
+/*************************************************************************************************/
+/**
+ * \brief Visits one filename while OS_File_EnumerateFiles is running.
+ *
+ * \param[in] fileName   Filename without its containing folder
+ * \param[in] context    Caller-owned context
+ *
+ * \retval    None
+ */
+typedef void (*OS_File_Visitor_t)(const char_t* fileName, void* context);
+
 /*=================================================================================================
 ** 3.3 Constants
 **===============================================================================================*/
@@ -65,5 +76,21 @@ int32_t OS_File_ReadFile(const char_t* filePath, byte_t* buffer, uint32_t buffer
  * \retval    0..INT32_MAX Number of bytes written successfully.
  */
 int32_t OS_File_WriteFile(const char_t* dstPath, const byte_t* buf, uint32_t numBytes);
+
+/*************************************************************************************************/
+/**
+ * \brief Visits regular files directly inside a folder.
+ *
+ * \par Details:
+ *  The filename passed to visitor is valid only during that callback. An empty folder succeeds.
+ *
+ * \param[in] folderPath   Non-NULL folder path
+ * \param[in] visitor      Non-NULL callback invoked for each file
+ * \param[in] context      Caller-owned callback context
+ *
+ * \retval    TRUE         if the folder was enumerated successfully.
+ * \retval    FALSE        if the folder could not be read.
+ */
+bool_t OS_File_EnumerateFiles(const char_t* folderPath, OS_File_Visitor_t visitor, void* context);
 
 #endif /* XML_OS_FILE_H */

@@ -33,16 +33,29 @@ extern "C"
 ** 3.1 Macros
 **===============================================================================================*/
 
-#define CONFIGURATION_WINDOW_NAME     ("ARINC 661 Configuration")
-#define HIERARCHY_PANE_NAME           ("Hierarchy")
-#define INSPECTOR_PANE_NAME           ("Inspector")
-#define SCENE_PANE_NAME               ("Scene")
-#define CONFIGURATION_FILE_PATH_LABEL ("File Path")
-#define HIERARCHY_PANE_COLUMN_IDX     (0)
-#define SCENE_PANE_COLUMN_IDX         (1)
-#define INSPECTOR_PANE_COLUMN         (2)
-#define CONFIGURATION_PANE_COUNT      (3)
-#define INVALID_HIERARCHY_INDEX       (UINT32_MAX)
+#define CONFIGURATION_WINDOW_NAME        ("ARINC 661 Configuration")
+#define HIERARCHY_PANE_NAME              ("Hierarchy")
+#define INSPECTOR_PANE_NAME              ("Inspector")
+#define SCENE_PANE_NAME                  ("Scene")
+#define FILE_CONTROLS_HEADER             ("File Controls")
+#define CONFIGURATION_FOLDER_PATH_LABEL  ("Folder Path")
+#define CONFIGURATION_XML_FILES_LABEL    ("XML Files")
+#define CONFIGURATION_XML_EXTENSION      (".xml")
+#define CONFIGURATION_XML_LIST_MAX_ROWS  (4)
+#define CONFIGURATION_FOLDER_INPUT_ID    ("##configurationFolderPath")
+#define CONFIGURATION_XML_LIST_ID        ("##xmlFiles")
+#define CONFIGURATION_PANE_TABLE_ID      ("ConfigurationPanes")
+#define CONFIGURATION_SCENE_CANVAS_ID    ("Screen canvas")
+#define CONFIGURATION_PROPERTY_INPUT_ID  ("##value")
+#define CONFIGURATION_PROPERTY_COLUMN    ("Property")
+#define CONFIGURATION_VALUE_COLUMN       ("Value")
+#define HIERARCHY_PANE_COLUMN_IDX        (0)
+#define SCENE_PANE_COLUMN_IDX            (1)
+#define INSPECTOR_PANE_COLUMN            (2)
+#define CONFIGURATION_PANE_COUNT         (3)
+#define INVALID_HIERARCHY_INDEX          (UINT32_MAX)
+
+#define CONFIGURATION_MAX_FILE_PATH_BYTES (ARINC661_CONFIGURATION_MAX_FOLDER_PATH_BYTES + ARINC661_CONFIGURATION_MAX_XML_NAME_BYTES + 1)
 
 #define CONFIGURATION_NO_IDENTIFIER  (-1)
 #define CONFIGURATION_MAX_IDENTIFIER (INT64_MAX)
@@ -58,13 +71,52 @@ extern "C"
 #define CONFIGURATION_REMOVE_SCREEN_LABEL  ("Remove Screen")
 #define CONFIGURATION_REMOVE_LAYOUT_LABEL  ("Remove Layout")
 #define CONFIGURATION_REMOVE_WINDOW_LABEL  ("Remove Window")
-#define CONFIGURATION_LOAD_XML_LABEL       ("Load XML")
 #define CONFIGURATION_BUILD_XML_LABEL      ("Build XML")
 #define CONFIGURATION_BASE_UNIT_LABEL      ("Base Unit")
+#define CONFIGURATION_REMOVE_GLYPH         ("x")
 
-#define CONFIGURATION_INTEGER_TEXT_BYTES   (32)
-#define CONFIGURATION_LABEL_FORMAT_BYTES   (64)
+#define CONFIGURATION_SCREEN_NODE_ID      ("screen")
+#define CONFIGURATION_LAYOUT_NODE_ID      ("layout")
+#define CONFIGURATION_WINDOW_NODE_ID      ("window")
+#define CONFIGURATION_SCREEN_LABEL_FORMAT ("Screen %" PRId64)
+#define CONFIGURATION_LAYOUT_LABEL_FORMAT ("Layout %" PRId64)
+#define CONFIGURATION_WINDOW_LABEL_FORMAT ("Window %" PRId64 " (%s)")
+
+#define CONFIGURATION_SCREEN_PREVIEW_FORMAT       ("Screen %" PRId64 " (%" PRId64 " x %" PRId64 ")")
+#define CONFIGURATION_NAMED_WINDOW_PREVIEW_FORMAT ("%s (%" PRId64 " x %" PRId64 ")")
+#define CONFIGURATION_WINDOW_PREVIEW_FORMAT       ("Window %" PRId64 " (%" PRId64 " x %" PRId64 ")")
+
+#define CONFIGURATION_SCREEN_TABLE_ID              ("ScreenProperties")
+#define CONFIGURATION_PIXEL_SIZE_TABLE_ID          ("PixelSizeProperties")
+#define CONFIGURATION_PHYSICAL_DIMENSIONS_TABLE_ID ("PhysicalDimensionProperties")
+#define CONFIGURATION_LAYOUT_TABLE_ID              ("LayoutProperties")
+#define CONFIGURATION_WINDOW_TABLE_ID              ("WindowProperties")
+#define CONFIGURATION_PIXEL_AREA_TABLE_ID          ("PixelAreaProperties")
+#define CONFIGURATION_SCALING_FACTOR_TABLE_ID      ("ScalingFactorProperties")
+
+#define CONFIGURATION_SCREEN_SECTION_LABEL              ("Screen")
+#define CONFIGURATION_PIXEL_SIZE_SECTION_LABEL          ("Pixel Size")
+#define CONFIGURATION_PHYSICAL_DIMENSIONS_SECTION_LABEL ("Physical Dimensions")
+#define CONFIGURATION_LAYOUT_SECTION_LABEL              ("Layout")
+#define CONFIGURATION_WINDOW_SECTION_LABEL              ("Window")
+#define CONFIGURATION_PIXEL_AREA_SECTION_LABEL          ("Pixel Area")
+#define CONFIGURATION_SCALING_FACTOR_SECTION_LABEL      ("Scaling Factor")
+
+#define CONFIGURATION_ID_LABEL       ("ID")
+#define CONFIGURATION_NAME_LABEL     ("Name")
+#define CONFIGURATION_X_LABEL        ("X")
+#define CONFIGURATION_Y_LABEL        ("Y")
+#define CONFIGURATION_WIDTH_LABEL    ("Width")
+#define CONFIGURATION_HEIGHT_LABEL   ("Height")
+#define CONFIGURATION_UNITS_LABEL    ("Units")
+#define CONFIGURATION_X_SCALE_LABEL  ("X Scale")
+#define CONFIGURATION_Y_SCALE_LABEL  ("Y Scale")
+#define CONFIGURATION_PER_UNIT_LABEL ("Per Unit")
+
+#define CONFIGURATION_INTEGER_TEXT_BYTES    (32)
+#define CONFIGURATION_LABEL_FORMAT_BYTES    (64)
 #define CONFIGURATION_HIERARCHY_LABEL_BYTES (UTL_ARINC661_MAX_NAME_BYTES + CONFIGURATION_LABEL_FORMAT_BYTES)
+
 #define CONFIGURATION_DEFAULT_SCREEN_PIXEL_WIDTH  (640)
 #define CONFIGURATION_DEFAULT_SCREEN_PIXEL_HEIGHT (480)
 
@@ -84,6 +136,18 @@ extern "C"
 /*=================================================================================================
 ** 3.2 Types
 **===============================================================================================*/
+
+/*************************************************************************************************/
+/**
+ * \brief State shared with each XML filename shown in the list box.
+ */
+typedef struct Arinc661_Configuration_XmlFileListContext_s
+{
+    Arinc661_Configuration_Editor_t* editor;
+    uint32_t                         xmlFileCount;
+    bool_t                           hasSelectedFile;
+    bool_t                           shouldDraw;
+} Arinc661_Configuration_XmlFileListContext_t;
 
 /*=================================================================================================
 ** 3.3 External global variables
@@ -118,6 +182,32 @@ static const char_t* const c_unitNames[] =
  * \return Status text.
  */
 static const char_t* EditorStatusToString(Arinc661_Configuration_Status_t status);
+
+/*************************************************************************************************/
+/**
+ * \brief Joins a folder and filename, adding a separator when needed.
+ *
+ * \param[in]  folderPath   Nonempty folder path
+ * \param[in]  fileName     Filename or search pattern
+ * \param[out] filePath     Combined path
+ * \param[in]  capacity     File path buffer size
+ *
+ * \retval     None
+ */
+static void JoinFolderPath(const char_t* folderPath, const char_t* fileName, char_t* filePath, uint32_t capacity);
+
+/*************************************************************************************************/
+/**
+ * \brief Resolves the selected XML file to a full path.
+ *
+ * \param[in,out] editor     Editor state and status
+ * \param[out]    filePath   Combined path when selection is valid
+ * \param[in]     capacity   File path buffer size
+ *
+ * \retval       TRUE       if a folder and XML file are selected.
+ * \retval       FALSE      if either is missing.
+ */
+static bool_t GetSelectedFilePath(Arinc661_Configuration_Editor_t* editor, char_t* filePath, uint32_t capacity);
 
 /*************************************************************************************************/
 /**
@@ -373,6 +463,27 @@ static void DrawWindowInspector(Arinc661_Configuration_Editor_t* editor);
 
 /*************************************************************************************************/
 /**
+ * \brief Counts and optionally draws one XML filename discovered by the OS file layer.
+ *
+ * \param[in] fileName   Filename in the selected folder
+ * \param[in] context    XML file list state
+ *
+ * \retval    None
+ */
+static void DrawXmlFileEntry(const char_t* fileName, void* context);
+
+/*************************************************************************************************/
+/**
+ * \brief Lists XML files in the configured folder and updates the selected filename.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+static void DrawXmlFileList(Arinc661_Configuration_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
  * \brief Draws the file path, file actions, and status above the panes.
  *
  * \param[in,out] editor   Editor state
@@ -399,7 +510,7 @@ static void DrawHierarchyPane(Arinc661_Configuration_Editor_t* editor);
  *
  * \retval        None
  */
-static void DrawInspector(Arinc661_Configuration_Editor_t* editor);
+static void DrawInspectorPane(Arinc661_Configuration_Editor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -409,7 +520,7 @@ static void DrawInspector(Arinc661_Configuration_Editor_t* editor);
  *
  * \retval        None
  */
-static void DrawScene(Arinc661_Configuration_Editor_t* editor);
+static void DrawScenePane(Arinc661_Configuration_Editor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -446,28 +557,86 @@ static const char_t* EditorStatusToString(Arinc661_Configuration_Status_t status
 {
     switch (status)
     {
-        case ARINC661_CONFIGURATION_STATUS_NONE:              return "";
-        case ARINC661_CONFIGURATION_STATUS_FILE_PATH_REQUIRED: return "Enter a file path.";
-        case ARINC661_CONFIGURATION_STATUS_BUILD_FAILED:      return "Could not build the display configuration XML.";
-        case ARINC661_CONFIGURATION_STATUS_BUILT:             return "Built XML file.";
-        case ARINC661_CONFIGURATION_STATUS_WRITE_FAILED:      return "Could not write XML file.";
-        case ARINC661_CONFIGURATION_STATUS_SCREEN_ADDED:      return "Added screen. Build XML to save.";
-        case ARINC661_CONFIGURATION_STATUS_SCREEN_ADD_FAILED: return "Could not add another screen.";
-        case ARINC661_CONFIGURATION_STATUS_LAYOUT_ADDED:      return "Added layout. Build XML to save.";
-        case ARINC661_CONFIGURATION_STATUS_LAYOUT_ADD_FAILED: return "Could not add another layout.";
-        case ARINC661_CONFIGURATION_STATUS_WINDOW_ADDED:      return "Added window. Build XML to save.";
-        case ARINC661_CONFIGURATION_STATUS_WINDOW_ADD_FAILED: return "Could not add another window.";
-        case ARINC661_CONFIGURATION_STATUS_SCREEN_REMOVED:    return "Removed screen. Build XML to save.";
-        case ARINC661_CONFIGURATION_STATUS_LAYOUT_REMOVED:    return "Removed layout. Build XML to save.";
-        case ARINC661_CONFIGURATION_STATUS_WINDOW_REMOVED:    return "Removed window. Build XML to save.";
-        case ARINC661_CONFIGURATION_STATUS_READ_FAILED:       return "Could not read XML file.";
-        case ARINC661_CONFIGURATION_STATUS_INPUT_TOO_LARGE:   return "The XML file exceeds the input buffer.";
-        case ARINC661_CONFIGURATION_STATUS_INPUT_EMPTY:       return "The XML file is empty.";
-        case ARINC661_CONFIGURATION_STATUS_LOADED:            return "Loaded XML file.";
-        case ARINC661_CONFIGURATION_STATUS_INVALID_XML:       return "Invalid or unsupported display configuration XML.";
+        case ARINC661_CONFIGURATION_STATUS_NONE:                 return "";
+        case ARINC661_CONFIGURATION_STATUS_FOLDER_PATH_REQUIRED: return "Enter a folder path.";
+        case ARINC661_CONFIGURATION_STATUS_XML_FILE_REQUIRED:    return "Select an XML file.";
+        case ARINC661_CONFIGURATION_STATUS_BUILD_FAILED:         return "Could not build the display configuration XML.";
+        case ARINC661_CONFIGURATION_STATUS_BUILT:                return "Built XML file.";
+        case ARINC661_CONFIGURATION_STATUS_WRITE_FAILED:         return "Could not write XML file.";
+        case ARINC661_CONFIGURATION_STATUS_SCREEN_ADDED:         return "Added screen. Build XML to save.";
+        case ARINC661_CONFIGURATION_STATUS_SCREEN_ADD_FAILED:    return "Could not add another screen.";
+        case ARINC661_CONFIGURATION_STATUS_LAYOUT_ADDED:         return "Added layout. Build XML to save.";
+        case ARINC661_CONFIGURATION_STATUS_LAYOUT_ADD_FAILED:    return "Could not add another layout.";
+        case ARINC661_CONFIGURATION_STATUS_WINDOW_ADDED:         return "Added window. Build XML to save.";
+        case ARINC661_CONFIGURATION_STATUS_WINDOW_ADD_FAILED:    return "Could not add another window.";
+        case ARINC661_CONFIGURATION_STATUS_SCREEN_REMOVED:       return "Removed screen. Build XML to save.";
+        case ARINC661_CONFIGURATION_STATUS_LAYOUT_REMOVED:       return "Removed layout. Build XML to save.";
+        case ARINC661_CONFIGURATION_STATUS_WINDOW_REMOVED:       return "Removed window. Build XML to save.";
+        case ARINC661_CONFIGURATION_STATUS_READ_FAILED:          return "Could not read XML file.";
+        case ARINC661_CONFIGURATION_STATUS_INPUT_TOO_LARGE:      return "The XML file exceeds the input buffer.";
+        case ARINC661_CONFIGURATION_STATUS_INPUT_EMPTY:          return "The XML file is empty.";
+        case ARINC661_CONFIGURATION_STATUS_LOADED:               return "Loaded XML file.";
+        case ARINC661_CONFIGURATION_STATUS_INVALID_XML:          return "Invalid or unsupported display configuration XML.";
         default:
           LOGFATAL("Invalid Arinc661_Configuration_Status_t!");
     }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Preserves folder paths that already end in either supported separator.
+ */
+static void JoinFolderPath(const char_t* folderPath, const char_t* fileName, char_t* filePath, uint32_t capacity)
+{
+    uint32_t folder_length;
+    uint32_t file_name_length;
+    bool_t   ends_with_backslash;
+    bool_t   ends_with_slash;
+    bool_t   needs_separator;
+
+    folder_length       = (uint32_t)ImStrlen(folderPath);
+    file_name_length    = (uint32_t)ImStrlen(fileName);
+    LOGASSERT(0 < folder_length);
+    ends_with_backslash = ('\\' == folderPath[folder_length - 1]);
+    ends_with_slash     = ('/' == folderPath[folder_length - 1]);
+    needs_separator     = (FALSE == ends_with_backslash) && (FALSE == ends_with_slash);
+    LOGASSERT((folder_length + (uint32_t)needs_separator + file_name_length + 1) <= capacity);
+
+    (void)memcpy(filePath, folderPath, folder_length);
+    if (needs_separator)
+    {
+        filePath[folder_length] = '\\';
+        folder_length += 1;
+    }
+    (void)memcpy(filePath + folder_length, fileName, file_name_length + 1);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Reports which part of the XML selection is missing.
+ */
+static bool_t GetSelectedFilePath(Arinc661_Configuration_Editor_t* editor, char_t* filePath, uint32_t capacity)
+{
+    bool_t has_selected_file;
+
+    has_selected_file = FALSE;
+    if ('\0' == editor->folderPath[0])
+    {
+        editor->status = ARINC661_CONFIGURATION_STATUS_FOLDER_PATH_REQUIRED;
+    }
+    else if ('\0' == editor->selectedXmlFileName[0])
+    {
+        editor->status = ARINC661_CONFIGURATION_STATUS_XML_FILE_REQUIRED;
+    }
+    else
+    {
+        JoinFolderPath(editor->folderPath, editor->selectedXmlFileName, filePath, capacity);
+        has_selected_file = TRUE;
+    }
+
+    return has_selected_file;
 }
 
 /*************************************************************************************************/
@@ -508,60 +677,60 @@ static void UpdatePreviewMeasurements(Arinc661_Configuration_Editor_t* editor)
  */
 static void LoadConfigurationFile(Arinc661_Configuration_Editor_t* editor)
 {
+    char_t  file_path[CONFIGURATION_MAX_FILE_PATH_BYTES];
     int32_t document_byte_count;
     bool_t  is_configuration;
+    bool_t  has_file_path;
 
-    if ('\0' == editor->filePath[0])
+    has_file_path = GetSelectedFilePath(editor, file_path, sizeof(file_path));
+    if (has_file_path)
     {
-        editor->status = ARINC661_CONFIGURATION_STATUS_FILE_PATH_REQUIRED;
-        return;
-    }
+        editor->isLoaded            = FALSE;
+        editor->selectedKind        = ARINC661_CONFIGURATION_SELECTION_NONE;
+        editor->selectedIndex       = 0;
+        editor->totalScreenWidth    = 0.0f;
+        editor->maximumScreenHeight = 0.0f;
+        editor->drawableScreenCount = 0;
 
-    editor->isLoaded            = FALSE;
-    editor->selectedKind        = ARINC661_CONFIGURATION_SELECTION_NONE;
-    editor->selectedIndex       = 0;
-    editor->totalScreenWidth    = 0.0f;
-    editor->maximumScreenHeight = 0.0f;
-    editor->drawableScreenCount = 0;
+        editor->configuration.screenCount          = 0;
+        editor->configuration.layoutCount          = 0;
+        editor->configuration.windowCount          = 0;
+        editor->configuration.userApplicationCount = 0;
+        editor->configuration.externalSourceCount  = 0;
+        editor->configuration.hasMetaData          = FALSE;
 
-    editor->configuration.screenCount          = 0;
-    editor->configuration.layoutCount          = 0;
-    editor->configuration.windowCount          = 0;
-    editor->configuration.userApplicationCount = 0;
-    editor->configuration.externalSourceCount  = 0;
-    editor->configuration.hasMetaData          = FALSE;
-
-    document_byte_count = OS_File_ReadFile(editor->filePath, editor->inputBuffer, sizeof(editor->inputBuffer));
-    if (0 > document_byte_count)
-    {
-        editor->status = ARINC661_CONFIGURATION_STATUS_READ_FAILED;
-    }
-    else
-    {
-        if (ARINC661_CONFIGURATION_MAX_DOCUMENT_BYTES < document_byte_count)
+        document_byte_count = OS_File_ReadFile(file_path, editor->inputBuffer, sizeof(editor->inputBuffer));
+        if (0 > document_byte_count)
         {
-            editor->status = ARINC661_CONFIGURATION_STATUS_INPUT_TOO_LARGE;
-        }
-        else if (0 == document_byte_count)
-        {
-            editor->status = ARINC661_CONFIGURATION_STATUS_INPUT_EMPTY;
+            editor->status = ARINC661_CONFIGURATION_STATUS_READ_FAILED;
         }
         else
         {
-            is_configuration = Utl_Arinc661_ReadConfiguration(&editor->configuration, editor->inputBuffer, (uint64_t)document_byte_count, editor->workspace, sizeof(editor->workspace));
-            if (is_configuration)
+            if (ARINC661_CONFIGURATION_MAX_DOCUMENT_BYTES < document_byte_count)
             {
-                editor->isLoaded = TRUE;
-                if (0 < editor->configuration.screenCount)
-                {
-                    editor->selectedKind = ARINC661_CONFIGURATION_SELECTION_SCREEN;
-                }
-                UpdatePreviewMeasurements(editor);
-                editor->status = ARINC661_CONFIGURATION_STATUS_LOADED;
+                editor->status = ARINC661_CONFIGURATION_STATUS_INPUT_TOO_LARGE;
+            }
+            else if (0 == document_byte_count)
+            {
+                editor->status = ARINC661_CONFIGURATION_STATUS_INPUT_EMPTY;
             }
             else
             {
-                editor->status = ARINC661_CONFIGURATION_STATUS_INVALID_XML;
+                is_configuration = Utl_Arinc661_ReadConfiguration(&editor->configuration, editor->inputBuffer, (uint64_t)document_byte_count, editor->workspace, sizeof(editor->workspace));
+                if (is_configuration)
+                {
+                    editor->isLoaded = TRUE;
+                    if (0 < editor->configuration.screenCount)
+                    {
+                        editor->selectedKind = ARINC661_CONFIGURATION_SELECTION_SCREEN;
+                    }
+                    UpdatePreviewMeasurements(editor);
+                    editor->status = ARINC661_CONFIGURATION_STATUS_LOADED;
+                }
+                else
+                {
+                    editor->status = ARINC661_CONFIGURATION_STATUS_INVALID_XML;
+                }
             }
         }
     }
@@ -574,14 +743,13 @@ static void LoadConfigurationFile(Arinc661_Configuration_Editor_t* editor)
  */
 static void UnloadConfigurationFile(Arinc661_Configuration_Editor_t* editor)
 {
+    char_t   file_path[CONFIGURATION_MAX_FILE_PATH_BYTES];
     uint64_t output_byte_count;
     int32_t  bytes_written;
+    bool_t   has_file_path;
 
-    if ('\0' == editor->filePath[0])
-    {
-        editor->status = ARINC661_CONFIGURATION_STATUS_FILE_PATH_REQUIRED;
-    }
-    else
+    has_file_path = GetSelectedFilePath(editor, file_path, sizeof(file_path));
+    if (has_file_path)
     {
         output_byte_count = Utl_Arinc661_WriteConfiguration(&editor->configuration, editor->outputBuffer, sizeof(editor->outputBuffer), editor->workspace, sizeof(editor->workspace));
         if (0 == output_byte_count)
@@ -590,7 +758,7 @@ static void UnloadConfigurationFile(Arinc661_Configuration_Editor_t* editor)
         }
         else
         {
-            bytes_written = OS_File_WriteFile(editor->filePath, editor->outputBuffer, (uint32_t)output_byte_count);
+            bytes_written = OS_File_WriteFile(file_path, editor->outputBuffer, (uint32_t)output_byte_count);
             if (output_byte_count == (uint64_t)bytes_written)
             {
                 editor->status = ARINC661_CONFIGURATION_STATUS_BUILT;
@@ -944,7 +1112,7 @@ static bool_t DrawRemoveButton(const char_t* label, float32_t rowHeight)
 
     draw_list       = ImGui::GetWindowDrawList();
     button_size     = ImVec2(ImGui::GetTextLineHeight(), rowHeight);
-    cross_size      = ImMin(ImGui::CalcTextSize("x").x, ImGui::GetTextLineHeight());
+    cross_size      = ImMin(ImGui::CalcTextSize(CONFIGURATION_REMOVE_GLYPH).x, ImGui::GetTextLineHeight());
     cross_half_size = (ImVec2(cross_size, cross_size) * 0.5f);
 
     ImGui::SameLine();
@@ -1004,7 +1172,7 @@ static void DrawHierarchy(Arinc661_Configuration_Editor_t* editor)
             flags |= ImGuiTreeNodeFlags_Selected;
         }
         ImGui::PushID(screen);
-        is_screen_open = ImGui::TreeNodeEx("screen", flags, "Screen %" PRId64, screen->id);
+        is_screen_open = ImGui::TreeNodeEx(CONFIGURATION_SCREEN_NODE_ID, flags, CONFIGURATION_SCREEN_LABEL_FORMAT, screen->id);
         if (ImGui::IsItemClicked())
         {
             editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_SCREEN;
@@ -1029,7 +1197,7 @@ static void DrawHierarchy(Arinc661_Configuration_Editor_t* editor)
                         flags |= ImGuiTreeNodeFlags_Selected;
                     }
                     ImGui::PushID(layout);
-                    is_layout_open = ImGui::TreeNodeEx("layout", flags, "Layout %" PRId64, layout->id);
+                    is_layout_open = ImGui::TreeNodeEx(CONFIGURATION_LAYOUT_NODE_ID, flags, CONFIGURATION_LAYOUT_LABEL_FORMAT, layout->id);
                     if (ImGui::IsItemClicked())
                     {
                         editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_LAYOUT;
@@ -1054,7 +1222,7 @@ static void DrawHierarchy(Arinc661_Configuration_Editor_t* editor)
                                     flags |= ImGuiTreeNodeFlags_Selected;
                                 }
                                 ImGui::PushID(window);
-                                (void)ImGui::TreeNodeEx("window", flags, "Window %" PRId64 " (%s)", window->id, window->name);
+                                (void)ImGui::TreeNodeEx(CONFIGURATION_WINDOW_NODE_ID, flags, CONFIGURATION_WINDOW_LABEL_FORMAT, window->id, window->name);
                                 if (ImGui::IsItemClicked())
                                 {
                                     editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_WINDOW;
@@ -1141,8 +1309,8 @@ static bool_t BeginPropertyTable(const char_t* name)
     is_visible     = ImGui::BeginTable(name, 2, PROPERTY_TABLE_FLAGS);
     if (is_visible)
     {
-        ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthFixed, property_width);
-        ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+        ImGui::TableSetupColumn(CONFIGURATION_PROPERTY_COLUMN, ImGuiTableColumnFlags_WidthFixed, property_width);
+        ImGui::TableSetupColumn(CONFIGURATION_VALUE_COLUMN, ImGuiTableColumnFlags_WidthStretch);
     }
 
     return is_visible;
@@ -1163,7 +1331,7 @@ static bool_t DrawIntegerField(const char_t* label, int64_t* value)
     ImGui::TableSetColumnIndex(1);
     ImGui::PushID(label);
     ImGui::SetNextItemWidth(-1.0f);
-    has_changed = ImGui::InputScalar("##value", ImGuiDataType_S64, value);
+    has_changed = ImGui::InputScalar(CONFIGURATION_PROPERTY_INPUT_ID, ImGuiDataType_S64, value);
     ImGui::PopID();
 
     return has_changed;
@@ -1184,7 +1352,7 @@ static bool_t DrawDecimalField(const char_t* label, float32_t* value)
     ImGui::TableSetColumnIndex(1);
     ImGui::PushID(label);
     ImGui::SetNextItemWidth(-1.0f);
-    has_changed = ImGui::InputFloat("##value", value, 0.0f, 0.0f, "%.6g");
+    has_changed = ImGui::InputFloat(CONFIGURATION_PROPERTY_INPUT_ID, value, 0.0f, 0.0f, "%.6g");
     ImGui::PopID();
 
     return has_changed;
@@ -1205,7 +1373,7 @@ static bool_t DrawTextField(const char_t* label, char_t* value, uint32_t capacit
     ImGui::TableSetColumnIndex(1);
     ImGui::PushID(label);
     ImGui::SetNextItemWidth(-1.0f);
-    has_changed = ImGui::InputText("##value", value, capacity);
+    has_changed = ImGui::InputText(CONFIGURATION_PROPERTY_INPUT_ID, value, capacity);
     ImGui::PopID();
 
     return has_changed;
@@ -1229,7 +1397,7 @@ static bool_t DrawUnitField(const char_t* label, Utl_Arinc661_Unit_t* unit)
     ImGui::TableSetColumnIndex(1);
     ImGui::PushID(label);
     ImGui::SetNextItemWidth(-1.0f);
-    if (ImGui::BeginCombo("##value", c_unitNames[(uint32_t)(*unit)]))
+    if (ImGui::BeginCombo(CONFIGURATION_PROPERTY_INPUT_ID, c_unitNames[(uint32_t)(*unit)]))
     {
         for (unit_index = 0; unit_index < COUNT_OF(c_unitNames); ++unit_index)
         {
@@ -1265,20 +1433,20 @@ static void DrawScreenInspector(Arinc661_Configuration_Editor_t* editor)
 
     screen = &editor->screens[editor->selectedIndex];
 
-    ImGui::TextUnformatted("Screen");
-    if (BeginPropertyTable("ScreenProperties"))
+    ImGui::TextUnformatted(CONFIGURATION_SCREEN_SECTION_LABEL);
+    if (BeginPropertyTable(CONFIGURATION_SCREEN_TABLE_ID))
     {
-        (void)DrawIntegerField("ID", &screen->id);
+        (void)DrawIntegerField(CONFIGURATION_ID_LABEL, &screen->id);
         ImGui::EndTable();
     }
     ImGui::Separator();
-    ImGui::TextUnformatted("Pixel Size");
-    if (BeginPropertyTable("PixelSizeProperties"))
+    ImGui::TextUnformatted(CONFIGURATION_PIXEL_SIZE_SECTION_LABEL);
+    if (BeginPropertyTable(CONFIGURATION_PIXEL_SIZE_TABLE_ID))
     {
-        has_width_changed      = DrawIntegerField("Width", &screen->pixelSize.width);
-        has_height_changed     = DrawIntegerField("Height", &screen->pixelSize.height);
+        has_width_changed      = DrawIntegerField(CONFIGURATION_WIDTH_LABEL, &screen->pixelSize.width);
+        has_height_changed     = DrawIntegerField(CONFIGURATION_HEIGHT_LABEL, &screen->pixelSize.height);
         has_pixel_size_changed = !!(has_width_changed || has_height_changed);
-        (void)DrawUnitField("Units", &screen->pixelSize.units);
+        (void)DrawUnitField(CONFIGURATION_UNITS_LABEL, &screen->pixelSize.units);
         ImGui::EndTable();
         if (has_pixel_size_changed)
         {
@@ -1286,12 +1454,12 @@ static void DrawScreenInspector(Arinc661_Configuration_Editor_t* editor)
         }
     }
     ImGui::Separator();
-    ImGui::TextUnformatted("Physical Dimensions");
-    if (BeginPropertyTable("PhysicalDimensionProperties"))
+    ImGui::TextUnformatted(CONFIGURATION_PHYSICAL_DIMENSIONS_SECTION_LABEL);
+    if (BeginPropertyTable(CONFIGURATION_PHYSICAL_DIMENSIONS_TABLE_ID))
     {
-        (void)DrawIntegerField("Width", &screen->physicalDimensions.width);
-        (void)DrawIntegerField("Height", &screen->physicalDimensions.height);
-        (void)DrawUnitField("Units", &screen->physicalDimensions.units);
+        (void)DrawIntegerField(CONFIGURATION_WIDTH_LABEL, &screen->physicalDimensions.width);
+        (void)DrawIntegerField(CONFIGURATION_HEIGHT_LABEL, &screen->physicalDimensions.height);
+        (void)DrawUnitField(CONFIGURATION_UNITS_LABEL, &screen->physicalDimensions.units);
         ImGui::EndTable();
     }
 }
@@ -1307,10 +1475,10 @@ static void DrawLayoutInspector(Arinc661_Configuration_Editor_t* editor)
 
     layout = &editor->layouts[editor->selectedIndex];
 
-    ImGui::TextUnformatted("Layout");
-    if (BeginPropertyTable("LayoutProperties"))
+    ImGui::TextUnformatted(CONFIGURATION_LAYOUT_SECTION_LABEL);
+    if (BeginPropertyTable(CONFIGURATION_LAYOUT_TABLE_ID))
     {
-        (void)DrawIntegerField("ID", &layout->id);
+        (void)DrawIntegerField(CONFIGURATION_ID_LABEL, &layout->id);
         ImGui::EndTable();
     }
 }
@@ -1326,32 +1494,145 @@ static void DrawWindowInspector(Arinc661_Configuration_Editor_t* editor)
 
     window = &editor->windows[editor->selectedIndex];
 
-    ImGui::TextUnformatted("Window");
-    if (BeginPropertyTable("WindowProperties"))
+    ImGui::TextUnformatted(CONFIGURATION_WINDOW_SECTION_LABEL);
+    if (BeginPropertyTable(CONFIGURATION_WINDOW_TABLE_ID))
     {
-        (void)DrawIntegerField("ID", &window->id);
-        (void)DrawTextField("Name", window->name, sizeof(window->name));
+        (void)DrawIntegerField(CONFIGURATION_ID_LABEL, &window->id);
+        (void)DrawTextField(CONFIGURATION_NAME_LABEL, window->name, sizeof(window->name));
         ImGui::EndTable();
     }
     ImGui::Separator();
-    ImGui::TextUnformatted("Pixel Area");
-    if (BeginPropertyTable("PixelAreaProperties"))
+    ImGui::TextUnformatted(CONFIGURATION_PIXEL_AREA_SECTION_LABEL);
+    if (BeginPropertyTable(CONFIGURATION_PIXEL_AREA_TABLE_ID))
     {
-        (void)DrawIntegerField("X", &window->pixelArea.x);
-        (void)DrawIntegerField("Y", &window->pixelArea.y);
-        (void)DrawIntegerField("Width", &window->pixelArea.width);
-        (void)DrawIntegerField("Height", &window->pixelArea.height);
+        (void)DrawIntegerField(CONFIGURATION_X_LABEL, &window->pixelArea.x);
+        (void)DrawIntegerField(CONFIGURATION_Y_LABEL, &window->pixelArea.y);
+        (void)DrawIntegerField(CONFIGURATION_WIDTH_LABEL, &window->pixelArea.width);
+        (void)DrawIntegerField(CONFIGURATION_HEIGHT_LABEL, &window->pixelArea.height);
         ImGui::EndTable();
     }
     ImGui::Separator();
-    ImGui::TextUnformatted("Scaling Factor");
-    if (BeginPropertyTable("ScalingFactorProperties"))
+    ImGui::TextUnformatted(CONFIGURATION_SCALING_FACTOR_SECTION_LABEL);
+    if (BeginPropertyTable(CONFIGURATION_SCALING_FACTOR_TABLE_ID))
     {
-        (void)DrawDecimalField("X Scale", &window->scalingFactor.xScale);
-        (void)DrawDecimalField("Y Scale", &window->scalingFactor.yScale);
+        (void)DrawDecimalField(CONFIGURATION_X_SCALE_LABEL, &window->scalingFactor.xScale);
+        (void)DrawDecimalField(CONFIGURATION_Y_SCALE_LABEL, &window->scalingFactor.yScale);
         (void)DrawUnitField(CONFIGURATION_BASE_UNIT_LABEL, &window->scalingFactor.baseUnit);
-        (void)DrawUnitField("Per Unit", &window->scalingFactor.perUnit);
+        (void)DrawUnitField(CONFIGURATION_PER_UNIT_LABEL, &window->scalingFactor.perUnit);
         ImGui::EndTable();
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Filters regular files by extension before drawing a selectable row.
+ */
+static void DrawXmlFileEntry(const char_t* fileName, void* context)
+{
+    Arinc661_Configuration_XmlFileListContext_t* list_context;
+    size_t                                      file_name_length;
+    size_t                                      extension_length;
+    bool_t                                      is_xml_file;
+    bool_t                                      is_selected;
+
+    list_context     = (Arinc661_Configuration_XmlFileListContext_t*)context;
+    file_name_length = ImStrlen(fileName);
+    extension_length = ImStrlen(CONFIGURATION_XML_EXTENSION);
+    is_xml_file      = (extension_length <= file_name_length);
+    if (is_xml_file)
+    {
+        is_xml_file = (0 == ImStricmp(fileName + file_name_length - extension_length, CONFIGURATION_XML_EXTENSION));
+    }
+    if (is_xml_file)
+    {
+        is_xml_file = (file_name_length < sizeof(list_context->editor->selectedXmlFileName));
+    }
+    if (is_xml_file)
+    {
+        is_selected = (0 == ImStricmp(list_context->editor->selectedXmlFileName, fileName));
+        if (list_context->shouldDraw)
+        {
+            if (ImGui::Selectable(fileName, is_selected))
+            {
+                ImStrncpy(list_context->editor->selectedXmlFileName, fileName, sizeof(list_context->editor->selectedXmlFileName));
+                list_context->hasSelectedFile = TRUE;
+                LoadConfigurationFile(list_context->editor);
+            }
+        }
+        else
+        {
+            ++list_context->xmlFileCount;
+            if (is_selected)
+            {
+                list_context->hasSelectedFile = TRUE;
+            }
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Shows a short scrolling list of XML files in the configured folder.
+ */
+static void DrawXmlFileList(Arinc661_Configuration_Editor_t* editor)
+{
+    Arinc661_Configuration_XmlFileListContext_t context;
+    bool_t                                      is_enumerated;
+    bool_t                                      is_selection_missing;
+    uint32_t                                    visible_row_count;
+    float32_t                                   list_height;
+
+    context.editor          = editor;
+    context.xmlFileCount    = 0;
+    context.hasSelectedFile = FALSE;
+    context.shouldDraw      = FALSE;
+    is_enumerated           = FALSE;
+    if ('\0' != editor->folderPath[0])
+    {
+        is_enumerated = OS_File_EnumerateFiles(editor->folderPath, DrawXmlFileEntry, &context);
+    }
+
+    is_selection_missing = (is_enumerated && (FALSE == context.hasSelectedFile) && ('\0' != editor->selectedXmlFileName[0]));
+    if (is_selection_missing)
+    {
+        editor->selectedXmlFileName[0] = '\0';
+        editor->status                  = ARINC661_CONFIGURATION_STATUS_XML_FILE_REQUIRED;
+    }
+
+    visible_row_count = 1;
+    if (is_enumerated && (0 < context.xmlFileCount))
+    {
+        visible_row_count = context.xmlFileCount;
+    }
+    if (CONFIGURATION_XML_LIST_MAX_ROWS < visible_row_count)
+    {
+        visible_row_count = CONFIGURATION_XML_LIST_MAX_ROWS;
+    }
+    list_height = ((ImGui::GetTextLineHeightWithSpacing() * visible_row_count) + (ImGui::GetStyle().FramePadding.y * 2.0f));
+
+    ImGui::TextUnformatted(CONFIGURATION_XML_FILES_LABEL);
+    if (ImGui::BeginListBox(CONFIGURATION_XML_LIST_ID, ImVec2(-1.0f, list_height)))
+    {
+        if ('\0' == editor->folderPath[0])
+        {
+            ImGui::TextUnformatted("Enter a folder path.");
+        }
+        else if (FALSE == is_enumerated)
+        {
+            ImGui::TextUnformatted("Could not read folder.");
+        }
+        else if (0 == context.xmlFileCount)
+        {
+            ImGui::TextUnformatted("No XML files found.");
+        }
+        else
+        {
+            context.shouldDraw = TRUE;
+            (void)OS_File_EnumerateFiles(editor->folderPath, DrawXmlFileEntry, &context);
+        }
+        ImGui::EndListBox();
     }
 }
 
@@ -1362,30 +1643,40 @@ static void DrawWindowInspector(Arinc661_Configuration_Editor_t* editor)
  */
 static void DrawFileControls(Arinc661_Configuration_Editor_t* editor)
 {
-    ImGui::AlignTextToFramePadding();
-    ImGui::TextUnformatted(CONFIGURATION_FILE_PATH_LABEL);
-    ImGui::SameLine();
-    ImGui::SetNextItemWidth(-1.0f);
-    if (ImGui::InputText("##configurationFilePath", editor->filePath, sizeof(editor->filePath)))
-    {
-        editor->status = ('\0' == editor->filePath[0]) ? ARINC661_CONFIGURATION_STATUS_FILE_PATH_REQUIRED : ARINC661_CONFIGURATION_STATUS_NONE;
-    }
+    bool_t can_build_xml;
 
-    if (ImGui::Button(CONFIGURATION_LOAD_XML_LABEL))
+    if (ImGui::CollapsingHeader(FILE_CONTROLS_HEADER, ImGuiTreeNodeFlags_DefaultOpen))
     {
-        LoadConfigurationFile(editor);
-    }
-    if (editor->isLoaded)
-    {
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(CONFIGURATION_FOLDER_PATH_LABEL);
         ImGui::SameLine();
-        if (ImGui::Button(CONFIGURATION_BUILD_XML_LABEL))
+        ImGui::SetNextItemWidth(-1.0f);
+        if (ImGui::InputText(CONFIGURATION_FOLDER_INPUT_ID, editor->folderPath, sizeof(editor->folderPath)))
         {
-            UnloadConfigurationFile(editor);
+            editor->selectedXmlFileName[0] = '\0';
+            if ('\0' == editor->folderPath[0])
+            {
+                editor->status = ARINC661_CONFIGURATION_STATUS_FOLDER_PATH_REQUIRED;
+            }
+            else
+            {
+                editor->status = ARINC661_CONFIGURATION_STATUS_XML_FILE_REQUIRED;
+            }
         }
+        DrawXmlFileList(editor);
+
+        can_build_xml = !!(editor->isLoaded && ('\0' != editor->selectedXmlFileName[0]));
+        if (can_build_xml)
+        {
+            if (ImGui::Button(CONFIGURATION_BUILD_XML_LABEL))
+            {
+                UnloadConfigurationFile(editor);
+            }
+            ImGui::SameLine();
+        }
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(EditorStatusToString(editor->status));
     }
-    ImGui::SameLine();
-    ImGui::AlignTextToFramePadding();
-    ImGui::TextUnformatted(EditorStatusToString(editor->status));
     ImGui::Separator();
 }
 
@@ -1413,7 +1704,7 @@ static void DrawHierarchyPane(Arinc661_Configuration_Editor_t* editor)
  * \par Details:
  *  Shows the selected item's typed fields in the right child pane.
  */
-static void DrawInspector(Arinc661_Configuration_Editor_t* editor)
+static void DrawInspectorPane(Arinc661_Configuration_Editor_t* editor)
 {
     if (ImGui::BeginChild(INSPECTOR_PANE_NAME, ImVec2(0.0f, 0.0f), PANE_FLAGS))
     {
@@ -1448,13 +1739,13 @@ static void DrawInspector(Arinc661_Configuration_Editor_t* editor)
  * \par Details:
  *  Fits the combined screen widths and tallest screen inside the available canvas, selects clicked geometry, and draws the selection overlay.
  */
-static void DrawScene(Arinc661_Configuration_Editor_t* editor)
+static void DrawScenePane(Arinc661_Configuration_Editor_t* editor)
 {
     const ImGuiStyle*            style;
     const Utl_Arinc661_Screen_t* screen;
     const Utl_Arinc661_Layout_t* layout;
     const Utl_Arinc661_Window_t* window;
-    const char_t*               fmt;
+    const char_t*                fmt;
     ImDrawList*                  draw_list;
     ImVec2                       canvas_min;
     ImVec2                       canvas_size;
@@ -1534,7 +1825,7 @@ static void DrawScene(Arinc661_Configuration_Editor_t* editor)
             }
             else
             {
-                (void)ImGui::InvisibleButton("Screen canvas", canvas_size);
+                (void)ImGui::InvisibleButton(CONFIGURATION_SCENE_CANVAS_ID, canvas_size);
                 is_canvas_clicked = ImGui::IsItemClicked();
                 if (is_canvas_clicked)
                 {
@@ -1565,7 +1856,7 @@ static void DrawScene(Arinc661_Configuration_Editor_t* editor)
                         screen_max  = (screen_min + (screen_size * scale));
 
                         draw_list->AddRectFilled(screen_min, screen_max, SCENE_SCREEN_COLOR);
-                        fmt = "Screen %" PRId64 " (%" PRId64 " x %" PRId64 ")";
+                        fmt = CONFIGURATION_SCREEN_PREVIEW_FORMAT;
                         ImFormatString(screen_label, sizeof(screen_label), fmt, screen->id, screen->pixelSize.width, screen->pixelSize.height);
                         screen_label_size       = ImGui::CalcTextSize(screen_label);
                         screen_label_position   = screen_min;
@@ -1630,12 +1921,12 @@ static void DrawScene(Arinc661_Configuration_Editor_t* editor)
                                 draw_list->AddRect(area_min, area_max, SCENE_WINDOW_BORDER_COLOR);
                                 if ('\0' != window->name[0])
                                 {
-                                    fmt = "%s (%" PRId64 " x %" PRId64 ")";
+                                    fmt = CONFIGURATION_NAMED_WINDOW_PREVIEW_FORMAT;
                                     ImFormatString(window_label, sizeof(window_label), fmt, window->name, window->pixelArea.width, window->pixelArea.height);
                                 }
                                 else
                                 {
-                                    fmt = "Window %" PRId64 " (%" PRId64 " x %" PRId64 ")";
+                                    fmt = CONFIGURATION_WINDOW_PREVIEW_FORMAT;
                                     ImFormatString(window_label, sizeof(window_label), fmt, window->id, window->pixelArea.width, window->pixelArea.height);
                                 }
                                 draw_list->AddText((area_min + style->FramePadding), SCENE_TEXT_COLOR, window_label);
@@ -1746,21 +2037,21 @@ static void MeasurePaneWidths(const Arinc661_Configuration_Editor_t* editor, flo
 
     for (screen_index = 0; screen_index < editor->configuration.screenCount; ++screen_index)
     {
-        ImFormatString(hierarchy_label, sizeof(hierarchy_label), "Screen %" PRId64, editor->screens[screen_index].id);
+        ImFormatString(hierarchy_label, sizeof(hierarchy_label), CONFIGURATION_SCREEN_LABEL_FORMAT, editor->screens[screen_index].id);
         hierarchy_row_width = (ImGui::CalcTextSize(hierarchy_label).x + hierarchy_row_padding);
         (*hierarchyWidth)   = ImMax((*hierarchyWidth), hierarchy_row_width);
     }
 
     for (layout_index = 0; layout_index < editor->configuration.layoutCount; ++layout_index)
     {
-        ImFormatString(hierarchy_label, sizeof(hierarchy_label), "Layout %" PRId64, editor->layouts[layout_index].id);
+        ImFormatString(hierarchy_label, sizeof(hierarchy_label), CONFIGURATION_LAYOUT_LABEL_FORMAT, editor->layouts[layout_index].id);
         hierarchy_row_width = (ImGui::CalcTextSize(hierarchy_label).x + hierarchy_row_padding + style->IndentSpacing);
         (*hierarchyWidth)   = ImMax((*hierarchyWidth), hierarchy_row_width);
     }
 
     for (window_index = 0; window_index < editor->configuration.windowCount; ++window_index)
     {
-        ImFormatString(hierarchy_label, sizeof(hierarchy_label), "Window %" PRId64 " (%s)", editor->windows[window_index].id, editor->windows[window_index].name);
+        ImFormatString(hierarchy_label, sizeof(hierarchy_label), CONFIGURATION_WINDOW_LABEL_FORMAT, editor->windows[window_index].id, editor->windows[window_index].name);
         hierarchy_row_width = (ImGui::CalcTextSize(hierarchy_label).x + hierarchy_row_padding + (style->IndentSpacing * 2.0f));
         (*hierarchyWidth)   = ImMax((*hierarchyWidth), hierarchy_row_width);
     }
@@ -1784,7 +2075,7 @@ static void MeasurePaneWidths(const Arinc661_Configuration_Editor_t* editor, flo
  */
 void Arinc661_Configuration_Initialize(Arinc661_Configuration_Editor_t* editor)
 {
-    editor->status              = ARINC661_CONFIGURATION_STATUS_FILE_PATH_REQUIRED;
+    editor->status              = ARINC661_CONFIGURATION_STATUS_FOLDER_PATH_REQUIRED;
     editor->isLoaded            = FALSE;
     editor->selectedKind        = ARINC661_CONFIGURATION_SELECTION_NONE;
     editor->selectedIndex       = 0;
@@ -1792,7 +2083,8 @@ void Arinc661_Configuration_Initialize(Arinc661_Configuration_Editor_t* editor)
     editor->maximumScreenHeight = 0.0f;
     editor->drawableScreenCount = 0;
 
-    (void)memset(editor->filePath, 0, sizeof(editor->filePath));
+    (void)memset(editor->folderPath, 0, sizeof(editor->folderPath));
+    (void)memset(editor->selectedXmlFileName, 0, sizeof(editor->selectedXmlFileName));
     (void)memset(editor->inputBuffer, 0, sizeof(editor->inputBuffer));
     (void)memset(editor->outputBuffer, 0, sizeof(editor->outputBuffer));
     (void)memset(editor->workspace, 0, sizeof(editor->workspace));
@@ -1842,7 +2134,7 @@ void Arinc661_Configuration_DrawEditor(Arinc661_Configuration_Editor_t* editor)
         DrawFileControls(editor);
         MeasurePaneWidths(editor, &minimum_hierarchy_width, &inspector_width);
         table_size = ImGui::GetContentRegionAvail();
-        if (ImGui::BeginTable("ConfigurationPanes", CONFIGURATION_PANE_COUNT, CONFIGURATION_PANE_TABLE_FLAGS, table_size))
+        if (ImGui::BeginTable(CONFIGURATION_PANE_TABLE_ID, CONFIGURATION_PANE_COUNT, CONFIGURATION_PANE_TABLE_FLAGS, table_size))
         {
             ImGui::TableSetupColumn(HIERARCHY_PANE_NAME, ImGuiTableColumnFlags_WidthFixed, minimum_hierarchy_width);
             ImGui::TableSetupColumn(SCENE_PANE_NAME, ImGuiTableColumnFlags_WidthStretch);
@@ -1854,9 +2146,9 @@ void Arinc661_Configuration_DrawEditor(Arinc661_Configuration_Editor_t* editor)
             ImGui::TableSetColumnIndex(HIERARCHY_PANE_COLUMN_IDX);
             DrawHierarchyPane(editor);
             ImGui::TableSetColumnIndex(INSPECTOR_PANE_COLUMN);
-            DrawInspector(editor);
+            DrawInspectorPane(editor);
             ImGui::TableSetColumnIndex(SCENE_PANE_COLUMN_IDX);
-            DrawScene(editor);
+            DrawScenePane(editor);
             ImGui::EndTable();
         }
     }

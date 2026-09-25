@@ -20,10 +20,12 @@ add_library(os STATIC
 if(WIN32)
     target_sources(os PRIVATE
         src/os/win32/os_diagnostics.c
+        src/os/win32/os_file_directory.c
         src/os/win32/os_time.c)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(os PRIVATE
         src/os/linux/os_diagnostics.c
+        src/os/linux/os_file_directory.c
         src/os/linux/os_time.c)
     target_compile_definitions(os PRIVATE _GNU_SOURCE)
     target_link_libraries(os PUBLIC m)
