@@ -107,6 +107,7 @@ static LONG WINAPI ReportUnhandledException(EXCEPTION_POINTERS* pException)
     char_t                   module_path[MAX_PATH];
     USHORT                   frame_count;
     USHORT                   frame_index;
+    uint64_t                 module_offset;
 
     LOGSTART(stderr);
     LOGPRINTS("unhandled exception 0x");
@@ -120,13 +121,14 @@ static LONG WINAPI ReportUnhandledException(EXCEPTION_POINTERS* pException)
     {
         if (0 != VirtualQuery(frames[frame_index], &memory_info, sizeof(memory_info)) && 0 != GetModuleFileNameA((HMODULE)memory_info.AllocationBase, module_path, (DWORD)sizeof(module_path)))
         {
+            module_offset = (uint64_t)(frames[frame_index]) - (uint64_t)(memory_info.AllocationBase);
             LOGSTART(stderr);
             LOGPRINTS("stack ");
             LOGPRINTU((uint64_t)(frame_index));
             LOGPRINTS(": ");
             LOGPRINTS(module_path);
             LOGPRINTS("+0x");
-            LOGPRINTX((uint64_t)((unsigned long long)((byte_t*)frames[frame_index] - (byte_t*)memory_info.AllocationBase)), 1, TRUE);
+            LOGPRINTX(module_offset, 1, TRUE);
             LOGPRINTS("\n");
             LOGEND();
         }

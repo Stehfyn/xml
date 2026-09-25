@@ -77,7 +77,7 @@ typedef struct WindowThreadState_s
     HANDLE                 presentStoppedEvent; ///< Signals when the presenter releases its device context.
     HGLRC                  presentContext;      ///< OpenGL context used by the presenter thread.
     ConfigurationEditor_t* editor;              ///< Editor rendered by the window thread.
-    float                  mainScale;           ///< Initial display scale.
+    float32_t              mainScale;           ///< Initial display scale.
     SRWLOCK                presentLock;         ///< Protects geometry, drawing, and buffer swaps.
     CONDITION_VARIABLE     presentCondition;    ///< Wakes the window thread after geometry is acknowledged.
     RECT                   rcClient;            ///< Current client rectangle.
@@ -262,7 +262,7 @@ static void OpenVerticalBlankEvent(HDC deviceContext, D3DKMT_WAITFORVERTICALBLAN
     open_adapter.hDc = deviceContext;
     LOGASSERT(NT_SUCCESS(D3DKMTOpenAdapterFromHdc(&open_adapter)));
 
-    memset(verticalBlankEvent, 0, sizeof(*verticalBlankEvent));
+    memset(verticalBlankEvent, 0, sizeof((*verticalBlankEvent)));
     verticalBlankEvent->hAdapter      = open_adapter.hAdapter;
     verticalBlankEvent->VidPnSourceId = open_adapter.VidPnSourceId;
 }
@@ -309,6 +309,7 @@ static void EndFrame(WindowThreadState_t* window)
 static void DrawFrame(WindowThreadState_t* window)
 {
     AcquireSRWLockExclusive(&window->presentLock);
+    UpdateConfiguration(window->editor);
     BeginFrame();
     DrawConfiguration(window->editor);
     EndFrame(window);
@@ -571,6 +572,7 @@ static LRESULT WINAPI WindowProcedure(HWND windowHandle, UINT message, WPARAM wo
             if ((NULL != window->editor) && (FALSE == window->isDone.load()))
             {
                 AcquireSRWLockExclusive(&window->presentLock);
+                UpdateConfiguration(window->editor);
                 BeginFrame();
                 DrawConfiguration(window->editor);
                 EndFrame(window);
@@ -751,7 +753,7 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
  */
 int main(void)
 {
-    float                                main_scale;
+    float32_t                            main_scale;
     WindowThreadState_t                  window;
     HANDLE                               window_thread;
     HDC                                  present_device_context;
