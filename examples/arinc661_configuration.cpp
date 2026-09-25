@@ -33,16 +33,16 @@ extern "C"
 ** 3.1 Macros
 **===============================================================================================*/
 
-#define CONFIGURATION_WINDOW_NAME ("ARINC 661 Configuration")
-#define HIERARCHY_PANE_NAME       ("Hierarchy")
-#define INSPECTOR_PANE_NAME       ("Inspector")
-#define SCENE_PANE_NAME           ("Scene")
-#define CONFIGURATION_FILE_LABEL  ("arinc661_configuration.xml")
-#define HIERARCHY_PANE_COLUMN     (0)
-#define SCENE_PANE_COLUMN         (1)
-#define INSPECTOR_PANE_COLUMN     (2)
-#define CONFIGURATION_PANE_COUNT  (3)
-#define INVALID_HIERARCHY_INDEX   (UINT32_MAX)
+#define CONFIGURATION_WINDOW_NAME     ("ARINC 661 Configuration")
+#define HIERARCHY_PANE_NAME           ("Hierarchy")
+#define INSPECTOR_PANE_NAME           ("Inspector")
+#define SCENE_PANE_NAME               ("Scene")
+#define CONFIGURATION_FILE_PATH_LABEL ("File Path")
+#define HIERARCHY_PANE_COLUMN         (0)
+#define SCENE_PANE_COLUMN             (1)
+#define INSPECTOR_PANE_COLUMN         (2)
+#define CONFIGURATION_PANE_COUNT      (3)
+#define INVALID_HIERARCHY_INDEX       (UINT32_MAX)
 
 #define CONFIGURATION_NO_IDENTIFIER  (-1)
 #define CONFIGURATION_MAX_IDENTIFIER (INT64_MAX)
@@ -58,7 +58,7 @@ extern "C"
 #define CONFIGURATION_REMOVE_SCREEN_LABEL  ("Remove Screen")
 #define CONFIGURATION_REMOVE_LAYOUT_LABEL  ("Remove Layout")
 #define CONFIGURATION_REMOVE_WINDOW_LABEL  ("Remove Window")
-#define CONFIGURATION_RELOAD_XML_LABEL     ("Reload XML")
+#define CONFIGURATION_LOAD_XML_LABEL       ("Load XML")
 #define CONFIGURATION_BUILD_XML_LABEL      ("Build XML")
 #define CONFIGURATION_BASE_UNIT_LABEL      ("Base Unit")
 
@@ -67,6 +67,7 @@ extern "C"
 #define CONFIGURATION_HIERARCHY_LABEL_BYTES (UTL_ARINC661_MAX_NAME_BYTES + CONFIGURATION_LABEL_FORMAT_BYTES)
 #define CONFIGURATION_DEFAULT_SCREEN_PIXEL_WIDTH  (640)
 #define CONFIGURATION_DEFAULT_SCREEN_PIXEL_HEIGHT (480)
+#define CONFIGURATION_MIN_FILE_PATH_INPUT_WIDTH    (240.0f)
 
 #define HIERARCHY_BRANCH_FLAGS (ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_AllowOverlap)
 #define HIERARCHY_WINDOW_FLAGS (ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_AllowOverlap)
@@ -131,13 +132,23 @@ static void UpdatePreviewMeasurements(Arinc661_Configuration_Editor_t* editor);
 
 /*************************************************************************************************/
 /**
- * \brief Writes the in-memory display configuration to the example file.
+ * \brief Loads the XML file at the editor's configured path.
  *
  * \param[in,out] editor   Editor state
  *
  * \retval        None
  */
-static void BuildConfigurationFile(Arinc661_Configuration_Editor_t* editor);
+static void LoadConfigurationFile(Arinc661_Configuration_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Writes the in-memory display configuration to the configured file path.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+static void UnloadConfigurationFile(Arinc661_Configuration_Editor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -406,7 +417,7 @@ static void ClampPaneResize(float32_t minimumHierarchyWidth);
  * \brief Measures the minimum hierarchy width and default inspector width.
  *
  * \param[in]  editor           Editor state containing hierarchy row labels
- * \param[out] hierarchyWidth   Minimum width needed for the hierarchy and file label
+ * \param[out] hierarchyWidth   Minimum width needed for the hierarchy and file path input
  * \param[out] inspectorWidth   Width needed for the property fields
  *
  * \retval     None
@@ -427,9 +438,10 @@ static const char_t* EditorStatusToString(Arinc661_Configuration_Status_t status
     switch (status)
     {
         case ARINC661_CONFIGURATION_STATUS_NONE:              return "";
+        case ARINC661_CONFIGURATION_STATUS_FILE_PATH_REQUIRED: return "Enter a file path.";
         case ARINC661_CONFIGURATION_STATUS_BUILD_FAILED:      return "Could not build the display configuration XML.";
-        case ARINC661_CONFIGURATION_STATUS_BUILT:             return "Built arinc661_configuration.xml.";
-        case ARINC661_CONFIGURATION_STATUS_WRITE_FAILED:      return "Could not write arinc661_configuration.xml.";
+        case ARINC661_CONFIGURATION_STATUS_BUILT:             return "Built XML file.";
+        case ARINC661_CONFIGURATION_STATUS_WRITE_FAILED:      return "Could not write XML file.";
         case ARINC661_CONFIGURATION_STATUS_SCREEN_ADDED:      return "Added screen. Build XML to save.";
         case ARINC661_CONFIGURATION_STATUS_SCREEN_ADD_FAILED: return "Could not add another screen.";
         case ARINC661_CONFIGURATION_STATUS_LAYOUT_ADDED:      return "Added layout. Build XML to save.";
@@ -439,10 +451,10 @@ static const char_t* EditorStatusToString(Arinc661_Configuration_Status_t status
         case ARINC661_CONFIGURATION_STATUS_SCREEN_REMOVED:    return "Removed screen. Build XML to save.";
         case ARINC661_CONFIGURATION_STATUS_LAYOUT_REMOVED:    return "Removed layout. Build XML to save.";
         case ARINC661_CONFIGURATION_STATUS_WINDOW_REMOVED:    return "Removed window. Build XML to save.";
-        case ARINC661_CONFIGURATION_STATUS_READ_FAILED:       return "Could not read arinc661_configuration.xml.";
+        case ARINC661_CONFIGURATION_STATUS_READ_FAILED:       return "Could not read XML file.";
         case ARINC661_CONFIGURATION_STATUS_INPUT_TOO_LARGE:   return "The XML file exceeds the input buffer.";
         case ARINC661_CONFIGURATION_STATUS_INPUT_EMPTY:       return "The XML file is empty.";
-        case ARINC661_CONFIGURATION_STATUS_LOADED:            return "Loaded arinc661_configuration.xml.";
+        case ARINC661_CONFIGURATION_STATUS_LOADED:            return "Loaded XML file.";
         case ARINC661_CONFIGURATION_STATUS_INVALID_XML:       return "Invalid or unsupported display configuration XML.";
         default:
           LOGFATAL("Invalid Arinc661_Configuration_Status_t!");
@@ -483,28 +495,101 @@ static void UpdatePreviewMeasurements(Arinc661_Configuration_Editor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  Reads the configured file and replaces the editor's typed configuration and selection.
+ */
+static void LoadConfigurationFile(Arinc661_Configuration_Editor_t* editor)
+{
+    int32_t document_byte_count;
+    bool_t  is_configuration;
+
+    if ('\0' == editor->filePath[0])
+    {
+        editor->status = ARINC661_CONFIGURATION_STATUS_FILE_PATH_REQUIRED;
+        return;
+    }
+
+    editor->isLoaded            = FALSE;
+    editor->selectedKind        = ARINC661_CONFIGURATION_SELECTION_NONE;
+    editor->selectedIndex       = 0;
+    editor->totalScreenWidth    = 0.0f;
+    editor->maximumScreenHeight = 0.0f;
+    editor->drawableScreenCount = 0;
+
+    editor->configuration.screenCount          = 0;
+    editor->configuration.layoutCount          = 0;
+    editor->configuration.windowCount          = 0;
+    editor->configuration.userApplicationCount = 0;
+    editor->configuration.externalSourceCount  = 0;
+    editor->configuration.hasMetaData          = FALSE;
+
+    document_byte_count = OS_File_ReadFile(editor->filePath, editor->inputBuffer, sizeof(editor->inputBuffer));
+    if (0 > document_byte_count)
+    {
+        editor->status = ARINC661_CONFIGURATION_STATUS_READ_FAILED;
+    }
+    else
+    {
+        if (ARINC661_CONFIGURATION_MAX_DOCUMENT_BYTES < document_byte_count)
+        {
+            editor->status = ARINC661_CONFIGURATION_STATUS_INPUT_TOO_LARGE;
+        }
+        else if (0 == document_byte_count)
+        {
+            editor->status = ARINC661_CONFIGURATION_STATUS_INPUT_EMPTY;
+        }
+        else
+        {
+            is_configuration = Utl_Arinc661_ReadConfiguration(&editor->configuration, editor->inputBuffer, (uint64_t)document_byte_count, editor->workspace, sizeof(editor->workspace));
+            if (is_configuration)
+            {
+                editor->isLoaded = TRUE;
+                if (0 < editor->configuration.screenCount)
+                {
+                    editor->selectedKind = ARINC661_CONFIGURATION_SELECTION_SCREEN;
+                }
+                UpdatePreviewMeasurements(editor);
+                editor->status = ARINC661_CONFIGURATION_STATUS_LOADED;
+            }
+            else
+            {
+                editor->status = ARINC661_CONFIGURATION_STATUS_INVALID_XML;
+            }
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Keeps file output outside the in-memory utl_arinc661 module.
  */
-static void BuildConfigurationFile(Arinc661_Configuration_Editor_t* editor)
+static void UnloadConfigurationFile(Arinc661_Configuration_Editor_t* editor)
 {
     uint64_t output_byte_count;
     int32_t  bytes_written;
 
-    output_byte_count = Utl_Arinc661_WriteConfiguration(&editor->configuration, editor->outputBuffer, sizeof(editor->outputBuffer), editor->workspace, sizeof(editor->workspace));
-    if (0 == output_byte_count)
+    if ('\0' == editor->filePath[0])
     {
-        editor->status = ARINC661_CONFIGURATION_STATUS_BUILD_FAILED;
+        editor->status = ARINC661_CONFIGURATION_STATUS_FILE_PATH_REQUIRED;
     }
     else
     {
-        bytes_written = OS_File_WriteFile(ARINC661_CONFIGURATION_XML_PATH, editor->outputBuffer, (uint32_t)output_byte_count);
-        if (output_byte_count == (uint64_t)bytes_written)
+        output_byte_count = Utl_Arinc661_WriteConfiguration(&editor->configuration, editor->outputBuffer, sizeof(editor->outputBuffer), editor->workspace, sizeof(editor->workspace));
+        if (0 == output_byte_count)
         {
-            editor->status = ARINC661_CONFIGURATION_STATUS_BUILT;
+            editor->status = ARINC661_CONFIGURATION_STATUS_BUILD_FAILED;
         }
         else
         {
-            editor->status = ARINC661_CONFIGURATION_STATUS_WRITE_FAILED;
+            bytes_written = OS_File_WriteFile(editor->filePath, editor->outputBuffer, (uint32_t)output_byte_count);
+            if (output_byte_count == (uint64_t)bytes_written)
+            {
+                editor->status = ARINC661_CONFIGURATION_STATUS_BUILT;
+            }
+            else
+            {
+                editor->status = ARINC661_CONFIGURATION_STATUS_WRITE_FAILED;
+            }
         }
     }
 }
@@ -517,7 +602,7 @@ static void BuildConfigurationFile(Arinc661_Configuration_Editor_t* editor)
 static bool_t NextIdentifier(const Arinc661_Configuration_Editor_t* editor, Arinc661_Configuration_SelectionKind_t kind, uint32_t screenIndex, int64_t* id)
 {
     int64_t maximum_id;
-    bool_t has_next_id;
+    bool_t  has_next_id;
 
     switch (kind)
     {
@@ -1264,7 +1349,7 @@ static void DrawWindowInspector(Arinc661_Configuration_Editor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The file label and hierarchy share the left child pane.
+ *  The file path input and hierarchy share the left child pane.
  */
 static void DrawHierarchyPane(Arinc661_Configuration_Editor_t* editor)
 {
@@ -1272,7 +1357,12 @@ static void DrawHierarchyPane(Arinc661_Configuration_Editor_t* editor)
     {
         ImGui::TextUnformatted(HIERARCHY_PANE_NAME);
         ImGui::Separator();
-        ImGui::TextUnformatted(CONFIGURATION_FILE_LABEL);
+        ImGui::TextUnformatted(CONFIGURATION_FILE_PATH_LABEL);
+        ImGui::SetNextItemWidth(-1.0f);
+        if (ImGui::InputText("##configurationFilePath", editor->filePath, sizeof(editor->filePath)))
+        {
+            editor->status = ('\0' == editor->filePath[0]) ? ARINC661_CONFIGURATION_STATUS_FILE_PATH_REQUIRED : ARINC661_CONFIGURATION_STATUS_NONE;
+        }
         if (editor->isLoaded)
         {
             DrawHierarchy(editor);
@@ -1327,6 +1417,7 @@ static void DrawScene(Arinc661_Configuration_Editor_t* editor)
     const Utl_Arinc661_Screen_t* screen;
     const Utl_Arinc661_Layout_t* layout;
     const Utl_Arinc661_Window_t* window;
+    const char_t*               fmt;
     ImDrawList*                  draw_list;
     ImVec2                       scene_window_min;
     ImVec2                       scene_window_max;
@@ -1444,11 +1535,12 @@ static void DrawScene(Arinc661_Configuration_Editor_t* editor)
                         screen_max  = (screen_min + (screen_size * scale));
 
                         draw_list->AddRectFilled(screen_min, screen_max, SCENE_SCREEN_COLOR);
-                        ImFormatString(screen_label, sizeof(screen_label), "Screen %" PRId64 " (%" PRId64 " x %" PRId64 ")", screen->id, screen->pixelSize.width, screen->pixelSize.height);
+                        fmt = "Screen %" PRId64 " (%" PRId64 " x %" PRId64 ")";
+                        ImFormatString(screen_label, sizeof(screen_label), fmt, screen->id, screen->pixelSize.width, screen->pixelSize.height);
                         screen_label_size       = ImGui::CalcTextSize(screen_label);
                         screen_label_position   = screen_min;
                         screen_label_position.y = (screen_label_position.y - (screen_label_size.y + style->ItemSpacing.y));
-                        is_screen_body_hit = FALSE;
+                        is_screen_body_hit      = FALSE;
                         if (is_canvas_clicked)
                         {
                             is_screen_body_hit  = ImRect(screen_min, screen_max).Contains(mouse_position);
@@ -1508,12 +1600,13 @@ static void DrawScene(Arinc661_Configuration_Editor_t* editor)
                                 draw_list->AddRect(area_min, area_max, SCENE_WINDOW_BORDER_COLOR);
                                 if ('\0' != window->name[0])
                                 {
-                                    ImFormatString(window_label, sizeof(window_label), "%s (%" PRId64 " x %" PRId64 ")", window->name, window->pixelArea.width, window->pixelArea.height);
+                                    fmt = "%s (%" PRId64 " x %" PRId64 ")";
+                                    ImFormatString(window_label, sizeof(window_label), fmt, window->name, window->pixelArea.width, window->pixelArea.height);
                                 }
                                 else
                                 {
-                                    ImFormatString(window_label, sizeof(window_label), "Window %" PRId64 " (%" PRId64 " x %" PRId64 ")",
-                                                   window->id, window->pixelArea.width, window->pixelArea.height);
+                                    fmt = "Window %" PRId64 " (%" PRId64 " x %" PRId64 ")";
+                                    ImFormatString(window_label, sizeof(window_label), fmt, window->id, window->pixelArea.width, window->pixelArea.height);
                                 }
                                 draw_list->AddText((area_min + style->FramePadding), SCENE_TEXT_COLOR, window_label);
                                 if (is_selected_layout_window)
@@ -1552,16 +1645,16 @@ static void DrawScene(Arinc661_Configuration_Editor_t* editor)
         
         ImGui::SetCursorScreenPos(status_bar_min);
         ImGui::PushClipRect(status_bar_min, status_bar_max, TRUE);
-        if (ImGui::Button(CONFIGURATION_RELOAD_XML_LABEL))
+        if (ImGui::Button(CONFIGURATION_LOAD_XML_LABEL))
         {
-            Arinc661_Configuration_Reload(editor);
+            LoadConfigurationFile(editor);
         }
         if (editor->isLoaded)
         {
             ImGui::SameLine();
             if (ImGui::Button(CONFIGURATION_BUILD_XML_LABEL))
             {
-                BuildConfigurationFile(editor);
+                UnloadConfigurationFile(editor);
             }
         }
         ImGui::SameLine();
@@ -1619,7 +1712,7 @@ static void MeasurePaneWidths(const Arinc661_Configuration_Editor_t* editor, flo
 {
     const ImGuiStyle* style;
     ImVec2            button_padding;
-    ImVec2            file_label_size;
+    ImVec2            file_path_label_size;
     char_t            integer_text[CONFIGURATION_INTEGER_TEXT_BYTES];
     char_t            hierarchy_label[CONFIGURATION_HIERARCHY_LABEL_BYTES];
     float32_t         hierarchy_row_padding;
@@ -1634,11 +1727,11 @@ static void MeasurePaneWidths(const Arinc661_Configuration_Editor_t* editor, flo
 
     ImFormatString(integer_text, sizeof(integer_text), "%" PRId64, INT64_MIN);
     button_padding  = (style->FramePadding + style->FramePadding);
-    file_label_size = ImGui::CalcTextSize(CONFIGURATION_FILE_LABEL);
+    file_path_label_size = ImGui::CalcTextSize(CONFIGURATION_FILE_PATH_LABEL);
 
     property_width    = (ImGui::CalcTextSize(CONFIGURATION_BASE_UNIT_LABEL).x + button_padding.x);
     value_width       = (ImGui::CalcTextSize(integer_text).x + button_padding.x);
-    (*hierarchyWidth) = (file_label_size.x + (style->WindowPadding.x * 2.0f));
+    (*hierarchyWidth) = (ImMax(file_path_label_size.x, CONFIGURATION_MIN_FILE_PATH_INPUT_WIDTH) + (style->WindowPadding.x * 2.0f));
 
     hierarchy_row_padding  = (style->WindowPadding.x * 2.0f);
     hierarchy_row_padding += ImGui::GetTreeNodeToLabelSpacing();
@@ -1685,7 +1778,7 @@ static void MeasurePaneWidths(const Arinc661_Configuration_Editor_t* editor, flo
  */
 void Arinc661_Configuration_Initialize(Arinc661_Configuration_Editor_t* editor)
 {
-    editor->status              = ARINC661_CONFIGURATION_STATUS_NONE;
+    editor->status              = ARINC661_CONFIGURATION_STATUS_FILE_PATH_REQUIRED;
     editor->isLoaded            = FALSE;
     editor->selectedKind        = ARINC661_CONFIGURATION_SELECTION_NONE;
     editor->selectedIndex       = 0;
@@ -1693,6 +1786,7 @@ void Arinc661_Configuration_Initialize(Arinc661_Configuration_Editor_t* editor)
     editor->maximumScreenHeight = 0.0f;
     editor->drawableScreenCount = 0;
 
+    (void)memset(editor->filePath, 0, sizeof(editor->filePath));
     (void)memset(editor->inputBuffer, 0, sizeof(editor->inputBuffer));
     (void)memset(editor->outputBuffer, 0, sizeof(editor->outputBuffer));
     (void)memset(editor->workspace, 0, sizeof(editor->workspace));
@@ -1718,66 +1812,6 @@ void Arinc661_Configuration_Initialize(Arinc661_Configuration_Editor_t* editor)
     editor->configuration.userApplicationCount    = 0;
     editor->configuration.externalSourceCount     = 0;
     editor->configuration.hasMetaData             = FALSE;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Reads the example file and replaces the editor's typed configuration and selection.
- */
-void Arinc661_Configuration_Reload(Arinc661_Configuration_Editor_t* editor)
-{
-    int32_t document_byte_count;
-    bool_t  is_configuration;
-
-    editor->isLoaded            = FALSE;
-    editor->selectedKind        = ARINC661_CONFIGURATION_SELECTION_NONE;
-    editor->selectedIndex       = 0;
-    editor->totalScreenWidth    = 0.0f;
-    editor->maximumScreenHeight = 0.0f;
-    editor->drawableScreenCount = 0;
-
-    editor->configuration.screenCount          = 0;
-    editor->configuration.layoutCount          = 0;
-    editor->configuration.windowCount          = 0;
-    editor->configuration.userApplicationCount = 0;
-    editor->configuration.externalSourceCount  = 0;
-    editor->configuration.hasMetaData          = FALSE;
-
-    document_byte_count = OS_File_ReadFile(ARINC661_CONFIGURATION_XML_PATH, editor->inputBuffer, sizeof(editor->inputBuffer));
-    if (0 > document_byte_count)
-    {
-        editor->status = ARINC661_CONFIGURATION_STATUS_READ_FAILED;
-    }
-    else
-    {
-        if (ARINC661_CONFIGURATION_MAX_DOCUMENT_BYTES < document_byte_count)
-        {
-            editor->status = ARINC661_CONFIGURATION_STATUS_INPUT_TOO_LARGE;
-        }
-        else if (0 == document_byte_count)
-        {
-            editor->status = ARINC661_CONFIGURATION_STATUS_INPUT_EMPTY;
-        }
-        else
-        {
-            is_configuration = Utl_Arinc661_ReadConfiguration(&editor->configuration, editor->inputBuffer, (uint64_t)document_byte_count, editor->workspace, sizeof(editor->workspace));
-            if (is_configuration)
-            {
-                editor->isLoaded = TRUE;
-                if (0 < editor->configuration.screenCount)
-                {
-                    editor->selectedKind = ARINC661_CONFIGURATION_SELECTION_SCREEN;
-                }
-                UpdatePreviewMeasurements(editor);
-                editor->status = ARINC661_CONFIGURATION_STATUS_LOADED;
-            }
-            else
-            {
-                editor->status = ARINC661_CONFIGURATION_STATUS_INVALID_XML;
-            }
-        }
-    }
 }
 
 /*************************************************************************************************/

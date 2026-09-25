@@ -21,6 +21,7 @@ extern "C"
 **===============================================================================================*/
 
 #define ARINC661_CONFIGURATION_MAX_DOCUMENT_BYTES   (262144)
+#define ARINC661_CONFIGURATION_MAX_FILE_PATH_BYTES  (512)
 #define ARINC661_CONFIGURATION_MAX_SCREENS           (1024)
 #define ARINC661_CONFIGURATION_MAX_LAYOUTS           (4096)
 #define ARINC661_CONFIGURATION_MAX_WINDOWS           (4096)
@@ -38,6 +39,7 @@ extern "C"
 typedef enum Arinc661_Configuration_Status_e
 {
     ARINC661_CONFIGURATION_STATUS_NONE,
+    ARINC661_CONFIGURATION_STATUS_FILE_PATH_REQUIRED,
     ARINC661_CONFIGURATION_STATUS_BUILD_FAILED,
     ARINC661_CONFIGURATION_STATUS_BUILT,
     ARINC661_CONFIGURATION_STATUS_WRITE_FAILED,
@@ -82,6 +84,7 @@ typedef struct Arinc661_Configuration_Editor_s
     float32_t                              totalScreenWidth;                                                 ///< Sum of drawable screen widths.
     float32_t                              maximumScreenHeight;                                              ///< Largest drawable screen height.
     uint32_t                               drawableScreenCount;                                              ///< Screens with positive pixel size.
+    char_t                                 filePath[ARINC661_CONFIGURATION_MAX_FILE_PATH_BYTES];            ///< Path used to load and write XML.
     byte_t                                 inputBuffer[ARINC661_CONFIGURATION_MAX_DOCUMENT_BYTES + 1];       ///< Input file bytes.
     byte_t                                 outputBuffer[ARINC661_CONFIGURATION_MAX_DOCUMENT_BYTES];          ///< Built XML bytes.
     uint64_t                               workspace[UTL_ARINC661_WORKSPACE_BYTES / sizeof(uint64_t)];       ///< XML conversion scratch space.
@@ -114,16 +117,6 @@ typedef struct Arinc661_Configuration_Editor_s
  * \retval        None
  */
 void Arinc661_Configuration_Initialize(Arinc661_Configuration_Editor_t* editor);
-
-/*************************************************************************************************/
-/**
- * \brief Reloads the example file into the editor's typed configuration.
- *
- * \param[in,out] editor   Editor state
- *
- * \retval        None
- */
-void Arinc661_Configuration_Reload(Arinc661_Configuration_Editor_t* editor);
 
 /*************************************************************************************************/
 /**

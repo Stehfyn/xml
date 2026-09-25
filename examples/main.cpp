@@ -696,7 +696,6 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
 
     configuration_editor = (Arinc661_Configuration_Editor_t*)OS_CALLOC(sizeof(Arinc661_Configuration_Editor_t));
     Arinc661_Configuration_Initialize(configuration_editor);
-    Arinc661_Configuration_Reload(configuration_editor);
     window->editor = configuration_editor;
     window->isInitialized = TRUE;
     LOGASSERT(FALSE != ::SetEvent(window->readyEvent));
