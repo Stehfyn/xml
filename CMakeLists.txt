@@ -31,19 +31,30 @@ endif()
 target_include_directories(os PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 add_library(utl STATIC
+    src/utl/utl_scan.c
     src/utl/utl_util.c
     src/utl/utl_xml.c
     include/utl/utl_defines.h
+    include/utl/utl_scan.h
     include/utl/utl_util.h
     include/utl/utl_xml.h)
 target_link_libraries(utl PUBLIC os)
 target_include_directories(utl PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
+add_library(utl_arinc661 STATIC
+    src/utl/utl_arinc661.c
+    include/utl/utl_arinc661.h)
+target_link_libraries(utl_arinc661 PUBLIC utl)
+target_include_directories(utl_arinc661 PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+
 add_executable(utl_tests tests/utl_tests.c)
 target_link_libraries(utl_tests PRIVATE utl)
 
+add_executable(utl_arinc661_tests tests/utl_arinc661_tests.c)
+target_link_libraries(utl_arinc661_tests PRIVATE utl_arinc661)
+
 add_executable(arinc661_definition examples/arinc661_definition.c)
-target_link_libraries(arinc661_definition PRIVATE utl)
+target_link_libraries(arinc661_definition PRIVATE utl_arinc661)
 set_target_properties(arinc661_definition PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
 if(WIN32)
@@ -63,7 +74,7 @@ if(WIN32)
     target_compile_features(arinc661_configuration PRIVATE cxx_std_11)
     target_include_directories(arinc661_configuration PRIVATE "${IMGUI_DIR}" "${IMGUI_DIR}/backends")
     target_compile_definitions(arinc661_configuration PRIVATE ARINC661_CONFIGURATION_XML_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/arinc661_configuration.xml")
-    target_link_libraries(arinc661_configuration PRIVATE utl opengl32 gdi32 dwmapi)
+    target_link_libraries(arinc661_configuration PRIVATE utl_arinc661 opengl32 gdi32 dwmapi)
     set_target_properties(arinc661_configuration PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 endif()
 
@@ -75,4 +86,5 @@ add_custom_target(arinc661_definition_xml
 enable_testing()
 add_test(NAME utl_tests COMMAND utl_tests)
 set_tests_properties(utl_tests PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests")
+add_test(NAME utl_arinc661_tests COMMAND utl_arinc661_tests)
 set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT utl_tests)

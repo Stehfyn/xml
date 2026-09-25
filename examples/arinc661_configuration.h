@@ -11,7 +11,7 @@
 
 extern "C"
 {
-#include "utl/utl_xml.h"
+#include "utl/utl_arinc661.h"
 }
 
 /*=================================================================================================
@@ -20,15 +20,13 @@ extern "C"
 ** 3.1 Macros
 **===============================================================================================*/
 
-#define CONFIGURATION_MAX_DOCUMENT_BYTES       (262144)
-#define CONFIGURATION_INPUT_BUFFER_BYTES        (CONFIGURATION_MAX_DOCUMENT_BYTES + 1)
-#define CONFIGURATION_MAX_PARSED_ATTRIBUTES     (65536)
-#define CONFIGURATION_MAX_ADDED_NODES           (4096)
-#define CONFIGURATION_MAX_ADDED_ATTRIBUTES      (4096)
-#define CONFIGURATION_MAX_EDITABLE_ATTRIBUTES   (4096)
-#define CONFIGURATION_MAX_ATTRIBUTE_VALUE_BYTES (4096)
-#define CONFIGURATION_MAX_PREVIEW_NODES          (UTL_XML_DOCUMENT_MAX_NODES + CONFIGURATION_MAX_ADDED_NODES)
-#define CONFIGURATION_STATUS_BYTES              (256)
+#define CONFIGURATION_MAX_DOCUMENT_BYTES   (262144)
+#define CONFIGURATION_MAX_SCREENS           (1024)
+#define CONFIGURATION_MAX_LAYOUTS           (4096)
+#define CONFIGURATION_MAX_WINDOWS           (4096)
+#define CONFIGURATION_MAX_USER_APPLICATIONS (1024)
+#define CONFIGURATION_MAX_EXTERNAL_SOURCES  (1024)
+#define CONFIGURATION_STATUS_BYTES          (256)
 
 /*=================================================================================================
 ** 3.2 Types
@@ -36,83 +34,40 @@ extern "C"
 
 /*************************************************************************************************/
 /**
- * \brief Control type selected for an XML attribute.
+ * \brief Kind of entity selected in the configuration hierarchy.
  */
-typedef enum ConfigurationAttributeKind_e
+typedef enum ConfigurationSelectionKind_e
 {
-    CONFIGURATION_ATTRIBUTE_TEXT,
-    CONFIGURATION_ATTRIBUTE_INTEGER,
-    CONFIGURATION_ATTRIBUTE_FLOAT,
-    CONFIGURATION_ATTRIBUTE_UNIT
-} ConfigurationAttributeKind_t;
+    CONFIGURATION_SELECTION_NONE,
+    CONFIGURATION_SELECTION_SCREEN,
+    CONFIGURATION_SELECTION_LAYOUT,
+    CONFIGURATION_SELECTION_WINDOW
+} ConfigurationSelectionKind_t;
 
 /*************************************************************************************************/
 /**
- * \brief Editable text and its numeric control value.
- */
-typedef struct ConfigurationAttributeValue_s
-{
-    char_t                       text[CONFIGURATION_MAX_ATTRIBUTE_VALUE_BYTES + 1]; ///< XML value; first member for attribute borrowing.
-    ConfigurationAttributeKind_t kind;                                               ///< Inspector control type.
-    uint32_t                     integerValue;                                       ///< Cached integer control value.
-    float32_t                    floatValue;                                         ///< Cached floating-point control value.
-    bool_t                       isValid;                                            ///< TRUE when the numeric text is valid.
-} ConfigurationAttributeValue_t;
-
-/*************************************************************************************************/
-/**
- * \brief Screen geometry prepared for the visualizer.
- */
-typedef struct ConfigurationPreviewScreen_s
-{
-    const char_t* id;                ///< Borrowed screen ID.
-    float32_t     width;             ///< Screen width in pixels.
-    float32_t     height;            ///< Screen height in pixels.
-    uint32_t      firstWindowIndex;  ///< First window in previewWindows.
-    uint32_t      windowCount;       ///< Number of windows on this screen.
-} ConfigurationPreviewScreen_t;
-
-/*************************************************************************************************/
-/**
- * \brief Window geometry prepared for the visualizer.
- */
-typedef struct ConfigurationPreviewWindow_s
-{
-    const char_t* name;   ///< Borrowed window name.
-    float32_t     x;      ///< Left edge in screen pixels.
-    float32_t     y;      ///< Top edge in screen pixels.
-    float32_t     width;  ///< Window width in pixels.
-    float32_t     height; ///< Window height in pixels.
-} ConfigurationPreviewWindow_t;
-
-/*************************************************************************************************/
-/**
- * \brief Parsed configuration and fixed editor storage.
+ * \brief Caller-owned document, conversion workspace, and editor presentation state.
  */
 typedef struct ConfigurationEditor_s
 {
-    byte_t                        inputBuffer[CONFIGURATION_INPUT_BUFFER_BYTES];           ///< Input XML and terminator.
-    byte_t                        outputBuffer[CONFIGURATION_MAX_DOCUMENT_BYTES];          ///< Written XML.
-    Utl_Xml_Node_t                nodes[UTL_XML_DOCUMENT_MAX_NODES];                        ///< Parsed nodes.
-    Utl_Xml_Attribute_t           attributes[CONFIGURATION_MAX_PARSED_ATTRIBUTES];         ///< Parsed attributes.
-    Utl_Xml_Node_t                addedNodes[CONFIGURATION_MAX_ADDED_NODES];                ///< Added nodes.
-    Utl_Xml_Attribute_t           addedAttributes[CONFIGURATION_MAX_ADDED_ATTRIBUTES];     ///< Added attributes.
-    ConfigurationAttributeValue_t attributeValues[CONFIGURATION_MAX_EDITABLE_ATTRIBUTES];  ///< Editable XML values.
-    ConfigurationPreviewScreen_t  previewScreens[CONFIGURATION_MAX_PREVIEW_NODES];           ///< Prepared screen geometry.
-    ConfigurationPreviewWindow_t  previewWindows[CONFIGURATION_MAX_PREVIEW_NODES];           ///< Prepared window geometry.
-    uint32_t                      addedNodeCount;                                           ///< Added nodes in use.
-    uint32_t                      addedAttributeCount;                                      ///< Added attributes in use.
-    uint32_t                      attributeValueCount;                                      ///< Editable values in use.
-    uint32_t                      previewScreenCount;                                       ///< Screens with valid geometry.
-    uint32_t                      previewWindowCount;                                       ///< Windows with valid geometry.
-    float32_t                     previewTotalWidth;                                        ///< Sum of screen widths.
-    float32_t                     previewMaximumHeight;                                     ///< Largest screen height.
-    Utl_Xml_Document_t            document;                                                 ///< Edited XML tree.
-    Utl_Xml_Node_t*               selectedNode;                                             ///< Selected hierarchy node.
-    char_t                        status[CONFIGURATION_STATUS_BYTES];                       ///< Current message.
-    bool_t                        isLoaded;                                                 ///< TRUE after reading XML.
-    bool_t                        isLayoutInitialized;                                      ///< TRUE after docking.
-    bool_t                        isPreviewDirty;                                           ///< TRUE after a geometry edit.
+    byte_t                             inputBuffer[CONFIGURATION_MAX_DOCUMENT_BYTES + 1];       ///< Input file bytes.
+    byte_t                             outputBuffer[CONFIGURATION_MAX_DOCUMENT_BYTES];          ///< Built XML bytes.
+    uint64_t                           workspace[UTL_ARINC661_WORKSPACE_BYTES / sizeof(uint64_t)]; ///< XML conversion scratch space.
+    Utl_Arinc661_Screen_t              screens[CONFIGURATION_MAX_SCREENS];                      ///< Screen values.
+    Utl_Arinc661_Layout_t              layouts[CONFIGURATION_MAX_LAYOUTS];                      ///< Layout values.
+    Utl_Arinc661_Window_t              windows[CONFIGURATION_MAX_WINDOWS];                      ///< Window values.
+    Utl_Arinc661_UserApplication_t     userApplications[CONFIGURATION_MAX_USER_APPLICATIONS];  ///< User application values.
+    Utl_Arinc661_ExternalSource_t      externalSources[CONFIGURATION_MAX_EXTERNAL_SOURCES];    ///< External source values.
+    Utl_Arinc661_DisplayManagementConfiguration_t configuration;                               ///< Display management configuration values.
+    ConfigurationSelectionKind_t       selectedKind;                                             ///< Selected entity type.
+    uint32_t                           selectedIndex;                                            ///< Selected array index.
+    float32_t                          totalScreenWidth;                                         ///< Sum of drawable screen widths.
+    float32_t                          maximumScreenHeight;                                      ///< Largest drawable screen height.
+    uint32_t                           drawableScreenCount;                                      ///< Screens with positive pixel size.
+    char_t                             status[CONFIGURATION_STATUS_BYTES];                      ///< Current message.
+    bool_t                             isLoaded;                                                ///< TRUE after a successful read.
+    bool_t                             isLayoutInitialized;                                     ///< TRUE after docking.
+    bool_t                             isPreviewDirty;                                          ///< TRUE after a dimension edit.
 } ConfigurationEditor_t;
 
 /*=================================================================================================
@@ -129,12 +84,9 @@ typedef struct ConfigurationEditor_s
 
 /*************************************************************************************************/
 /**
- * \brief Loads the ARINC 661 configuration into fixed editor storage.
+ * \brief Initializes fixed storage and reads the example configuration file.
  *
- * \par Details:
- *  Reads the XML document and prepares the first dock layout.
- *
- * \param[in,out] editor   Editor state
+ * \param[in,out] editor Editor state
  *
  * \retval None
  */
@@ -142,12 +94,9 @@ void InitializeConfiguration(ConfigurationEditor_t* editor);
 
 /*************************************************************************************************/
 /**
- * \brief Refreshes visualizer geometry after an edit.
+ * \brief Refreshes visualizer measurements after a data edit.
  *
- * \par Details:
- *  Reads XML values only when the configuration has changed.
- *
- * \param[in,out] editor   Editor state
+ * \param[in,out] editor Editor state
  *
  * \retval None
  */
@@ -155,12 +104,9 @@ void UpdateConfiguration(ConfigurationEditor_t* editor);
 
 /*************************************************************************************************/
 /**
- * \brief Draws the ARINC 661 configuration editor and visualizer.
+ * \brief Draws the configuration inspector and central visualizer.
  *
- * \par Details:
- *  Draws both docked windows from the current editor state.
- *
- * \param[in,out] editor   Editor state
+ * \param[in,out] editor Editor state
  *
  * \retval None
  */

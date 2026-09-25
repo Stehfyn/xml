@@ -622,7 +622,7 @@ static void ReadToken(const byte_t* bytes, uint64_t byteCount, uint64_t* positio
     for (byte_index = 0; '\0' != token[byte_index]; ++byte_index)
     {
         token_byte = token[byte_index];
-        has_token  = ((*position) < byteCount) && (byte_index < byteCount - (*position)) && (token_byte == bytes[(*position) + byte_index]);
+        has_token  = ((*position) < byteCount) && (byte_index < (byteCount - (*position))) && (token_byte == bytes[(*position) + byte_index]);
 
         if (FALSE == has_token)
         {
@@ -819,7 +819,7 @@ static void WriteBytes(byte_t* output, uint64_t capacity, uint64_t* byteCount, c
     LOGASSERT(0 < numBytes);
     LOGASSERT((*byteCount) <= capacity);
 
-    fits_capacity = (numBytes <= capacity - (*byteCount));
+    fits_capacity = (numBytes <= (capacity - (*byteCount)));
     LOGASSERT(fits_capacity);
 
     (void)memcpy(output + (*byteCount), bytes, numBytes);

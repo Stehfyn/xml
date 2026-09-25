@@ -1,4 +1,5 @@
 #include "utl/utl_defines.h"
+#include "utl/utl_scan.h"
 #include "utl/utl_xml.h"
 
 /* Keep assertions enabled in Release builds. */
@@ -6,6 +7,7 @@
 #undef NDEBUG
 #endif
 #include <assert.h>
+#include <limits.h>
 #include <stdio.h>
 
 /*************************************************************************************************/
@@ -405,10 +407,58 @@ static void TestXmlDocumentRoundTrip(void)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Runs the XML character, node initialization, writer, and reader checks.
+ *  Checks complete-span scanning, signed bounds, and XML Schema decimal syntax.
+ */
+static void TestNumberScanning(void)
+{
+    const byte_t minimum[]         = "-9223372036854775808";
+    const byte_t maximum[]         = "+9223372036854775807";
+    const byte_t overflow[]        = "9223372036854775808";
+    const byte_t decimal[]         = "-.125";
+    const byte_t exponent[]        = "1e3";
+    const byte_t non_ascii_digit[] = {0xB2};
+    int64_t      integer;
+    float32_t    fraction;
+    bool_t       is_valid;
+
+    integer  = 0;
+    is_valid = Utl_Scan_Int64(minimum, (sizeof(minimum) - 1), &integer);
+    assert(is_valid);
+    assert(INT64_MIN == integer);
+
+    is_valid = Utl_Scan_Int64(maximum, (sizeof(maximum) - 1), &integer);
+    assert(is_valid);
+    assert(INT64_MAX == integer);
+
+    is_valid = Utl_Scan_Int64(overflow, (sizeof(overflow) - 1), &integer);
+    assert(FALSE == is_valid);
+    assert(INT64_MAX == integer);
+
+    is_valid = Utl_Scan_Int64(non_ascii_digit, sizeof(non_ascii_digit), &integer);
+    assert(FALSE == is_valid);
+    assert(INT64_MAX == integer);
+
+    is_valid = Utl_Scan_Float32(decimal, (sizeof(decimal) - 1), &fraction);
+    assert(is_valid);
+    assert(-0.125f == fraction);
+
+    is_valid = Utl_Scan_Float32(exponent, (sizeof(exponent) - 1), &fraction);
+    assert(FALSE == is_valid);
+    assert(-0.125f == fraction);
+
+    is_valid = Utl_Scan_Float32(non_ascii_digit, sizeof(non_ascii_digit), &fraction);
+    assert(FALSE == is_valid);
+    assert(-0.125f == fraction);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Runs the XML character, node initialization, writer, reader, and number scanning checks.
  */
 int main(void)
 {
+    TestNumberScanning();
     TestCharacterClasses();
     TestXmlByteSpans();
     TestXmlNodeInitialization();

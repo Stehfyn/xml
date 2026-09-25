@@ -12,11 +12,12 @@
 **===============================================================================================*/
 
 #include "utl/utl_defines.h"
-#include "utl/utl_xml.h"
+#include "utl/utl_arinc661.h"
 
 #include "os/os_assert.h"
 
 #include <stdio.h>
+#include <string.h>
 
 /*=================================================================================================
 ** 3. DECLARATIONS
@@ -116,6 +117,12 @@ static const Arinc661Property_t c_arinc661Properties[] =
     {ARINC661_SECOND_LABEL_MODEL,    XML_LITERAL("LabelString"),     XML_LITERAL("SECONDARY STATUS")}
 };
 
+/*************************************************************************************************/
+/**
+ * \brief Temporary XML conversion storage for the example.
+ */
+static uint64_t c_workspace[UTL_ARINC661_WORKSPACE_BYTES / sizeof(uint64_t)];
+
 /*=================================================================================================
 ** 4. PUBLIC FUNCTIONS
 **===============================================================================================*/
@@ -127,91 +134,77 @@ static const Arinc661Property_t c_arinc661Properties[] =
  */
 int main(void)
 {
-    Utl_Xml_Document_t  document;
-    Utl_Xml_Node_t      declaration;
-    Utl_Xml_Node_t      definition;
-    Utl_Xml_Node_t      layer;
-    Utl_Xml_Node_t      panel;
-    Utl_Xml_Node_t      label;
-    Utl_Xml_Node_t      second_label;
-    Utl_Xml_Node_t      models[ARINC661_MODEL_COUNT];
-    Utl_Xml_Node_t      property_nodes[COUNT_OF(c_arinc661Properties)];
-    Utl_Xml_Attribute_t definition_attributes[3];
-    Utl_Xml_Attribute_t layer_attribute;
-    Utl_Xml_Attribute_t panel_attributes[2];
-    Utl_Xml_Attribute_t label_attributes[2];
-    Utl_Xml_Attribute_t second_label_attributes[2];
-    Utl_Xml_Attribute_t property_names[COUNT_OF(c_arinc661Properties)];
-    Utl_Xml_Attribute_t property_values[COUNT_OF(c_arinc661Properties)];
-    byte_t              output[4096];
-    FILE*               xml_file;
-    uint64_t            byte_count;
-    uint64_t            bytes_written;
-    uint32_t            index;
-    int                 close_result;
+    Utl_Arinc661_Definition_t definition_file;
+    Utl_Arinc661_Layer_t layers[1];
+    Utl_Arinc661_Widget_t widgets[3];
+    Utl_Arinc661_Property_t properties[COUNT_OF(c_arinc661Properties)];
+    byte_t output[4096];
+    FILE* xml_file;
+    uint64_t byte_count;
+    uint64_t bytes_written;
+    uint32_t index;
+    uint32_t owner_index;
 
-    Utl_Xml_InitializeDocument(&document);
-    Utl_Xml_InitializeNode(&declaration, UTL_XML_NODE_XML_DECLARATION, NULL, 0);
-    Utl_Xml_InitializeNode(&definition, UTL_XML_NODE_ELEMENT, XML_LITERAL("a661_df"));
-    Utl_Xml_InitializeNode(&layer, UTL_XML_NODE_ELEMENT, XML_LITERAL("a661_layer"));
-    Utl_Xml_InitializeNode(&panel, UTL_XML_NODE_ELEMENT, XML_LITERAL("a661_widget"));
-    Utl_Xml_InitializeNode(&label, UTL_XML_NODE_ELEMENT, XML_LITERAL("a661_widget"));
-    Utl_Xml_InitializeNode(&second_label, UTL_XML_NODE_ELEMENT, XML_LITERAL("a661_widget"));
+    memset(&definition_file, 0, sizeof(definition_file));
+    memset(layers, 0, sizeof(layers));
+    memset(widgets, 0, sizeof(widgets));
+    memset(properties, 0, sizeof(properties));
+    strcpy(definition_file.name, "arinc661_definition");
+    definition_file.libraryVersion = 0;
+    definition_file.supplementVersion = 6;
+    definition_file.layers = layers;
+    definition_file.widgets = widgets;
+    definition_file.properties = properties;
+    definition_file.layerCapacity = COUNT_OF(layers);
+    definition_file.widgetCapacity = COUNT_OF(widgets);
+    definition_file.propertyCapacity = COUNT_OF(properties);
+    definition_file.layerCount = COUNT_OF(layers);
+    definition_file.widgetCount = COUNT_OF(widgets);
+    definition_file.propertyCount = COUNT_OF(properties);
 
-    for (index = 0; index < ARINC661_MODEL_COUNT; ++index)
+    strcpy(layers[0].name, "PrimaryLayer");
+    strcpy(widgets[0].name, "MainPanel");
+    strcpy(widgets[0].type, "A661_PANEL");
+    widgets[0].layerIndex = 0;
+    widgets[0].parentWidgetIndex = UINT32_MAX;
+    strcpy(widgets[1].name, "StatusLabel");
+    strcpy(widgets[1].type, "A661_LABEL");
+    widgets[1].layerIndex = 0;
+    widgets[1].parentWidgetIndex = 0;
+    strcpy(widgets[2].name, "SecondaryLabel");
+    strcpy(widgets[2].type, "A661_LABEL");
+    widgets[2].layerIndex = 0;
+    widgets[2].parentWidgetIndex = 0;
+
+    for (index = 0; index < COUNT_OF(c_arinc661Properties); ++index)
     {
-        Utl_Xml_InitializeNode(&models[index], UTL_XML_NODE_ELEMENT, XML_LITERAL("model"));
+        owner_index = 0;
+        if (ARINC661_DOCUMENT_MODEL == c_arinc661Properties[index].modelIndex)
+        {
+            properties[index].owner = UTL_ARINC661_PROPERTY_DEFINITION;
+        }
+        else if (ARINC661_LAYER_MODEL == c_arinc661Properties[index].modelIndex)
+        {
+            properties[index].owner = UTL_ARINC661_PROPERTY_LAYER;
+        }
+        else
+        {
+            properties[index].owner = UTL_ARINC661_PROPERTY_WIDGET;
+            owner_index = (uint32_t)c_arinc661Properties[index].modelIndex - (uint32_t)ARINC661_PANEL_MODEL;
+        }
+        properties[index].ownerIndex = owner_index;
+        LOGASSERT(c_arinc661Properties[index].nameByteCount < sizeof(properties[index].name));
+        LOGASSERT(c_arinc661Properties[index].valueByteCount < sizeof(properties[index].value));
+        memcpy(properties[index].name, c_arinc661Properties[index].name, c_arinc661Properties[index].nameByteCount);
+        memcpy(properties[index].value, c_arinc661Properties[index].value, c_arinc661Properties[index].valueByteCount);
     }
 
-    Utl_Xml_InitializeAttribute(&definition_attributes[0], XML_LITERAL("name"), XML_LITERAL("arinc661_definition"));
-    Utl_Xml_AppendAttribute(&definition, &definition_attributes[0]);
-    Utl_Xml_InitializeAttribute(&definition_attributes[1], XML_LITERAL("library_version"), XML_LITERAL("0"));
-    Utl_Xml_AppendAttribute(&definition, &definition_attributes[1]);
-    Utl_Xml_InitializeAttribute(&definition_attributes[2], XML_LITERAL("supp_version"), XML_LITERAL("6"));
-    Utl_Xml_AppendAttribute(&definition, &definition_attributes[2]);
-    Utl_Xml_InitializeAttribute(&layer_attribute, XML_LITERAL("name"), XML_LITERAL("PrimaryLayer"));
-    Utl_Xml_AppendAttribute(&layer, &layer_attribute);
-    Utl_Xml_InitializeAttribute(&panel_attributes[0], XML_LITERAL("name"), XML_LITERAL("MainPanel"));
-    Utl_Xml_AppendAttribute(&panel, &panel_attributes[0]);
-    Utl_Xml_InitializeAttribute(&panel_attributes[1], XML_LITERAL("type"), XML_LITERAL("A661_PANEL"));
-    Utl_Xml_AppendAttribute(&panel, &panel_attributes[1]);
-    Utl_Xml_InitializeAttribute(&label_attributes[0], XML_LITERAL("name"), XML_LITERAL("StatusLabel"));
-    Utl_Xml_AppendAttribute(&label, &label_attributes[0]);
-    Utl_Xml_InitializeAttribute(&label_attributes[1], XML_LITERAL("type"), XML_LITERAL("A661_LABEL"));
-    Utl_Xml_AppendAttribute(&label, &label_attributes[1]);
-    Utl_Xml_InitializeAttribute(&second_label_attributes[0], XML_LITERAL("name"), XML_LITERAL("SecondaryLabel"));
-    Utl_Xml_AppendAttribute(&second_label, &second_label_attributes[0]);
-    Utl_Xml_InitializeAttribute(&second_label_attributes[1], XML_LITERAL("type"), XML_LITERAL("A661_LABEL"));
-    Utl_Xml_AppendAttribute(&second_label, &second_label_attributes[1]);
-
-    for (index = 0; index < (uint32_t)COUNT_OF(c_arinc661Properties); ++index)
-    {
-        Utl_Xml_InitializeNode(&property_nodes[index], UTL_XML_NODE_ELEMENT, XML_LITERAL("prop"));
-        Utl_Xml_InitializeAttribute(&property_names[index], XML_LITERAL("name"), c_arinc661Properties[index].name, c_arinc661Properties[index].nameByteCount);
-        Utl_Xml_AppendAttribute(&property_nodes[index], &property_names[index]);
-        Utl_Xml_InitializeAttribute(&property_values[index], XML_LITERAL("value"), c_arinc661Properties[index].value, c_arinc661Properties[index].valueByteCount);
-        Utl_Xml_AppendAttribute(&property_nodes[index], &property_values[index]);
-        Utl_Xml_AppendChild(&models[c_arinc661Properties[index].modelIndex], &property_nodes[index]);
-    }
-
-    Utl_Xml_AppendChild(&definition, &models[ARINC661_DOCUMENT_MODEL]);
-    Utl_Xml_AppendChild(&definition, &layer);
-    Utl_Xml_AppendChild(&layer, &models[ARINC661_LAYER_MODEL]);
-    Utl_Xml_AppendChild(&layer, &panel);
-    Utl_Xml_AppendChild(&panel, &models[ARINC661_PANEL_MODEL]);
-    Utl_Xml_AppendChild(&panel, &label);
-    Utl_Xml_AppendChild(&label, &models[ARINC661_LABEL_MODEL]);
-    Utl_Xml_AppendChild(&panel, &second_label);
-    Utl_Xml_AppendChild(&second_label, &models[ARINC661_SECOND_LABEL_MODEL]);
-    Utl_Xml_AppendNode(&document, &declaration);
-    Utl_Xml_AppendNode(&document, &definition);
-
-    byte_count = Utl_Xml_WriteDocument(&document, output, (uint64_t)sizeof(output));
+    byte_count = Utl_Arinc661_WriteDefinition(&definition_file, output, sizeof(output), c_workspace, sizeof(c_workspace));
+    LOGASSERT(0 < byte_count);
     xml_file = fopen("examples/arinc661_definition.xml", "wb");
     LOGASSERT(NULL != xml_file);
-    bytes_written = fwrite(output, 1, (size_t)byte_count, xml_file);
+    bytes_written = fwrite(output, 1, byte_count, xml_file);
     LOGASSERT(byte_count == bytes_written);
-    close_result = fclose(xml_file);
-    LOGASSERT(0 == close_result);
+    fclose(xml_file);
     return 0;
 }

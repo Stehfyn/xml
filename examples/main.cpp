@@ -389,7 +389,7 @@ static bool_t CreateDeviceWGL(HWND windowHandle, WglWindowData_t* windowData)
     {
         sscanf_s(version_string, "%d.%d", &major, &minor);
     }
-    version         = (GLuint)(major * 100 + minor * 10);
+    version         = (GLuint)((major * 100) + (minor * 10));
     g_renderContext = temporary_context;
     if (OPENGL_VERSION_3_0 <= version)
     {
