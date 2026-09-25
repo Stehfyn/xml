@@ -106,7 +106,7 @@ static const char_t* const c_unitNames[] =
  *
  * \retval        None
  */
-static void UpdatePreviewMeasurements(ConfigurationEditor_t* editor);
+static void UpdatePreviewMeasurements(Arinc661_Configuration_Editor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -116,7 +116,7 @@ static void UpdatePreviewMeasurements(ConfigurationEditor_t* editor);
  *
  * \retval        None
  */
-static void BuildConfigurationFile(ConfigurationEditor_t* editor);
+static void BuildConfigurationFile(Arinc661_Configuration_Editor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -130,7 +130,7 @@ static void BuildConfigurationFile(ConfigurationEditor_t* editor);
  * \retval     TRUE        if an identifier is available.
  * \retval     FALSE       if the identifier range is exhausted.
  */
-static bool_t NextIdentifier(const ConfigurationEditor_t* editor, ConfigurationSelectionKind_t kind, uint32_t screenIndex, int64_t* id);
+static bool_t NextIdentifier(const Arinc661_Configuration_Editor_t* editor, Arinc661_Configuration_SelectionKind_t kind, uint32_t screenIndex, int64_t* id);
 
 /*************************************************************************************************/
 /**
@@ -140,7 +140,7 @@ static bool_t NextIdentifier(const ConfigurationEditor_t* editor, ConfigurationS
  *
  * \retval        None
  */
-static void AddScreen(ConfigurationEditor_t* editor);
+static void AddScreen(Arinc661_Configuration_Editor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -151,7 +151,7 @@ static void AddScreen(ConfigurationEditor_t* editor);
  *
  * \retval        None
  */
-static void AddLayout(ConfigurationEditor_t* editor, uint32_t screenIndex);
+static void AddLayout(Arinc661_Configuration_Editor_t* editor, uint32_t screenIndex);
 
 /*************************************************************************************************/
 /**
@@ -162,7 +162,7 @@ static void AddLayout(ConfigurationEditor_t* editor, uint32_t screenIndex);
  *
  * \retval        None
  */
-static void AddWindow(ConfigurationEditor_t* editor, uint32_t layoutIndex);
+static void AddWindow(Arinc661_Configuration_Editor_t* editor, uint32_t layoutIndex);
 
 /*************************************************************************************************/
 /**
@@ -173,7 +173,7 @@ static void AddWindow(ConfigurationEditor_t* editor, uint32_t layoutIndex);
  *
  * \retval        None
  */
-static void RemoveWindow(ConfigurationEditor_t* editor, uint32_t windowIndex);
+static void RemoveWindow(Arinc661_Configuration_Editor_t* editor, uint32_t windowIndex);
 
 /*************************************************************************************************/
 /**
@@ -184,7 +184,7 @@ static void RemoveWindow(ConfigurationEditor_t* editor, uint32_t windowIndex);
  *
  * \retval        None
  */
-static void RemoveLayout(ConfigurationEditor_t* editor, uint32_t layoutIndex);
+static void RemoveLayout(Arinc661_Configuration_Editor_t* editor, uint32_t layoutIndex);
 
 /*************************************************************************************************/
 /**
@@ -195,7 +195,7 @@ static void RemoveLayout(ConfigurationEditor_t* editor, uint32_t layoutIndex);
  *
  * \retval        None
  */
-static void RemoveScreen(ConfigurationEditor_t* editor, uint32_t screenIndex);
+static void RemoveScreen(Arinc661_Configuration_Editor_t* editor, uint32_t screenIndex);
 
 /*************************************************************************************************/
 /**
@@ -217,7 +217,7 @@ static bool_t DrawRemoveButton(const char_t* label, float32_t rowHeight);
  *
  * \retval        None
  */
-static void DrawHierarchy(ConfigurationEditor_t* editor);
+static void DrawHierarchy(Arinc661_Configuration_Editor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -287,7 +287,7 @@ static bool_t DrawUnitField(const char_t* label, Utl_Arinc661_Unit_t* unit);
  *
  * \retval        None
  */
-static void DrawScreenInspector(ConfigurationEditor_t* editor);
+static void DrawScreenInspector(Arinc661_Configuration_Editor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -297,7 +297,7 @@ static void DrawScreenInspector(ConfigurationEditor_t* editor);
  *
  * \retval        None
  */
-static void DrawLayoutInspector(ConfigurationEditor_t* editor);
+static void DrawLayoutInspector(Arinc661_Configuration_Editor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -307,7 +307,7 @@ static void DrawLayoutInspector(ConfigurationEditor_t* editor);
  *
  * \retval        None
  */
-static void DrawWindowInspector(ConfigurationEditor_t* editor);
+static void DrawWindowInspector(Arinc661_Configuration_Editor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -317,7 +317,7 @@ static void DrawWindowInspector(ConfigurationEditor_t* editor);
  *
  * \retval        None
  */
-static void DrawHierarchyPane(ConfigurationEditor_t* editor);
+static void DrawHierarchyPane(Arinc661_Configuration_Editor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -327,7 +327,7 @@ static void DrawHierarchyPane(ConfigurationEditor_t* editor);
  *
  * \retval        None
  */
-static void DrawInspector(ConfigurationEditor_t* editor);
+static void DrawInspector(Arinc661_Configuration_Editor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -337,7 +337,7 @@ static void DrawInspector(ConfigurationEditor_t* editor);
  *
  * \retval        None
  */
-static void DrawScene(ConfigurationEditor_t* editor);
+static void DrawScene(Arinc661_Configuration_Editor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -359,7 +359,7 @@ static void ClampPaneResize(float32_t minimumHierarchyWidth);
  *
  * \retval     None
  */
-static void MeasurePaneWidths(const ConfigurationEditor_t* editor, float32_t* hierarchyWidth, float32_t* inspectorWidth);
+static void MeasurePaneWidths(const Arinc661_Configuration_Editor_t* editor, float32_t* hierarchyWidth, float32_t* inspectorWidth);
 
 /*=================================================================================================
 ** 4. PRIVATE FUNCTIONS
@@ -370,7 +370,7 @@ static void MeasurePaneWidths(const ConfigurationEditor_t* editor, float32_t* hi
  * \par Details:
  *  Sums valid screen widths and finds the tallest valid screen in the current configuration.
  */
-static void UpdatePreviewMeasurements(ConfigurationEditor_t* editor)
+static void UpdatePreviewMeasurements(Arinc661_Configuration_Editor_t* editor)
 {
     const Utl_Arinc661_Screen_t* screen;
     uint32_t                     screen_index;
@@ -401,7 +401,7 @@ static void UpdatePreviewMeasurements(ConfigurationEditor_t* editor)
  * \par Details:
  *  Keeps file output outside the in-memory utl_arinc661 module.
  */
-static void BuildConfigurationFile(ConfigurationEditor_t* editor)
+static void BuildConfigurationFile(Arinc661_Configuration_Editor_t* editor)
 {
     FILE*    xml_file;
     uint64_t output_byte_count;
@@ -440,21 +440,21 @@ static void BuildConfigurationFile(ConfigurationEditor_t* editor)
  * \par Details:
  *  Layout identifiers are local to a screen. Screen and window identifiers are global.
  */
-static bool_t NextIdentifier(const ConfigurationEditor_t* editor, ConfigurationSelectionKind_t kind, uint32_t screenIndex, int64_t* id)
+static bool_t NextIdentifier(const Arinc661_Configuration_Editor_t* editor, Arinc661_Configuration_SelectionKind_t kind, uint32_t screenIndex, int64_t* id)
 {
     int64_t  maximum_id;
     uint32_t index;
     bool_t   has_next_id;
 
     maximum_id = -1;
-    if (CONFIGURATION_SELECTION_SCREEN == kind)
+    if (ARINC661_CONFIGURATION_SELECTION_SCREEN == kind)
     {
         for (index = 0; index < editor->configuration.screenCount; ++index)
         {
             maximum_id = ImMax(maximum_id, editor->screens[index].id);
         }
     }
-    else if (CONFIGURATION_SELECTION_LAYOUT == kind)
+    else if (ARINC661_CONFIGURATION_SELECTION_LAYOUT == kind)
     {
         for (index = 0; index < editor->configuration.layoutCount; ++index)
         {
@@ -464,7 +464,7 @@ static bool_t NextIdentifier(const ConfigurationEditor_t* editor, ConfigurationS
             }
         }
     }
-    else if (CONFIGURATION_SELECTION_WINDOW == kind)
+    else if (ARINC661_CONFIGURATION_SELECTION_WINDOW == kind)
     {
         for (index = 0; index < editor->configuration.windowCount; ++index)
         {
@@ -485,7 +485,7 @@ static bool_t NextIdentifier(const ConfigurationEditor_t* editor, ConfigurationS
  * \par Details:
  *  New screens receive pixel and physical dimensions that can be edited immediately.
  */
-static void AddScreen(ConfigurationEditor_t* editor)
+static void AddScreen(Arinc661_Configuration_Editor_t* editor)
 {
     Utl_Arinc661_Screen_t* screen;
     int64_t                id;
@@ -493,7 +493,7 @@ static void AddScreen(ConfigurationEditor_t* editor)
     bool_t                 has_id;
 
     has_capacity = (editor->configuration.screenCount < editor->configuration.screenCapacity);
-    has_id       = NextIdentifier(editor, CONFIGURATION_SELECTION_SCREEN, 0, &id);
+    has_id       = NextIdentifier(editor, ARINC661_CONFIGURATION_SELECTION_SCREEN, 0, &id);
     if (has_capacity && has_id)
     {
         screen = &editor->screens[editor->configuration.screenCount];
@@ -505,7 +505,7 @@ static void AddScreen(ConfigurationEditor_t* editor)
         screen->physicalDimensions.width  = 5;
         screen->physicalDimensions.height = 4;
         screen->physicalDimensions.units  = UTL_ARINC661_UNIT_INCH;
-        editor->selectedKind              = CONFIGURATION_SELECTION_SCREEN;
+        editor->selectedKind              = ARINC661_CONFIGURATION_SELECTION_SCREEN;
         editor->selectedIndex             = editor->configuration.screenCount;
         editor->configuration.screenCount += 1;
         UpdatePreviewMeasurements(editor);
@@ -522,7 +522,7 @@ static void AddScreen(ConfigurationEditor_t* editor)
  * \par Details:
  *  A layout stores its owning screen index and no XML location.
  */
-static void AddLayout(ConfigurationEditor_t* editor, uint32_t screenIndex)
+static void AddLayout(Arinc661_Configuration_Editor_t* editor, uint32_t screenIndex)
 {
     Utl_Arinc661_Layout_t* layout;
     int64_t                id;
@@ -530,14 +530,14 @@ static void AddLayout(ConfigurationEditor_t* editor, uint32_t screenIndex)
     bool_t                 has_id;
 
     has_capacity = (editor->configuration.layoutCount < editor->configuration.layoutCapacity);
-    has_id       = NextIdentifier(editor, CONFIGURATION_SELECTION_LAYOUT, screenIndex, &id);
+    has_id       = NextIdentifier(editor, ARINC661_CONFIGURATION_SELECTION_LAYOUT, screenIndex, &id);
     if (has_capacity && has_id)
     {
         layout = &editor->layouts[editor->configuration.layoutCount];
         (void)memset(layout, 0, sizeof((*layout)));
         layout->id            = id;
         layout->screenIndex   = screenIndex;
-        editor->selectedKind  = CONFIGURATION_SELECTION_LAYOUT;
+        editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_LAYOUT;
         editor->selectedIndex = editor->configuration.layoutCount;
         editor->configuration.layoutCount += 1;
         (void)strcpy(editor->status, "Added layout. Build XML to save.");
@@ -553,7 +553,7 @@ static void AddLayout(ConfigurationEditor_t* editor, uint32_t screenIndex)
  * \par Details:
  *  The window begins at the origin and uses its screen's current pixel size.
  */
-static void AddWindow(ConfigurationEditor_t* editor, uint32_t layoutIndex)
+static void AddWindow(Arinc661_Configuration_Editor_t* editor, uint32_t layoutIndex)
 {
     Utl_Arinc661_Window_t*       window;
     const Utl_Arinc661_Layout_t* layout;
@@ -563,7 +563,7 @@ static void AddWindow(ConfigurationEditor_t* editor, uint32_t layoutIndex)
     bool_t                       has_id;
 
     has_capacity = (editor->configuration.windowCount < editor->configuration.windowCapacity);
-    has_id       = NextIdentifier(editor, CONFIGURATION_SELECTION_WINDOW, 0, &id);
+    has_id       = NextIdentifier(editor, ARINC661_CONFIGURATION_SELECTION_WINDOW, 0, &id);
     if (has_capacity && has_id)
     {
         layout = &editor->layouts[layoutIndex];
@@ -579,7 +579,7 @@ static void AddWindow(ConfigurationEditor_t* editor, uint32_t layoutIndex)
         window->scalingFactor.yScale   = 20.0f;
         window->scalingFactor.baseUnit = UTL_ARINC661_UNIT_SCREEN;
         window->scalingFactor.perUnit  = UTL_ARINC661_UNIT_PIXEL;
-        editor->selectedKind           = CONFIGURATION_SELECTION_WINDOW;
+        editor->selectedKind           = ARINC661_CONFIGURATION_SELECTION_WINDOW;
         editor->selectedIndex          = editor->configuration.windowCount;
         editor->configuration.windowCount += 1;
         (void)strcpy(editor->status, "Added window. Build XML to save.");
@@ -595,7 +595,7 @@ static void AddWindow(ConfigurationEditor_t* editor, uint32_t layoutIndex)
  * \par Details:
  *  Compacts the window array after the chosen entry.
  */
-static void RemoveWindow(ConfigurationEditor_t* editor, uint32_t windowIndex)
+static void RemoveWindow(Arinc661_Configuration_Editor_t* editor, uint32_t windowIndex)
 {
     uint32_t remaining_count;
 
@@ -616,7 +616,7 @@ static void RemoveWindow(ConfigurationEditor_t* editor, uint32_t windowIndex)
  * \par Details:
  *  Removes associated windows before compacting layout indices.
  */
-static void RemoveLayout(ConfigurationEditor_t* editor, uint32_t layoutIndex)
+static void RemoveLayout(Arinc661_Configuration_Editor_t* editor, uint32_t layoutIndex)
 {
     uint32_t window_index;
     uint32_t remaining_count;
@@ -654,7 +654,7 @@ static void RemoveLayout(ConfigurationEditor_t* editor, uint32_t layoutIndex)
  * \par Details:
  *  Removes child layouts and windows before compacting screen indices.
  */
-static void RemoveScreen(ConfigurationEditor_t* editor, uint32_t screenIndex)
+static void RemoveScreen(Arinc661_Configuration_Editor_t* editor, uint32_t screenIndex)
 {
     uint32_t layout_index;
     uint32_t remaining_count;
@@ -736,7 +736,7 @@ static bool_t DrawRemoveButton(const char_t* label, float32_t rowHeight)
  * \par Details:
  *  Iterates the typed parent indices and applies requested additions or removals after traversal.
  */
-static void DrawHierarchy(ConfigurationEditor_t* editor)
+static void DrawHierarchy(Arinc661_Configuration_Editor_t* editor)
 {
     const Utl_Arinc661_Screen_t* screen;
     const Utl_Arinc661_Layout_t* layout;
@@ -764,7 +764,7 @@ static void DrawHierarchy(ConfigurationEditor_t* editor)
     {
         screen = &editor->screens[screen_index];
         flags  = HIERARCHY_BRANCH_FLAGS;
-        if ((CONFIGURATION_SELECTION_SCREEN == editor->selectedKind) && (screen_index == editor->selectedIndex))
+        if ((ARINC661_CONFIGURATION_SELECTION_SCREEN == editor->selectedKind) && (screen_index == editor->selectedIndex))
         {
             flags |= ImGuiTreeNodeFlags_Selected;
         }
@@ -772,7 +772,7 @@ static void DrawHierarchy(ConfigurationEditor_t* editor)
         is_screen_open = ImGui::TreeNodeEx("screen", flags, "Screen %" PRId64, screen->id);
         if (ImGui::IsItemClicked())
         {
-            editor->selectedKind  = CONFIGURATION_SELECTION_SCREEN;
+            editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_SCREEN;
             editor->selectedIndex = screen_index;
         }
         row_height = ImGui::GetItemRectSize().y;
@@ -789,7 +789,7 @@ static void DrawHierarchy(ConfigurationEditor_t* editor)
                 if (screen_index == layout->screenIndex)
                 {
                     flags = HIERARCHY_BRANCH_FLAGS;
-                    if ((CONFIGURATION_SELECTION_LAYOUT == editor->selectedKind) && (layout_index == editor->selectedIndex))
+                    if ((ARINC661_CONFIGURATION_SELECTION_LAYOUT == editor->selectedKind) && (layout_index == editor->selectedIndex))
                     {
                         flags |= ImGuiTreeNodeFlags_Selected;
                     }
@@ -797,7 +797,7 @@ static void DrawHierarchy(ConfigurationEditor_t* editor)
                     is_layout_open = ImGui::TreeNodeEx("layout", flags, "Layout %" PRId64, layout->id);
                     if (ImGui::IsItemClicked())
                     {
-                        editor->selectedKind  = CONFIGURATION_SELECTION_LAYOUT;
+                        editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_LAYOUT;
                         editor->selectedIndex = layout_index;
                     }
                     row_height = ImGui::GetItemRectSize().y;
@@ -814,7 +814,7 @@ static void DrawHierarchy(ConfigurationEditor_t* editor)
                             if (layout_index == window->layoutIndex)
                             {
                                 flags = HIERARCHY_WINDOW_FLAGS;
-                                if ((CONFIGURATION_SELECTION_WINDOW == editor->selectedKind) && (window_index == editor->selectedIndex))
+                                if ((ARINC661_CONFIGURATION_SELECTION_WINDOW == editor->selectedKind) && (window_index == editor->selectedIndex))
                                 {
                                     flags |= ImGuiTreeNodeFlags_Selected;
                                 }
@@ -822,7 +822,7 @@ static void DrawHierarchy(ConfigurationEditor_t* editor)
                                 (void)ImGui::TreeNodeEx("window", flags, "Window %" PRId64 " (%s)", window->id, window->name);
                                 if (ImGui::IsItemClicked())
                                 {
-                                    editor->selectedKind  = CONFIGURATION_SELECTION_WINDOW;
+                                    editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_WINDOW;
                                     editor->selectedIndex = window_index;
                                 }
                                 row_height = ImGui::GetItemRectSize().y;
@@ -858,7 +858,7 @@ static void DrawHierarchy(ConfigurationEditor_t* editor)
     if (INVALID_HIERARCHY_INDEX != remove_screen_index)
     {
         RemoveScreen(editor, remove_screen_index);
-        editor->selectedKind  = CONFIGURATION_SELECTION_NONE;
+        editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_NONE;
         editor->selectedIndex = 0;
         (void)strcpy(editor->status, "Removed screen. Build XML to save.");
     }
@@ -866,7 +866,7 @@ static void DrawHierarchy(ConfigurationEditor_t* editor)
     {
         parent_index = editor->layouts[remove_layout_index].screenIndex;
         RemoveLayout(editor, remove_layout_index);
-        editor->selectedKind  = CONFIGURATION_SELECTION_SCREEN;
+        editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_SCREEN;
         editor->selectedIndex = parent_index;
         (void)strcpy(editor->status, "Removed layout. Build XML to save.");
     }
@@ -874,7 +874,7 @@ static void DrawHierarchy(ConfigurationEditor_t* editor)
     {
         parent_index = editor->windows[remove_window_index].layoutIndex;
         RemoveWindow(editor, remove_window_index);
-        editor->selectedKind  = CONFIGURATION_SELECTION_LAYOUT;
+        editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_LAYOUT;
         editor->selectedIndex = parent_index;
         (void)strcpy(editor->status, "Removed window. Build XML to save.");
     }
@@ -1023,7 +1023,7 @@ static bool_t DrawUnitField(const char_t* label, Utl_Arinc661_Unit_t* unit)
  * \par Details:
  *  Screen pixel and physical dimensions remain grouped under their screen selection.
  */
-static void DrawScreenInspector(ConfigurationEditor_t* editor)
+static void DrawScreenInspector(Arinc661_Configuration_Editor_t* editor)
 {
     Utl_Arinc661_Screen_t* screen;
     bool_t                 has_width_changed;
@@ -1067,7 +1067,7 @@ static void DrawScreenInspector(ConfigurationEditor_t* editor)
  * \par Details:
  *  Layouts have an identifier; their screen relationship is shown by the hierarchy.
  */
-static void DrawLayoutInspector(ConfigurationEditor_t* editor)
+static void DrawLayoutInspector(Arinc661_Configuration_Editor_t* editor)
 {
     Utl_Arinc661_Layout_t* layout;
 
@@ -1085,7 +1085,7 @@ static void DrawLayoutInspector(ConfigurationEditor_t* editor)
  * \par Details:
  *  Window geometry and scaling values are edited as typed fields.
  */
-static void DrawWindowInspector(ConfigurationEditor_t* editor)
+static void DrawWindowInspector(Arinc661_Configuration_Editor_t* editor)
 {
     Utl_Arinc661_Window_t* window;
 
@@ -1124,7 +1124,7 @@ static void DrawWindowInspector(ConfigurationEditor_t* editor)
  * \par Details:
  *  The file label and hierarchy share the left child pane.
  */
-static void DrawHierarchyPane(ConfigurationEditor_t* editor)
+static void DrawHierarchyPane(Arinc661_Configuration_Editor_t* editor)
 {
     if (ImGui::BeginChild(HIERARCHY_PANE_NAME, ImVec2(0.0f, 0.0f), ImGuiChildFlags_AlwaysUseWindowPadding))
     {
@@ -1144,7 +1144,7 @@ static void DrawHierarchyPane(ConfigurationEditor_t* editor)
  * \par Details:
  *  Shows the selected item's typed fields in the right child pane.
  */
-static void DrawInspector(ConfigurationEditor_t* editor)
+static void DrawInspector(Arinc661_Configuration_Editor_t* editor)
 {
     if (ImGui::BeginChild(INSPECTOR_PANE_NAME, ImVec2(0.0f, 0.0f), ImGuiChildFlags_AlwaysUseWindowPadding))
     {
@@ -1152,15 +1152,15 @@ static void DrawInspector(ConfigurationEditor_t* editor)
         ImGui::Separator();
         if (editor->isLoaded)
         {
-            if (CONFIGURATION_SELECTION_SCREEN == editor->selectedKind)
+            if (ARINC661_CONFIGURATION_SELECTION_SCREEN == editor->selectedKind)
             {
                 DrawScreenInspector(editor);
             }
-            else if (CONFIGURATION_SELECTION_LAYOUT == editor->selectedKind)
+            else if (ARINC661_CONFIGURATION_SELECTION_LAYOUT == editor->selectedKind)
             {
                 DrawLayoutInspector(editor);
             }
-            else if (CONFIGURATION_SELECTION_WINDOW == editor->selectedKind)
+            else if (ARINC661_CONFIGURATION_SELECTION_WINDOW == editor->selectedKind)
             {
                 DrawWindowInspector(editor);
             }
@@ -1178,7 +1178,7 @@ static void DrawInspector(ConfigurationEditor_t* editor)
  * \par Details:
  *  Fits the combined screen widths and tallest screen inside the available canvas, selects clicked geometry, and draws the selection overlay and status bar.
  */
-static void DrawScene(ConfigurationEditor_t* editor)
+static void DrawScene(Arinc661_Configuration_Editor_t* editor)
 {
     const ImGuiStyle*            style;
     const Utl_Arinc661_Screen_t* screen;
@@ -1272,7 +1272,7 @@ static void DrawScene(ConfigurationEditor_t* editor)
                 is_canvas_clicked = ImGui::IsItemClicked();
                 if (is_canvas_clicked)
                 {
-                    editor->selectedKind  = CONFIGURATION_SELECTION_NONE;
+                    editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_NONE;
                     editor->selectedIndex = 0;
                 }
                 mouse_position = ImGui::GetMousePos();
@@ -1311,7 +1311,7 @@ static void DrawScene(ConfigurationEditor_t* editor)
                             is_screen_hit       = !!(is_screen_body_hit || is_screen_label_hit);
                             if (is_screen_hit)
                             {
-                                editor->selectedKind  = CONFIGURATION_SELECTION_SCREEN;
+                                editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_SCREEN;
                                 editor->selectedIndex = screen_index;
                             }
                         }
@@ -1340,16 +1340,16 @@ static void DrawScene(ConfigurationEditor_t* editor)
                                     is_window_hit = ImRect(area_min, area_max).Contains(mouse_position);
                                     if (is_window_hit)
                                     {
-                                        editor->selectedKind  = CONFIGURATION_SELECTION_WINDOW;
+                                        editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_WINDOW;
                                         editor->selectedIndex = window_index;
                                     }
                                 }
                                 is_selected_layout_window = FALSE;
-                                if (CONFIGURATION_SELECTION_LAYOUT == editor->selectedKind)
+                                if (ARINC661_CONFIGURATION_SELECTION_LAYOUT == editor->selectedKind)
                                 {
                                     is_selected_layout_window = (window->layoutIndex == editor->selectedIndex);
                                 }
-                                else if (CONFIGURATION_SELECTION_WINDOW == editor->selectedKind)
+                                else if (ARINC661_CONFIGURATION_SELECTION_WINDOW == editor->selectedKind)
                                 {
                                     if (window_index == editor->selectedIndex)
                                     {
@@ -1381,7 +1381,7 @@ static void DrawScene(ConfigurationEditor_t* editor)
                         {
                             draw_list->AddRectFilled(selected_window_min, selected_window_max, SCENE_SELECTION_OVERLAY_COLOR);
                         }
-                        is_selected_screen = (CONFIGURATION_SELECTION_SCREEN == editor->selectedKind);
+                        is_selected_screen = (ARINC661_CONFIGURATION_SELECTION_SCREEN == editor->selectedKind);
                         if (is_selected_screen)
                         {
                             is_selected_screen = (screen_index == editor->selectedIndex);
@@ -1408,7 +1408,7 @@ static void DrawScene(ConfigurationEditor_t* editor)
         ImGui::PushClipRect(status_bar_min, status_bar_max, TRUE);
         if (ImGui::Button(CONFIGURATION_RELOAD_XML_LABEL))
         {
-            ReloadConfiguration(editor);
+            Arinc661_Configuration_Reload(editor);
         }
         if (editor->isLoaded)
         {
@@ -1469,7 +1469,7 @@ static void ClampPaneResize(float32_t minimumHierarchyWidth)
  * \par Details:
  *  Includes every hierarchy label and its adjacent remove control in the left pane minimum.
  */
-static void MeasurePaneWidths(const ConfigurationEditor_t* editor, float32_t* hierarchyWidth, float32_t* inspectorWidth)
+static void MeasurePaneWidths(const Arinc661_Configuration_Editor_t* editor, float32_t* hierarchyWidth, float32_t* inspectorWidth)
 {
     const ImGuiStyle* style;
     ImVec2            button_padding;
@@ -1537,18 +1537,18 @@ static void MeasurePaneWidths(const ConfigurationEditor_t* editor, float32_t* hi
  * \par Details:
  *  Binds the fixed arrays and their capacities in the zero-initialized editor.
  */
-void InitializeConfiguration(ConfigurationEditor_t* editor)
+void Arinc661_Configuration_Initialize(Arinc661_Configuration_Editor_t* editor)
 {
     editor->configuration.screens                 = editor->screens;
     editor->configuration.layouts                 = editor->layouts;
     editor->configuration.windows                 = editor->windows;
     editor->configuration.userApplications        = editor->userApplications;
     editor->configuration.externalSources         = editor->externalSources;
-    editor->configuration.screenCapacity          = CONFIGURATION_MAX_SCREENS;
-    editor->configuration.layoutCapacity          = CONFIGURATION_MAX_LAYOUTS;
-    editor->configuration.windowCapacity          = CONFIGURATION_MAX_WINDOWS;
-    editor->configuration.userApplicationCapacity = CONFIGURATION_MAX_USER_APPLICATIONS;
-    editor->configuration.externalSourceCapacity  = CONFIGURATION_MAX_EXTERNAL_SOURCES;
+    editor->configuration.screenCapacity          = ARINC661_CONFIGURATION_MAX_SCREENS;
+    editor->configuration.layoutCapacity          = ARINC661_CONFIGURATION_MAX_LAYOUTS;
+    editor->configuration.windowCapacity          = ARINC661_CONFIGURATION_MAX_WINDOWS;
+    editor->configuration.userApplicationCapacity = ARINC661_CONFIGURATION_MAX_USER_APPLICATIONS;
+    editor->configuration.externalSourceCapacity  = ARINC661_CONFIGURATION_MAX_EXTERNAL_SOURCES;
 }
 
 /*************************************************************************************************/
@@ -1556,13 +1556,13 @@ void InitializeConfiguration(ConfigurationEditor_t* editor)
  * \par Details:
  *  Reads the example file and replaces the editor's typed configuration and selection.
  */
-void ReloadConfiguration(ConfigurationEditor_t* editor)
+void Arinc661_Configuration_Reload(Arinc661_Configuration_Editor_t* editor)
 {
     int32_t document_byte_count;
     bool_t  is_configuration;
 
     editor->isLoaded      = FALSE;
-    editor->selectedKind  = CONFIGURATION_SELECTION_NONE;
+    editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_NONE;
     editor->selectedIndex = 0;
 
     editor->configuration.screenCount          = 0;
@@ -1583,7 +1583,7 @@ void ReloadConfiguration(ConfigurationEditor_t* editor)
     }
     else
     {
-        if (CONFIGURATION_MAX_DOCUMENT_BYTES < document_byte_count)
+        if (ARINC661_CONFIGURATION_MAX_DOCUMENT_BYTES < document_byte_count)
         {
             (void)strcpy(editor->status, "The XML file exceeds the input buffer.");
         }
@@ -1599,7 +1599,7 @@ void ReloadConfiguration(ConfigurationEditor_t* editor)
                 editor->isLoaded = TRUE;
                 if (0 < editor->configuration.screenCount)
                 {
-                    editor->selectedKind = CONFIGURATION_SELECTION_SCREEN;
+                    editor->selectedKind = ARINC661_CONFIGURATION_SELECTION_SCREEN;
                 }
                 UpdatePreviewMeasurements(editor);
                 (void)strcpy(editor->status, "Loaded arinc661_configuration.xml.");
@@ -1617,7 +1617,7 @@ void ReloadConfiguration(ConfigurationEditor_t* editor)
  * \par Details:
  *  Draws one viewport-sized window containing resizable hierarchy, scene, and inspector panes.
  */
-void DrawConfigurationEditor(ConfigurationEditor_t* editor)
+void Arinc661_Configuration_DrawEditor(Arinc661_Configuration_Editor_t* editor)
 {
     const ImGuiViewport* viewport;
     ImGuiWindowFlags     window_flags;

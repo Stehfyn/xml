@@ -76,7 +76,7 @@ typedef struct WindowThreadState_s
     HANDLE                 readyEvent;          ///< Signals when rendering setup is complete.
     HANDLE                 presentStoppedEvent; ///< Signals when the presenter releases its device context.
     HGLRC                  presentContext;      ///< OpenGL context used by the presenter thread.
-    ConfigurationEditor_t* editor;              ///< Editor rendered by the window thread.
+    Arinc661_Configuration_Editor_t* editor;              ///< Editor rendered by the window thread.
     float32_t              mainScale;           ///< Initial display scale.
     SRWLOCK                presentLock;         ///< Protects geometry, drawing, and buffer swaps.
     CONDITION_VARIABLE     presentCondition;    ///< Wakes the window thread after geometry is acknowledged.
@@ -310,7 +310,7 @@ static void DrawFrame(WindowThreadState_t* window)
 {
     AcquireSRWLockExclusive(&window->presentLock);
     BeginFrame();
-    DrawConfigurationEditor(window->editor);
+    Arinc661_Configuration_DrawEditor(window->editor);
     EndFrame(window);
     ReleaseSRWLockExclusive(&window->presentLock);
     LOGASSERT(S_OK == ::DwmFlush());
@@ -572,7 +572,7 @@ static LRESULT WINAPI WindowProcedure(HWND windowHandle, UINT message, WPARAM wo
             {
                 AcquireSRWLockExclusive(&window->presentLock);
                 BeginFrame();
-                DrawConfigurationEditor(window->editor);
+                Arinc661_Configuration_DrawEditor(window->editor);
                 EndFrame(window);
                 ReleaseSRWLockExclusive(&window->presentLock);
                 LOGASSERT(S_OK == ::DwmFlush());
@@ -613,7 +613,7 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
     ImGuiStyle*                style;
     ImGuiPlatformIO*           platform_io;
     WglSwapIntervalFunction_t  swap_interval;
-    ConfigurationEditor_t*     configuration_editor;
+    Arinc661_Configuration_Editor_t*     configuration_editor;
     MSG                        message;
 
     window = (WindowThreadState_t*)parameter;
@@ -694,9 +694,9 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
         platform_io->Platform_RenderWindow  = HookPlatformRenderWindow;
     }
 
-    configuration_editor = (ConfigurationEditor_t*)OS_CALLOC(sizeof(ConfigurationEditor_t));
-    InitializeConfiguration(configuration_editor);
-    ReloadConfiguration(configuration_editor);
+    configuration_editor = (Arinc661_Configuration_Editor_t*)OS_CALLOC(sizeof(Arinc661_Configuration_Editor_t));
+    Arinc661_Configuration_Initialize(configuration_editor);
+    Arinc661_Configuration_Reload(configuration_editor);
     window->editor = configuration_editor;
     window->isInitialized = TRUE;
     LOGASSERT(FALSE != ::SetEvent(window->readyEvent));

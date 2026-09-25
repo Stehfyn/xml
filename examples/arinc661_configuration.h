@@ -20,13 +20,13 @@ extern "C"
 ** 3.1 Macros
 **===============================================================================================*/
 
-#define CONFIGURATION_MAX_DOCUMENT_BYTES   (262144)
-#define CONFIGURATION_MAX_SCREENS           (1024)
-#define CONFIGURATION_MAX_LAYOUTS           (4096)
-#define CONFIGURATION_MAX_WINDOWS           (4096)
-#define CONFIGURATION_MAX_USER_APPLICATIONS (1024)
-#define CONFIGURATION_MAX_EXTERNAL_SOURCES  (1024)
-#define CONFIGURATION_STATUS_BYTES          (256)
+#define ARINC661_CONFIGURATION_MAX_DOCUMENT_BYTES   (262144)
+#define ARINC661_CONFIGURATION_MAX_SCREENS           (1024)
+#define ARINC661_CONFIGURATION_MAX_LAYOUTS           (4096)
+#define ARINC661_CONFIGURATION_MAX_WINDOWS           (4096)
+#define ARINC661_CONFIGURATION_MAX_USER_APPLICATIONS (1024)
+#define ARINC661_CONFIGURATION_MAX_EXTERNAL_SOURCES  (1024)
+#define ARINC661_CONFIGURATION_STATUS_BYTES          (256)
 
 /*=================================================================================================
 ** 3.2 Types
@@ -36,37 +36,37 @@ extern "C"
 /**
  * \brief Kind of entity selected in the configuration hierarchy.
  */
-typedef enum ConfigurationSelectionKind_e
+typedef enum Arinc661_Configuration_SelectionKind_e
 {
-    CONFIGURATION_SELECTION_NONE,
-    CONFIGURATION_SELECTION_SCREEN,
-    CONFIGURATION_SELECTION_LAYOUT,
-    CONFIGURATION_SELECTION_WINDOW
-} ConfigurationSelectionKind_t;
+    ARINC661_CONFIGURATION_SELECTION_NONE,
+    ARINC661_CONFIGURATION_SELECTION_SCREEN,
+    ARINC661_CONFIGURATION_SELECTION_LAYOUT,
+    ARINC661_CONFIGURATION_SELECTION_WINDOW
+} Arinc661_Configuration_SelectionKind_t;
 
 /*************************************************************************************************/
 /**
  * \brief Caller-owned document, conversion workspace, and editor presentation state.
  */
-typedef struct ConfigurationEditor_s
+typedef struct Arinc661_Configuration_Editor_s
 {
-    byte_t                             inputBuffer[CONFIGURATION_MAX_DOCUMENT_BYTES + 1];       ///< Input file bytes.
-    byte_t                             outputBuffer[CONFIGURATION_MAX_DOCUMENT_BYTES];          ///< Built XML bytes.
-    uint64_t                           workspace[UTL_ARINC661_WORKSPACE_BYTES / sizeof(uint64_t)]; ///< XML conversion scratch space.
-    Utl_Arinc661_Screen_t              screens[CONFIGURATION_MAX_SCREENS];                      ///< Screen values.
-    Utl_Arinc661_Layout_t              layouts[CONFIGURATION_MAX_LAYOUTS];                      ///< Layout values.
-    Utl_Arinc661_Window_t              windows[CONFIGURATION_MAX_WINDOWS];                      ///< Window values.
-    Utl_Arinc661_UserApplication_t     userApplications[CONFIGURATION_MAX_USER_APPLICATIONS];  ///< User application values.
-    Utl_Arinc661_ExternalSource_t      externalSources[CONFIGURATION_MAX_EXTERNAL_SOURCES];    ///< External source values.
-    Utl_Arinc661_Configuration_t       configuration;                                          ///< Display management configuration values.
-    ConfigurationSelectionKind_t       selectedKind;                                             ///< Selected entity type.
-    uint32_t                           selectedIndex;                                            ///< Selected array index.
-    float32_t                          totalScreenWidth;                                         ///< Sum of drawable screen widths.
-    float32_t                          maximumScreenHeight;                                      ///< Largest drawable screen height.
-    uint32_t                           drawableScreenCount;                                      ///< Screens with positive pixel size.
-    char_t                             status[CONFIGURATION_STATUS_BYTES];                      ///< Current message.
-    bool_t                             isLoaded;                                                ///< TRUE after a successful read.
-} ConfigurationEditor_t;
+    byte_t                                 inputBuffer[ARINC661_CONFIGURATION_MAX_DOCUMENT_BYTES + 1];       ///< Input file bytes.
+    byte_t                                 outputBuffer[ARINC661_CONFIGURATION_MAX_DOCUMENT_BYTES];          ///< Built XML bytes.
+    uint64_t                               workspace[UTL_ARINC661_WORKSPACE_BYTES / sizeof(uint64_t)];       ///< XML conversion scratch space.
+    Utl_Arinc661_Screen_t                  screens[ARINC661_CONFIGURATION_MAX_SCREENS];                      ///< Screen values.
+    Utl_Arinc661_Layout_t                  layouts[ARINC661_CONFIGURATION_MAX_LAYOUTS];                      ///< Layout values.
+    Utl_Arinc661_Window_t                  windows[ARINC661_CONFIGURATION_MAX_WINDOWS];                      ///< Window values.
+    Utl_Arinc661_UserApplication_t         userApplications[ARINC661_CONFIGURATION_MAX_USER_APPLICATIONS];   ///< User application values.
+    Utl_Arinc661_ExternalSource_t          externalSources[ARINC661_CONFIGURATION_MAX_EXTERNAL_SOURCES];     ///< External source values.
+    Utl_Arinc661_Configuration_t           configuration;                                                    ///< Display management configuration values.
+    Arinc661_Configuration_SelectionKind_t selectedKind;                                                     ///< Selected entity type.
+    uint32_t                               selectedIndex;                                                    ///< Selected array index.
+    float32_t                              totalScreenWidth;                                                 ///< Sum of drawable screen widths.
+    float32_t                              maximumScreenHeight;                                              ///< Largest drawable screen height.
+    uint32_t                               drawableScreenCount;                                              ///< Screens with positive pixel size.
+    char_t                                 status[ARINC661_CONFIGURATION_STATUS_BYTES];                      ///< Current message.
+    bool_t                                 isLoaded;                                                         ///< TRUE after a successful read.
+} Arinc661_Configuration_Editor_t;
 
 /*=================================================================================================
 ** 3.3 Constants
@@ -88,7 +88,7 @@ typedef struct ConfigurationEditor_s
  *
  * \retval        None
  */
-void InitializeConfiguration(ConfigurationEditor_t* editor);
+void Arinc661_Configuration_Initialize(Arinc661_Configuration_Editor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -98,7 +98,7 @@ void InitializeConfiguration(ConfigurationEditor_t* editor);
  *
  * \retval        None
  */
-void ReloadConfiguration(ConfigurationEditor_t* editor);
+void Arinc661_Configuration_Reload(Arinc661_Configuration_Editor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -108,6 +108,6 @@ void ReloadConfiguration(ConfigurationEditor_t* editor);
  *
  * \retval        None
  */
-void DrawConfigurationEditor(ConfigurationEditor_t* editor);
+void Arinc661_Configuration_DrawEditor(Arinc661_Configuration_Editor_t* editor);
 
 #endif /* ARINC661_CONFIGURATION_H */
