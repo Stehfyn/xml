@@ -302,7 +302,7 @@ static const char_t* EditorStatusToString(int32_t status);
 
 /*************************************************************************************************/
 /**
- * \brief Joins a folder and filename, adding a separator when needed.
+ * \brief Joins a folder and filename with normalized separators.
  *
  * \param[in]  folderPath   Nonempty folder path
  * \param[in]  fileName     Filename or search pattern
@@ -339,7 +339,7 @@ static void UpdatePreviewMeasurements(Arinc661_Configuration_Document_t* editor)
 
 /*************************************************************************************************/
 /**
- * \brief Loads the clicked XML file from the configured folder.
+ * \brief Focuses an open XML file or loads it into an available document slot.
  *
  * \param[in,out] editor     Editor state
  * \param[in]     fileName   Clicked XML filename
@@ -940,12 +940,13 @@ static const char_t* EditorStatusToString(int32_t status)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Preserves folder paths that already end in either supported separator.
+ *  Uses forward slashes in joined paths so either folder separator spelling compares equally.
  */
 static void JoinFolderPath(const char_t* folderPath, const char_t* fileName, char_t* filePath, uint32_t capacity)
 {
     uint32_t folder_length;
     uint32_t file_name_length;
+    uint32_t index;
     bool_t   ends_with_backslash;
     bool_t   ends_with_slash;
     bool_t   needs_separator;
@@ -959,9 +960,16 @@ static void JoinFolderPath(const char_t* folderPath, const char_t* fileName, cha
     LOGASSERT((folder_length + (uint32_t)needs_separator + file_name_length + 1) <= capacity);
 
     (void)memcpy(filePath, folderPath, folder_length);
+    for (index = 0; index < folder_length; ++index)
+    {
+        if ('\\' == filePath[index])
+        {
+            filePath[index] = '/';
+        }
+    }
     if (needs_separator)
     {
-        filePath[folder_length] = '\\';
+        filePath[folder_length] = '/';
         folder_length += 1;
     }
     (void)memcpy(filePath + folder_length, fileName, file_name_length + 1);
@@ -1032,7 +1040,7 @@ static void UpdatePreviewMeasurements(Arinc661_Configuration_Document_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Reads the configured file and replaces the editor's typed configuration and selection.
+ *  Preserves an open document's edits when the selected path matches its stored path.
  */
 static void LoadConfigurationFile(Arinc661_Configuration_Editor_t* editor, const char_t* fileName)
 {
@@ -1045,6 +1053,7 @@ static void LoadConfigurationFile(Arinc661_Configuration_Editor_t* editor, const
     uint32_t                           available_index;
     bool_t                             is_configuration;
     bool_t                             has_file_path;
+    bool_t                             has_matching_path;
 
     has_file_path = GetXmlFilePath(editor, fileName, file_path, sizeof(file_path));
     if (has_file_path)
@@ -1056,9 +1065,14 @@ static void LoadConfigurationFile(Arinc661_Configuration_Editor_t* editor, const
             document = &editor->documents[index];
             if (document->isLoaded)
             {
-                if (0 == ImStricmp(document->documentPath, file_path))
+                has_matching_path = (0 == ImStricmp(document->documentPath, file_path));
+                if (has_matching_path)
                 {
                     document_index = index;
+                    if (document->isDirty)
+                    {
+                        break;
+                    }
                 }
             }
             else if (INVALID_DOCUMENT_INDEX == available_index)
