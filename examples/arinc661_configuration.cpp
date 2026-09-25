@@ -102,9 +102,9 @@ static const char_t* const c_unitNames[] =
 /**
  * \brief Recalculates the dimensions needed to fit drawable screens in the scene.
  *
- * \param[in,out] editor Editor state
+ * \param[in,out] editor   Editor state
  *
- * \retval None
+ * \retval        None
  */
 static void UpdatePreviewMeasurements(ConfigurationEditor_t* editor);
 
@@ -112,9 +112,9 @@ static void UpdatePreviewMeasurements(ConfigurationEditor_t* editor);
 /**
  * \brief Writes the in-memory display configuration to the example file.
  *
- * \param[in,out] editor Editor state
+ * \param[in,out] editor   Editor state
  *
- * \retval None
+ * \retval        None
  */
 static void BuildConfigurationFile(ConfigurationEditor_t* editor);
 
@@ -122,13 +122,13 @@ static void BuildConfigurationFile(ConfigurationEditor_t* editor);
 /**
  * \brief Chooses the next identifier for a screen, layout, or window.
  *
- * \param[in]  editor      Editor state
- * \param[in]  kind        Entity type
- * \param[in]  screenIndex Owning screen index for a layout
- * \param[out] id          Next available identifier
+ * \param[in]  editor        Editor state
+ * \param[in]  kind          Entity type
+ * \param[in]  screenIndex   Owning screen index for a layout
+ * \param[out] id            Next available identifier
  *
- * \retval TRUE  An identifier is available.
- * \retval FALSE The identifier range is exhausted.
+ * \retval     TRUE        if an identifier is available.
+ * \retval     FALSE       if the identifier range is exhausted.
  */
 static bool_t NextIdentifier(const ConfigurationEditor_t* editor, ConfigurationSelectionKind_t kind, uint32_t screenIndex, int64_t* id);
 
@@ -136,9 +136,9 @@ static bool_t NextIdentifier(const ConfigurationEditor_t* editor, ConfigurationS
 /**
  * \brief Appends a screen with default dimensions.
  *
- * \param[in,out] editor Editor state
+ * \param[in,out] editor   Editor state
  *
- * \retval None
+ * \retval        None
  */
 static void AddScreen(ConfigurationEditor_t* editor);
 
@@ -146,10 +146,10 @@ static void AddScreen(ConfigurationEditor_t* editor);
 /**
  * \brief Appends a layout to the selected screen.
  *
- * \param[in,out] editor      Editor state
- * \param[in]     screenIndex Owning screen index
+ * \param[in,out] editor        Editor state
+ * \param[in]     screenIndex   Owning screen index
  *
- * \retval None
+ * \retval        None
  */
 static void AddLayout(ConfigurationEditor_t* editor, uint32_t screenIndex);
 
@@ -157,10 +157,10 @@ static void AddLayout(ConfigurationEditor_t* editor, uint32_t screenIndex);
 /**
  * \brief Appends a window to the selected layout.
  *
- * \param[in,out] editor      Editor state
- * \param[in]     layoutIndex Owning layout index
+ * \param[in,out] editor        Editor state
+ * \param[in]     layoutIndex   Owning layout index
  *
- * \retval None
+ * \retval        None
  */
 static void AddWindow(ConfigurationEditor_t* editor, uint32_t layoutIndex);
 
@@ -168,10 +168,10 @@ static void AddWindow(ConfigurationEditor_t* editor, uint32_t layoutIndex);
 /**
  * \brief Removes one window and updates its array.
  *
- * \param[in,out] editor      Editor state
- * \param[in]     windowIndex Window index to remove
+ * \param[in,out] editor        Editor state
+ * \param[in]     windowIndex   Window index to remove
  *
- * \retval None
+ * \retval        None
  */
 static void RemoveWindow(ConfigurationEditor_t* editor, uint32_t windowIndex);
 
@@ -179,10 +179,10 @@ static void RemoveWindow(ConfigurationEditor_t* editor, uint32_t windowIndex);
 /**
  * \brief Removes one layout and all of its windows.
  *
- * \param[in,out] editor      Editor state
- * \param[in]     layoutIndex Layout index to remove
+ * \param[in,out] editor        Editor state
+ * \param[in]     layoutIndex   Layout index to remove
  *
- * \retval None
+ * \retval        None
  */
 static void RemoveLayout(ConfigurationEditor_t* editor, uint32_t layoutIndex);
 
@@ -190,10 +190,10 @@ static void RemoveLayout(ConfigurationEditor_t* editor, uint32_t layoutIndex);
 /**
  * \brief Removes one screen and all of its layouts and windows.
  *
- * \param[in,out] editor      Editor state
- * \param[in]     screenIndex Screen index to remove
+ * \param[in,out] editor        Editor state
+ * \param[in]     screenIndex   Screen index to remove
  *
- * \retval None
+ * \retval        None
  */
 static void RemoveScreen(ConfigurationEditor_t* editor, uint32_t screenIndex);
 
@@ -201,11 +201,11 @@ static void RemoveScreen(ConfigurationEditor_t* editor, uint32_t screenIndex);
 /**
  * \brief Draws an X remove control beside the preceding tree row.
  *
- * \param[in] label     Button identifier and tooltip text
- * \param[in] rowHeight Height of the tree row
+ * \param[in] label       Button identifier and tooltip text
+ * \param[in] rowHeight   Height of the tree row
  *
- * \retval TRUE  The remove control was clicked.
- * \retval FALSE The remove control was not clicked.
+ * \retval    TRUE        if the remove control was clicked.
+ * \retval    FALSE       if the remove control was not clicked.
  */
 static bool_t DrawRemoveButton(const char_t* label, float32_t rowHeight);
 
@@ -213,9 +213,9 @@ static bool_t DrawRemoveButton(const char_t* label, float32_t rowHeight);
 /**
  * \brief Draws the selection tree and its add and remove controls.
  *
- * \param[in,out] editor Editor state
+ * \param[in,out] editor   Editor state
  *
- * \retval None
+ * \retval        None
  */
 static void DrawHierarchy(ConfigurationEditor_t* editor);
 
@@ -223,10 +223,10 @@ static void DrawHierarchy(ConfigurationEditor_t* editor);
 /**
  * \brief Begins a two-column property table with the editor's standard columns.
  *
- * \param[in] name Table identifier
+ * \param[in] name   Table identifier
  *
- * \retval TRUE  The table is visible.
- * \retval FALSE The table is not visible.
+ * \retval    TRUE        if the table is visible.
+ * \retval    FALSE       if the table is not visible.
  */
 static bool_t BeginPropertyTable(const char_t* name);
 
@@ -234,11 +234,11 @@ static bool_t BeginPropertyTable(const char_t* name);
 /**
  * \brief Draws one signed integer in the two-column inspector.
  *
- * \param[in]     label Visible field label
- * \param[in,out] value Integer value
+ * \param[in]     label   Visible field label
+ * \param[in,out] value   Integer value
  *
- * \retval TRUE  The value changed.
- * \retval FALSE The value did not change.
+ * \retval        TRUE        if the value changed.
+ * \retval        FALSE       if the value did not change.
  */
 static bool_t DrawIntegerField(const char_t* label, int64_t* value);
 
@@ -246,11 +246,11 @@ static bool_t DrawIntegerField(const char_t* label, int64_t* value);
 /**
  * \brief Draws one decimal in the two-column inspector.
  *
- * \param[in]     label Visible field label
- * \param[in,out] value Decimal value
+ * \param[in]     label   Visible field label
+ * \param[in,out] value   Decimal value
  *
- * \retval TRUE  The value changed.
- * \retval FALSE The value did not change.
+ * \retval        TRUE        if the value changed.
+ * \retval        FALSE       if the value did not change.
  */
 static bool_t DrawDecimalField(const char_t* label, float32_t* value);
 
@@ -258,12 +258,12 @@ static bool_t DrawDecimalField(const char_t* label, float32_t* value);
 /**
  * \brief Draws one short text value in the two-column inspector.
  *
- * \param[in]     label    Visible field label
- * \param[in,out] value    Terminated text storage
- * \param[in]     capacity Number of text bytes
+ * \param[in]     label      Visible field label
+ * \param[in,out] value      Terminated text storage
+ * \param[in]     capacity   Number of text bytes
  *
- * \retval TRUE  The value changed.
- * \retval FALSE The value did not change.
+ * \retval        TRUE        if the value changed.
+ * \retval        FALSE       if the value did not change.
  */
 static bool_t DrawTextField(const char_t* label, char_t* value, uint32_t capacity);
 
@@ -271,11 +271,11 @@ static bool_t DrawTextField(const char_t* label, char_t* value, uint32_t capacit
 /**
  * \brief Draws a unit value as a choice field.
  *
- * \param[in]     label Visible field label
- * \param[in,out] unit  Unit value
+ * \param[in]     label   Visible field label
+ * \param[in,out] unit    Unit value
  *
- * \retval TRUE  The value changed.
- * \retval FALSE The value did not change.
+ * \retval        TRUE        if the value changed.
+ * \retval        FALSE       if the value did not change.
  */
 static bool_t DrawUnitField(const char_t* label, Utl_Arinc661_Unit_t* unit);
 
@@ -283,9 +283,9 @@ static bool_t DrawUnitField(const char_t* label, Utl_Arinc661_Unit_t* unit);
 /**
  * \brief Draws the selected screen's properties.
  *
- * \param[in,out] editor Editor state
+ * \param[in,out] editor   Editor state
  *
- * \retval None
+ * \retval        None
  */
 static void DrawScreenInspector(ConfigurationEditor_t* editor);
 
@@ -293,9 +293,9 @@ static void DrawScreenInspector(ConfigurationEditor_t* editor);
 /**
  * \brief Draws the selected layout's properties.
  *
- * \param[in,out] editor Editor state
+ * \param[in,out] editor   Editor state
  *
- * \retval None
+ * \retval        None
  */
 static void DrawLayoutInspector(ConfigurationEditor_t* editor);
 
@@ -303,9 +303,9 @@ static void DrawLayoutInspector(ConfigurationEditor_t* editor);
 /**
  * \brief Draws the selected window's properties.
  *
- * \param[in,out] editor Editor state
+ * \param[in,out] editor   Editor state
  *
- * \retval None
+ * \retval        None
  */
 static void DrawWindowInspector(ConfigurationEditor_t* editor);
 
@@ -313,9 +313,9 @@ static void DrawWindowInspector(ConfigurationEditor_t* editor);
 /**
  * \brief Draws the configuration actions and hierarchy in the left child pane.
  *
- * \param[in,out] editor Editor state
+ * \param[in,out] editor   Editor state
  *
- * \retval None
+ * \retval        None
  */
 static void DrawHierarchyPane(ConfigurationEditor_t* editor);
 
@@ -323,9 +323,9 @@ static void DrawHierarchyPane(ConfigurationEditor_t* editor);
 /**
  * \brief Draws the selected configuration item's properties in the right child pane.
  *
- * \param[in,out] editor Editor state
+ * \param[in,out] editor   Editor state
  *
- * \retval None
+ * \retval        None
  */
 static void DrawInspector(ConfigurationEditor_t* editor);
 
@@ -333,9 +333,9 @@ static void DrawInspector(ConfigurationEditor_t* editor);
 /**
  * \brief Draws screen and window geometry with selected hierarchy items highlighted.
  *
- * \param[in,out] editor Editor state and hierarchy selection
+ * \param[in,out] editor   Editor state and hierarchy selection
  *
- * \retval None
+ * \retval        None
  */
 static void DrawScene(ConfigurationEditor_t* editor);
 
@@ -343,9 +343,9 @@ static void DrawScene(ConfigurationEditor_t* editor);
 /**
  * \brief Limits pending pane drags before ImGui applies them.
  *
- * \param[in] minimumHierarchyWidth Width required by the hierarchy controls
+ * \param[in] minimumHierarchyWidth   Width required by the hierarchy controls
  *
- * \retval None
+ * \retval    None
  */
 static void ClampPaneResize(float32_t minimumHierarchyWidth);
 
@@ -353,11 +353,11 @@ static void ClampPaneResize(float32_t minimumHierarchyWidth);
 /**
  * \brief Measures the minimum hierarchy width and default inspector width.
  *
- * \param[in]  editor          Editor state containing hierarchy row labels
- * \param[out] hierarchyWidth  Minimum width needed for the hierarchy and file label
- * \param[out] inspectorWidth  Width needed for the property fields
+ * \param[in]  editor           Editor state containing hierarchy row labels
+ * \param[out] hierarchyWidth   Minimum width needed for the hierarchy and file label
+ * \param[out] inspectorWidth   Width needed for the property fields
  *
- * \retval None
+ * \retval     None
  */
 static void MeasurePaneWidths(const ConfigurationEditor_t* editor, float32_t* hierarchyWidth, float32_t* inspectorWidth);
 

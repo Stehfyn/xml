@@ -261,14 +261,14 @@ typedef struct Utl_Arinc661_Definition_s
  *  - 004 This function shall fail an assertion if configuration, buffer, or workspace is NULL.
  *  - 005 This function shall inherit Utl_Xml_ReadDocument's assertions for XML outside its supported form.
  *
- * \param[in,out] configuration Configuration with storage pointers and capacities initialized
- * \param[in,out] buffer        Input XML bytes, followed by one writable byte
- * \param[in]     byteCount     Number of input bytes, excluding the extra byte
- * \param[in,out] workspace     Eight-byte-aligned temporary storage
- * \param[in]     workspaceSize Number of temporary bytes
+ * \param[in,out] configuration   Configuration with storage pointers and capacities initialized
+ * \param[in,out] buffer          Input XML bytes, followed by one writable byte
+ * \param[in]     byteCount       Number of input bytes, excluding the extra byte
+ * \param[in,out] workspace       Eight-byte-aligned temporary storage
+ * \param[in]     workspaceSize   Number of temporary bytes
  *
- * \retval    TRUE        if the supported configuration values were read.
- * \retval    FALSE       if a supported value is invalid or supplied storage is insufficient.
+ * \retval        TRUE        if the supported configuration values were read.
+ * \retval        FALSE       if a supported value is invalid or supplied storage is insufficient.
  */
 bool_t Utl_Arinc661_ReadConfiguration(Utl_Arinc661_Configuration_t* configuration, byte_t* buffer, uint64_t byteCount, void* workspace, uint64_t workspaceSize);
 
@@ -289,11 +289,11 @@ bool_t Utl_Arinc661_ReadConfiguration(Utl_Arinc661_Configuration_t* configuratio
  *  - 004 This function shall fail an assertion if configuration, buffer, or workspace is NULL.
  *  - 005 This function shall inherit Utl_Xml_WriteDocument's assertion when output capacity is insufficient.
  *
- * \param[in]     configuration Configuration data to write
- * \param[out]    buffer        Output XML bytes
- * \param[in]     capacity      Output buffer capacity
- * \param[in,out] workspace     Eight-byte-aligned temporary storage
- * \param[in]     workspaceSize Number of temporary bytes
+ * \param[in]     configuration   Configuration data to write
+ * \param[out]    buffer          Output XML bytes
+ * \param[in]     capacity        Output buffer capacity
+ * \param[in,out] workspace       Eight-byte-aligned temporary storage
+ * \param[in]     workspaceSize   Number of temporary bytes
  *
  * \return     Number of bytes written, or zero when a value or temporary storage is invalid.
  */
@@ -316,14 +316,14 @@ uint64_t Utl_Arinc661_WriteConfiguration(const Utl_Arinc661_Configuration_t* con
  *  - 004 This function shall fail an assertion if definition, buffer, or workspace is NULL.
  *  - 005 This function shall inherit Utl_Xml_ReadDocument's assertions for XML outside its supported form.
  *
- * \param[in,out] definition    Definition File with storage pointers and capacities initialized
- * \param[in,out] buffer        Input XML bytes, followed by one writable byte
- * \param[in]     byteCount     Number of input bytes, excluding the extra byte
- * \param[in,out] workspace     Eight-byte-aligned temporary storage
- * \param[in]     workspaceSize Number of temporary bytes
+ * \param[in,out] definition      Definition File with storage pointers and capacities initialized
+ * \param[in,out] buffer          Input XML bytes, followed by one writable byte
+ * \param[in]     byteCount       Number of input bytes, excluding the extra byte
+ * \param[in,out] workspace       Eight-byte-aligned temporary storage
+ * \param[in]     workspaceSize   Number of temporary bytes
  *
- * \retval    TRUE        if the supported Definition File values were read.
- * \retval    FALSE       if a supported value is invalid or supplied storage is insufficient.
+ * \retval        TRUE        if the supported Definition File values were read.
+ * \retval        FALSE       if a supported value is invalid or supplied storage is insufficient.
  */
 bool_t Utl_Arinc661_ReadDefinition(Utl_Arinc661_Definition_t* definition, byte_t* buffer, uint64_t byteCount, void* workspace, uint64_t workspaceSize);
 
@@ -342,11 +342,11 @@ bool_t Utl_Arinc661_ReadDefinition(Utl_Arinc661_Definition_t* definition, byte_t
  *  - 004 This function shall fail an assertion if definition, buffer, or workspace is NULL.
  *  - 005 This function shall inherit Utl_Xml_WriteDocument's assertion when output capacity is insufficient.
  *
- * \param[in]     definition    Definition File data to write
- * \param[out]    buffer        Output XML bytes
- * \param[in]     capacity      Output buffer capacity
- * \param[in,out] workspace     Eight-byte-aligned temporary storage
- * \param[in]     workspaceSize Number of temporary bytes
+ * \param[in]     definition      Definition File data to write
+ * \param[out]    buffer          Output XML bytes
+ * \param[in]     capacity        Output buffer capacity
+ * \param[in,out] workspace       Eight-byte-aligned temporary storage
+ * \param[in]     workspaceSize   Number of temporary bytes
  *
  * \return     Number of bytes written, or zero when a value or temporary storage is invalid.
  */

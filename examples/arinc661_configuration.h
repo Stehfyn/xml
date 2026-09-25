@@ -84,9 +84,9 @@ typedef struct ConfigurationEditor_s
 /**
  * \brief Binds fixed arrays and their capacities in a zero-initialized editor.
  *
- * \param[in,out] editor Editor state
+ * \param[in,out] editor   Editor state
  *
- * \retval None
+ * \retval        None
  */
 void InitializeConfiguration(ConfigurationEditor_t* editor);
 
@@ -94,9 +94,9 @@ void InitializeConfiguration(ConfigurationEditor_t* editor);
 /**
  * \brief Reloads the example file into the editor's typed configuration.
  *
- * \param[in,out] editor Editor state
+ * \param[in,out] editor   Editor state
  *
- * \retval None
+ * \retval        None
  */
 void ReloadConfiguration(ConfigurationEditor_t* editor);
 
@@ -104,9 +104,9 @@ void ReloadConfiguration(ConfigurationEditor_t* editor);
 /**
  * \brief Draws the hierarchy, scene, and inspector in one ImGui window.
  *
- * \param[in,out] editor Editor state
+ * \param[in,out] editor   Editor state
  *
- * \retval None
+ * \retval        None
  */
 void DrawConfigurationEditor(ConfigurationEditor_t* editor);
 

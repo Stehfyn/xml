@@ -41,12 +41,12 @@
  *  The file is read in binary mode. A short read at end of file, including an empty file,
  *  succeeds. The buffer is not zero-terminated.
  *
- * \param[in]  filePath    Non-NULL path to the file
- * \param[out] buffer      Non-NULL destination buffer
- * \param[in]  bufferSize  Maximum number of bytes to read
+ * \param[in]  filePath     Non-NULL path to the file
+ * \param[out] buffer       Non-NULL destination buffer
+ * \param[in]  bufferSize   Maximum number of bytes to read
  *
- * \retval    -1          The file could not be opened or read, or the byte count exceeds INT32_MAX.
- * \retval    0..INT32_MAX Number of bytes read successfully.
+ * \retval     -1           The file could not be opened or read, or the byte count exceeds INT32_MAX.
+ * \retval     0..INT32_MAX Number of bytes read successfully.
  */
 int32_t OS_File_ReadFile(const char_t* filePath, byte_t* buffer, uint32_t bufferSize);
 

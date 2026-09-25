@@ -53,12 +53,12 @@
  *  - 002 This function shall reject values outside the signed 64-bit range.
  *  - 003 This function shall leave value unchanged on failure.
  *
- * \param[in]  text      Non-NULL byte span
- * \param[in]  byteCount Number of bytes in the span
- * \param[out] value     Non-NULL destination, written only on success
+ * \param[in]  text        Non-NULL byte span
+ * \param[in]  byteCount   Number of bytes in the span
+ * \param[out] value       Non-NULL destination, written only on success
  *
- * \retval    TRUE      The entire span is a representable integer.
- * \retval    FALSE     The span is empty, malformed, or out of range.
+ * \retval     TRUE        if the entire span is a representable integer.
+ * \retval     FALSE       if the span is empty, malformed, or out of range.
  */
 bool_t Utl_Scan_Int64(const byte_t* text, uint64_t byteCount, int64_t* value);
 
@@ -77,12 +77,12 @@ bool_t Utl_Scan_Int64(const byte_t* text, uint64_t byteCount, int64_t* value);
  *  - 002 This function shall reject exponent notation and non-finite results.
  *  - 003 This function shall leave value unchanged on failure.
  *
- * \param[in]  text      Non-NULL byte span
- * \param[in]  byteCount Number of bytes, at most UTL_SCAN_MAX_FLOAT32_BYTES
- * \param[out] value     Non-NULL destination, written only on success
+ * \param[in]  text        Non-NULL byte span
+ * \param[in]  byteCount   Number of bytes, at most UTL_SCAN_MAX_FLOAT32_BYTES
+ * \param[out] value       Non-NULL destination, written only on success
  *
- * \retval    TRUE      The entire span is a finite decimal value.
- * \retval    FALSE     The span is empty, malformed, too long, or out of range.
+ * \retval     TRUE        if the entire span is a finite decimal value.
+ * \retval     FALSE       if the span is empty, malformed, too long, or out of range.
  */
 bool_t Utl_Scan_Float32(const byte_t* text, uint64_t byteCount, float32_t* value);
 

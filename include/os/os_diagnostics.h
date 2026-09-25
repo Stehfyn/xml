@@ -40,7 +40,7 @@
  * Windows routes CRT diagnostics to stderr and installs an unhandled-exception logger. Other
  * supported platforms require no additional initialization.
  *
- * \retval    None
+ * \retval        None
  */
 void Os_Diagnostics_Initialize(void);
 

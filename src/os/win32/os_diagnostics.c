@@ -45,7 +45,7 @@
 /**
  * \brief Writes an unhandled Win32 exception and its module-relative stack frames to stderr.
  *
- * \param[in] pException          Non-NULL exception record supplied by Win32
+ * \param[in] pException   Non-NULL exception record supplied by Win32
  *
  * \return EXCEPTION_EXECUTE_HANDLER so the boundary terminates without crash UI.
  */

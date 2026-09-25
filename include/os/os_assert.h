@@ -79,9 +79,9 @@
 /**
  * \brief Emits a failed-invariant diagnostic and terminates the process.
  *
- * \param[in] pExpression         Non-NULL null-terminated expression text
- * \param[in] pFile               Non-NULL null-terminated source filename
- * \param[in] line                One-based source line
+ * \param[in] pExpression   Non-NULL null-terminated expression text
+ * \param[in] pFile         Non-NULL null-terminated source filename
+ * \param[in] line          One-based source line
  *
  * \retval    None
  */
@@ -91,9 +91,9 @@ OS_NORETURN void Os_AssertFailure(const char_t* pExpression, const char_t* pFile
 /**
  * \brief Emits an unrecoverable-error diagnostic and terminates the process.
  *
- * \param[in] pMessage            Non-NULL null-terminated failure description
- * \param[in] pFile               Non-NULL null-terminated source filename
- * \param[in] line                One-based source line
+ * \param[in] pMessage   Non-NULL null-terminated failure description
+ * \param[in] pFile      Non-NULL null-terminated source filename
+ * \param[in] line       One-based source line
  *
  * \retval    None
  */

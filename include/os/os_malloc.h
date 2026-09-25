@@ -39,7 +39,7 @@
 /**
  * \brief Allocates zero-initialized storage that remains owned for process lifetime.
  *
- * \param[in] size                Nonzero allocation size in bytes
+ * \param[in] size   Nonzero allocation size in bytes
  *
  * \return Suitably aligned non-NULL storage; allocation failure is fatal.
  */

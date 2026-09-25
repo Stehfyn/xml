@@ -118,10 +118,10 @@ static WglWindowData_t g_mainWindow;
 /**
  * \brief Opens the display source used to wait for vertical blank.
  *
- * \param[in]     deviceContext       Window device context on the display
- * \param[out]    verticalBlankEvent  Adapter and display source for the wait
+ * \param[in]  deviceContext        Window device context on the display
+ * \param[out] verticalBlankEvent   Adapter and display source for the wait
  *
- * \retval None
+ * \retval     None
  */
 static void OpenVerticalBlankEvent(HDC deviceContext, D3DKMT_WAITFORVERTICALBLANKEVENT* verticalBlankEvent);
 
@@ -129,7 +129,7 @@ static void OpenVerticalBlankEvent(HDC deviceContext, D3DKMT_WAITFORVERTICALBLAN
 /**
  * \brief Starts a new Dear ImGui frame.
  *
- * \retval None
+ * \retval        None
  */
 static void BeginFrame(void);
 
@@ -139,7 +139,7 @@ static void BeginFrame(void);
  *
  * \param[in,out] window   Window and presentation state
  *
- * \retval None
+ * \retval        None
  */
 static void EndFrame(WindowThreadState_t* window);
 
@@ -149,7 +149,7 @@ static void EndFrame(WindowThreadState_t* window);
  *
  * \param[in,out] window   Window and editor state
  *
- * \retval None
+ * \retval        None
  */
 static void DrawFrame(WindowThreadState_t* window);
 
@@ -171,7 +171,7 @@ static bool_t CreateDeviceWGL(HWND windowHandle, WglWindowData_t* windowData);
  * \param[in]     windowHandle   Win32 window handle
  * \param[in,out] windowData     Window rendering data
  *
- * \retval None
+ * \retval        None
  */
 static void CleanupDeviceWGL(HWND windowHandle, WglWindowData_t* windowData);
 
@@ -181,7 +181,7 @@ static void CleanupDeviceWGL(HWND windowHandle, WglWindowData_t* windowData);
  *
  * \param[in,out] viewport   ImGui platform viewport
  *
- * \retval None
+ * \retval        None
  */
 static void HookRendererCreateWindow(ImGuiViewport* viewport);
 
@@ -191,7 +191,7 @@ static void HookRendererCreateWindow(ImGuiViewport* viewport);
  *
  * \param[in,out] viewport   ImGui platform viewport
  *
- * \retval None
+ * \retval        None
  */
 static void HookRendererDestroyWindow(ImGuiViewport* viewport);
 
@@ -199,10 +199,10 @@ static void HookRendererDestroyWindow(ImGuiViewport* viewport);
 /**
  * \brief Activates the shared OpenGL context for a platform viewport.
  *
- * \param[in]     viewport   ImGui platform viewport
- * \param[in]     data       Unused renderer callback data
+ * \param[in] viewport   ImGui platform viewport
+ * \param[in] data       Unused renderer callback data
  *
- * \retval None
+ * \retval    None
  */
 static void HookPlatformRenderWindow(ImGuiViewport* viewport, void* data);
 
@@ -210,10 +210,10 @@ static void HookPlatformRenderWindow(ImGuiViewport* viewport, void* data);
 /**
  * \brief Presents a platform viewport.
  *
- * \param[in]     viewport   ImGui platform viewport
- * \param[in]     data       Unused renderer callback data
+ * \param[in] viewport   ImGui platform viewport
+ * \param[in] data       Unused renderer callback data
  *
- * \retval None
+ * \retval    None
  */
 static void HookRendererSwapBuffers(ImGuiViewport* viewport, void* data);
 
@@ -221,10 +221,10 @@ static void HookRendererSwapBuffers(ImGuiViewport* viewport, void* data);
 /**
  * \brief Routes Win32 input and window events to ImGui and the renderer.
  *
- * \param[in]     windowHandle    Win32 window handle
- * \param[in]     message         Win32 message identifier
- * \param[in]     wordParameter   Win32 message word parameter
- * \param[in]     longParameter   Win32 message long parameter
+ * \param[in] windowHandle    Win32 window handle
+ * \param[in] message         Win32 message identifier
+ * \param[in] wordParameter   Win32 message word parameter
+ * \param[in] longParameter   Win32 message long parameter
  *
  * \return Win32 message result.
  */
