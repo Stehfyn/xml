@@ -34,7 +34,7 @@ extern "C"
 
 #define CONFIGURATION_WINDOW_NAME ("ARINC 661 Configuration")
 #define VISUALIZER_WINDOW_NAME    ("Visualizer")
-#define DOCKSPACE_NAME           ("ARINC661DockSpace")
+#define DOCKSPACE_NAME            ("ARINC661DockSpace")
 
 /*=================================================================================================
 ** 3.2 Types
