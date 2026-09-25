@@ -1934,9 +1934,11 @@ uint64_t Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToRead
     if (is_valid)
     {
         document_cursor = bufferToReadDocumentFrom + offset;
+
         for (token_index = 0; token_index < UTL_XML_DOCUMENT_MAX_NODES; ++token_index)
         {
             is_valid = (UTL_XML_CHAR_LT == document_cursor[0]);
+
             if (FALSE == is_valid)
             {
                 break;
@@ -2089,6 +2091,7 @@ uint64_t Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToRead
             }
 
             document_cursor += document_byte_count;
+
             if (NULL == next_markup)
             {
                 break;
