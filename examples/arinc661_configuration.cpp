@@ -46,6 +46,7 @@ extern "C"
 
 #define CONFIGURATION_WINDOW_FLAGS     (ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDocking)
 #define CONFIGURATION_PANE_TABLE_FLAGS (ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_NoPadOuterX | ImGuiTableFlags_NoPadInnerX)
+#define PANE_FLAGS                     (ImGuiChildFlags_AlwaysUseWindowPadding)
 
 #define CONFIGURATION_ADD_SCREEN_LABEL     ("+ Add Screen")
 #define CONFIGURATION_ADD_LAYOUT_LABEL     ("+ Add Layout")
@@ -1118,7 +1119,7 @@ static void DrawWindowInspector(Arinc661_Configuration_Editor_t* editor)
  */
 static void DrawHierarchyPane(Arinc661_Configuration_Editor_t* editor)
 {
-    if (ImGui::BeginChild(HIERARCHY_PANE_NAME, ImVec2(0.0f, 0.0f), ImGuiChildFlags_AlwaysUseWindowPadding))
+    if (ImGui::BeginChild(HIERARCHY_PANE_NAME, ImVec2(0.0f, 0.0f), PANE_FLAGS))
     {
         ImGui::TextUnformatted(HIERARCHY_PANE_NAME);
         ImGui::Separator();
@@ -1138,7 +1139,7 @@ static void DrawHierarchyPane(Arinc661_Configuration_Editor_t* editor)
  */
 static void DrawInspector(Arinc661_Configuration_Editor_t* editor)
 {
-    if (ImGui::BeginChild(INSPECTOR_PANE_NAME, ImVec2(0.0f, 0.0f), ImGuiChildFlags_AlwaysUseWindowPadding))
+    if (ImGui::BeginChild(INSPECTOR_PANE_NAME, ImVec2(0.0f, 0.0f), PANE_FLAGS))
     {
         ImGui::TextUnformatted(INSPECTOR_PANE_NAME);
         ImGui::Separator();
@@ -1225,7 +1226,7 @@ static void DrawScene(Arinc661_Configuration_Editor_t* editor)
     bool_t                       is_screen_hit;
     bool_t                       is_window_hit;
 
-    if (ImGui::BeginChild(SCENE_PANE_NAME, ImVec2(0.0f, 0.0f), ImGuiChildFlags_AlwaysUseWindowPadding))
+    if (ImGui::BeginChild(SCENE_PANE_NAME, ImVec2(0.0f, 0.0f), PANE_FLAGS))
     {
         style             = &ImGui::GetStyle();
         draw_list         = ImGui::GetWindowDrawList();
