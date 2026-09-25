@@ -1087,6 +1087,7 @@ static void DrawVisualizer(const ConfigurationEditor_t* editor)
     ImVec2                       area_min;
     ImVec2                       area_max;
     char_t                       screen_label[64];
+    char_t                       window_label[UTL_ARINC661_MAX_NAME_BYTES + 64];
     float32_t                    label_height;
     float32_t                    unused_height;
     float32_t                    width_scale;
@@ -1184,8 +1185,13 @@ static void DrawVisualizer(const ConfigurationEditor_t* editor)
                                 draw_list->AddRect(area_min, area_max, VISUALIZER_WINDOW_BORDER_COLOR);
                                 if ('\0' != window->name[0])
                                 {
-                                    draw_list->AddText((area_min + style->FramePadding), VISUALIZER_TEXT_COLOR, window->name);
+                                    (void)snprintf(window_label, sizeof(window_label), "%s (%" PRId64 " x %" PRId64 ")", window->name, window->pixelArea.width, window->pixelArea.height);
                                 }
+                                else
+                                {
+                                    (void)snprintf(window_label, sizeof(window_label), "Window %" PRId64 " (%" PRId64 " x %" PRId64 ")", window->id, window->pixelArea.width, window->pixelArea.height);
+                                }
+                                draw_list->AddText((area_min + style->FramePadding), VISUALIZER_TEXT_COLOR, window_label);
                             }
                         }
                         draw_list->PopClipRect();
