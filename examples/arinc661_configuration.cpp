@@ -43,6 +43,7 @@ extern "C"
 #define INSPECTOR_PANE_COLUMN     (2)
 #define CONFIGURATION_PANE_COUNT  (3)
 #define INVALID_HIERARCHY_INDEX   (UINT32_MAX)
+#define CONFIGURATION_NO_IDENTIFIER (-1)
 
 #define CONFIGURATION_WINDOW_FLAGS     (ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDocking)
 #define CONFIGURATION_PANE_TABLE_FLAGS (ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_NoPadOuterX | ImGuiTableFlags_NoPadInnerX)
@@ -62,6 +63,8 @@ extern "C"
 #define CONFIGURATION_INTEGER_TEXT_BYTES   (32)
 #define CONFIGURATION_LABEL_FORMAT_BYTES   (64)
 #define CONFIGURATION_HIERARCHY_LABEL_BYTES (UTL_ARINC661_MAX_NAME_BYTES + CONFIGURATION_LABEL_FORMAT_BYTES)
+#define CONFIGURATION_DEFAULT_SCREEN_PIXEL_WIDTH  (640)
+#define CONFIGURATION_DEFAULT_SCREEN_PIXEL_HEIGHT (480)
 
 #define HIERARCHY_BRANCH_FLAGS (ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_AllowOverlap)
 #define HIERARCHY_WINDOW_FLAGS (ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_AllowOverlap)
@@ -487,7 +490,7 @@ static bool_t NextIdentifier(const Arinc661_Configuration_Editor_t* editor, Arin
     uint32_t index;
     bool_t   has_next_id;
 
-    maximum_id = -1;
+    maximum_id = CONFIGURATION_NO_IDENTIFIER;
     if (ARINC661_CONFIGURATION_SELECTION_SCREEN == kind)
     {
         for (index = 0; index < editor->configuration.screenCount; ++index)
@@ -540,8 +543,8 @@ static void AddScreen(Arinc661_Configuration_Editor_t* editor)
         screen = &editor->screens[editor->configuration.screenCount];
         (void)memset(screen, 0, sizeof((*screen)));
         screen->id                        = id;
-        screen->pixelSize.width           = 640;
-        screen->pixelSize.height          = 480;
+        screen->pixelSize.width           = CONFIGURATION_DEFAULT_SCREEN_PIXEL_WIDTH;
+        screen->pixelSize.height          = CONFIGURATION_DEFAULT_SCREEN_PIXEL_HEIGHT;
         screen->pixelSize.units           = UTL_ARINC661_UNIT_PIXEL;
         screen->physicalDimensions.width  = 5;
         screen->physicalDimensions.height = 4;
