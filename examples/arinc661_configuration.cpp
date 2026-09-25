@@ -98,23 +98,26 @@ extern "C"
 #define NEW_SHORTCUT        (ImGuiMod_Ctrl | ImGuiKey_N)
 #define SAVE_SHORTCUT_FLAGS (ImGuiInputFlags_RouteGlobal | ImGuiInputFlags_RouteOverActive)
 
-#define ADD_SCREEN_LABEL           ("+ Add Screen")
-#define ADD_LAYOUT_LABEL           ("+ Add Layout")
-#define ADD_WINDOW_LABEL           ("+ Add Window")
-#define ADD_USER_APPLICATION_LABEL ("+ Add User Application")
-#define REMOVE_SCREEN_LABEL        ("Remove Screen")
-#define REMOVE_LAYOUT_LABEL        ("Remove Layout")
-#define REMOVE_WINDOW_LABEL        ("Remove Window")
-#define READY_LABEL                ("Ready")
-#define BASE_UNIT_LABEL            ("Base Unit")
-#define REMOVE_GLYPH               ("x")
+#define ADD_SCREEN_LABEL                ("+ Add Screen")
+#define ADD_LAYOUT_LABEL                ("+ Add Layout")
+#define ADD_WINDOW_LABEL                ("+ Add Window")
+#define ADD_USER_APPLICATION_LABEL      ("+ Add User Application")
+#define REMOVE_SCREEN_LABEL             ("Remove Screen")
+#define REMOVE_LAYOUT_LABEL             ("Remove Layout")
+#define REMOVE_WINDOW_LABEL             ("Remove Window")
+#define REMOVE_USER_APPLICATION_LABEL   ("Remove User Application")
+#define READY_LABEL                     ("Ready")
+#define BASE_UNIT_LABEL                 ("Base Unit")
+#define REMOVE_GLYPH                    ("x")
 
-#define SCREEN_NODE_ID      ("screen")
-#define LAYOUT_NODE_ID      ("layout")
-#define WINDOW_NODE_ID      ("window")
-#define SCREEN_LABEL_FORMAT ("Screen %" PRId64)
-#define LAYOUT_LABEL_FORMAT ("Layout %" PRId64)
-#define WINDOW_LABEL_FORMAT ("Window %" PRId64 " (%s)")
+#define SCREEN_NODE_ID                ("screen")
+#define LAYOUT_NODE_ID                ("layout")
+#define WINDOW_NODE_ID                ("window")
+#define USER_APPLICATION_NODE_ID      ("userApplication")
+#define SCREEN_LABEL_FORMAT           ("Screen %" PRId64)
+#define LAYOUT_LABEL_FORMAT           ("Layout %" PRId64)
+#define WINDOW_LABEL_FORMAT           ("Window %" PRId64 " (%s)")
+#define USER_APPLICATION_LABEL_FORMAT ("User Application %" PRId64)
 
 #define SCREEN_PREVIEW_FORMAT       ("Screen %" PRId64 " (%" PRId64 " x %" PRId64 ")")
 #define NAMED_WINDOW_PREVIEW_FORMAT ("%s (%" PRId64 " x %" PRId64 ")")
@@ -125,6 +128,7 @@ extern "C"
 #define PHYSICAL_DIMENSIONS_TABLE_ID ("PhysicalDimensionProperties")
 #define LAYOUT_TABLE_ID              ("LayoutProperties")
 #define WINDOW_TABLE_ID              ("WindowProperties")
+#define USER_APPLICATION_TABLE_ID    ("UserApplicationProperties")
 #define PIXEL_AREA_TABLE_ID          ("PixelAreaProperties")
 #define SCALING_FACTOR_TABLE_ID      ("ScalingFactorProperties")
 
@@ -133,19 +137,26 @@ extern "C"
 #define PHYSICAL_DIMENSIONS_SECTION_LABEL ("Physical Dimensions")
 #define LAYOUT_SECTION_LABEL              ("Layout")
 #define WINDOW_SECTION_LABEL              ("Window")
+#define USER_APPLICATION_SECTION_LABEL    ("User Application")
 #define PIXEL_AREA_SECTION_LABEL          ("Pixel Area")
 #define SCALING_FACTOR_SECTION_LABEL      ("Scaling Factor")
 
-#define ID_LABEL       ("ID")
-#define NAME_LABEL     ("Name")
-#define X_LABEL        ("X")
-#define Y_LABEL        ("Y")
-#define WIDTH_LABEL    ("Width")
-#define HEIGHT_LABEL   ("Height")
-#define UNITS_LABEL    ("Units")
-#define X_SCALE_LABEL  ("X Scale")
-#define Y_SCALE_LABEL  ("Y Scale")
-#define PER_UNIT_LABEL ("Per Unit")
+#define ID_LABEL               ("ID")
+#define NAME_LABEL             ("Name")
+#define X_LABEL                ("X")
+#define Y_LABEL                ("Y")
+#define WIDTH_LABEL            ("Width")
+#define HEIGHT_LABEL           ("Height")
+#define UNITS_LABEL            ("Units")
+#define X_SCALE_LABEL          ("X Scale")
+#define Y_SCALE_LABEL          ("Y Scale")
+#define PER_UNIT_LABEL         ("Per Unit")
+#define WINDOW_ID_LABEL        ("Window ID")
+#define DF_PATH_LABEL          ("DF Path")
+#define STYLE_FILE_PATH_LABEL  ("Style File Path")
+#define MAP_SOURCE_LAYER_LABEL ("Map Source Layer")
+#define VISIBLE_LABEL          ("Visible")
+#define SELECT_ITEM_PROMPT     ("Select a screen, layout, window, or user application.")
 
 #define INTEGER_TEXT_BYTES       (32)
 #define LABEL_FORMAT_BYTES       (64)
@@ -160,7 +171,7 @@ extern "C"
 #define DEFAULT_USER_APPLICATION_WINDOW_ID (0)
 
 #define HIERARCHY_BRANCH_FLAGS (ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_AllowOverlap)
-#define HIERARCHY_WINDOW_FLAGS (ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_AllowOverlap)
+#define HIERARCHY_LEAF_FLAGS   (ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_AllowOverlap)
 #define HIERARCHY_ADD_FLAGS    (ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen)
 
 #define SCENE_CANVAS_COLOR        (IM_COL32(22, 27, 34, 255))
@@ -207,6 +218,7 @@ typedef enum Status_e
     STATUS_SCREEN_REMOVED,
     STATUS_LAYOUT_REMOVED,
     STATUS_WINDOW_REMOVED,
+    STATUS_USER_APPLICATION_REMOVED,
     STATUS_READ_FAILED,
     STATUS_INPUT_TOO_LARGE,
     STATUS_INPUT_EMPTY,
@@ -229,7 +241,8 @@ typedef enum SelectionKind_e
     SELECTION_NONE,
     SELECTION_SCREEN,
     SELECTION_LAYOUT,
-    SELECTION_WINDOW
+    SELECTION_WINDOW,
+    SELECTION_USER_APPLICATION
 } SelectionKind_t;
 
 /*************************************************************************************************/
@@ -400,7 +413,7 @@ static void FindMatchingFile(const char_t* fileName, void* context);
 
 /*************************************************************************************************/
 /**
- * \brief Chooses the next identifier for a screen, layout, or window.
+ * \brief Chooses the next identifier for a selected entity type.
  *
  * \param[in]  editor        Editor state
  * \param[in]  kind          Entity type
@@ -417,7 +430,7 @@ static bool_t NextIdentifier(const Arinc661_Configuration_Document_t* editor, Se
  * \brief Checks an identifier against its required scope, excluding one existing item.
  *
  * \param[in] editor        Document to check
- * \param[in] kind          Screen, layout, or window
+ * \param[in] kind          Entity type
  * \param[in] screenIndex   Owning screen for a layout
  * \param[in] itemIndex     Item whose identifier is being edited
  * \param[in] id            Proposed identifier
@@ -522,6 +535,17 @@ static void AddUserApplication(Arinc661_Configuration_Document_t* editor);
 
 /*************************************************************************************************/
 /**
+ * \brief Removes one user application and updates its array.
+ *
+ * \param[in,out] editor             Editor state
+ * \param[in]     applicationIndex   Application index to remove
+ *
+ * \retval        None
+ */
+static void RemoveUserApplication(Arinc661_Configuration_Document_t* editor, uint32_t applicationIndex);
+
+/*************************************************************************************************/
+/**
  * \brief Removes one window and updates its array.
  *
  * \param[in,out] editor        Editor state
@@ -603,7 +627,7 @@ static bool_t DrawIntegerField(const char_t* label, int64_t* value);
  * \brief Draws an identifier and accepts only values unused by another item.
  *
  * \param[in,out] editor        Document containing the item
- * \param[in]     kind          Screen, layout, or window
+ * \param[in]     kind          Entity type
  * \param[in]     screenIndex   Owning screen for a layout
  * \param[in]     itemIndex     Index of the selected item
  * \param[in,out] value         Identifier to edit
@@ -637,6 +661,18 @@ static bool_t DrawDecimalField(const char_t* label, float32_t* value);
  * \retval        FALSE       if the value did not change.
  */
 static bool_t DrawTextField(const char_t* label, char_t* value, uint32_t capacity);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws one Boolean in the two-column inspector.
+ *
+ * \param[in]     label   Visible field label
+ * \param[in,out] value   Boolean value
+ *
+ * \retval        TRUE        if the value changed.
+ * \retval        FALSE       if the value did not change.
+ */
+static bool_t DrawBooleanField(const char_t* label, bool_t* value);
 
 /*************************************************************************************************/
 /**
@@ -690,6 +726,16 @@ static void DrawLayoutInspector(Arinc661_Configuration_Document_t* editor);
  * \retval        None
  */
 static void DrawWindowInspector(Arinc661_Configuration_Document_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws the selected user application's properties.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+static void DrawUserApplicationInspector(Arinc661_Configuration_Document_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -874,6 +920,7 @@ static const char_t* EditorStatusToString(int32_t status)
         case STATUS_SCREEN_REMOVED:                  return "Removed screen.";
         case STATUS_LAYOUT_REMOVED:                  return "Removed layout.";
         case STATUS_WINDOW_REMOVED:                  return "Removed window.";
+        case STATUS_USER_APPLICATION_REMOVED:        return "Removed user application.";
         case STATUS_READ_FAILED:                     return "Could not read XML file.";
         case STATUS_INPUT_TOO_LARGE:                 return "The XML file exceeds the input buffer.";
         case STATUS_INPUT_EMPTY:                     return "The XML file is empty.";
@@ -1080,6 +1127,10 @@ static void LoadConfigurationFile(Arinc661_Configuration_Editor_t* editor, const
                     if (0 < document->configuration.screenCount)
                     {
                         document->selectedKind = SELECTION_SCREEN;
+                    }
+                    else if (0 < document->configuration.userApplicationCount)
+                    {
+                        document->selectedKind = SELECTION_USER_APPLICATION;
                     }
                     UpdatePreviewMeasurements(document);
                     document->status              = STATUS_LOADED;
@@ -1370,6 +1421,11 @@ static bool_t NextIdentifier(const Arinc661_Configuration_Document_t* editor, Se
             maximum_id = GetMaxWindowIdentifier(editor);
             break;
         }
+        case SELECTION_USER_APPLICATION:
+        {
+            maximum_id = GetMaxUserApplicationIdentifier(editor);
+            break;
+        }
         case SELECTION_NONE:
         default:
         {
@@ -1389,7 +1445,7 @@ static bool_t NextIdentifier(const Arinc661_Configuration_Document_t* editor, Se
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Screen and window IDs are document-wide; layout IDs are local to one screen.
+ *  Screen, window, and application IDs are document-wide; layout IDs are local to one screen.
  */
 static bool_t IsIdentifierUnique(const Arinc661_Configuration_Document_t* editor, SelectionKind_t kind, uint32_t screenIndex, uint32_t itemIndex, int64_t id)
 {
@@ -1435,6 +1491,18 @@ static bool_t IsIdentifierUnique(const Arinc661_Configuration_Document_t* editor
             }
             break;
         }
+        case SELECTION_USER_APPLICATION:
+        {
+            for (index = 0; index < editor->configuration.userApplicationCount; ++index)
+            {
+                if ((index != itemIndex) && (id == editor->userApplications[index].applicationId))
+                {
+                    is_unique = FALSE;
+                    break;
+                }
+            }
+            break;
+        }
         case SELECTION_NONE:
         default:
         {
@@ -1449,7 +1517,7 @@ static bool_t IsIdentifierUnique(const Arinc661_Configuration_Document_t* editor
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Also checks identifiers that are loaded and saved without inspector controls.
+ *  Checks every identifier scope before loading or saving.
  */
 static Status_t CheckIdentifierUniqueness(const Arinc661_Configuration_Document_t* editor)
 {
@@ -1496,16 +1564,10 @@ static Status_t CheckIdentifierUniqueness(const Arinc661_Configuration_Document_
     {
         for (item_index = 0; item_index < editor->configuration.userApplicationCount; ++item_index)
         {
-            for (other_index = item_index + 1; other_index < editor->configuration.userApplicationCount; ++other_index)
+            is_unique = IsIdentifierUnique(editor, SELECTION_USER_APPLICATION, 0, item_index, editor->userApplications[item_index].applicationId);
+            if (FALSE == is_unique)
             {
-                if (editor->userApplications[item_index].applicationId == editor->userApplications[other_index].applicationId)
-                {
-                    status = STATUS_DUPLICATE_APPLICATION_ID;
-                    break;
-                }
-            }
-            if (STATUS_NONE != status)
-            {
+                status = STATUS_DUPLICATE_APPLICATION_ID;
                 break;
             }
         }
@@ -1735,25 +1797,26 @@ static void AddWindow(Arinc661_Configuration_Document_t* editor, uint32_t layout
 static void AddUserApplication(Arinc661_Configuration_Document_t* editor)
 {
     Utl_Arinc661_UserApplication_t* application;
-    int64_t                          maximum_id;
+    int64_t                          id;
     bool_t                           has_capacity;
     bool_t                           has_id;
     bool_t                           has_window;
 
     has_capacity = (editor->configuration.userApplicationCount < editor->configuration.userApplicationCapacity);
-    maximum_id  = GetMaxUserApplicationIdentifier(editor);
-    has_id      = (MAX_IDENTIFIER != maximum_id);
+    has_id       = NextIdentifier(editor, SELECTION_USER_APPLICATION, 0, &id);
     if (has_capacity && has_id)
     {
         application = &editor->userApplications[editor->configuration.userApplicationCount];
         (void)memset(application, 0, sizeof((*application)));
-        application->applicationId = maximum_id + 1;
+        application->applicationId = id;
         application->window        = DEFAULT_USER_APPLICATION_WINDOW_ID;
         has_window = (0 < editor->configuration.windowCount);
         if (has_window)
         {
             application->window = editor->windows[0].id;
         }
+        editor->selectedKind  = SELECTION_USER_APPLICATION;
+        editor->selectedIndex = editor->configuration.userApplicationCount;
         editor->configuration.userApplicationCount += 1;
         editor->isDirty = TRUE;
         editor->status  = STATUS_USER_APPLICATION_ADDED;
@@ -1762,6 +1825,29 @@ static void AddUserApplication(Arinc661_Configuration_Document_t* editor)
     {
         editor->status = STATUS_USER_APPLICATION_ADD_FAILED;
     }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Compacts the user application array after the chosen entry.
+ */
+static void RemoveUserApplication(Arinc661_Configuration_Document_t* editor, uint32_t applicationIndex)
+{
+    uint32_t remaining_count;
+    bool_t   has_remaining;
+
+    LOGASSERT(applicationIndex < editor->configuration.userApplicationCount);
+    remaining_count = (editor->configuration.userApplicationCount - (applicationIndex + 1));
+    has_remaining   = (0 < remaining_count);
+    if (has_remaining)
+    {
+        (void)memmove(
+            &editor->userApplications[applicationIndex],
+            &editor->userApplications[applicationIndex + 1],
+            ((uint64_t)remaining_count * sizeof(editor->userApplications[0])));
+    }
+    editor->configuration.userApplicationCount -= 1;
 }
 
 /*************************************************************************************************/
@@ -1918,28 +2004,32 @@ static bool_t DrawRemoveButton(const char_t* label, float32_t rowHeight)
  */
 static void DrawHierarchy(Arinc661_Configuration_Document_t* editor)
 {
-    const Utl_Arinc661_Screen_t* screen;
-    const Utl_Arinc661_Layout_t* layout;
-    const Utl_Arinc661_Window_t* window;
-    ImGuiTreeNodeFlags           flags;
-    float32_t                    row_height;
-    uint32_t                     screen_index;
-    uint32_t                     layout_index;
-    uint32_t                     window_index;
-    uint32_t                     parent_index;
-    uint32_t                     add_layout_screen_index;
-    uint32_t                     add_window_layout_index;
-    uint32_t                     remove_screen_index;
-    uint32_t                     remove_layout_index;
-    uint32_t                     remove_window_index;
-    bool_t                       is_screen_open;
-    bool_t                       is_layout_open;
+    const Utl_Arinc661_Screen_t*          screen;
+    const Utl_Arinc661_Layout_t*          layout;
+    const Utl_Arinc661_Window_t*          window;
+    const Utl_Arinc661_UserApplication_t* application;
+    ImGuiTreeNodeFlags                    flags;
+    float32_t                             row_height;
+    uint32_t                              screen_index;
+    uint32_t                              layout_index;
+    uint32_t                              window_index;
+    uint32_t                              application_index;
+    uint32_t                              parent_index;
+    uint32_t                              add_layout_screen_index;
+    uint32_t                              add_window_layout_index;
+    uint32_t                              remove_screen_index;
+    uint32_t                              remove_layout_index;
+    uint32_t                              remove_window_index;
+    uint32_t                              remove_application_index;
+    bool_t                                is_screen_open;
+    bool_t                                is_layout_open;
 
-    add_layout_screen_index = INVALID_HIERARCHY_INDEX;
-    add_window_layout_index = INVALID_HIERARCHY_INDEX;
-    remove_screen_index     = INVALID_HIERARCHY_INDEX;
-    remove_layout_index     = INVALID_HIERARCHY_INDEX;
-    remove_window_index     = INVALID_HIERARCHY_INDEX;
+    add_layout_screen_index  = INVALID_HIERARCHY_INDEX;
+    add_window_layout_index  = INVALID_HIERARCHY_INDEX;
+    remove_screen_index      = INVALID_HIERARCHY_INDEX;
+    remove_layout_index      = INVALID_HIERARCHY_INDEX;
+    remove_window_index      = INVALID_HIERARCHY_INDEX;
+    remove_application_index = INVALID_HIERARCHY_INDEX;
     for (screen_index = 0; screen_index < editor->configuration.screenCount; ++screen_index)
     {
         screen = &editor->screens[screen_index];
@@ -1993,7 +2083,7 @@ static void DrawHierarchy(Arinc661_Configuration_Document_t* editor)
                             window = &editor->windows[window_index];
                             if (layout_index == window->layoutIndex)
                             {
-                                flags = HIERARCHY_WINDOW_FLAGS;
+                                flags = HIERARCHY_LEAF_FLAGS;
                                 if ((SELECTION_WINDOW == editor->selectedKind) && (window_index == editor->selectedIndex))
                                 {
                                     flags |= ImGuiTreeNodeFlags_Selected;
@@ -2036,6 +2126,28 @@ static void DrawHierarchy(Arinc661_Configuration_Document_t* editor)
         AddScreen(editor);
     }
     ImGui::Separator();
+    for (application_index = 0; application_index < editor->configuration.userApplicationCount; ++application_index)
+    {
+        application = &editor->userApplications[application_index];
+        flags       = HIERARCHY_LEAF_FLAGS;
+        if ((SELECTION_USER_APPLICATION == editor->selectedKind) && (application_index == editor->selectedIndex))
+        {
+            flags |= ImGuiTreeNodeFlags_Selected;
+        }
+        ImGui::PushID(application);
+        (void)ImGui::TreeNodeEx(USER_APPLICATION_NODE_ID, flags, USER_APPLICATION_LABEL_FORMAT, application->applicationId);
+        if (ImGui::IsItemClicked())
+        {
+            editor->selectedKind  = SELECTION_USER_APPLICATION;
+            editor->selectedIndex = application_index;
+        }
+        row_height = ImGui::GetItemRectSize().y;
+        if (DrawRemoveButton(REMOVE_USER_APPLICATION_LABEL, row_height))
+        {
+            remove_application_index = application_index;
+        }
+        ImGui::PopID();
+    }
     (void)ImGui::TreeNodeEx(ADD_USER_APPLICATION_LABEL, HIERARCHY_ADD_FLAGS);
     if (ImGui::IsItemClicked())
     {
@@ -2067,6 +2179,14 @@ static void DrawHierarchy(Arinc661_Configuration_Document_t* editor)
         editor->isDirty       = TRUE;
         editor->status        = STATUS_WINDOW_REMOVED;
     }
+    else if (INVALID_HIERARCHY_INDEX != remove_application_index)
+    {
+        RemoveUserApplication(editor, remove_application_index);
+        editor->selectedKind  = SELECTION_NONE;
+        editor->selectedIndex = 0;
+        editor->isDirty       = TRUE;
+        editor->status        = STATUS_USER_APPLICATION_REMOVED;
+    }
     else if (INVALID_HIERARCHY_INDEX != add_layout_screen_index)
     {
         AddLayout(editor, add_layout_screen_index);
@@ -2090,7 +2210,7 @@ static bool_t BeginPropertyTable(const char_t* name)
     bool_t            is_visible;
 
     style          = &ImGui::GetStyle();
-    label_size     = ImGui::CalcTextSize(BASE_UNIT_LABEL);
+    label_size     = ImGui::CalcTextSize(MAP_SOURCE_LAYER_LABEL);
     property_width = (label_size.x + (style->FramePadding.x * 2.0f));
     is_visible     = ImGui::BeginTable(name, 2, PROPERTY_TABLE_FLAGS);
     if (is_visible)
@@ -2150,11 +2270,12 @@ static bool_t DrawIdentifierField(Arinc661_Configuration_Document_t* editor, Sel
         {
             switch (kind)
             {
-                case SELECTION_SCREEN: editor->status = STATUS_DUPLICATE_SCREEN_ID; break;
-                case SELECTION_LAYOUT: editor->status = STATUS_DUPLICATE_LAYOUT_ID; break;
-                case SELECTION_WINDOW: editor->status = STATUS_DUPLICATE_WINDOW_ID; break;
+                case SELECTION_SCREEN:           editor->status = STATUS_DUPLICATE_SCREEN_ID; break;
+                case SELECTION_LAYOUT:           editor->status = STATUS_DUPLICATE_LAYOUT_ID; break;
+                case SELECTION_WINDOW:           editor->status = STATUS_DUPLICATE_WINDOW_ID; break;
+                case SELECTION_USER_APPLICATION: editor->status = STATUS_DUPLICATE_APPLICATION_ID; break;
                 case SELECTION_NONE:
-                default:              LOGFATAL("Invalid SelectionKind_t!");
+                default:                         LOGFATAL("Invalid SelectionKind_t!");
             }
         }
     }
@@ -2186,7 +2307,7 @@ static bool_t DrawDecimalField(const char_t* label, float32_t* value)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Text input is used only for the spec's string-valued name field.
+ *  Draws a bounded text input for a string-valued property.
  */
 static bool_t DrawTextField(const char_t* label, char_t* value, uint32_t capacity)
 {
@@ -2200,6 +2321,32 @@ static bool_t DrawTextField(const char_t* label, char_t* value, uint32_t capacit
     ImGui::SetNextItemWidth(-1.0f);
     has_changed = ImGui::InputText(PROPERTY_INPUT_ID, value, capacity);
     ImGui::PopID();
+
+    return has_changed;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Converts the stored bool_t value for ImGui's bool checkbox interface.
+ */
+static bool_t DrawBooleanField(const char_t* label, bool_t* value)
+{
+    bool   is_checked;
+    bool_t has_changed;
+
+    is_checked = (FALSE != (*value));
+    ImGui::TableNextRow();
+    ImGui::TableSetColumnIndex(0);
+    ImGui::TextUnformatted(label);
+    ImGui::TableSetColumnIndex(1);
+    ImGui::PushID(label);
+    has_changed = ImGui::Checkbox(PROPERTY_INPUT_ID, &is_checked);
+    ImGui::PopID();
+    if (has_changed)
+    {
+        (*value) = is_checked;
+    }
 
     return has_changed;
 }
@@ -2369,6 +2516,30 @@ static void DrawWindowInspector(Arinc661_Configuration_Document_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  User application attributes are edited in their stored order.
+ */
+static void DrawUserApplicationInspector(Arinc661_Configuration_Document_t* editor)
+{
+    Utl_Arinc661_UserApplication_t* application;
+
+    application = &editor->userApplications[editor->selectedIndex];
+
+    ImGui::TextUnformatted(USER_APPLICATION_SECTION_LABEL);
+    if (BeginPropertyTable(USER_APPLICATION_TABLE_ID))
+    {
+        MarkDocumentDirty(editor, DrawIdentifierField(editor, SELECTION_USER_APPLICATION, 0, editor->selectedIndex, &application->applicationId));
+        MarkDocumentDirty(editor, DrawIntegerField(WINDOW_ID_LABEL, &application->window));
+        MarkDocumentDirty(editor, DrawTextField(DF_PATH_LABEL, application->dFPath, sizeof(application->dFPath)));
+        MarkDocumentDirty(editor, DrawTextField(STYLE_FILE_PATH_LABEL, application->styleFilePath, sizeof(application->styleFilePath)));
+        MarkDocumentDirty(editor, DrawBooleanField(MAP_SOURCE_LAYER_LABEL, &application->mapSourceLayer));
+        MarkDocumentDirty(editor, DrawBooleanField(VISIBLE_LABEL, &application->visible));
+        ImGui::EndTable();
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Filters regular files by extension before drawing a selectable row.
  */
 static void DrawXmlFileEntry(const char_t* fileName, void* context)
@@ -2506,7 +2677,8 @@ static void CloseDocument(Arinc661_Configuration_Editor_t* editor, uint32_t docu
     Arinc661_Configuration_Document_t* document;
     uint32_t                           index;
 
-    document                      = &editor->documents[documentIndex];
+    document = &editor->documents[documentIndex];
+
     document->status              = STATUS_NONE;
     document->isLoaded            = FALSE;
     document->isDirty             = FALSE;
@@ -2517,6 +2689,7 @@ static void CloseDocument(Arinc661_Configuration_Editor_t* editor, uint32_t docu
     document->drawableScreenCount = 0;
     document->documentName[0]     = '\0';
     document->documentPath[0]     = '\0';
+
     document->configuration.screenCount          = 0;
     document->configuration.layoutCount          = 0;
     document->configuration.windowCount          = 0;
@@ -2975,9 +3148,13 @@ static void DrawInspectorPane(Arinc661_Configuration_Document_t* editor)
             {
                 DrawWindowInspector(editor);
             }
+            else if (SELECTION_USER_APPLICATION == editor->selectedKind)
+            {
+                DrawUserApplicationInspector(editor);
+            }
             else
             {
-                ImGui::TextWrapped("%s", "Select a screen, layout, or window.");
+                ImGui::TextWrapped("%s", SELECT_ITEM_PROMPT);
             }
         }
     }
@@ -3271,13 +3448,14 @@ static void MeasurePaneWidths(const Arinc661_Configuration_Document_t* editor, f
     uint32_t          screen_index;
     uint32_t          layout_index;
     uint32_t          window_index;
+    uint32_t          application_index;
 
     style = &ImGui::GetStyle();
 
     ImFormatString(integer_text, sizeof(integer_text), "%" PRId64, INT64_MIN);
     button_padding = (style->FramePadding + style->FramePadding);
 
-    property_width    = (ImGui::CalcTextSize(BASE_UNIT_LABEL).x + button_padding.x);
+    property_width    = (ImGui::CalcTextSize(MAP_SOURCE_LAYER_LABEL).x + button_padding.x);
     value_width       = (ImGui::CalcTextSize(integer_text).x + button_padding.x);
     (*hierarchyWidth) = (ImGui::CalcTextSize(HIERARCHY_PANE_NAME).x + (style->WindowPadding.x * 2.0f));
 
@@ -3309,6 +3487,13 @@ static void MeasurePaneWidths(const Arinc661_Configuration_Document_t* editor, f
     {
         ImFormatString(hierarchy_label, sizeof(hierarchy_label), WINDOW_LABEL_FORMAT, editor->windows[window_index].id, editor->windows[window_index].name);
         hierarchy_row_width = (ImGui::CalcTextSize(hierarchy_label).x + hierarchy_row_padding + (style->IndentSpacing * 2.0f));
+        (*hierarchyWidth)   = ImMax((*hierarchyWidth), hierarchy_row_width);
+    }
+
+    for (application_index = 0; application_index < editor->configuration.userApplicationCount; ++application_index)
+    {
+        ImFormatString(hierarchy_label, sizeof(hierarchy_label), USER_APPLICATION_LABEL_FORMAT, editor->userApplications[application_index].applicationId);
+        hierarchy_row_width = (ImGui::CalcTextSize(hierarchy_label).x + hierarchy_row_padding);
         (*hierarchyWidth)   = ImMax((*hierarchyWidth), hierarchy_row_width);
     }
 
