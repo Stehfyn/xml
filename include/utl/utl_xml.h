@@ -401,14 +401,14 @@ void Utl_Xml_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node);
  *  no references and no whitespace other than spaces. Whitespace between tags is
  *  not stored, so writing the document reproduces the writer's formatting.
  *  The reader writes a zero terminator at bufferToReadDocumentFrom[sizeOfDocumentBuffer]
- *  and uses Utl_StrStr to split the input at each <. Names and values borrow the buffer.
+ *  and uses Utl_StrStr to find each <. Names and values borrow the buffer.
  *  The caller keeps bufferToReadDocumentFrom, nodes, and attributes valid while the
  *  document is used.
  *
  * \par Requirements:
  *  - 001 This function shall append nodes and attributes in source order.
  *  - 002 This function shall fail an assertion if document, bufferToReadDocumentFrom, nodes, or attributes is NULL, or if document is not empty.
- *  - 003 This function shall fail an assertion for input outside the supported form or for insufficient storage.
+ *  - 003 This function shall return zero for input outside the supported form or for insufficient storage.
  *
  * \param[in,out] document            Initialized, empty document
  * \param[in,out] bufferToReadDocumentFrom UTF-8 XML bytes with one writable byte after sizeOfDocumentBuffer bytes
@@ -418,9 +418,9 @@ void Utl_Xml_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node);
  * \param[out]    attributes               Caller-owned attribute storage
  * \param[in]     attributeCapacity        Number of attributes in attributes
  *
- * \retval        None
+ * \return        Number of bytes read, or zero on failure. The document may contain partial results on failure.
  */
-void Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToReadDocumentFrom, uint64_t sizeOfDocumentBuffer, Utl_Xml_Node_t* nodes, uint32_t nodeCapacity, Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity);
+uint64_t Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToReadDocumentFrom, uint64_t sizeOfDocumentBuffer, Utl_Xml_Node_t* nodes, uint32_t nodeCapacity, Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity);
 
 /*************************************************************************************************/
 /**
@@ -446,14 +446,14 @@ void Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToReadDocu
  *  - 003 This function shall return the number of bytes written, without writing a zero terminator.
  *  - 004 This function shall place nested nodes on indented LF-separated lines.
  *  - 005 This function shall fail an assertion if document or bufferToWriteDocumentIn is NULL.
- *  - 006 This function shall fail an assertion for invalid element or attribute names.
- *  - 007 This function shall fail an assertion before writing beyond sizeOfDocumentBuffer.
+ *  - 006 This function shall return zero for invalid element names or attribute content.
+ *  - 007 This function shall return zero before writing beyond sizeOfDocumentBuffer.
  *
  * \param[in]  document              Document to write
  * \param[out] bufferToWriteDocumentIn Caller-provided byte storage
  * \param[in]  sizeOfDocumentBuffer   Number of bytes available in bufferToWriteDocumentIn
  *
- * \return     Number of bytes written.
+ * \return     Number of bytes written, or zero on failure. The buffer may contain partial output on failure.
  */
 uint64_t Utl_Xml_WriteDocument(const Utl_Xml_Document_t* document, byte_t* bufferToWriteDocumentIn, uint64_t sizeOfDocumentBuffer);
 

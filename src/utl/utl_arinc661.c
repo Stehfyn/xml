@@ -1796,53 +1796,56 @@ bool_t Utl_Arinc661_ReadConfiguration(Utl_Arinc661_Configuration_t* configuratio
     is_valid                            = has_workspace;
     if (has_workspace)
     {
-        Utl_Xml_ReadDocument(&xml.document, buffer, byteCount, xml.nodes, ARINC661_XML_NODE_CAPACITY, xml.attributes, ARINC661_XML_ATTRIBUTE_CAPACITY);
+        is_valid = (0 < Utl_Xml_ReadDocument(&xml.document, buffer, byteCount, xml.nodes, ARINC661_XML_NODE_CAPACITY, xml.attributes, ARINC661_XML_ATTRIBUTE_CAPACITY));
+    }
+    if (is_valid)
+    {
         root             = FindDocumentElement(&xml.document);
         is_configuration = HasElementName(root, ARINC661_DMC_ELEMENT_CONFIGURATION);
         is_valid         = is_configuration;
+    }
+    if (is_valid)
+    {
+        child_node = root->firstChild;
+        for (node_index = 0; node_index < ARINC661_XML_NODE_CAPACITY; ++node_index)
+        {
+            if (NULL == child_node)
+            {
+                break;
+            }
+            if (HasElementName(child_node, ARINC661_DMC_ELEMENT_METADATA))
+            {
+                is_valid = (FALSE == configuration->hasMetaData);
+                if (is_valid)
+                {
+                    configuration->hasMetaData = TRUE;
+                }
+            }
+            else if (HasElementName(child_node, ARINC661_DMC_ELEMENT_SCREEN))
+            {
+                is_valid = ReadScreenHierarchy(configuration, child_node);
+            }
+            else if (HasElementName(child_node, ARINC661_DMC_ELEMENT_USER_APPLICATION))
+            {
+                is_valid = ReadUserApplication(configuration, child_node);
+            }
+            else if (HasElementName(child_node, ARINC661_DMC_ELEMENT_EXTERNAL_SOURCE))
+            {
+                is_valid = ReadExternalSource(configuration, child_node);
+            }
+            else
+            {
+                is_valid = FALSE;
+            }
+            if (FALSE == is_valid)
+            {
+                break;
+            }
+            child_node = child_node->nextSibling;
+        }
         if (is_valid)
         {
-            child_node = root->firstChild;
-            for (node_index = 0; node_index < ARINC661_XML_NODE_CAPACITY; ++node_index)
-            {
-                if (NULL == child_node)
-                {
-                    break;
-                }
-                if (HasElementName(child_node, ARINC661_DMC_ELEMENT_METADATA))
-                {
-                    is_valid = (FALSE == configuration->hasMetaData);
-                    if (is_valid)
-                    {
-                        configuration->hasMetaData = TRUE;
-                    }
-                }
-                else if (HasElementName(child_node, ARINC661_DMC_ELEMENT_SCREEN))
-                {
-                    is_valid = ReadScreenHierarchy(configuration, child_node);
-                }
-                else if (HasElementName(child_node, ARINC661_DMC_ELEMENT_USER_APPLICATION))
-                {
-                    is_valid = ReadUserApplication(configuration, child_node);
-                }
-                else if (HasElementName(child_node, ARINC661_DMC_ELEMENT_EXTERNAL_SOURCE))
-                {
-                    is_valid = ReadExternalSource(configuration, child_node);
-                }
-                else
-                {
-                    is_valid = FALSE;
-                }
-                if (FALSE == is_valid)
-                {
-                    break;
-                }
-                child_node = child_node->nextSibling;
-            }
-            if (is_valid)
-            {
-                LOGASSERT(NULL == child_node);
-            }
+            LOGASSERT(NULL == child_node);
         }
     }
     if (FALSE == is_valid)
@@ -2072,7 +2075,10 @@ bool_t Utl_Arinc661_ReadDefinition(Utl_Arinc661_Definition_t* definition, byte_t
     is_valid                  = has_workspace;
     if (is_valid)
     {
-        Utl_Xml_ReadDocument(&xml.document, buffer, byteCount, xml.nodes, ARINC661_XML_NODE_CAPACITY, xml.attributes, ARINC661_XML_ATTRIBUTE_CAPACITY);
+        is_valid = (0 < Utl_Xml_ReadDocument(&xml.document, buffer, byteCount, xml.nodes, ARINC661_XML_NODE_CAPACITY, xml.attributes, ARINC661_XML_ATTRIBUTE_CAPACITY));
+    }
+    if (is_valid)
+    {
         root     = FindDocumentElement(&xml.document);
         is_valid = HasElementName(root, ARINC661_DF_ELEMENT_ROOT);
     }

@@ -399,11 +399,55 @@ static void TestXmlDocumentRoundTrip(void)
 
     memcpy(input, text, sizeof(text));
     Utl_Xml_InitializeDocument(&document);
-    Utl_Xml_ReadDocument(&document, input, (uint64_t)(sizeof(text) - 1), nodes, (uint32_t)COUNT_OF(nodes), attributes, (uint32_t)COUNT_OF(attributes));
+    byte_count = Utl_Xml_ReadDocument(&document, input, (uint64_t)(sizeof(text) - 1), nodes, (uint32_t)COUNT_OF(nodes), attributes, (uint32_t)COUNT_OF(attributes));
+    assert((sizeof(text) - 1) == byte_count);
 
     byte_count = Utl_Xml_WriteDocument(&document, output, (uint64_t)sizeof(output));
     assert((sizeof(text) - 1) == byte_count);
     assert(0 == memcmp(output, text, byte_count));
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Returns zero for invalid XML and insufficient storage.
+ */
+static void TestXmlDocumentFailures(void)
+{
+    Utl_Xml_Document_t  document;
+    Utl_Xml_Node_t      root;
+    Utl_Xml_Node_t      nodes[2];
+    Utl_Xml_Attribute_t attributes[1];
+    byte_t              name[] = "root";
+    byte_t              output[sizeof("<root/>\n")];
+    byte_t              bad_end_tag[] = "<root><child/></wrong>";
+    byte_t              too_many_nodes[] = "<root><child/></root>";
+    uint64_t            byte_count;
+
+    Utl_Xml_InitializeDocument(&document);
+    Utl_Xml_InitializeNode(&root, UTL_XML_NODE_ELEMENT, name, (uint32_t)(sizeof(name) - 1));
+    Utl_Xml_AppendNode(&document, &root);
+
+    memset(output, 0xA5, sizeof(output));
+    byte_count = Utl_Xml_WriteDocument(&document, output, (uint64_t)(sizeof(output) - 2));
+    assert(0 == byte_count);
+    assert(0xA5 == output[sizeof(output) - 2]);
+
+    byte_count = Utl_Xml_WriteDocument(&document, output, (uint64_t)(sizeof(output) - 1));
+    assert((sizeof(output) - 1) == byte_count);
+    assert(0 == memcmp(output, "<root/>\n", (size_t)byte_count));
+
+    name[0] = '1';
+    byte_count = Utl_Xml_WriteDocument(&document, output, (uint64_t)sizeof(output));
+    assert(0 == byte_count);
+
+    Utl_Xml_InitializeDocument(&document);
+    byte_count = Utl_Xml_ReadDocument(&document, bad_end_tag, (uint64_t)(sizeof(bad_end_tag) - 1), nodes, (uint32_t)COUNT_OF(nodes), attributes, (uint32_t)COUNT_OF(attributes));
+    assert(0 == byte_count);
+
+    Utl_Xml_InitializeDocument(&document);
+    byte_count = Utl_Xml_ReadDocument(&document, too_many_nodes, (uint64_t)(sizeof(too_many_nodes) - 1), nodes, 1, attributes, (uint32_t)COUNT_OF(attributes));
+    assert(0 == byte_count);
 }
 
 /*************************************************************************************************/
@@ -491,6 +535,7 @@ int main(void)
     TestXmlDocumentWrite();
     TestXmlSchemaLocationWrite();
     TestXmlDocumentRoundTrip();
+    TestXmlDocumentFailures();
     RunArinc661Tests();
     return 0;
 }

@@ -196,7 +196,7 @@ int main(void)
     layouts[0].id          = 0;
     layouts[0].screenIndex = 0;
 
-    windows[0].id = 0;
+    windows[0].id                       = 0;
     strcpy(windows[0].name, "window0");
     windows[0].description[0]           = '\0';
     windows[0].pixelArea.x              = 0;
@@ -207,10 +207,10 @@ int main(void)
     windows[0].scalingFactor.yScale     = EXAMPLE_SCALE;
     windows[0].scalingFactor.baseUnit   = UTL_ARINC661_UNIT_SCREEN;
     windows[0].scalingFactor.perUnit    = UTL_ARINC661_UNIT_PIXEL;
-    windows[0].layoutIndex             = 0;
+    windows[0].layoutIndex              = 0;
 
-    applications[0].applicationId = 1;
-    applications[0].window        = windows[0].id;
+    applications[0].applicationId    = 1;
+    applications[0].window           = windows[0].id;
     strcpy(applications[0].dFPath, DEFINITION_FILE_NAME);
     applications[0].styleFilePath[0] = '\0';
     applications[0].mapSourceLayer   = FALSE;
@@ -221,30 +221,30 @@ int main(void)
     memset(widgets, 0, sizeof(widgets));
     memset(properties, 0, sizeof(properties));
     strcpy(definition_file.name, "arinc661_definition");
-    definition_file.libraryVersion = 0;
+    definition_file.libraryVersion    = 0;
     definition_file.supplementVersion = 6;
-    definition_file.layers = layers;
-    definition_file.widgets = widgets;
-    definition_file.properties = properties;
-    definition_file.layerCapacity = COUNT_OF(layers);
-    definition_file.widgetCapacity = COUNT_OF(widgets);
-    definition_file.propertyCapacity = COUNT_OF(properties);
-    definition_file.layerCount = COUNT_OF(layers);
-    definition_file.widgetCount = COUNT_OF(widgets);
-    definition_file.propertyCount = COUNT_OF(properties);
+    definition_file.layers            = layers;
+    definition_file.widgets           = widgets;
+    definition_file.properties        = properties;
+    definition_file.layerCapacity     = COUNT_OF(layers);
+    definition_file.widgetCapacity    = COUNT_OF(widgets);
+    definition_file.propertyCapacity  = COUNT_OF(properties);
+    definition_file.layerCount        = COUNT_OF(layers);
+    definition_file.widgetCount       = COUNT_OF(widgets);
+    definition_file.propertyCount     = COUNT_OF(properties);
 
     strcpy(layers[0].name, "PrimaryLayer");
     strcpy(widgets[0].name, "MainPanel");
     strcpy(widgets[0].type, "A661_PANEL");
-    widgets[0].layerIndex = 0;
+    widgets[0].layerIndex        = 0;
     widgets[0].parentWidgetIndex = UINT32_MAX;
     strcpy(widgets[1].name, "StatusLabel");
     strcpy(widgets[1].type, "A661_LABEL");
-    widgets[1].layerIndex = 0;
+    widgets[1].layerIndex        = 0;
     widgets[1].parentWidgetIndex = 0;
     strcpy(widgets[2].name, "SecondaryLabel");
     strcpy(widgets[2].type, "A661_LABEL");
-    widgets[2].layerIndex = 0;
+    widgets[2].layerIndex        = 0;
     widgets[2].parentWidgetIndex = 0;
 
     for (index = 0; index < COUNT_OF(c_arinc661Properties); ++index)

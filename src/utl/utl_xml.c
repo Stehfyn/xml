@@ -186,11 +186,11 @@ static const Utl_Xml_Node_t* FindNode(const Utl_Xml_Document_t* document, Utl_Xm
  * \param[in]     byteCount   Number of bytes
  * \param[in,out] position    Offset of the next unread byte
  * \param[in]     token       XML token from utl_xml.h
- * \param[out]    hasToken    Optional result indicating whether the token was read; may be NULL
  *
- * \retval        None
+ * \retval        TRUE        if the token was read.
+ * \retval        FALSE       otherwise
  */
-static void ReadToken(const byte_t* bytes, uint64_t byteCount, uint64_t* position, const char_t* token, bool_t* hasToken);
+static bool_t ReadToken(const byte_t* bytes, uint64_t byteCount, uint64_t* position, const char_t* token);
 
 /*************************************************************************************************/
 /**
@@ -200,11 +200,12 @@ static void ReadToken(const byte_t* bytes, uint64_t byteCount, uint64_t* positio
  * \param[in]     bytes       UTF-8 bytes
  * \param[in]     byteCount   Number of bytes
  * \param[in,out] position    Offset of the next unread byte
- * \param[out]    hasWhitespace Optional result indicating whether whitespace was read; may be NULL
+ * \param[in]     mustReachEnd TRUE when only trailing whitespace is allowed
  *
- * \retval        None
+ * \retval        TRUE        if the scan is in bounds and satisfies mustReachEnd.
+ * \retval        FALSE       otherwise
  */
-static void ReadWhitespace(const byte_t* bytes, uint64_t byteCount, uint64_t* position, bool_t* hasWhitespace);
+static bool_t ReadWhitespace(const byte_t* bytes, uint64_t byteCount, uint64_t* position, bool_t mustReachEnd);
 
 /*************************************************************************************************/
 /**
@@ -217,9 +218,10 @@ static void ReadWhitespace(const byte_t* bytes, uint64_t byteCount, uint64_t* po
  * \param[out]    name            Name bytes
  * \param[out]    nameByteCount   Number of name bytes
  *
- * \retval        None
+ * \retval        TRUE        if the name is valid.
+ * \retval        FALSE       otherwise
  */
-static void ReadName(const byte_t* bytes, uint64_t byteCount, uint64_t* position, const byte_t** name, uint32_t* nameByteCount);
+static bool_t ReadName(const byte_t* bytes, uint64_t byteCount, uint64_t* position, const byte_t** name, uint32_t* nameByteCount);
 
 /*************************************************************************************************/
 /**
@@ -233,9 +235,10 @@ static void ReadName(const byte_t* bytes, uint64_t byteCount, uint64_t* position
  * \param[out]    value       Value bytes
  * \param[out]    numBytes    Number of value bytes
  *
- * \retval        None
+ * \retval        TRUE        if the quoted value is valid.
+ * \retval        FALSE       otherwise
  */
-static void ReadAttributeValue(const byte_t* bytes, uint64_t byteCount, uint64_t* position, const byte_t** value, uint32_t* numBytes);
+static bool_t ReadAttributeValue(const byte_t* bytes, uint64_t byteCount, uint64_t* position, const byte_t** value, uint32_t* numBytes);
 
 /*************************************************************************************************/
 /**
@@ -252,9 +255,10 @@ static void ReadAttributeValue(const byte_t* bytes, uint64_t byteCount, uint64_t
  * \param[in,out] attributeCount      Number of attributes used
  * \param[out]    isStartTag          TRUE for a start tag, FALSE for an empty-element tag
  *
- * \retval        None
+ * \retval        TRUE        if the element tag is supported.
+ * \retval        FALSE       otherwise
  */
-static void ReadElementStart(const byte_t* markup, uint64_t markupByteCount, uint64_t* position, Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity, uint32_t* attributeCount, bool_t* isStartTag);
+static bool_t ReadElementStart(const byte_t* markup, uint64_t markupByteCount, uint64_t* position, Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity, uint32_t* attributeCount, bool_t* isStartTag);
 
 /*************************************************************************************************/
 /**
@@ -266,9 +270,10 @@ static void ReadElementStart(const byte_t* markup, uint64_t markupByteCount, uin
  * \param[in]     bytes       Bytes to append
  * \param[in]     numBytes    Number of bytes to append
  *
- * \retval        None
+ * \retval        TRUE        if the bytes fit.
+ * \retval        FALSE       otherwise
  */
-static void WriteBytes(byte_t* output, uint64_t capacity, uint64_t* byteCount, const byte_t* bytes, uint32_t numBytes);
+static bool_t WriteBytes(byte_t* output, uint64_t capacity, uint64_t* byteCount, const byte_t* bytes, uint32_t numBytes);
 
 /*************************************************************************************************/
 /**
@@ -279,9 +284,10 @@ static void WriteBytes(byte_t* output, uint64_t capacity, uint64_t* byteCount, c
  * \param[in,out] byteCount   Number of bytes already written
  * \param[in]     value       Byte to append
  *
- * \retval        None
+ * \retval        TRUE        if the byte fits.
+ * \retval        FALSE       otherwise
  */
-static void WriteByte(byte_t* output, uint64_t capacity, uint64_t* byteCount, byte_t value);
+static bool_t WriteByte(byte_t* output, uint64_t capacity, uint64_t* byteCount, byte_t value);
 
 /*************************************************************************************************/
 /**
@@ -292,9 +298,10 @@ static void WriteByte(byte_t* output, uint64_t capacity, uint64_t* byteCount, by
  * \param[in,out] byteCount   Number of bytes already written
  * \param[in]     token       XML token from utl_xml.h
  *
- * \retval        None
+ * \retval        TRUE        if the token fits.
+ * \retval        FALSE       otherwise
  */
-static void WriteToken(byte_t* output, uint64_t capacity, uint64_t* byteCount, const char_t* token);
+static bool_t WriteToken(byte_t* output, uint64_t capacity, uint64_t* byteCount, const char_t* token);
 
 /*************************************************************************************************/
 /**
@@ -305,9 +312,10 @@ static void WriteToken(byte_t* output, uint64_t capacity, uint64_t* byteCount, c
  * \param[in,out] byteCount          Number of bytes already written
  * \param[in]     indentSpaceCount   Number of spaces to write
  *
- * \retval        None
+ * \retval        TRUE        if the indentation fits.
+ * \retval        FALSE       otherwise
  */
-static void WriteIndent(byte_t* output, uint64_t capacity, uint64_t* byteCount, uint32_t indentSpaceCount);
+static bool_t WriteIndent(byte_t* output, uint64_t capacity, uint64_t* byteCount, uint32_t indentSpaceCount);
 
 /*************************************************************************************************/
 /**
@@ -319,9 +327,10 @@ static void WriteIndent(byte_t* output, uint64_t capacity, uint64_t* byteCount, 
  * \param[in,out] byteCount  Number of bytes already written
  * \param[in]     node       XML declaration node to write
  *
- * \retval        None
+ * \retval        TRUE        if the declaration is valid and fits.
+ * \retval        FALSE       otherwise
  */
-static void WriteDeclaration(byte_t* output, uint64_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
+static bool_t WriteDeclaration(byte_t* output, uint64_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
 
 /*************************************************************************************************/
 /**
@@ -334,9 +343,10 @@ static void WriteDeclaration(byte_t* output, uint64_t capacity, uint64_t* byteCo
  * \param[in,out] byteCount  Number of bytes already written
  * \param[in]     node       Element to write
  *
- * \retval        None
+ * \retval        TRUE        if the tag is valid and fits.
+ * \retval        FALSE       otherwise
  */
-static void WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
+static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
 
 /*************************************************************************************************/
 /**
@@ -348,9 +358,10 @@ static void WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byteC
  * \param[in,out] byteCount  Number of bytes already written
  * \param[in]     node       Element to close
  *
- * \retval        None
+ * \retval        TRUE        if the tag fits.
+ * \retval        FALSE       otherwise
  */
-static void WriteElementEnd(byte_t* output, uint64_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
+static bool_t WriteElementEnd(byte_t* output, uint64_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
 
 /*************************************************************************************************/
 /**
@@ -361,9 +372,10 @@ static void WriteElementEnd(byte_t* output, uint64_t capacity, uint64_t* byteCou
  * \param[in,out] byteCount  Number of bytes already written
  * \param[in]     root       Root element to write
  *
- * \retval        None
+ * \retval        TRUE        if the element is valid and fits.
+ * \retval        FALSE       otherwise
  */
-static void WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* root);
+static bool_t WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* root);
 
 /*************************************************************************************************/
 /**
@@ -374,9 +386,10 @@ static void WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCount,
  * \param[in,out] byteCount  Number of bytes already written
  * \param[in]     node       Node to write
  *
- * \retval        None
+ * \retval        TRUE        if the node is valid and fits.
+ * \retval        FALSE       otherwise
  */
-static void WriteRootNode(byte_t* output, uint64_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
+static bool_t WriteRootNode(byte_t* output, uint64_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
 
 /*=================================================================================================
 ** 4. PRIVATE FUNCTIONS
@@ -611,34 +624,31 @@ static const Utl_Xml_Node_t* FindNode(const Utl_Xml_Document_t* document, Utl_Xm
  * \par Details:
  *  Advances position only when the token is present.
  */
-static void ReadToken(const byte_t* bytes, uint64_t byteCount, uint64_t* position, const char_t* token, bool_t* hasToken)
+static bool_t ReadToken(const byte_t* bytes, uint64_t byteCount, uint64_t* position, const char_t* token)
 {
     uint32_t byte_index;
     byte_t   token_byte;
-    bool_t   has_token;
+    bool_t   is_valid;
 
-    has_token = TRUE;
+    is_valid = TRUE;
 
     for (byte_index = 0; '\0' != token[byte_index]; ++byte_index)
     {
         token_byte = token[byte_index];
-        has_token  = ((*position) < byteCount) && (byte_index < (byteCount - (*position))) && (token_byte == bytes[(*position) + byte_index]);
+        is_valid = ((*position) < byteCount) && (byte_index < (byteCount - (*position))) && (token_byte == bytes[(*position) + byte_index]);
 
-        if (FALSE == has_token)
+        if (FALSE == is_valid)
         {
             break;
         }
     }
 
-    if (has_token)
+    if (is_valid)
     {
         (*position) += byte_index;
     }
 
-    if (NULL != hasToken)
-    {
-        (*hasToken) = has_token;
-    }
+    return is_valid;
 }
 
 /*************************************************************************************************/
@@ -646,27 +656,31 @@ static void ReadToken(const byte_t* bytes, uint64_t byteCount, uint64_t* positio
  * \par Details:
  *  None
  */
-static void ReadWhitespace(const byte_t* bytes, uint64_t byteCount, uint64_t* position, bool_t* hasWhitespace)
+static bool_t ReadWhitespace(const byte_t* bytes, uint64_t byteCount, uint64_t* position, bool_t mustReachEnd)
 {
     uint64_t byte_index;
     bool_t   is_whitespace;
+    bool_t   is_valid;
 
-    for (byte_index = (*position); byte_index < byteCount; ++byte_index)
+    is_valid = ((*position) <= byteCount);
+    if (is_valid)
     {
-        is_whitespace = Utl_Xml_IsWhitespace(bytes[byte_index]);
-
-        if (FALSE == is_whitespace)
+        for (byte_index = (*position); byte_index < byteCount; ++byte_index)
         {
-            break;
+            is_whitespace = Utl_Xml_IsWhitespace(bytes[byte_index]);
+            if (FALSE == is_whitespace)
+            {
+                break;
+            }
+        }
+        (*position) = byte_index;
+        if (mustReachEnd)
+        {
+            is_valid = (byte_index == byteCount);
         }
     }
 
-    if (NULL != hasWhitespace)
-    {
-        (*hasWhitespace) = ((*position) < byte_index);
-    }
-
-    (*position) = byte_index;
+    return is_valid;
 }
 
 /*************************************************************************************************/
@@ -674,14 +688,14 @@ static void ReadWhitespace(const byte_t* bytes, uint64_t byteCount, uint64_t* po
  * \par Details:
  *  The name ends at whitespace, =, /, or >.
  */
-static void ReadName(const byte_t* bytes, uint64_t byteCount, uint64_t* position, const byte_t** name, uint32_t* nameByteCount)
+static bool_t ReadName(const byte_t* bytes, uint64_t byteCount, uint64_t* position, const byte_t** name, uint32_t* nameByteCount)
 {
     const byte_t* parsed_name;
     uint64_t      byte_index;
     uint64_t      span_byte_count;
     bool_t        is_whitespace;
     bool_t        is_name_end;
-    bool_t        is_name;
+    bool_t        is_valid;
 
     parsed_name = bytes + (*position);
 
@@ -697,32 +711,39 @@ static void ReadName(const byte_t* bytes, uint64_t byteCount, uint64_t* position
     }
 
     span_byte_count = byte_index - (*position);
-    LOGASSERT((0 < span_byte_count) && (span_byte_count <= UTL_XML_MAX_NAME_BYTES));
+    is_valid        = (0 < span_byte_count) && (span_byte_count <= UTL_XML_MAX_NAME_BYTES);
+    if (is_valid)
+    {
+        is_valid = Utl_Xml_IsName(parsed_name, (uint32_t)span_byte_count);
+    }
+    if (is_valid)
+    {
+        (*nameByteCount) = (uint32_t)span_byte_count;
+        (*position)      = byte_index;
+        (*name)          = parsed_name;
+    }
 
-    (*nameByteCount) = (uint32_t)span_byte_count;
-    (*position)      = byte_index;
-
-    is_name = Utl_Xml_IsName(parsed_name, (*nameByteCount));
-    LOGASSERT(is_name);
-
-    (*name) = parsed_name;
+    return is_valid;
 }
 
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Utl_Xml_AppendAttribute checks the value's characters.
+ *  The caller checks the value's characters before appending an attribute.
  */
-static void ReadAttributeValue(const byte_t* bytes, uint64_t byteCount, uint64_t* position, const byte_t** value, uint32_t* numBytes)
+static bool_t ReadAttributeValue(const byte_t* bytes, uint64_t byteCount, uint64_t* position, const byte_t** value, uint32_t* numBytes)
 {
     const byte_t* parsed_value;
     uint64_t      byte_index;
     uint64_t      span_byte_count;
-    bool_t        is_value_open;
+    bool_t        is_valid;
     bool_t        is_value_close;
 
-    is_value_open = ((*position) < byteCount) && ((byteCount - (*position)) >= 2) && (UTL_XML_EQ == bytes[(*position)]) && (UTL_XML_QUOTE_QUOT == bytes[(*position) + 1]);
-    LOGASSERT(is_value_open);
+    is_valid = ((*position) < byteCount) && ((byteCount - (*position)) >= 2) && (UTL_XML_EQ == bytes[(*position)]) && (UTL_XML_QUOTE_QUOT == bytes[(*position) + 1]);
+    if (FALSE == is_valid)
+    {
+        return FALSE;
+    }
 
     (*position) += 2;
     parsed_value = bytes + (*position);
@@ -737,15 +758,16 @@ static void ReadAttributeValue(const byte_t* bytes, uint64_t byteCount, uint64_t
         }
     }
 
-    LOGASSERT(byte_index < byteCount);
-
     span_byte_count = byte_index - (*position);
-    LOGASSERT(span_byte_count <= UTL_XML_MAX_VALUE_BYTES);
+    is_valid        = (byte_index < byteCount) && (span_byte_count <= UTL_XML_MAX_VALUE_BYTES);
+    if (is_valid)
+    {
+        (*numBytes) = (uint32_t)span_byte_count;
+        (*position) = byte_index + 1;
+        (*value)    = parsed_value;
+    }
 
-    (*numBytes) = (uint32_t)span_byte_count;
-    (*position) = byte_index + 1;
-
-    (*value) = parsed_value;
+    return is_valid;
 }
 
 /*************************************************************************************************/
@@ -753,7 +775,7 @@ static void ReadAttributeValue(const byte_t* bytes, uint64_t byteCount, uint64_t
  * \par Details:
  *  Utl_Xml_AppendAttribute checks attribute names, values, and uniqueness.
  */
-static void ReadElementStart(const byte_t* markup, uint64_t markupByteCount, uint64_t* position, Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity, uint32_t* attributeCount, bool_t* isStartTag)
+static bool_t ReadElementStart(const byte_t* markup, uint64_t markupByteCount, uint64_t* position, Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity, uint32_t* attributeCount, bool_t* isStartTag)
 {
     Utl_Xml_Attribute_t* attribute;
     const byte_t*        name;
@@ -761,47 +783,84 @@ static void ReadElementStart(const byte_t* markup, uint64_t markupByteCount, uin
     uint32_t             name_byte_count;
     uint32_t             value_byte_count;
     uint32_t             attribute_index;
+    uint64_t             whitespace_start;
     bool_t               has_whitespace;
     bool_t               is_empty_elem_tag_close;
     bool_t               is_tag_close;
     bool_t               is_start_tag;
+    bool_t               is_valid;
 
-    ReadToken(markup, markupByteCount, position, UTL_XML_STAG_OPEN, NULL);
-
-    ReadName(markup, markupByteCount, position, &name, &name_byte_count);
-    Utl_Xml_InitializeNode(node, UTL_XML_NODE_ELEMENT, name, name_byte_count);
+    is_valid = ReadToken(markup, markupByteCount, position, UTL_XML_STAG_OPEN);
+    if (is_valid)
+    {
+        is_valid = ReadName(markup, markupByteCount, position, &name, &name_byte_count);
+    }
+    if (is_valid)
+    {
+        Utl_Xml_InitializeNode(node, UTL_XML_NODE_ELEMENT, name, name_byte_count);
+    }
+    else
+    {
+        return FALSE;
+    }
 
     for (attribute_index = 0; attribute_index < UTL_XML_NODE_MAX_ATTRIBUTES; ++attribute_index)
     {
-        ReadWhitespace(markup, markupByteCount, position, &has_whitespace);
+        whitespace_start = (*position);
+        ReadWhitespace(markup, markupByteCount, position, FALSE);
+        has_whitespace = (whitespace_start < (*position));
 
         if (FALSE == has_whitespace)
         {
             break;
         }
 
-        LOGASSERT((*attributeCount) < attributeCapacity);
-
-        ReadName(markup, markupByteCount, position, &name, &name_byte_count);
-        ReadAttributeValue(markup, markupByteCount, position, &value, &value_byte_count);
-        attribute = &attributes[(*attributeCount)];
-
-        Utl_Xml_InitializeAttribute(attribute, name, name_byte_count, value, value_byte_count);
-        Utl_Xml_AppendAttribute(node, attribute);
-
-        (*attributeCount) += 1;
+        is_valid = ((*attributeCount) < attributeCapacity);
+        if (is_valid)
+        {
+            is_valid = ReadName(markup, markupByteCount, position, &name, &name_byte_count);
+        }
+        if (is_valid)
+        {
+            is_valid = ReadAttributeValue(markup, markupByteCount, position, &value, &value_byte_count);
+        }
+        if (is_valid)
+        {
+            is_valid = Utl_Xml_IsAttributeValue(value, value_byte_count);
+        }
+        if (is_valid)
+        {
+            is_valid = (NULL == FindAttribute(node, NULL, name, name_byte_count));
+        }
+        if (is_valid)
+        {
+            attribute = &attributes[(*attributeCount)];
+            Utl_Xml_InitializeAttribute(attribute, name, name_byte_count, value, value_byte_count);
+            Utl_Xml_AppendAttribute(node, attribute);
+            (*attributeCount) += 1;
+        }
+        else
+        {
+            break;
+        }
     }
 
-    ReadToken(markup, markupByteCount, position, UTL_XML_EMPTY_ELEM_TAG_CLOSE, &is_empty_elem_tag_close);
-    is_start_tag = (FALSE == is_empty_elem_tag_close);
-
-    if (is_start_tag)
+    if (is_valid)
     {
-        ReadToken(markup, markupByteCount, position, UTL_XML_TAG_CLOSE, &is_tag_close);
-        LOGASSERT(is_tag_close);
+        is_empty_elem_tag_close = ReadToken(markup, markupByteCount, position, UTL_XML_EMPTY_ELEM_TAG_CLOSE);
+        is_start_tag = (FALSE == is_empty_elem_tag_close);
+        if (is_start_tag)
+        {
+            is_tag_close = ReadToken(markup, markupByteCount, position, UTL_XML_TAG_CLOSE);
+            is_valid = is_tag_close;
+        }
+        if (is_valid)
+        {
+            (*isStartTag) = is_start_tag;
+        }
     }
 
-    (*isStartTag) = is_start_tag;
+    return is_valid;
 }
 
 /*************************************************************************************************/
@@ -809,22 +868,22 @@ static void ReadElementStart(const byte_t* markup, uint64_t markupByteCount, uin
  * \par Details:
  *  Checks the output bound before copying a nonempty span.
  */
-static void WriteBytes(byte_t* output, uint64_t capacity, uint64_t* byteCount, const byte_t* bytes, uint32_t numBytes)
+static bool_t WriteBytes(byte_t* output, uint64_t capacity, uint64_t* byteCount, const byte_t* bytes, uint32_t numBytes)
 {
-    bool_t fits_capacity;
-
     LOGASSERT(NULL != output);
     LOGASSERT(NULL != byteCount);
     LOGASSERT(NULL != bytes);
     LOGASSERT(0 < numBytes);
-    LOGASSERT((*byteCount) <= capacity);
 
-    fits_capacity = (numBytes <= (capacity - (*byteCount)));
-    LOGASSERT(fits_capacity);
+    if (((*byteCount) > capacity) || (numBytes > (capacity - (*byteCount))))
+    {
+        return FALSE;
+    }
 
     (void)memcpy(output + (*byteCount), bytes, numBytes);
 
     (*byteCount) += numBytes;
+    return TRUE;
 }
 
 /*************************************************************************************************/
@@ -832,9 +891,9 @@ static void WriteBytes(byte_t* output, uint64_t capacity, uint64_t* byteCount, c
  * \par Details:
  *  None
  */
-static void WriteByte(byte_t* output, uint64_t capacity, uint64_t* byteCount, byte_t value)
+static bool_t WriteByte(byte_t* output, uint64_t capacity, uint64_t* byteCount, byte_t value)
 {
-    WriteBytes(output, capacity, byteCount, &value, 1);
+    return WriteBytes(output, capacity, byteCount, &value, 1);
 }
 
 /*************************************************************************************************/
@@ -842,7 +901,7 @@ static void WriteByte(byte_t* output, uint64_t capacity, uint64_t* byteCount, by
  * \par Details:
  *  None
  */
-static void WriteToken(byte_t* output, uint64_t capacity, uint64_t* byteCount, const char_t* token)
+static bool_t WriteToken(byte_t* output, uint64_t capacity, uint64_t* byteCount, const char_t* token)
 {
     uint32_t byte_index;
 
@@ -850,8 +909,13 @@ static void WriteToken(byte_t* output, uint64_t capacity, uint64_t* byteCount, c
 
     for (byte_index = 0; '\0' != token[byte_index]; ++byte_index)
     {
-        WriteByte(output, capacity, byteCount, token[byte_index]);
+        if (FALSE == WriteByte(output, capacity, byteCount, token[byte_index]))
+        {
+            return FALSE;
+        }
     }
+
+    return TRUE;
 }
 
 /*************************************************************************************************/
@@ -859,14 +923,19 @@ static void WriteToken(byte_t* output, uint64_t capacity, uint64_t* byteCount, c
  * \par Details:
  *  Writes only spaces; callers write line breaks separately.
  */
-static void WriteIndent(byte_t* output, uint64_t capacity, uint64_t* byteCount, uint32_t indentSpaceCount)
+static bool_t WriteIndent(byte_t* output, uint64_t capacity, uint64_t* byteCount, uint32_t indentSpaceCount)
 {
     uint32_t space_index;
 
     for (space_index = 0; space_index < indentSpaceCount; ++space_index)
     {
-        WriteByte(output, capacity, byteCount, UTL_XML_CHAR_SPACE);
+        if (FALSE == WriteByte(output, capacity, byteCount, UTL_XML_CHAR_SPACE))
+        {
+            return FALSE;
+        }
     }
+
+    return TRUE;
 }
 
 /*************************************************************************************************/
@@ -874,19 +943,45 @@ static void WriteIndent(byte_t* output, uint64_t capacity, uint64_t* byteCount, 
  * \par Details:
  *  None
  */
-static void WriteDeclaration(byte_t* output, uint64_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
+static bool_t WriteDeclaration(byte_t* output, uint64_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
 {
-    LOGASSERT(NULL == node->name);
-    LOGASSERT(0 == node->nameByteCount);
+    bool_t is_valid;
 
-    WriteToken(output, capacity, byteCount, UTL_XML_DECL_OPEN);
-    WriteByte(output, capacity, byteCount, UTL_XML_CHAR_SPACE);
-    WriteToken(output, capacity, byteCount, UTL_XML_VERSION_NAME);
-    WriteByte(output, capacity, byteCount, UTL_XML_EQ);
-    WriteByte(output, capacity, byteCount, UTL_XML_QUOTE_QUOT);
-    WriteToken(output, capacity, byteCount, UTL_XML_VERSION_1_0);
-    WriteByte(output, capacity, byteCount, UTL_XML_QUOTE_QUOT);
-    WriteToken(output, capacity, byteCount, UTL_XML_DECL_CLOSE);
+    is_valid = (NULL == node->name) && (0 == node->nameByteCount);
+    if (is_valid)
+    {
+        is_valid = WriteToken(output, capacity, byteCount, UTL_XML_DECL_OPEN);
+    }
+    if (is_valid)
+    {
+        is_valid = WriteByte(output, capacity, byteCount, UTL_XML_CHAR_SPACE);
+    }
+    if (is_valid)
+    {
+        is_valid = WriteToken(output, capacity, byteCount, UTL_XML_VERSION_NAME);
+    }
+    if (is_valid)
+    {
+        is_valid = WriteByte(output, capacity, byteCount, UTL_XML_EQ);
+    }
+    if (is_valid)
+    {
+        is_valid = WriteByte(output, capacity, byteCount, UTL_XML_QUOTE_QUOT);
+    }
+    if (is_valid)
+    {
+        is_valid = WriteToken(output, capacity, byteCount, UTL_XML_VERSION_1_0);
+    }
+    if (is_valid)
+    {
+        is_valid = WriteByte(output, capacity, byteCount, UTL_XML_QUOTE_QUOT);
+    }
+    if (is_valid)
+    {
+        is_valid = WriteToken(output, capacity, byteCount, UTL_XML_DECL_CLOSE);
+    }
+
+    return is_valid;
 }
 
 /*************************************************************************************************/
@@ -894,55 +989,103 @@ static void WriteDeclaration(byte_t* output, uint64_t capacity, uint64_t* byteCo
  * \par Details:
  *  None
  */
-static void WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
+static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
 {
-    bool_t                     is_name;
     const Utl_Xml_Attribute_t* current_attribute;
     uint32_t                   attribute_index;
+    bool_t                     is_valid;
 
-    LOGASSERT(NULL != node->name);
+    is_valid = (NULL != node->name) && (0 < node->nameByteCount) && (node->nameByteCount <= UTL_XML_MAX_NAME_BYTES) &&
+               (node->attributeCount <= UTL_XML_NODE_MAX_ATTRIBUTES);
+    if (is_valid)
+    {
+        is_valid = Utl_Xml_IsName(node->name, node->nameByteCount);
+    }
+    if (is_valid)
+    {
+        is_valid = WriteToken(output, capacity, byteCount, UTL_XML_STAG_OPEN);
+    }
+    if (is_valid)
+    {
+        is_valid = WriteBytes(output, capacity, byteCount, node->name, node->nameByteCount);
+    }
 
-    is_name = Utl_Xml_IsName(node->name, node->nameByteCount);
-    LOGASSERT(is_name);
-
-    WriteToken(output, capacity, byteCount, UTL_XML_STAG_OPEN);
-    WriteBytes(output, capacity, byteCount, node->name, node->nameByteCount);
+    if (FALSE == is_valid)
+    {
+        return FALSE;
+    }
 
     current_attribute = node->firstAttribute;
 
     for (attribute_index = 0; attribute_index < node->attributeCount; ++attribute_index)
     {
-        LOGASSERT(NULL != current_attribute);
-        LOGASSERT(NULL != current_attribute->name);
-
-        is_name = Utl_Xml_IsName(current_attribute->name, current_attribute->nameByteCount);
-        LOGASSERT(is_name);
-
-        WriteByte(output, capacity, byteCount, UTL_XML_CHAR_SPACE);
-        WriteBytes(output, capacity, byteCount, current_attribute->name, current_attribute->nameByteCount);
-        WriteByte(output, capacity, byteCount, UTL_XML_EQ);
-        WriteByte(output, capacity, byteCount, UTL_XML_QUOTE_QUOT);
-
-        if (0 < current_attribute->valueByteCount)
+        is_valid = (NULL != current_attribute);
+        if (is_valid)
         {
-            WriteBytes(output, capacity, byteCount, current_attribute->value, current_attribute->valueByteCount);
+            is_valid = (NULL != current_attribute->name) && (0 < current_attribute->nameByteCount) &&
+                       (current_attribute->nameByteCount <= UTL_XML_MAX_NAME_BYTES) && (NULL != current_attribute->value) &&
+                       (current_attribute->valueByteCount <= UTL_XML_MAX_VALUE_BYTES);
+        }
+        if (is_valid)
+        {
+            is_valid = Utl_Xml_IsName(current_attribute->name, current_attribute->nameByteCount);
+        }
+        if (is_valid)
+        {
+            is_valid = Utl_Xml_IsAttributeValue(current_attribute->value, current_attribute->valueByteCount);
+        }
+        if (is_valid)
+        {
+            is_valid = WriteByte(output, capacity, byteCount, UTL_XML_CHAR_SPACE);
+        }
+        if (is_valid)
+        {
+            is_valid = WriteBytes(output, capacity, byteCount, current_attribute->name, current_attribute->nameByteCount);
+        }
+        if (is_valid)
+        {
+            is_valid = WriteByte(output, capacity, byteCount, UTL_XML_EQ);
+        }
+        if (is_valid)
+        {
+            is_valid = WriteByte(output, capacity, byteCount, UTL_XML_QUOTE_QUOT);
+        }
+        if (is_valid && (0 < current_attribute->valueByteCount))
+        {
+            is_valid = WriteBytes(output, capacity, byteCount, current_attribute->value, current_attribute->valueByteCount);
+        }
+        if (is_valid)
+        {
+            is_valid = WriteByte(output, capacity, byteCount, UTL_XML_QUOTE_QUOT);
         }
 
-        WriteByte(output, capacity, byteCount, UTL_XML_QUOTE_QUOT);
-
-        current_attribute = current_attribute->next;
+        if (is_valid)
+        {
+            current_attribute = current_attribute->next;
+        }
+        else
+        {
+            break;
+        }
     }
 
-    LOGASSERT(NULL == current_attribute);
-
-    if (NULL == node->firstChild)
+    if (is_valid)
     {
-        WriteToken(output, capacity, byteCount, UTL_XML_EMPTY_ELEM_TAG_CLOSE);
+        is_valid = (NULL == current_attribute);
     }
-    else
+    if (is_valid)
     {
-        WriteToken(output, capacity, byteCount, UTL_XML_TAG_CLOSE);
+        if (NULL == node->firstChild)
+        {
+            is_valid = WriteToken(output, capacity, byteCount, UTL_XML_EMPTY_ELEM_TAG_CLOSE);
+        }
+        else
+        {
+            is_valid = WriteToken(output, capacity, byteCount, UTL_XML_TAG_CLOSE);
+        }
     }
+
+    return is_valid;
 }
 
 /*************************************************************************************************/
@@ -950,11 +1093,21 @@ static void WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byteC
  * \par Details:
  *  None
  */
-static void WriteElementEnd(byte_t* output, uint64_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
+static bool_t WriteElementEnd(byte_t* output, uint64_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
 {
-    WriteToken(output, capacity, byteCount, UTL_XML_ETAG_OPEN);
-    WriteBytes(output, capacity, byteCount, node->name, node->nameByteCount);
-    WriteToken(output, capacity, byteCount, UTL_XML_TAG_CLOSE);
+    bool_t is_valid;
+
+    is_valid = WriteToken(output, capacity, byteCount, UTL_XML_ETAG_OPEN);
+    if (is_valid)
+    {
+        is_valid = WriteBytes(output, capacity, byteCount, node->name, node->nameByteCount);
+    }
+    if (is_valid)
+    {
+        is_valid = WriteToken(output, capacity, byteCount, UTL_XML_TAG_CLOSE);
+    }
+
+    return is_valid;
 }
 
 /*************************************************************************************************/
@@ -962,16 +1115,18 @@ static void WriteElementEnd(byte_t* output, uint64_t capacity, uint64_t* byteCou
  * \par Details:
  *  None
  */
-static void WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* root)
+static bool_t WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* root)
 {
     const Utl_Xml_Node_t* current_node;
     uint32_t              depth;
     uint32_t              node_index;
     bool_t                should_close_parent;
     uint32_t              ancestor_index;
+    bool_t                is_valid;
 
     current_node = root;
     depth        = 0;
+    is_valid     = TRUE;
 
     for (node_index = 0; node_index < UTL_XML_DOCUMENT_MAX_NODES; ++node_index)
     {
@@ -982,15 +1137,29 @@ static void WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCount,
 
         if (current_node != root)
         {
-            WriteByte(output, capacity, byteCount, UTL_XML_CHAR_LF);
-            WriteIndent(output, capacity, byteCount, depth * INDENT_SPACES_PER_LEVEL);
+            is_valid = WriteByte(output, capacity, byteCount, UTL_XML_CHAR_LF);
+            if (is_valid)
+            {
+                is_valid = WriteIndent(output, capacity, byteCount, depth * INDENT_SPACES_PER_LEVEL);
+            }
         }
 
-        WriteElementStart(output, capacity, byteCount, current_node);
+        if (is_valid)
+        {
+            is_valid = WriteElementStart(output, capacity, byteCount, current_node);
+        }
+        if (FALSE == is_valid)
+        {
+            break;
+        }
 
         if (NULL != current_node->firstChild)
         {
-            LOGASSERT(depth < UTL_XML_NODE_MAX_DEPTH);
+            is_valid = (depth < UTL_XML_NODE_MAX_DEPTH);
+            if (FALSE == is_valid)
+            {
+                break;
+            }
             current_node = current_node->firstChild;
             ++depth;
             continue;
@@ -1006,31 +1175,57 @@ static void WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCount,
             }
 
             current_node = current_node->parent;
-            LOGASSERT(NULL != current_node);
-            LOGASSERT(0 < depth);
+            is_valid     = (NULL != current_node) && (0 < depth);
+            if (FALSE == is_valid)
+            {
+                break;
+            }
             --depth;
 
-            WriteByte(output, capacity, byteCount, UTL_XML_CHAR_LF);
-            WriteIndent(output, capacity, byteCount, depth * INDENT_SPACES_PER_LEVEL);
-            WriteElementEnd(output, capacity, byteCount, current_node);
+            is_valid = WriteByte(output, capacity, byteCount, UTL_XML_CHAR_LF);
+            if (is_valid)
+            {
+                is_valid = WriteIndent(output, capacity, byteCount, depth * INDENT_SPACES_PER_LEVEL);
+            }
+            if (is_valid)
+            {
+                is_valid = WriteElementEnd(output, capacity, byteCount, current_node);
+            }
+            if (FALSE == is_valid)
+            {
+                break;
+            }
 
             should_close_parent = (current_node != root) && (NULL == current_node->nextSibling);
         }
 
-        LOGASSERT(FALSE == should_close_parent);
-
-        if (current_node == root)
+        if (is_valid)
         {
-            current_node = NULL;
+            is_valid = (FALSE == should_close_parent);
+        }
+        if (is_valid)
+        {
+            if (current_node == root)
+            {
+                current_node = NULL;
+            }
+            else
+            {
+                current_node = current_node->nextSibling;
+            }
         }
         else
         {
-            current_node = current_node->nextSibling;
+            break;
         }
     }
 
-    LOGASSERT(NULL == current_node);
-    LOGASSERT(0 == depth);
+    if (is_valid)
+    {
+        is_valid = (NULL == current_node) && (0 == depth);
+    }
+
+    return is_valid;
 }
 
 /*************************************************************************************************/
@@ -1038,23 +1233,28 @@ static void WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCount,
  * \par Details:
  *  Dispatches top-level nodes; element descendants use the iterative element writer.
  */
-static void WriteRootNode(byte_t* output, uint64_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
+static bool_t WriteRootNode(byte_t* output, uint64_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
 {
+    bool_t is_valid;
+
     switch (node->type)
     {
         case UTL_XML_NODE_XML_DECLARATION:
         {
-            WriteDeclaration(output, capacity, byteCount, node);
+            is_valid = WriteDeclaration(output, capacity, byteCount, node);
             break;
         }
         case UTL_XML_NODE_ELEMENT:
         {
-            WriteElement(output, capacity, byteCount, node);
+            is_valid = WriteElement(output, capacity, byteCount, node);
             break;
         }
         default:
-            LOGFATAL("Invalid XML node type!");
+            is_valid = FALSE;
+            break;
     }
+
+    return is_valid;
 }
 
 /*=================================================================================================
@@ -1458,7 +1658,7 @@ void Utl_Xml_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node)
  *  Utl_StrStr finds each <, so every token holds one tag and the whitespace after it.
  *  The open element is the parent of the elements that follow it.
  */
-void Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToReadDocumentFrom, uint64_t sizeOfDocumentBuffer, Utl_Xml_Node_t* nodes, uint32_t nodeCapacity, Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity)
+uint64_t Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToReadDocumentFrom, uint64_t sizeOfDocumentBuffer, Utl_Xml_Node_t* nodes, uint32_t nodeCapacity, Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity)
 {
     Utl_Xml_Node_t*       node;
     Utl_Xml_Node_t*       parent;
@@ -1467,8 +1667,10 @@ void Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToReadDocu
     byte_t*               next_markup;
     const byte_t*         name;
     const byte_t*         version;
+    uint64_t              bytes_read;
     uint64_t              markup_byte_count;
     uint64_t              position;
+    uint64_t              whitespace_start;
     uint32_t              name_byte_count;
     uint32_t              version_byte_count;
     uint32_t              node_count;
@@ -1477,6 +1679,9 @@ void Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToReadDocu
     bool_t                is_end_tag;
     bool_t                is_declaration;
     bool_t                is_start_tag;
+    bool_t                is_first_markup;
+    bool_t                is_top_level;
+    bool_t                is_empty_document;
     bool_t                is_valid;
 
     LOGASSERT(NULL != document);
@@ -1486,119 +1691,176 @@ void Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToReadDocu
     LOGASSERT(NULL == document->firstNode);
 
     bufferToReadDocumentFrom[sizeOfDocumentBuffer] = '\0';
+    bytes_read       = 0;
     position         = 0;
     node_count       = 0;
     attribute_count  = 0;
     parent           = NULL;
 
-    ReadWhitespace(bufferToReadDocumentFrom, sizeOfDocumentBuffer, &position, NULL);
+    ReadWhitespace(bufferToReadDocumentFrom, sizeOfDocumentBuffer, &position, FALSE);
 
     markup = bufferToReadDocumentFrom + position;
+    is_valid = (position < sizeOfDocumentBuffer);
 
-    for (token_index = 0; token_index < UTL_XML_DOCUMENT_MAX_NODES; ++token_index)
+    if (is_valid)
     {
-        LOGASSERT(UTL_XML_CHAR_LT == markup[0]);
-
-        next_markup = (byte_t*)Utl_StrStr((const char_t*)(markup + 1), UTL_XML_STAG_OPEN, FALSE);
-
-        if (NULL != next_markup)
+        for (token_index = 0; token_index < UTL_XML_DOCUMENT_MAX_NODES; ++token_index)
         {
-            next_markup[0] = '\0';
-        }
-
-        markup_byte_count = (uint64_t)strlen((const char_t*)markup);
-        position          = 0;
-        is_declaration    = FALSE;
-        ReadToken(markup, markup_byte_count, &position, UTL_XML_ETAG_OPEN, &is_end_tag);
-
-        if (FALSE == is_end_tag)
-        {
-            ReadToken(markup, markup_byte_count, &position, UTL_XML_DECL_OPEN, &is_declaration);
-        }
-
-        if (is_end_tag)
-        {
-            LOGASSERT(NULL != parent);
-
-            ReadName(markup, markup_byte_count, &position, &name, &name_byte_count);
-            LOGASSERT(parent->nameByteCount == name_byte_count);
-
-            is_valid = (0 == memcmp(parent->name, name, name_byte_count));
-            LOGASSERT(is_valid);
-
-            ReadWhitespace(markup, markup_byte_count, &position, NULL);
-
-            ReadToken(markup, markup_byte_count, &position, UTL_XML_TAG_CLOSE, &is_valid);
-            LOGASSERT(is_valid);
-
-            parent = parent->parent;
-        }
-        else
-        {
-            LOGASSERT(node_count < nodeCapacity);
-
-            node         = &nodes[node_count];
-            is_start_tag = FALSE;
-
-            if (is_declaration)
+            is_valid = (UTL_XML_CHAR_LT == markup[0]);
+            if (FALSE == is_valid)
             {
-                LOGASSERT(bufferToReadDocumentFrom == markup);
+                break;
+            }
 
-                ReadWhitespace(markup, markup_byte_count, &position, &is_valid);
-                LOGASSERT(is_valid);
+            next_markup = (byte_t*)Utl_StrStr((const char_t*)(markup + 1), UTL_XML_STAG_OPEN, FALSE);
 
-                ReadToken(markup, markup_byte_count, &position, UTL_XML_VERSION_NAME, &is_valid);
-                LOGASSERT(is_valid);
+            if (NULL != next_markup)
+            {
+                next_markup[0] = '\0';
+            }
 
-                ReadAttributeValue(markup, markup_byte_count, &position, &version, &version_byte_count);
-                is_valid = ((sizeof(UTL_XML_VERSION_1_0) - 1) == version_byte_count) && (0 == memcmp(version, UTL_XML_VERSION_1_0, version_byte_count));
-                LOGASSERT(is_valid);
+            markup_byte_count = (uint64_t)strlen((const char_t*)markup);
+            position          = 0;
+            is_declaration    = FALSE;
+            is_end_tag = ReadToken(markup, markup_byte_count, &position, UTL_XML_ETAG_OPEN);
 
-                ReadToken(markup, markup_byte_count, &position, UTL_XML_DECL_CLOSE, &is_valid);
-                LOGASSERT(is_valid);
+            if (FALSE == is_end_tag)
+            {
+                is_declaration = ReadToken(markup, markup_byte_count, &position, UTL_XML_DECL_OPEN);
+            }
 
-                Utl_Xml_InitializeNode(node, UTL_XML_NODE_XML_DECLARATION, NULL, 0);
+            if (is_end_tag)
+            {
+                is_valid = (NULL != parent);
+                if (is_valid)
+                {
+                    is_valid = ReadName(markup, markup_byte_count, &position, &name, &name_byte_count);
+                }
+                if (is_valid)
+                {
+                    is_valid = (parent->nameByteCount == name_byte_count) && (0 == memcmp(parent->name, name, name_byte_count));
+                }
+                if (is_valid)
+                {
+                    ReadWhitespace(markup, markup_byte_count, &position, FALSE);
+                    is_valid = ReadToken(markup, markup_byte_count, &position, UTL_XML_TAG_CLOSE);
+                }
+                if (is_valid)
+                {
+                    parent = parent->parent;
+                }
             }
             else
             {
-                ReadElementStart(markup, markup_byte_count, &position, node, attributes, attributeCapacity, &attribute_count, &is_start_tag);
+                is_valid     = (node_count < nodeCapacity);
+                is_start_tag = FALSE;
+
+                if (is_valid)
+                {
+                    node = &nodes[node_count];
+                    if (is_declaration)
+                    {
+                        is_first_markup   = (bufferToReadDocumentFrom == markup);
+                        is_top_level      = (NULL == parent);
+                        is_empty_document = (NULL == document->firstNode);
+                        is_valid          = is_first_markup && is_top_level && is_empty_document;
+                        if (is_valid)
+                        {
+                            whitespace_start = position;
+                            ReadWhitespace(markup, markup_byte_count, &position, FALSE);
+                            is_valid = (whitespace_start < position);
+                        }
+                        if (is_valid)
+                        {
+                            is_valid = ReadToken(markup, markup_byte_count, &position, UTL_XML_VERSION_NAME);
+                        }
+                        if (is_valid)
+                        {
+                            is_valid = ReadAttributeValue(markup, markup_byte_count, &position, &version, &version_byte_count);
+                        }
+                        if (is_valid)
+                        {
+                            is_valid = ((sizeof(UTL_XML_VERSION_1_0) - 1) == version_byte_count) && (0 == memcmp(version, UTL_XML_VERSION_1_0, version_byte_count));
+                        }
+                        if (is_valid)
+                        {
+                            is_valid = ReadToken(markup, markup_byte_count, &position, UTL_XML_DECL_CLOSE);
+                        }
+                        if (is_valid)
+                        {
+                            Utl_Xml_InitializeNode(node, UTL_XML_NODE_XML_DECLARATION, NULL, 0);
+                        }
+                    }
+                    else
+                    {
+                        is_valid = ReadElementStart(markup, markup_byte_count, &position, node, attributes, attributeCapacity, &attribute_count, &is_start_tag);
+                        if (is_valid && (NULL == parent))
+                        {
+                            is_valid = (NULL == FindNode(document, UTL_XML_NODE_ELEMENT));
+                        }
+                    }
+                }
+
+                if (is_valid)
+                {
+                    if (NULL == parent)
+                    {
+                        Utl_Xml_AppendNode(document, node);
+                    }
+                    else
+                    {
+                        Utl_Xml_AppendChild(parent, node);
+                    }
+
+                    node_count += 1;
+
+                    if (is_start_tag)
+                    {
+                        parent = node;
+                    }
+                }
             }
 
-            if (NULL == parent)
+            if (is_valid)
             {
-                Utl_Xml_AppendNode(document, node);
-            }
-            else
-            {
-                Utl_Xml_AppendChild(parent, node);
+                is_valid = ReadWhitespace(markup, markup_byte_count, &position, TRUE);
             }
 
-            node_count += 1;
-
-            if (is_start_tag)
+            if (NULL != next_markup)
             {
-                parent = node;
+                next_markup[0] = UTL_XML_CHAR_LT;
+            }
+
+            if (FALSE == is_valid)
+            {
+                break;
+            }
+
+            markup += markup_byte_count;
+            if (NULL == next_markup)
+            {
+                break;
             }
         }
-
-        ReadWhitespace(markup, markup_byte_count, &position, NULL);
-        LOGASSERT(markup_byte_count == position);
-
-        markup += markup_byte_count;
-
-        if (NULL == next_markup)
-        {
-            break;
-        }
-
-        markup[0] = UTL_XML_CHAR_LT;
     }
 
-    LOGASSERT((bufferToReadDocumentFrom + sizeOfDocumentBuffer) == markup);
-    LOGASSERT(NULL == parent);
+    if (is_valid)
+    {
+        is_valid = ((bufferToReadDocumentFrom + sizeOfDocumentBuffer) == markup) && (NULL == parent);
+    }
 
-    root_node = FindNode(document, UTL_XML_NODE_ELEMENT);
-    LOGASSERT(NULL != root_node);
+    if (is_valid)
+    {
+        root_node = FindNode(document, UTL_XML_NODE_ELEMENT);
+        is_valid  = (NULL != root_node);
+    }
+
+    if (is_valid)
+    {
+        bytes_read = (uint64_t)(markup - bufferToReadDocumentFrom);
+    }
+
+    return bytes_read;
 }
 
 /*************************************************************************************************/
@@ -1609,14 +1871,16 @@ void Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToReadDocu
 uint64_t Utl_Xml_WriteDocument(const Utl_Xml_Document_t* document, byte_t* bufferToWriteDocumentIn, uint64_t sizeOfDocumentBuffer)
 {
     const Utl_Xml_Node_t* current_node;
-    uint64_t              byte_count;
+    uint64_t              bytes_written;
+    bool_t                is_valid;
     uint32_t              node_index;
 
     LOGASSERT(NULL != document);
     LOGASSERT(NULL != bufferToWriteDocumentIn);
 
-    current_node = document->firstNode;
-    byte_count   = 0;
+    current_node  = document->firstNode;
+    bytes_written = 0;
+    is_valid      = TRUE;
 
     for (node_index = 0; node_index < UTL_XML_DOCUMENT_MAX_NODES; ++node_index)
     {
@@ -1625,13 +1889,25 @@ uint64_t Utl_Xml_WriteDocument(const Utl_Xml_Document_t* document, byte_t* buffe
             break;
         }
 
-        WriteRootNode(bufferToWriteDocumentIn, sizeOfDocumentBuffer, &byte_count, current_node);
-        WriteByte(bufferToWriteDocumentIn, sizeOfDocumentBuffer, &byte_count, UTL_XML_CHAR_LF);
+        is_valid = WriteRootNode(bufferToWriteDocumentIn, sizeOfDocumentBuffer, &bytes_written, current_node);
+
+        if (is_valid)
+        {
+            is_valid = WriteByte(bufferToWriteDocumentIn, sizeOfDocumentBuffer, &bytes_written, UTL_XML_CHAR_LF);
+        }
+
+        if (FALSE == is_valid)
+        {
+            break;
+        }
 
         current_node = current_node->nextSibling;
     }
 
-    LOGASSERT(NULL == current_node);
+    if ((FALSE == is_valid) || (NULL != current_node))
+    {
+        bytes_written = 0;
+    }
 
-    return byte_count;
+    return bytes_written;
 }
