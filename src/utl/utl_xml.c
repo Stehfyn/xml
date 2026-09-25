@@ -26,16 +26,16 @@
 #define INDENT_SPACES_PER_LEVEL (4)
 
 /* UTF-8 leading-byte ranges and their payload bits. */
-#define UTF8_ASCII_MAX_BYTE              (0x7F)
-#define UTF8_TWO_BYTE_LEAD_MIN           (0xC2)
-#define UTF8_TWO_BYTE_LEAD_MAX           (0xDF)
-#define UTF8_THREE_BYTE_LEAD_MIN         (0xE0)
-#define UTF8_THREE_BYTE_LEAD_MAX         (0xEF)
-#define UTF8_FOUR_BYTE_LEAD_MIN          (0xF0)
-#define UTF8_FOUR_BYTE_LEAD_MAX          (0xF4)
-#define UTF8_TWO_BYTE_LEAD_PAYLOAD_MASK  (0x1F)
+#define UTF8_ASCII_MAX_BYTE               (0x7F)
+#define UTF8_TWO_BYTE_LEAD_MIN            (0xC2)
+#define UTF8_TWO_BYTE_LEAD_MAX            (0xDF)
+#define UTF8_THREE_BYTE_LEAD_MIN          (0xE0)
+#define UTF8_THREE_BYTE_LEAD_MAX          (0xEF)
+#define UTF8_FOUR_BYTE_LEAD_MIN           (0xF0)
+#define UTF8_FOUR_BYTE_LEAD_MAX           (0xF4)
+#define UTF8_TWO_BYTE_LEAD_PAYLOAD_MASK   (0x1F)
 #define UTF8_THREE_BYTE_LEAD_PAYLOAD_MASK (0x0F)
-#define UTF8_FOUR_BYTE_LEAD_PAYLOAD_MASK (0x07)
+#define UTF8_FOUR_BYTE_LEAD_PAYLOAD_MASK  (0x07)
 
 /* A continuation byte has the form 10xxxxxx. */
 #define UTF8_CONTINUATION_PREFIX        (0x80)
@@ -1685,6 +1685,7 @@ uint64_t Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToRead
     bool_t                is_declaration;
     bool_t                is_start_tag;
     bool_t                is_first_markup;
+    bool_t                is_end_of_document;
     bool_t                is_top_level;
     bool_t                is_empty_document;
     bool_t                is_valid;
@@ -1817,9 +1818,13 @@ uint64_t Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToRead
                     else
                     {
                         is_valid = ReadElementStart(document_cursor, document_byte_count, &offset, node, attributes, attributeCapacity, &attribute_count, &is_start_tag);
-                        if (is_valid && (NULL == parent))
+                        if (is_valid)
                         {
-                            is_valid = (NULL == FindNode(document, UTL_XML_NODE_ELEMENT));
+                            is_top_level = (NULL == parent);
+                            if (is_top_level)
+                            {
+                                is_valid = (NULL == FindNode(document, UTL_XML_NODE_ELEMENT));
+                            }
                         }
                     }
                 }
@@ -1869,7 +1874,14 @@ uint64_t Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToRead
 
     if (is_valid)
     {
-        is_valid = ((bufferToReadDocumentFrom + sizeOfDocumentBuffer) == document_cursor) && (NULL == parent);
+        is_end_of_document = ((bufferToReadDocumentFrom + sizeOfDocumentBuffer) == document_cursor);
+        is_valid           = is_end_of_document;
+    }
+
+    if (is_valid)
+    {
+        is_top_level = (NULL == parent);
+        is_valid     = is_top_level;
     }
 
     if (is_valid)
