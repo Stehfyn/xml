@@ -432,13 +432,13 @@ void Utl_Xml_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node);
  *  - 002 This function shall fail an assertion if document, bufferToReadDocumentFrom, nodes, or attributes is NULL, or if document is not empty.
  *  - 003 This function shall return zero for input outside the supported form or for insufficient storage.
  *
- * \param[in,out] document            Initialized, empty document
- * \param[in,out] bufferToReadDocumentFrom UTF-8 XML bytes with one writable byte after sizeOfDocumentBuffer bytes
- * \param[in]     sizeOfDocumentBuffer     Number of XML bytes to read, excluding the extra writable byte
- * \param[out]    nodes                    Caller-owned node storage
- * \param[in]     nodeCapacity             Number of nodes in nodes
- * \param[out]    attributes               Caller-owned attribute storage
- * \param[in]     attributeCapacity        Number of attributes in attributes
+ * \param[in,out] document                   Initialized, empty document
+ * \param[in,out] bufferToReadDocumentFrom   UTF-8 XML bytes with one writable byte after sizeOfDocumentBuffer bytes
+ * \param[in]     sizeOfDocumentBuffer       Number of XML bytes to read, excluding the extra writable byte
+ * \param[out]    nodes                      Caller-owned node storage
+ * \param[in]     nodeCapacity               Number of nodes in nodes
+ * \param[out]    attributes                 Caller-owned attribute storage
+ * \param[in]     attributeCapacity          Number of attributes in attributes
  *
  * \return        Number of bytes read, or zero on failure. The document may contain partial results on failure.
  */
@@ -471,9 +471,9 @@ uint64_t Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToRead
  *  - 006 This function shall return zero for invalid element names or attribute content.
  *  - 007 This function shall return zero before writing beyond sizeOfDocumentBuffer.
  *
- * \param[in]  document              Document to write
- * \param[out] bufferToWriteDocumentIn Caller-provided byte storage
- * \param[in]  sizeOfDocumentBuffer   Number of bytes available in bufferToWriteDocumentIn
+ * \param[in]  document                  Document to write
+ * \param[out] bufferToWriteDocumentIn   Caller-provided byte storage
+ * \param[in]  sizeOfDocumentBuffer      Number of bytes available in bufferToWriteDocumentIn
  *
  * \return     Number of bytes written, or zero on failure. The buffer may contain partial output on failure.
  */
