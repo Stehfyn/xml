@@ -76,7 +76,9 @@ typedef struct XmlCodePointRange_s
 /*************************************************************************************************/
 /**
  * \brief Allowed first-character ranges from XML 1.0 (Fifth Edition), production [4] NameStartChar.
- * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-NameStartChar
+ *
+ * \par Details:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-NameStartChar
  */
 static const XmlCodePointRange_t c_xmlNameStartCharRanges[] =
 {
@@ -101,7 +103,9 @@ static const XmlCodePointRange_t c_xmlNameStartCharRanges[] =
 /*************************************************************************************************/
 /**
  * \brief Additional ranges from XML 1.0 (Fifth Edition), production [4a] NameChar.
- * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-NameChar
+ *
+ * \par Details:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-NameChar
  */
 static const XmlCodePointRange_t c_xmlNameCharRanges[] =
 {
@@ -139,7 +143,8 @@ static bool_t InRange(uint32_t codePoint, uint32_t first, uint32_t last);
  * \param[in]     offset             Current byte offset
  * \param[out]    decodedByteCount   Number of bytes decoded, or zero on failure
  *
- * \return Decoded code point, or zero for invalid UTF-8. Check decodedByteCount for success.
+ * \retval        0..0x10FFFF   decoded code point when decodedByteCount is nonzero; U+0000 is valid UTF-8.
+ * \retval        0             if decoding fails; decodedByteCount is zero.
  */
 static uint32_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t offset, uint32_t* decodedByteCount);
 
@@ -152,7 +157,8 @@ static uint32_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t offs
  * \param[in] name            Name bytes to find
  * \param[in] nameByteCount   Number of name bytes
  *
- * \return Matching attribute, or NULL if the name is absent.
+ * \retval    non-NULL   matching attribute.
+ * \retval    NULL       if the name is absent.
  */
 static const Utl_Xml_Attribute_t* FindAttribute(const Utl_Xml_Node_t* node, const Utl_Xml_Attribute_t* attribute, const byte_t* name, uint32_t nameByteCount);
 
@@ -163,7 +169,8 @@ static const Utl_Xml_Attribute_t* FindAttribute(const Utl_Xml_Node_t* node, cons
  * \param[in] parent   Node whose parent chain is searched
  * \param[in] child    Node to find
  *
- * \return Matching ancestor, or NULL if child is absent.
+ * \retval    non-NULL   matching ancestor.
+ * \retval    NULL       if child is absent from the ancestor chain.
  */
 static const Utl_Xml_Node_t* FindAncestor(const Utl_Xml_Node_t* parent, const Utl_Xml_Node_t* child);
 
@@ -174,13 +181,14 @@ static const Utl_Xml_Node_t* FindAncestor(const Utl_Xml_Node_t* parent, const Ut
  * \param[in] document   Document to search
  * \param[in] type       Node type to find
  *
- * \return    Matching node, or NULL if absent.
+ * \retval    non-NULL   matching top-level node.
+ * \retval    NULL       if no top-level node has the requested type.
  */
 static const Utl_Xml_Node_t* FindNode(const Utl_Xml_Document_t* document, Utl_Xml_NodeType_t type);
 
 /*************************************************************************************************/
 /**
- * \brief Reads an XML token when it is present.
+ * \brief Reads an XML 1.0 token when it is present.
  *
  * \param[in]     bytes       UTF-8 bytes
  * \param[in]     byteCount   Number of bytes
@@ -194,8 +202,10 @@ static bool_t ReadToken(const byte_t* bytes, uint64_t byteCount, uint64_t* posit
 
 /*************************************************************************************************/
 /**
- * \brief Reads optional XML whitespace.
- * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-S
+ * \brief Reads optional XML 1.0 whitespace.
+ *
+ * \par Details:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-S
  *
  * \param[in]     bytes       UTF-8 bytes
  * \param[in]     byteCount   Number of bytes
@@ -209,8 +219,10 @@ static bool_t ReadWhitespace(const byte_t* bytes, uint64_t byteCount, uint64_t* 
 
 /*************************************************************************************************/
 /**
- * \brief Reads an XML name.
- * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-Name
+ * \brief Reads an XML 1.0 name.
+ *
+ * \par Details:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-Name
  *
  * \param[in]     bytes           UTF-8 bytes
  * \param[in]     byteCount       Number of bytes
@@ -218,16 +230,18 @@ static bool_t ReadWhitespace(const byte_t* bytes, uint64_t byteCount, uint64_t* 
  * \param[out]    name            Name bytes
  * \param[out]    nameByteCount   Number of name bytes
  *
- * \retval        TRUE        if the name is valid.
- * \retval        FALSE       otherwise
+ * \retval        TRUE            if the name is valid.
+ * \retval        FALSE           otherwise
  */
 static bool_t ReadName(const byte_t* bytes, uint64_t byteCount, uint64_t* position, const byte_t** name, uint32_t* nameByteCount);
 
 /*************************************************************************************************/
 /**
- * \brief Reads = and a double-quoted attribute value.
- * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-Eq
- * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-AttValue
+ * \brief Reads = and a double-quoted XML 1.0 attribute value.
+ *
+ * \par Details:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-Eq
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-AttValue
  *
  * \param[in]     bytes       UTF-8 bytes
  * \param[in]     byteCount   Number of bytes
@@ -243,8 +257,10 @@ static bool_t ReadAttributeValue(const byte_t* bytes, uint64_t byteCount, uint64
 /*************************************************************************************************/
 /**
  * \brief Reads an element's start tag or empty-element tag with attributes.
- * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-STag
- * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-EmptyElemTag
+ *
+ * \par Details:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-STag
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-EmptyElemTag
  *
  * \param[in]     markup              Markup that begins with <
  * \param[in]     markupByteCount     Number of markup bytes
@@ -255,8 +271,8 @@ static bool_t ReadAttributeValue(const byte_t* bytes, uint64_t byteCount, uint64
  * \param[in,out] attributeCount      Number of attributes used
  * \param[out]    isStartTag          TRUE for a start tag, FALSE for an empty-element tag
  *
- * \retval        TRUE        if the element tag is supported.
- * \retval        FALSE       otherwise
+ * \retval        TRUE                if the element tag is supported.
+ * \retval        FALSE               otherwise
  */
 static bool_t ReadElementStart(const byte_t* markup, uint64_t markupByteCount, uint64_t* position, Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity, uint32_t* attributeCount, bool_t* isStartTag);
 
@@ -312,54 +328,60 @@ static bool_t WriteToken(byte_t* output, uint64_t capacity, uint64_t* byteCount,
  * \param[in,out] byteCount          Number of bytes already written
  * \param[in]     indentSpaceCount   Number of spaces to write
  *
- * \retval        TRUE        if the indentation fits.
- * \retval        FALSE       otherwise
+ * \retval        TRUE               if the indentation fits.
+ * \retval        FALSE              otherwise
  */
 static bool_t WriteIndent(byte_t* output, uint64_t capacity, uint64_t* byteCount, uint32_t indentSpaceCount);
 
 /*************************************************************************************************/
 /**
  * \brief Writes an XML 1.0 declaration.
- * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-XMLDecl
+ *
+ * \par Details:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-XMLDecl
  *
  * \param[in,out] output     Caller-provided byte storage
  * \param[in]     capacity   Number of bytes in output
  * \param[in,out] byteCount  Number of bytes already written
  * \param[in]     node       XML declaration node to write
  *
- * \retval        TRUE        if the declaration is valid and fits.
- * \retval        FALSE       otherwise
+ * \retval        TRUE       if the declaration is valid and fits.
+ * \retval        FALSE      otherwise
  */
 static bool_t WriteDeclaration(byte_t* output, uint64_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
 
 /*************************************************************************************************/
 /**
  * \brief Writes an element's start tag or empty-element tag with attributes.
- * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-STag
- * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-EmptyElemTag
+ *
+ * \par Details:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-STag
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-EmptyElemTag
  *
  * \param[in,out] output     Caller-provided byte storage
  * \param[in]     capacity   Number of bytes in output
  * \param[in,out] byteCount  Number of bytes already written
  * \param[in]     node       Element to write
  *
- * \retval        TRUE        if the tag is valid and fits.
- * \retval        FALSE       otherwise
+ * \retval        TRUE       if the tag is valid and fits.
+ * \retval        FALSE      otherwise
  */
 static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
 
 /*************************************************************************************************/
 /**
  * \brief Writes an element's closing tag.
- * https://www.w3.org/TR/2008/REC-xml-20081126/#NT-ETag
+ *
+ * \par Details:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-ETag
  *
  * \param[in,out] output     Caller-provided byte storage
  * \param[in]     capacity   Number of bytes in output
  * \param[in,out] byteCount  Number of bytes already written
  * \param[in]     node       Element to close
  *
- * \retval        TRUE        if the tag fits.
- * \retval        FALSE       otherwise
+ * \retval        TRUE       if the tag fits.
+ * \retval        FALSE      otherwise
  */
 static bool_t WriteElementEnd(byte_t* output, uint64_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
 
@@ -372,22 +394,22 @@ static bool_t WriteElementEnd(byte_t* output, uint64_t capacity, uint64_t* byteC
  * \param[in,out] byteCount  Number of bytes already written
  * \param[in]     root       Root element to write
  *
- * \retval        TRUE        if the element is valid and fits.
- * \retval        FALSE       otherwise
+ * \retval        TRUE       if the element is valid and fits.
+ * \retval        FALSE      otherwise
  */
 static bool_t WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* root);
 
 /*************************************************************************************************/
 /**
- * \brief Writes one top-level XML node, including an element's descendants.
+ * \brief Writes one top-level XML 1.0 node, including an element's descendants.
  *
  * \param[in,out] output     Caller-provided byte storage
  * \param[in]     capacity   Number of bytes in output
  * \param[in,out] byteCount  Number of bytes already written
  * \param[in]     node       Node to write
  *
- * \retval        TRUE        if the node is valid and fits.
- * \retval        FALSE       otherwise
+ * \retval        TRUE       if the node is valid and fits.
+ * \retval        FALSE      otherwise
  */
 static bool_t WriteRootNode(byte_t* output, uint64_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node);
 
@@ -425,6 +447,10 @@ static uint32_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t offs
     uint32_t num_continuations;
     uint32_t index;
     uint32_t position;
+    bool_t   is_position_valid;
+    bool_t   is_continuation_byte;
+    bool_t   is_code_point_in_range;
+    bool_t   is_surrogate;
     bool_t   is_valid;
 
     code_point = 0;
@@ -438,26 +464,26 @@ static uint32_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t offs
 
         if (first <= UTF8_ASCII_MAX_BYTE)
         {
-            decoded          = first;
-            minimum          = 0;
+            decoded           = first;
+            minimum           = 0;
             num_continuations = 0;
         }
-        else if ((UTF8_TWO_BYTE_LEAD_MIN <= first) && (first <= UTF8_TWO_BYTE_LEAD_MAX))
+        else if (InRange(first, UTF8_TWO_BYTE_LEAD_MIN, UTF8_TWO_BYTE_LEAD_MAX))
         {
-            decoded          = first & UTF8_TWO_BYTE_LEAD_PAYLOAD_MASK;
-            minimum          = UTF8_TWO_BYTE_MIN_CODE_POINT;
+            decoded           = first & UTF8_TWO_BYTE_LEAD_PAYLOAD_MASK;
+            minimum           = UTF8_TWO_BYTE_MIN_CODE_POINT;
             num_continuations = 1;
         }
-        else if ((UTF8_THREE_BYTE_LEAD_MIN <= first) && (first <= UTF8_THREE_BYTE_LEAD_MAX))
+        else if (InRange(first, UTF8_THREE_BYTE_LEAD_MIN, UTF8_THREE_BYTE_LEAD_MAX))
         {
-            decoded          = first & UTF8_THREE_BYTE_LEAD_PAYLOAD_MASK;
-            minimum          = UTF8_THREE_BYTE_MIN_CODE_POINT;
+            decoded           = first & UTF8_THREE_BYTE_LEAD_PAYLOAD_MASK;
+            minimum           = UTF8_THREE_BYTE_MIN_CODE_POINT;
             num_continuations = 2;
         }
-        else if ((UTF8_FOUR_BYTE_LEAD_MIN <= first) && (first <= UTF8_FOUR_BYTE_LEAD_MAX))
+        else if (InRange(first, UTF8_FOUR_BYTE_LEAD_MIN, UTF8_FOUR_BYTE_LEAD_MAX))
         {
-            decoded          = first & UTF8_FOUR_BYTE_LEAD_PAYLOAD_MASK;
-            minimum          = UTF8_FOUR_BYTE_MIN_CODE_POINT;
+            decoded           = first & UTF8_FOUR_BYTE_LEAD_PAYLOAD_MASK;
+            minimum           = UTF8_FOUR_BYTE_MIN_CODE_POINT;
             num_continuations = 3;
         }
         else
@@ -470,7 +496,16 @@ static uint32_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t offs
             for (index = 0; index < num_continuations; ++index)
             {
                 ++position;
-                is_valid = (position < numBytes) && (UTF8_CONTINUATION_PREFIX == (bytes[position] & UTF8_CONTINUATION_PREFIX_MASK));
+
+                is_position_valid = (position < numBytes);
+                
+                is_valid = is_position_valid;
+
+                if (is_valid)
+                {
+                    is_continuation_byte = (UTF8_CONTINUATION_PREFIX == (bytes[position] & UTF8_CONTINUATION_PREFIX_MASK));
+                    is_valid = is_continuation_byte;
+                }
 
                 if (FALSE == is_valid)
                 {
@@ -483,8 +518,14 @@ static uint32_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t offs
 
         if (is_valid)
         {
-            is_valid = (minimum <= decoded) && (decoded <= UTF8_MAX_CODE_POINT) &&
-                      ((decoded < UTF8_SURROGATE_MIN_CODE_POINT) || (UTF8_SURROGATE_MAX_CODE_POINT < decoded));
+            is_code_point_in_range = InRange(decoded, minimum, UTF8_MAX_CODE_POINT);
+            is_valid = is_code_point_in_range;
+        }
+
+        if (is_valid)
+        {
+            is_surrogate = InRange(decoded, UTF8_SURROGATE_MIN_CODE_POINT, UTF8_SURROGATE_MAX_CODE_POINT);
+            is_valid = (FALSE == is_surrogate);
         }
 
         if (is_valid)
@@ -548,12 +589,12 @@ static const Utl_Xml_Attribute_t* FindAttribute(const Utl_Xml_Node_t* node, cons
 static const Utl_Xml_Node_t* FindAncestor(const Utl_Xml_Node_t* parent, const Utl_Xml_Node_t* child)
 {
     const Utl_Xml_Node_t* current_node;
-    const Utl_Xml_Node_t* matching_ancestor;
+    const Utl_Xml_Node_t* ancestor;
     bool_t                is_ancestor;
     uint32_t              node_depth;
 
     current_node = parent;
-    matching_ancestor = NULL;
+    ancestor     = NULL;
 
     for (node_depth = 0; node_depth < UTL_XML_NODE_MAX_DEPTH; ++node_depth)
     {
@@ -566,16 +607,16 @@ static const Utl_Xml_Node_t* FindAncestor(const Utl_Xml_Node_t* parent, const Ut
 
         if (is_ancestor)
         {
-            matching_ancestor = current_node;
+            ancestor = current_node;
             break;
         }
 
         current_node = current_node->parent;
     }
 
-    LOGASSERT((NULL != matching_ancestor) || (NULL == current_node));
+    LOGASSERT((NULL != ancestor) || (NULL == current_node));
 
-    return matching_ancestor;
+    return ancestor;
 }
 
 /*************************************************************************************************/
@@ -605,6 +646,7 @@ static const Utl_Xml_Node_t* FindNode(const Utl_Xml_Document_t* document, Utl_Xm
         if (type == current_node->type)
         {
             found_node = current_node;
+
             break;
         }
 
@@ -628,6 +670,9 @@ static bool_t ReadToken(const byte_t* bytes, uint64_t byteCount, uint64_t* posit
 {
     uint32_t byte_index;
     byte_t   token_byte;
+    bool_t   is_position_valid;
+    bool_t   is_token_byte_available;
+    bool_t   is_matching_byte;
     bool_t   is_valid;
 
     is_valid = TRUE;
@@ -635,7 +680,23 @@ static bool_t ReadToken(const byte_t* bytes, uint64_t byteCount, uint64_t* posit
     for (byte_index = 0; '\0' != token[byte_index]; ++byte_index)
     {
         token_byte = token[byte_index];
-        is_valid = ((*position) < byteCount) && (byte_index < (byteCount - (*position))) && (token_byte == bytes[(*position) + byte_index]);
+        
+        is_position_valid = ((*position) < byteCount);
+        
+        is_valid = is_position_valid;
+
+        if (is_valid)
+        {
+            is_token_byte_available = (byte_index < (byteCount - (*position)));
+            
+            is_valid = is_token_byte_available;
+        }
+        if (is_valid)
+        {
+            is_matching_byte = (token_byte == bytes[(*position) + byte_index]);
+            
+            is_valid = is_matching_byte;
+        }
 
         if (FALSE == is_valid)
         {
@@ -663,17 +724,21 @@ static bool_t ReadWhitespace(const byte_t* bytes, uint64_t byteCount, uint64_t* 
     bool_t   is_valid;
 
     is_valid = ((*position) <= byteCount);
+
     if (is_valid)
     {
         for (byte_index = (*position); byte_index < byteCount; ++byte_index)
         {
             is_whitespace = Utl_Xml_IsWhitespace(bytes[byte_index]);
+
             if (FALSE == is_whitespace)
             {
                 break;
             }
         }
+        
         (*position) = byte_index;
+
         if (mustReachEnd)
         {
             is_valid = (byte_index == byteCount);
@@ -694,7 +759,12 @@ static bool_t ReadName(const byte_t* bytes, uint64_t byteCount, uint64_t* positi
     uint64_t      byte_index;
     uint64_t      span_byte_count;
     bool_t        is_whitespace;
+    bool_t        is_equals;
+    bool_t        is_slash;
+    bool_t        is_tag_close;
     bool_t        is_name_end;
+    bool_t        has_name_bytes;
+    bool_t        is_within_name_limit;
     bool_t        is_valid;
 
     parsed_name = bytes + (*position);
@@ -702,7 +772,10 @@ static bool_t ReadName(const byte_t* bytes, uint64_t byteCount, uint64_t* positi
     for (byte_index = (*position); byte_index < byteCount; ++byte_index)
     {
         is_whitespace = Utl_Xml_IsWhitespace(bytes[byte_index]);
-        is_name_end   = is_whitespace || (UTL_XML_EQ == bytes[byte_index]) || ('/' == bytes[byte_index]) || (UTL_XML_CHAR_GT == bytes[byte_index]);
+        is_equals     = (UTL_XML_EQ == bytes[byte_index]);
+        is_slash      = ('/' == bytes[byte_index]);
+        is_tag_close  = (UTL_XML_CHAR_GT == bytes[byte_index]);
+        is_name_end   = is_whitespace || is_equals || is_slash || is_tag_close;
 
         if (is_name_end)
         {
@@ -710,8 +783,12 @@ static bool_t ReadName(const byte_t* bytes, uint64_t byteCount, uint64_t* positi
         }
     }
 
-    span_byte_count = byte_index - (*position);
-    is_valid        = (0 < span_byte_count) && (span_byte_count <= UTL_XML_MAX_NAME_BYTES);
+    span_byte_count      = byte_index - (*position);
+    has_name_bytes       = (0 < span_byte_count);
+    is_within_name_limit = (span_byte_count <= UTL_XML_MAX_NAME_BYTES);
+
+    is_valid = has_name_bytes && is_within_name_limit;
+    
     if (is_valid)
     {
         is_valid = Utl_Xml_IsName(parsed_name, (uint32_t)span_byte_count);
@@ -736,10 +813,37 @@ static bool_t ReadAttributeValue(const byte_t* bytes, uint64_t byteCount, uint64
     const byte_t* parsed_value;
     uint64_t      byte_index;
     uint64_t      span_byte_count;
+    bool_t        is_position_valid;
+    bool_t        has_delimiter_bytes;
+    bool_t        is_equals;
+    bool_t        is_open_quote;
+    bool_t        has_closing_quote;
+    bool_t        is_within_value_limit;
     bool_t        is_valid;
     bool_t        is_value_close;
 
-    is_valid = ((*position) < byteCount) && ((byteCount - (*position)) >= 2) && (UTL_XML_EQ == bytes[(*position)]) && (UTL_XML_QUOTE_QUOT == bytes[(*position) + 1]);
+    is_position_valid = ((*position) < byteCount);
+
+    is_valid = is_position_valid;
+    
+    if (is_valid)
+    {
+        has_delimiter_bytes = ((byteCount - (*position)) >= 2);
+
+        is_valid = has_delimiter_bytes;
+    }
+    if (is_valid)
+    {
+        is_equals = (UTL_XML_EQ == bytes[(*position)]);
+
+        is_valid = is_equals;
+    }
+    if (is_valid)
+    {
+        is_open_quote = (UTL_XML_QUOTE_QUOT == bytes[(*position) + 1]);
+
+        is_valid = is_open_quote;
+    }
     if (FALSE == is_valid)
     {
         return FALSE;
@@ -759,7 +863,13 @@ static bool_t ReadAttributeValue(const byte_t* bytes, uint64_t byteCount, uint64
     }
 
     span_byte_count = byte_index - (*position);
-    is_valid        = (byte_index < byteCount) && (span_byte_count <= UTL_XML_MAX_VALUE_BYTES);
+    has_closing_quote = (byte_index < byteCount);
+    is_valid = has_closing_quote;
+    if (is_valid)
+    {
+        is_within_value_limit = (span_byte_count <= UTL_XML_MAX_VALUE_BYTES);
+        is_valid = is_within_value_limit;
+    }
     if (is_valid)
     {
         (*numBytes) = (uint32_t)span_byte_count;
@@ -874,20 +984,30 @@ static bool_t ReadElementStart(const byte_t* markup, uint64_t markupByteCount, u
  */
 static bool_t WriteBytes(byte_t* output, uint64_t capacity, uint64_t* byteCount, const byte_t* bytes, uint32_t numBytes)
 {
+    bool_t is_byte_count_valid;
+    bool_t has_capacity_for_bytes;
+    bool_t is_valid;
+
     LOGASSERT(NULL != output);
     LOGASSERT(NULL != byteCount);
     LOGASSERT(NULL != bytes);
     LOGASSERT(0 < numBytes);
 
-    if (((*byteCount) > capacity) || (numBytes > (capacity - (*byteCount))))
+    is_byte_count_valid = ((*byteCount) <= capacity);
+    is_valid = is_byte_count_valid;
+    if (is_valid)
     {
-        return FALSE;
+        has_capacity_for_bytes = (numBytes <= (capacity - (*byteCount)));
+        is_valid = has_capacity_for_bytes;
     }
 
-    (void)memcpy(output + (*byteCount), bytes, numBytes);
+    if (is_valid)
+    {
+        (void)memcpy(output + (*byteCount), bytes, numBytes);
+        (*byteCount) += numBytes;
+    }
 
-    (*byteCount) += numBytes;
-    return TRUE;
+    return is_valid;
 }
 
 /*************************************************************************************************/
@@ -949,9 +1069,13 @@ static bool_t WriteIndent(byte_t* output, uint64_t capacity, uint64_t* byteCount
  */
 static bool_t WriteDeclaration(byte_t* output, uint64_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
 {
+    bool_t has_no_name;
+    bool_t has_no_name_bytes;
     bool_t is_valid;
 
-    is_valid = (NULL == node->name) && (0 == node->nameByteCount);
+    has_no_name       = (NULL == node->name);
+    has_no_name_bytes = (0 == node->nameByteCount);
+    is_valid          = has_no_name && has_no_name_bytes;
     if (is_valid)
     {
         is_valid = WriteToken(output, capacity, byteCount, UTL_XML_DECL_OPEN);
@@ -997,10 +1121,20 @@ static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byt
 {
     const Utl_Xml_Attribute_t* current_attribute;
     uint32_t                   attribute_index;
+    bool_t                     has_name;
+    bool_t                     has_name_bytes;
+    bool_t                     is_name_within_limit;
+    bool_t                     is_attribute_count_within_limit;
+    bool_t                     has_value;
+    bool_t                     is_value_within_limit;
+    bool_t                     has_value_bytes;
     bool_t                     is_valid;
 
-    is_valid = (NULL != node->name) && (0 < node->nameByteCount) && (node->nameByteCount <= UTL_XML_MAX_NAME_BYTES) &&
-               (node->attributeCount <= UTL_XML_NODE_MAX_ATTRIBUTES);
+    has_name                        = (NULL != node->name);
+    has_name_bytes                  = (0 < node->nameByteCount);
+    is_name_within_limit            = (node->nameByteCount <= UTL_XML_MAX_NAME_BYTES);
+    is_attribute_count_within_limit = (node->attributeCount <= UTL_XML_NODE_MAX_ATTRIBUTES);
+    is_valid = has_name && has_name_bytes && is_name_within_limit && is_attribute_count_within_limit;
     if (is_valid)
     {
         is_valid = Utl_Xml_IsName(node->name, node->nameByteCount);
@@ -1026,9 +1160,12 @@ static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byt
         is_valid = (NULL != current_attribute);
         if (is_valid)
         {
-            is_valid = (NULL != current_attribute->name) && (0 < current_attribute->nameByteCount) &&
-                       (current_attribute->nameByteCount <= UTL_XML_MAX_NAME_BYTES) && (NULL != current_attribute->value) &&
-                       (current_attribute->valueByteCount <= UTL_XML_MAX_VALUE_BYTES);
+            has_name              = (NULL != current_attribute->name);
+            has_name_bytes        = (0 < current_attribute->nameByteCount);
+            is_name_within_limit  = (current_attribute->nameByteCount <= UTL_XML_MAX_NAME_BYTES);
+            has_value             = (NULL != current_attribute->value);
+            is_value_within_limit = (current_attribute->valueByteCount <= UTL_XML_MAX_VALUE_BYTES);
+            is_valid = has_name && has_name_bytes && is_name_within_limit && has_value && is_value_within_limit;
         }
         if (is_valid)
         {
@@ -1054,9 +1191,13 @@ static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byt
         {
             is_valid = WriteByte(output, capacity, byteCount, UTL_XML_QUOTE_QUOT);
         }
-        if (is_valid && (0 < current_attribute->valueByteCount))
+        if (is_valid)
         {
-            is_valid = WriteBytes(output, capacity, byteCount, current_attribute->value, current_attribute->valueByteCount);
+            has_value_bytes = (0 < current_attribute->valueByteCount);
+            if (has_value_bytes)
+            {
+                is_valid = WriteBytes(output, capacity, byteCount, current_attribute->value, current_attribute->valueByteCount);
+            }
         }
         if (is_valid)
         {
@@ -1124,8 +1265,14 @@ static bool_t WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCoun
     const Utl_Xml_Node_t* current_node;
     uint32_t              depth;
     uint32_t              node_index;
-    bool_t                should_close_parent;
     uint32_t              ancestor_index;
+    bool_t                is_non_root;
+    bool_t                has_no_next_sibling;
+    bool_t                has_current_node;
+    bool_t                has_depth;
+    bool_t                is_at_end;
+    bool_t                is_at_root_depth;
+    bool_t                should_close_parent;
     bool_t                is_valid;
 
     current_node = root;
@@ -1169,7 +1316,9 @@ static bool_t WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCoun
             continue;
         }
 
-        should_close_parent = (current_node != root) && (NULL == current_node->nextSibling);
+        is_non_root         = (current_node != root);
+        has_no_next_sibling = (NULL == current_node->nextSibling);
+        should_close_parent = is_non_root && has_no_next_sibling;
 
         for (ancestor_index = 0; ancestor_index < UTL_XML_NODE_MAX_DEPTH; ++ancestor_index)
         {
@@ -1179,7 +1328,9 @@ static bool_t WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCoun
             }
 
             current_node = current_node->parent;
-            is_valid     = (NULL != current_node) && (0 < depth);
+            has_current_node = (NULL != current_node);
+            has_depth        = (0 < depth);
+            is_valid        = has_current_node && has_depth;
             if (FALSE == is_valid)
             {
                 break;
@@ -1200,7 +1351,9 @@ static bool_t WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCoun
                 break;
             }
 
-            should_close_parent = (current_node != root) && (NULL == current_node->nextSibling);
+            is_non_root         = (current_node != root);
+            has_no_next_sibling = (NULL == current_node->nextSibling);
+            should_close_parent = is_non_root && has_no_next_sibling;
         }
 
         if (is_valid)
@@ -1226,7 +1379,9 @@ static bool_t WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCoun
 
     if (is_valid)
     {
-        is_valid = (NULL == current_node) && (0 == depth);
+        is_at_end        = (NULL == current_node);
+        is_at_root_depth = (0 == depth);
+        is_valid        = is_at_end && is_at_root_depth;
     }
 
     return is_valid;
@@ -1321,13 +1476,41 @@ bool_t Utl_Xml_IsString(const byte_t* utf8Text, uint32_t byteCount)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Checks XML characters first, then excludes bytes that need references in the writer.
+ *  Checks the literal-character branch of AttValue for double quotes.
+ */
+bool_t Utl_Xml_IsAttributeValueChar(uint32_t codePoint)
+{
+    bool_t is_xml_char;
+    bool_t is_less_than;
+    bool_t is_ampersand;
+    bool_t is_double_quote;
+    bool_t is_reserved;
+    bool_t is_attribute_value_char;
+
+    is_xml_char              = Utl_Xml_IsChar(codePoint);
+    is_less_than             = (UTL_XML_CHAR_LT == codePoint);
+    is_ampersand             = (UTL_XML_CHAR_AMP == codePoint);
+    is_double_quote          = (UTL_XML_QUOTE_QUOT == codePoint);
+    is_reserved              = is_less_than || is_ampersand || is_double_quote;
+    is_attribute_value_char = is_xml_char && (FALSE == is_reserved);
+
+    return is_attribute_value_char;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Checks XML characters first, then excludes characters that cannot be written
+ *  literally or would be changed by attribute-value normalization.
  */
 bool_t Utl_Xml_IsAttributeValue(const byte_t* utf8Text, uint32_t byteCount)
 {
     bool_t   is_attribute_value;
+    bool_t   is_ascii;
+    bool_t   is_attribute_value_char;
     bool_t   is_whitespace;
-    bool_t   needs_reference;
+    bool_t   is_space;
+    bool_t   is_normalized_whitespace;
     uint32_t byte_index;
     byte_t   value_byte;
 
@@ -1337,15 +1520,19 @@ bool_t Utl_Xml_IsAttributeValue(const byte_t* utf8Text, uint32_t byteCount)
     {
         for (byte_index = 0; byte_index < byteCount; ++byte_index)
         {
-            value_byte      = utf8Text[byte_index];
-            is_whitespace   = Utl_Xml_IsWhitespace(value_byte);
-            needs_reference = (UTL_XML_CHAR_LT == value_byte) || (UTL_XML_CHAR_AMP == value_byte) || (UTL_XML_QUOTE_QUOT == value_byte) ||
-                              (is_whitespace && (UTL_XML_CHAR_SPACE != value_byte));
-
-            if (needs_reference)
+            value_byte = utf8Text[byte_index];
+            is_ascii   = (value_byte <= UTF8_ASCII_MAX_BYTE);
+            if (is_ascii)
             {
-                is_attribute_value = FALSE;
-                break;
+                is_attribute_value_char  = Utl_Xml_IsAttributeValueChar(value_byte);
+                is_whitespace            = Utl_Xml_IsWhitespace(value_byte);
+                is_space                 = (UTL_XML_CHAR_SPACE == value_byte);
+                is_normalized_whitespace = is_whitespace && (FALSE == is_space);
+                is_attribute_value       = is_attribute_value_char && (FALSE == is_normalized_whitespace);
+                if (FALSE == is_attribute_value)
+                {
+                    break;
+                }
             }
         }
     }
@@ -1730,8 +1917,9 @@ uint64_t Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToRead
 
             remaining_byte_count = (size_t)(bufferToReadDocumentFrom + sizeOfDocumentBuffer - document_cursor);
             document_byte_count  = (uint64_t)strnlen((const char_t*)document_cursor, remaining_byte_count);
-            offset            = 0;
-            is_declaration    = FALSE;
+            offset               = 0;
+            is_declaration       = FALSE;
+
             is_end_tag = ReadToken(document_cursor, document_byte_count, &offset, UTL_XML_ETAG_OPEN);
 
             if (FALSE == is_end_tag)

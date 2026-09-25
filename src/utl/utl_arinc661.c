@@ -3,9 +3,11 @@
 **===============================================================================================*/
 
 /**
- * ARINC 661 Supplement 6 Definition File schema:
+ * ARINC 661 Supplement 6, Cockpit Display System Interfaces to User Systems:
+ * https://saemobilus.sae.org/standards/arinc661-6-cockpit-display-system-interfaces-user-systems
+ * J661-hosted Supplement 6 strict XML Definition File schema (a661Strict.xsd):
  * https://j661.sourceforge.net/articles/articles/resources/a661Strict.xsd
- * FACE Technical Standard, Appendix H.3, DisplayManagement.xsd:
+ * FACE Technical Standard, Edition 3.1, Appendix H.3, DisplayManagement.xsd:
  * https://www.vdl.afrl.af.mil/programs/arsenl/files/FACE%20Technical%20Standard%20v3.1.pdf
  */
 
@@ -36,7 +38,7 @@
 #define ARINC661_XML_WIDGET_CAPACITY    (65536)
 #define ARINC661_XML_DECIMAL_TEXT_BYTES (96)
 
-/* FACE DisplayManagement.xsd element names. */
+/* FACE Edition 3.1, Appendix H.3, DisplayManagement.xsd: configuration and child elements. */
 #define ARINC661_DMC_ELEMENT_CONFIGURATION       ("configuration")
 #define ARINC661_DMC_ELEMENT_METADATA            ("metaData")
 #define ARINC661_DMC_ELEMENT_SCREEN              ("screen")
@@ -50,14 +52,14 @@
 #define ARINC661_DMC_ELEMENT_USER_APPLICATION    ("ua")
 #define ARINC661_DMC_ELEMENT_EXTERNAL_SOURCE     ("externalSource")
 
-/* ARINC 661 Supplement 6 Definition File element names. */
+/* Supplement 6 a661Strict.xsd: dfType, layerType, widgetType, modelType, and propType. */
 #define ARINC661_DF_ELEMENT_ROOT     ("a661_df")
 #define ARINC661_DF_ELEMENT_LAYER    ("a661_layer")
 #define ARINC661_DF_ELEMENT_WIDGET   ("a661_widget")
 #define ARINC661_DF_ELEMENT_MODEL    ("model")
 #define ARINC661_DF_ELEMENT_PROPERTY ("prop")
 
-/* Display Management and Definition File attribute names. */
+/* FACE Edition 3.1, Appendix H.3, and Supplement 6 a661Strict.xsd attribute names. */
 #define ARINC661_XML_ATTRIBUTE_ID                 ("id")
 #define ARINC661_XML_ATTRIBUTE_NAME               ("name")
 #define ARINC661_XML_ATTRIBUTE_WIDTH              ("width")
@@ -80,7 +82,7 @@
 #define ARINC661_XML_ATTRIBUTE_LIBRARY_VERSION    ("library_version")
 #define ARINC661_XML_ATTRIBUTE_SUPPLEMENT_VERSION ("supp_version")
 
-/* XML Schema boolean lexical values. */
+/* FACE Edition 3.1, Appendix H.3, UserApplication mapSourceLayer and visible (xs:boolean). */
 #define ARINC661_XML_BOOLEAN_TRUE  ("true")
 #define ARINC661_XML_BOOLEAN_FALSE ("false")
 #define ARINC661_XML_BOOLEAN_ONE   ("1")
@@ -222,6 +224,9 @@ static bool_t ReadDecimal(const Utl_Xml_Node_t* node, const char_t* name, float3
 /**
  * \brief Reads one FACE Units attribute.
  *
+ * \par Details:
+ *  FACE Edition 3.1, Appendix H.3, Units simpleType and Size/Scale defaults.
+ *
  * \param[in]  node          Element containing the attribute
  * \param[in]  name          Attribute name
  * \param[in]  defaultUnit   Value used when the attribute is absent
@@ -235,6 +240,9 @@ static bool_t ReadUnit(const Utl_Xml_Node_t* node, const char_t* name, Utl_Arinc
 /*************************************************************************************************/
 /**
  * \brief Reads an optional XML Schema boolean attribute.
+ *
+ * \par Details:
+ *  FACE Edition 3.1, Appendix H.3, UserApplication mapSourceLayer and visible.
  *
  * \param[in]  node    Element containing the attribute
  * \param[in]  name    Attribute name
@@ -334,6 +342,9 @@ static Utl_Xml_Node_t* FindDocumentElement(const Utl_Xml_Document_t* document);
 /**
  * \brief Reads a FACE Size element.
  *
+ * \par Details:
+ *  FACE Edition 3.1, Appendix H.3, Size complexType; sections H.3.4 and H.3.5.
+ *
  * \param[in]  node   Element with width, height, and optional units
  * \param[out] size   Parsed size
  *
@@ -345,6 +356,9 @@ static bool_t ReadSize(const Utl_Xml_Node_t* node, Utl_Arinc661_Size_t* size);
 /*************************************************************************************************/
 /**
  * \brief Reads a FACE Rectangle element.
+ *
+ * \par Details:
+ *  FACE Edition 3.1, Appendix H.3, Rectangle complexType (Window.pixelArea).
  *
  * \param[in]  node        Element with x, y, width, and height
  * \param[out] rectangle   Parsed rectangle
@@ -358,6 +372,9 @@ static bool_t ReadRectangle(const Utl_Xml_Node_t* node, Utl_Arinc661_Rectangle_t
 /**
  * \brief Reads a FACE Scale element.
  *
+ * \par Details:
+ *  FACE Edition 3.1, Appendix H.3, Scale complexType (Window.scalingFactor).
+ *
  * \param[in]  node    Element with scale factors and optional units
  * \param[out] scale   Parsed scaling factor
  *
@@ -369,6 +386,9 @@ static bool_t ReadScale(const Utl_Xml_Node_t* node, Utl_Arinc661_Scale_t* scale)
 /*************************************************************************************************/
 /**
  * \brief Reads one configuration screen and its child layouts and windows.
+ *
+ * \par Details:
+ *  FACE Edition 3.1, Appendix H.3, Screen and Window types; sections H.3.2 through H.3.6.
  *
  * \param[in,out] configuration   Caller-owned result arrays
  * \param[in]     element         Screen XML element
@@ -382,6 +402,9 @@ static bool_t ReadScreenHierarchy(Utl_Arinc661_Configuration_t* configuration, U
 /**
  * \brief Reads a user application from the display management configuration.
  *
+ * \par Details:
+ *  FACE Edition 3.1, Appendix H.3, UserApplication type and section H.3.1.
+ *
  * \param[in,out] configuration   Caller-owned result arrays
  * \param[in]     node            User application XML element
  *
@@ -393,6 +416,9 @@ static bool_t ReadUserApplication(Utl_Arinc661_Configuration_t* configuration, c
 /*************************************************************************************************/
 /**
  * \brief Reads the standard attributes of an external source.
+ *
+ * \par Details:
+ *  FACE Edition 3.1, Appendix H.3, ExternalSource type and section H.3.7.
  *
  * \param[in,out] configuration   Caller-owned result arrays
  * \param[in]     node            External source XML element
@@ -406,6 +432,9 @@ static bool_t ReadExternalSource(Utl_Arinc661_Configuration_t* configuration, co
 /**
  * \brief Returns the FACE XSD spelling of a unit.
  *
+ * \par Details:
+ *  FACE Edition 3.1, Appendix H.3, Units simpleType.
+ *
  * \param[in] unit   Unit value
  *
  * \return Unit spelling, or NULL for an invalid value.
@@ -415,6 +444,9 @@ static const char_t* UnitName(Utl_Arinc661_Unit_t unit);
 /*************************************************************************************************/
 /**
  * \brief Writes a FACE Size as an XML child of its owner.
+ *
+ * \par Details:
+ *  FACE Edition 3.1, Appendix H.3, Size complexType.
  *
  * \param[in,out] xml      Temporary XML tree and value storage
  * \param[in,out] parent   Owning XML element
@@ -430,6 +462,9 @@ static bool_t WriteSize(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const char_
 /**
  * \brief Writes a FACE Rectangle as an XML child of its owner.
  *
+ * \par Details:
+ *  FACE Edition 3.1, Appendix H.3, Rectangle complexType (Window.pixelArea).
+ *
  * \param[in,out] xml         Temporary XML tree and value storage
  * \param[in,out] parent      Owning XML element
  * \param[in]     rectangle   Rectangle values
@@ -442,6 +477,9 @@ static bool_t WriteRectangle(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const 
 /*************************************************************************************************/
 /**
  * \brief Writes a FACE Scale as an XML child of its owner.
+ *
+ * \par Details:
+ *  FACE Edition 3.1, Appendix H.3, Scale complexType (Window.scalingFactor).
  *
  * \param[in,out] xml      Temporary XML tree and value storage
  * \param[in,out] parent   Owning XML element
@@ -456,6 +494,9 @@ static bool_t WriteScale(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const Utl_
 /**
  * \brief Writes one user application as a child of the configuration element.
  *
+ * \par Details:
+ *  FACE Edition 3.1, Appendix H.3, UserApplication type and section H.3.1.
+ *
  * \param[in,out] xml           Temporary XML tree and value storage
  * \param[in,out] parent        Configuration XML element
  * \param[in]     application   User application values
@@ -468,6 +509,9 @@ static bool_t WriteUserApplication(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, 
 /*************************************************************************************************/
 /**
  * \brief Writes one external source with its standard attributes.
+ *
+ * \par Details:
+ *  FACE Edition 3.1, Appendix H.3, ExternalSource type and section H.3.7.
  *
  * \param[in,out] xml      Temporary XML tree and value storage
  * \param[in,out] parent   Configuration XML element
@@ -493,6 +537,9 @@ static Utl_Xml_Node_t* NextSubtreeNode(Utl_Xml_Node_t* root, Utl_Xml_Node_t* cur
 /**
  * \brief Reads direct prop children of one Definition File model.
  *
+ * \par Details:
+ *  Supplement 6 a661Strict.xsd, modelType/propType.
+ *
  * \param[in,out] definition   Caller-owned Definition File data
  * \param[in]     model        XML model element
  * \param[in]     owner        Kind of entity containing the model
@@ -506,6 +553,9 @@ static bool_t ReadProperties(Utl_Arinc661_Definition_t* definition, Utl_Xml_Node
 /*************************************************************************************************/
 /**
  * \brief Writes simple properties for one Definition File model.
+ *
+ * \par Details:
+ *  Supplement 6 a661Strict.xsd, modelType/propType.
  *
  * \param[in,out] xml          Temporary XML tree and value storage
  * \param[in,out] parent       Element receiving its model child

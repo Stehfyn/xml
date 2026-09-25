@@ -6,9 +6,11 @@
 **===============================================================================================*/
 
 /**
- * ARINC 661 Supplement 6 Definition File schema:
+ * ARINC 661 Supplement 6, Cockpit Display System Interfaces to User Systems:
+ * https://saemobilus.sae.org/standards/arinc661-6-cockpit-display-system-interfaces-user-systems
+ * J661-hosted Supplement 6 strict XML Definition File schema (a661Strict.xsd):
  * https://j661.sourceforge.net/articles/articles/resources/a661Strict.xsd
- * FACE Technical Standard, Appendix H.3, DisplayManagement.xsd:
+ * FACE Technical Standard, Edition 3.1, Appendix H.3, DisplayManagement.xsd:
  * https://www.vdl.afrl.af.mil/programs/arsenl/files/FACE%20Technical%20Standard%20v3.1.pdf
  */
 
@@ -24,13 +26,14 @@
 ** 3.1 Macros
 **===============================================================================================*/
 
+/* Caller-owned storage limits; the XML schemas do not prescribe these byte capacities. */
 #define UTL_ARINC661_MAX_NAME_BYTES        (128)
 #define UTL_ARINC661_MAX_DESCRIPTION_BYTES (256)
 #define UTL_ARINC661_MAX_PROPERTY_BYTES    (256)
 #define UTL_ARINC661_MAX_PATH_BYTES        (512)
 #define UTL_ARINC661_WORKSPACE_BYTES       (16777216)
 
-/* FACE DisplayManagement.xsd unit spellings. */
+/* FACE Edition 3.1, Appendix H.3, DisplayManagement.xsd, Units simpleType. */
 #define UTL_ARINC661_XML_UNIT_INCH   ("inch")
 #define UTL_ARINC661_XML_UNIT_MM     ("mm")
 #define UTL_ARINC661_XML_UNIT_SCREEN ("screen")
@@ -42,7 +45,7 @@
 
 /*************************************************************************************************/
 /**
- * \brief Unit values in FACE DisplayManagement.xsd, type Units.
+ * \brief Unit values in FACE Edition 3.1, Appendix H.3, Units simpleType.
  */
 typedef enum Utl_Arinc661_Unit_e
 {
@@ -54,7 +57,10 @@ typedef enum Utl_Arinc661_Unit_e
 
 /*************************************************************************************************/
 /**
- * \brief FACE DisplayManagement.xsd Size values.
+ * \brief FACE display management Size values.
+ *
+ * \par Details:
+ *  FACE Edition 3.1, Appendix H.3, Size complexType; sections H.3.4 and H.3.5.
  */
 typedef struct Utl_Arinc661_Size_s
 {
@@ -65,7 +71,10 @@ typedef struct Utl_Arinc661_Size_s
 
 /*************************************************************************************************/
 /**
- * \brief FACE DisplayManagement.xsd Rectangle values.
+ * \brief FACE display management Rectangle values.
+ *
+ * \par Details:
+ *  FACE Edition 3.1, Appendix H.3, Rectangle complexType, used by Window.pixelArea.
  */
 typedef struct Utl_Arinc661_Rectangle_s
 {
@@ -77,7 +86,10 @@ typedef struct Utl_Arinc661_Rectangle_s
 
 /*************************************************************************************************/
 /**
- * \brief FACE DisplayManagement.xsd Scale values.
+ * \brief FACE display management Scale values.
+ *
+ * \par Details:
+ *  FACE Edition 3.1, Appendix H.3, Scale complexType, used by Window.scalingFactor.
  */
 typedef struct Utl_Arinc661_Scale_s
 {
@@ -89,7 +101,10 @@ typedef struct Utl_Arinc661_Scale_s
 
 /*************************************************************************************************/
 /**
- * \brief FACE DisplayManagement.xsd Screen values.
+ * \brief FACE display management Screen values.
+ *
+ * \par Details:
+ *  FACE Edition 3.1, Appendix H.3, Screen complexType and sections H.3.3 through H.3.5.
  */
 typedef struct Utl_Arinc661_Screen_s
 {
@@ -100,7 +115,10 @@ typedef struct Utl_Arinc661_Screen_s
 
 /*************************************************************************************************/
 /**
- * \brief FACE DisplayManagement.xsd layout values and their owning screen.
+ * \brief FACE display management layout values and their owning screen.
+ *
+ * \par Details:
+ *  FACE Edition 3.1, Appendix H.3, Screen.layout element and section H.3.6.
  */
 typedef struct Utl_Arinc661_Layout_s
 {
@@ -110,7 +128,10 @@ typedef struct Utl_Arinc661_Layout_s
 
 /*************************************************************************************************/
 /**
- * \brief FACE DisplayManagement.xsd Window values and their owning layout.
+ * \brief FACE display management Window values and their owning layout.
+ *
+ * \par Details:
+ *  FACE Edition 3.1, Appendix H.3, Window complexType and section H.3.2.
  */
 typedef struct Utl_Arinc661_Window_s
 {
@@ -124,7 +145,10 @@ typedef struct Utl_Arinc661_Window_s
 
 /*************************************************************************************************/
 /**
- * \brief FACE DisplayManagement.xsd UserApplication values.
+ * \brief FACE display management UserApplication values.
+ *
+ * \par Details:
+ *  FACE Edition 3.1, Appendix H.3, UserApplication complexType and section H.3.1.
  */
 typedef struct Utl_Arinc661_UserApplication_s
 {
@@ -138,7 +162,10 @@ typedef struct Utl_Arinc661_UserApplication_s
 
 /*************************************************************************************************/
 /**
- * \brief FACE DisplayManagement.xsd ExternalSource attributes.
+ * \brief FACE display management ExternalSource attributes.
+ *
+ * \par Details:
+ *  FACE Edition 3.1, Appendix H.3, ExternalSource complexType and section H.3.7.
  */
 typedef struct Utl_Arinc661_ExternalSource_s
 {
@@ -150,6 +177,9 @@ typedef struct Utl_Arinc661_ExternalSource_s
 /*************************************************************************************************/
 /**
  * \brief Caller-owned FACE display management configuration data.
+ *
+ * \par Details:
+ *  FACE Edition 3.1, Appendix H.3, configuration root element.
  */
 typedef struct Utl_Arinc661_Configuration_s
 {
@@ -174,6 +204,9 @@ typedef struct Utl_Arinc661_Configuration_s
 /*************************************************************************************************/
 /**
  * \brief Owner of an ARINC 661 Definition File property.
+ *
+ * \par Details:
+ *  Supplement 6 a661Strict.xsd: dfType, layerType, and widgetType each contain a model.
  */
 typedef enum Utl_Arinc661_PropertyOwner_e
 {
@@ -185,6 +218,9 @@ typedef enum Utl_Arinc661_PropertyOwner_e
 /*************************************************************************************************/
 /**
  * \brief Property in a Definition File model.
+ *
+ * \par Details:
+ *  Supplement 6 a661Strict.xsd: modelType/propType, with name and value attributes.
  */
 typedef struct Utl_Arinc661_Property_s
 {
@@ -197,6 +233,9 @@ typedef struct Utl_Arinc661_Property_s
 /*************************************************************************************************/
 /**
  * \brief Layer in an ARINC 661 Definition File.
+ *
+ * \par Details:
+ *  Supplement 6 a661Strict.xsd: dfType/a661_layer (layerType).
  */
 typedef struct Utl_Arinc661_Layer_s
 {
@@ -206,6 +245,9 @@ typedef struct Utl_Arinc661_Layer_s
 /*************************************************************************************************/
 /**
  * \brief Widget in an ARINC 661 Definition File.
+ *
+ * \par Details:
+ *  Supplement 6 a661Strict.xsd: layerType/a661_widget and nested widgetType/a661_widget.
  */
 typedef struct Utl_Arinc661_Widget_s
 {
@@ -218,6 +260,9 @@ typedef struct Utl_Arinc661_Widget_s
 /*************************************************************************************************/
 /**
  * \brief Caller-owned ARINC 661 Definition File data.
+ *
+ * \par Details:
+ *  Supplement 6 a661Strict.xsd: a661_df root (dfType), with model and a661_layer children.
  */
 typedef struct Utl_Arinc661_Definition_s
 {
@@ -252,8 +297,10 @@ typedef struct Utl_Arinc661_Definition_s
  * \brief Reads a display management configuration from memory into caller-owned data.
  *
  * \par Details:
- *  FACE Technical Standard, Appendix H.3, DisplayManagement.xsd defines the
- *  configuration element and its screen, ua, and externalSource children.
+ *  FACE Technical Standard, Edition 3.1, Appendix H.3, DisplayManagement.xsd
+ *  defines configuration and its screen, ua, and externalSource children;
+ *  sections H.3.1 through H.3.7 describe those values:
+ *  https://www.vdl.afrl.af.mil/programs/arsenl/files/FACE%20Technical%20Standard%20v3.1.pdf
  *  This function reads those values without retaining XML nodes in the result.
  *  Text content in metaData and description, and child elements of externalSource,
  *  are outside the supported XML form of Utl_Xml_ReadDocument.
@@ -283,7 +330,9 @@ bool_t Utl_Arinc661_ReadConfiguration(Utl_Arinc661_Configuration_t* configuratio
  * \brief Writes caller-owned display management configuration data to memory.
  *
  * \par Details:
- *  Writes a FACE Appendix H.3 configuration element from typed values.
+ *  Writes the FACE Edition 3.1, Appendix H.3, DisplayManagement.xsd
+ *  configuration element from typed values:
+ *  https://www.vdl.afrl.af.mil/programs/arsenl/files/FACE%20Technical%20Standard%20v3.1.pdf
  *  metaData and window description are written as empty elements. A nonempty
  *  window description cannot be represented by Utl_Xml_WriteDocument and
  *  causes this function to return zero.
@@ -310,8 +359,12 @@ uint64_t Utl_Arinc661_WriteConfiguration(const Utl_Arinc661_Configuration_t* con
  * \brief Reads an ARINC 661 Definition File from memory into caller-owned data.
  *
  * \par Details:
- *  Reads the ARINC 661 Supplement 6 XML Definition File form with layers,
- *  nested widgets, and simple prop elements. The result contains no XML nodes.
+ *  Reads the ARINC 661 Supplement 6 XML Definition File form. The strict
+ *  a661Strict.xsd schema names a661_df (dfType), a661_layer (layerType),
+ *  a661_widget (widgetType), model (modelType), and prop (propType):
+ *  https://j661.sourceforge.net/articles/articles/resources/a661Strict.xsd
+ *  This reader supports layers, nested widgets, and simple prop elements.
+ *  The result contains no XML nodes.
  *  The input buffer must have one writable byte after byteCount bytes and is
  *  changed by Utl_Xml_ReadDocument while parsing.
  *
@@ -338,8 +391,11 @@ bool_t Utl_Arinc661_ReadDefinition(Utl_Arinc661_Definition_t* definition, byte_t
  * \brief Writes caller-owned ARINC 661 Definition File data to memory.
  *
  * \par Details:
- *  Writes a Definition File containing layers, nested widgets, and simple
- *  prop elements. The result is XML in the caller's output buffer.
+ *  Writes the ARINC 661 Supplement 6 XML Definition File form described by
+ *  a661Strict.xsd, using a661_df, a661_layer, a661_widget, model, and prop:
+ *  https://j661.sourceforge.net/articles/articles/resources/a661Strict.xsd
+ *  This writer supports layers, nested widgets, and simple prop elements.
+ *  The result is XML in the caller's output buffer.
  *
  * \par Requirements:
  *  - 001 This function shall write Definition File, layer, widget, and property values from caller-owned data.

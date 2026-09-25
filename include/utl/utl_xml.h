@@ -169,6 +169,26 @@ bool_t Utl_Xml_IsString(const byte_t* utf8Text, uint32_t byteCount);
 
 /*************************************************************************************************/
 /**
+ * \brief Checks whether a code point is permitted literally in a double-quoted XML attribute value.
+ *
+ * \par Details:
+ *  XML 1.0 (Fifth Edition), production [10] AttValue:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-AttValue
+ *  Tab, LF, and CR are permitted literally; section 3.3.3 normalizes them to spaces.
+ *
+ * \par Requirements:
+ *  - 001 This function shall return FALSE for <, &, double quote, and non-Char code points.
+ *  - 002 This function shall return TRUE for other Char code points, including tab, LF, CR, space, apostrophe, and >.
+ *
+ * \param[in] codePoint   Decoded Unicode code point to classify
+ *
+ * \retval    TRUE        if the code point is permitted literally in a double-quoted attribute value.
+ * \retval    FALSE       otherwise
+ */
+bool_t Utl_Xml_IsAttributeValueChar(uint32_t codePoint);
+
+/*************************************************************************************************/
+/**
  * \brief Checks a counted UTF-8 byte span for a directly writable XML attribute value.
  *
  * \par Details:
@@ -176,14 +196,15 @@ bool_t Utl_Xml_IsString(const byte_t* utf8Text, uint32_t byteCount);
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-AttValue
  *
  *  The writer uses double quotes and does not escape values. Apostrophes and > are allowed;
- *  <, &, double quotes, tabs, line feeds, and carriage returns require references
- *  to preserve their value. This validator accepts only that reference-free subset.
+ *  <, &, and double quotes cannot appear literally. Tabs, line feeds, and carriage
+ *  returns are permitted literally but require character references to preserve
+ *  their value. This validator accepts only the directly writable, lossless subset.
  *  XML 1.0 section 3.3.3 describes normalization of literal attribute whitespace:
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#AVNormalize
  *
  * \par Requirements:
  *  - 001 This function shall accept an empty span and reject invalid UTF-8 or non-Char code points.
- *  - 002 This function shall return FALSE for any byte that requires a reference in a double-quoted attribute value.
+ *  - 002 This function shall return FALSE for nonliteral characters and for tab, LF, and CR.
  *  - 003 This function shall fail an assertion if utf8Text is NULL or byteCount exceeds UTL_XML_MAX_VALUE_BYTES.
  *
  * \param[in] utf8Text    Non-NULL UTF-8 byte span
