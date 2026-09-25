@@ -38,9 +38,12 @@ extern "C"
 #define VISUALIZER_WINDOW_NAME    ("Visualizer")
 #define DOCKSPACE_NAME            ("ARINC661DockSpace")
 
-#define CONFIGURATION_ADD_SCREEN_LABEL    ("Add Screen")
+#define CONFIGURATION_ADD_SCREEN_LABEL    ("+ Add Screen")
 #define CONFIGURATION_ADD_LAYOUT_LABEL    ("Add Layout")
+#define CONFIGURATION_ADD_WINDOW_LABEL    ("Add Window")
 #define CONFIGURATION_REMOVE_SCREEN_LABEL ("Remove Screen")
+#define CONFIGURATION_REMOVE_LAYOUT_LABEL ("Remove Layout")
+#define CONFIGURATION_REMOVE_WINDOW_LABEL ("Remove Window")
 
 #define VISUALIZER_CANVAS_COLOR        (IM_COL32(22, 27, 34, 255))
 #define VISUALIZER_SCREEN_COLOR        (IM_COL32(42, 50, 64, 255))
@@ -178,7 +181,7 @@ static void RemoveScreen(ConfigurationEditor_t* editor, uint32_t screenIndex);
 
 /*************************************************************************************************/
 /**
- * \brief Draws the screen, layout, and window selection tree.
+ * \brief Draws the selection tree and its screen add and remove controls.
  *
  * \param[in,out] editor Editor state
  *
@@ -636,20 +639,33 @@ static void RemoveScreen(ConfigurationEditor_t* editor, uint32_t screenIndex)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Iterates the typed parent indices; it does not inspect XML names or attributes.
+ *  Iterates the typed parent indices and applies a requested screen removal after traversal.
  */
 static void DrawHierarchy(ConfigurationEditor_t* editor)
 {
     const Utl_Arinc661_Screen_t* screen;
     const Utl_Arinc661_Layout_t* layout;
     const Utl_Arinc661_Window_t* window;
+    const ImGuiStyle*            style;
+    ImDrawList*                  draw_list;
     ImGuiTreeNodeFlags           flags;
+    ImVec2                       remove_button_size;
+    ImVec2                       cross_min;
+    ImVec2                       cross_max;
+    ImVec2                       cross_left_bottom;
+    ImVec2                       cross_right_top;
+    ImU32                        cross_color;
     uint32_t                     screen_index;
     uint32_t                     layout_index;
     uint32_t                     window_index;
+    uint32_t                     remove_screen_index;
     bool_t                       is_screen_open;
     bool_t                       is_layout_open;
 
+    style               = &ImGui::GetStyle();
+    draw_list           = ImGui::GetWindowDrawList();
+    remove_button_size  = ImVec2(ImGui::GetFrameHeight(), ImGui::GetFrameHeight());
+    remove_screen_index = UINT32_MAX;
     for (screen_index = 0; screen_index < editor->configuration.screenCount; ++screen_index)
     {
         screen = &editor->screens[screen_index];
@@ -665,6 +681,23 @@ static void DrawHierarchy(ConfigurationEditor_t* editor)
             editor->selectedKind  = CONFIGURATION_SELECTION_SCREEN;
             editor->selectedIndex = screen_index;
         }
+        ImGui::SameLine();
+        if (ImGui::InvisibleButton(CONFIGURATION_REMOVE_SCREEN_LABEL, remove_button_size))
+        {
+            remove_screen_index = screen_index;
+        }
+        ImGui::SetItemTooltip("%s", CONFIGURATION_REMOVE_SCREEN_LABEL);
+        cross_min         = (ImGui::GetItemRectMin() + style->FramePadding);
+        cross_max         = (ImGui::GetItemRectMax() - style->FramePadding);
+        cross_left_bottom = ImVec2(cross_min.x, cross_max.y);
+        cross_right_top   = ImVec2(cross_max.x, cross_min.y);
+        cross_color       = ImGui::GetColorU32(ImGuiCol_TextDisabled);
+        if (ImGui::IsItemHovered())
+        {
+            cross_color = ImGui::GetColorU32(ImGuiCol_Text);
+        }
+        draw_list->AddLine(cross_min, cross_max, cross_color);
+        draw_list->AddLine(cross_left_bottom, cross_right_top, cross_color);
         ImGui::PopID();
         if (is_screen_open)
         {
@@ -714,6 +747,19 @@ static void DrawHierarchy(ConfigurationEditor_t* editor)
             }
             ImGui::TreePop();
         }
+    }
+    flags = (ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+    (void)ImGui::TreeNodeEx(CONFIGURATION_ADD_SCREEN_LABEL, flags);
+    if (ImGui::IsItemClicked())
+    {
+        AddScreen(editor);
+    }
+    if (UINT32_MAX != remove_screen_index)
+    {
+        RemoveScreen(editor, remove_screen_index);
+        editor->selectedKind  = CONFIGURATION_SELECTION_NONE;
+        editor->selectedIndex = 0;
+        (void)strcpy(editor->status, "Removed screen. Build XML to save.");
     }
 }
 
@@ -978,34 +1024,21 @@ static void DrawConfigurationEditor(ConfigurationEditor_t* editor)
         if (editor->isLoaded)
         {
             ImGui::TextUnformatted("Hierarchy");
-            if (ImGui::SmallButton(CONFIGURATION_ADD_SCREEN_LABEL))
-            {
-                AddScreen(editor);
-            }
             if (CONFIGURATION_SELECTION_SCREEN == editor->selectedKind)
             {
-                ImGui::SameLine();
                 if (ImGui::SmallButton(CONFIGURATION_ADD_LAYOUT_LABEL))
                 {
                     AddLayout(editor, editor->selectedIndex);
                 }
-                ImGui::SameLine();
-                if (ImGui::SmallButton(CONFIGURATION_REMOVE_SCREEN_LABEL))
-                {
-                    RemoveScreen(editor, editor->selectedIndex);
-                    editor->selectedKind = CONFIGURATION_SELECTION_NONE;
-                    (void)strcpy(editor->status, "Removed screen. Build XML to save.");
-                }
             }
             else if (CONFIGURATION_SELECTION_LAYOUT == editor->selectedKind)
             {
-                ImGui::SameLine();
-                if (ImGui::SmallButton("Add Window"))
+                if (ImGui::SmallButton(CONFIGURATION_ADD_WINDOW_LABEL))
                 {
                     AddWindow(editor, editor->selectedIndex);
                 }
                 ImGui::SameLine();
-                if (ImGui::SmallButton("Remove Layout"))
+                if (ImGui::SmallButton(CONFIGURATION_REMOVE_LAYOUT_LABEL))
                 {
                     parent_index = editor->layouts[editor->selectedIndex].screenIndex;
                     RemoveLayout(editor, editor->selectedIndex);
@@ -1016,13 +1049,12 @@ static void DrawConfigurationEditor(ConfigurationEditor_t* editor)
             }
             else if (CONFIGURATION_SELECTION_WINDOW == editor->selectedKind)
             {
-                ImGui::SameLine();
-                if (ImGui::SmallButton("Add Window"))
+                if (ImGui::SmallButton(CONFIGURATION_ADD_WINDOW_LABEL))
                 {
                     AddWindow(editor, editor->windows[editor->selectedIndex].layoutIndex);
                 }
                 ImGui::SameLine();
-                if (ImGui::SmallButton("Remove Window"))
+                if (ImGui::SmallButton(CONFIGURATION_REMOVE_WINDOW_LABEL))
                 {
                     parent_index = editor->windows[editor->selectedIndex].layoutIndex;
                     RemoveWindow(editor, editor->selectedIndex);
@@ -1208,13 +1240,14 @@ static void DrawVisualizer(const ConfigurationEditor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Measures the screen toolbar row and limits the left dock to half the viewport.
+ *  Measures the hierarchy action row and limits the left dock to half the viewport.
  */
 static void BuildDockLayout(ImGuiID dockspaceId)
 {
     const ImGuiStyle*    style;
     const ImGuiViewport* viewport;
     ImVec2               button_padding;
+    ImVec2               action_size;
     ImVec2               toolbar_size;
     float32_t            minimum_dockspace_width;
     float32_t            configuration_ratio;
@@ -1225,11 +1258,11 @@ static void BuildDockLayout(ImGuiID dockspaceId)
     viewport = ImGui::GetMainViewport();
 
     button_padding = (style->FramePadding + style->FramePadding);
-    toolbar_size   = (ImGui::CalcTextSize(CONFIGURATION_ADD_SCREEN_LABEL) + button_padding);
+    toolbar_size   = (ImGui::CalcTextSize(CONFIGURATION_ADD_WINDOW_LABEL) + ImGui::CalcTextSize(CONFIGURATION_REMOVE_LAYOUT_LABEL));
+    action_size    = (ImGui::CalcTextSize(CONFIGURATION_ADD_WINDOW_LABEL) + ImGui::CalcTextSize(CONFIGURATION_REMOVE_WINDOW_LABEL));
+    toolbar_size.x = ImMax(toolbar_size.x, action_size.x);
 
-    toolbar_size += (ImGui::CalcTextSize(CONFIGURATION_ADD_LAYOUT_LABEL) + button_padding + style->ItemSpacing);
-    toolbar_size += (ImGui::CalcTextSize(CONFIGURATION_REMOVE_SCREEN_LABEL) + button_padding + style->ItemSpacing);
-    toolbar_size += (style->WindowPadding + style->WindowPadding);
+    toolbar_size += (button_padding + button_padding + style->ItemSpacing + style->WindowPadding + style->WindowPadding);
 
     minimum_dockspace_width = (toolbar_size.x + toolbar_size.x);
     configuration_ratio     = (toolbar_size.x / ImMax(viewport->WorkSize.x, minimum_dockspace_width));
