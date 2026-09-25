@@ -432,10 +432,7 @@ static bool_t NextIdentifier(const ConfigurationEditor_t* editor, ConfigurationS
     {
         for (index = 0; index < editor->configuration.screenCount; ++index)
         {
-            if (maximum_id < editor->screens[index].id)
-            {
-                maximum_id = editor->screens[index].id;
-            }
+            maximum_id = ImMax(maximum_id, editor->screens[index].id);
         }
     }
     else if (CONFIGURATION_SELECTION_LAYOUT == kind)
@@ -444,10 +441,7 @@ static bool_t NextIdentifier(const ConfigurationEditor_t* editor, ConfigurationS
         {
             if (screenIndex == editor->layouts[index].screenIndex)
             {
-                if (maximum_id < editor->layouts[index].id)
-                {
-                    maximum_id = editor->layouts[index].id;
-                }
+                maximum_id = ImMax(maximum_id, editor->layouts[index].id);
             }
         }
     }
@@ -455,10 +449,7 @@ static bool_t NextIdentifier(const ConfigurationEditor_t* editor, ConfigurationS
     {
         for (index = 0; index < editor->configuration.windowCount; ++index)
         {
-            if (maximum_id < editor->windows[index].id)
-            {
-                maximum_id = editor->windows[index].id;
-            }
+            maximum_id = ImMax(maximum_id, editor->windows[index].id);
         }
     }
     has_next_id = (INT64_MAX != maximum_id);
