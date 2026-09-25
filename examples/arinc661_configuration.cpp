@@ -1634,9 +1634,12 @@ void Arinc661_Configuration_Reload(Arinc661_Configuration_Editor_t* editor)
     int32_t document_byte_count;
     bool_t  is_configuration;
 
-    editor->isLoaded      = FALSE;
-    editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_NONE;
-    editor->selectedIndex = 0;
+    editor->isLoaded            = FALSE;
+    editor->selectedKind        = ARINC661_CONFIGURATION_SELECTION_NONE;
+    editor->selectedIndex       = 0;
+    editor->totalScreenWidth    = 0.0f;
+    editor->maximumScreenHeight = 0.0f;
+    editor->drawableScreenCount = 0;
 
     editor->configuration.screenCount          = 0;
     editor->configuration.layoutCount          = 0;
@@ -1644,10 +1647,6 @@ void Arinc661_Configuration_Reload(Arinc661_Configuration_Editor_t* editor)
     editor->configuration.userApplicationCount = 0;
     editor->configuration.externalSourceCount  = 0;
     editor->configuration.hasMetaData          = FALSE;
-
-    editor->totalScreenWidth    = 0.0f;
-    editor->maximumScreenHeight = 0.0f;
-    editor->drawableScreenCount = 0;
 
     document_byte_count = OS_File_ReadFile(ARINC661_CONFIGURATION_XML_PATH, editor->inputBuffer, sizeof(editor->inputBuffer));
     if (0 > document_byte_count)
