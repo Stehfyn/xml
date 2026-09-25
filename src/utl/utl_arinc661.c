@@ -131,8 +131,8 @@ typedef struct XmlWorkspace_s
  * \param[in]  bytes     Eight-byte-aligned workspace bytes
  * \param[in]  byteCount Workspace size
  *
- * \retval    TRUE  The workspace has enough bytes.
- * \retval    FALSE The workspace is too small or misaligned.
+ * \retval    TRUE        if the workspace has enough bytes.
+ * \retval    FALSE       if the workspace is too small or misaligned.
  */
 static bool_t InitializeXmlWorkspace(XmlWorkspace_t* xml, void* bytes, uint64_t byteCount);
 
@@ -143,8 +143,8 @@ static bool_t InitializeXmlWorkspace(XmlWorkspace_t* xml, void* bytes, uint64_t 
  * \param[in] node XML node
  * \param[in] name Expected element name
  *
- * \retval    TRUE  The node is an element with the expected name.
- * \retval    FALSE The type or name differs.
+ * \retval    TRUE        if the node is an element with the expected name.
+ * \retval    FALSE       if the type or name differs.
  */
 static bool_t HasElementName(const Utl_Xml_Node_t* node, const char_t* name);
 
@@ -155,7 +155,7 @@ static bool_t HasElementName(const Utl_Xml_Node_t* node, const char_t* name);
  * \param[in] parent Parent element
  * \param[in] name   Expected child name
  *
- * \return Matching child, or NULL when absent.
+ * \return     Matching child, or NULL when absent.
  */
 static Utl_Xml_Node_t* FindChild(Utl_Xml_Node_t* parent, const char_t* name);
 
@@ -166,7 +166,7 @@ static Utl_Xml_Node_t* FindChild(Utl_Xml_Node_t* parent, const char_t* name);
  * \param[in] node Element to search
  * \param[in] name Expected attribute name
  *
- * \return Matching attribute, or NULL when absent.
+ * \return     Matching attribute, or NULL when absent.
  */
 static const Utl_Xml_Attribute_t* FindAttribute(const Utl_Xml_Node_t* node, const char_t* name);
 
@@ -177,8 +177,8 @@ static const Utl_Xml_Attribute_t* FindAttribute(const Utl_Xml_Node_t* node, cons
  * \param[in] attribute Attribute containing a counted value
  * \param[in] value     Expected value
  *
- * \retval    TRUE  The value matches exactly.
- * \retval    FALSE The byte count or contents differ.
+ * \retval    TRUE        if the value matches exactly.
+ * \retval    FALSE       if the byte count or contents differ.
  */
 static bool_t HasAttributeValue(const Utl_Xml_Attribute_t* attribute, const char_t* value);
 
@@ -191,8 +191,8 @@ static bool_t HasAttributeValue(const Utl_Xml_Attribute_t* attribute, const char
  * \param[out] destination Output character storage
  * \param[in]  capacity    Number of destination bytes
  *
- * \retval    TRUE  The attribute is absent or fits the destination.
- * \retval    FALSE The attribute exceeds the destination.
+ * \retval    TRUE        if the attribute is absent or fits the destination.
+ * \retval    FALSE       if the attribute exceeds the destination.
  */
 static bool_t CopyAttribute(const Utl_Xml_Node_t* node, const char_t* name, char_t* destination, uint32_t capacity);
 
@@ -204,8 +204,8 @@ static bool_t CopyAttribute(const Utl_Xml_Node_t* node, const char_t* name, char
  * \param[in]  name  Attribute name
  * \param[out] value Parsed integer
  *
- * \retval    TRUE  The complete attribute is a signed 64-bit integer.
- * \retval    FALSE The attribute is absent, malformed, or out of range.
+ * \retval    TRUE        if the complete attribute is a signed 64-bit integer.
+ * \retval    FALSE       if the attribute is absent, malformed, or out of range.
  */
 static bool_t ReadInteger(const Utl_Xml_Node_t* node, const char_t* name, int64_t* value);
 
@@ -217,8 +217,8 @@ static bool_t ReadInteger(const Utl_Xml_Node_t* node, const char_t* name, int64_
  * \param[in]  name  Attribute name
  * \param[out] value Parsed decimal
  *
- * \retval    TRUE  The complete attribute is a finite number.
- * \retval    FALSE The attribute is absent, malformed, or out of range.
+ * \retval    TRUE        if the complete attribute is a finite number.
+ * \retval    FALSE       if the attribute is absent, malformed, or out of range.
  */
 static bool_t ReadDecimal(const Utl_Xml_Node_t* node, const char_t* name, float32_t* value);
 
@@ -231,8 +231,8 @@ static bool_t ReadDecimal(const Utl_Xml_Node_t* node, const char_t* name, float3
  * \param[in]  defaultUnit Value used when the attribute is absent
  * \param[out] unit        Parsed or default unit
  *
- * \retval    TRUE  The attribute is absent or names a FACE unit.
- * \retval    FALSE The attribute names an unsupported unit.
+ * \retval    TRUE        if the attribute is absent or names a FACE unit.
+ * \retval    FALSE       if the attribute names an unsupported unit.
  */
 static bool_t ReadUnit(const Utl_Xml_Node_t* node, const char_t* name, Utl_Arinc661_Unit_t defaultUnit, Utl_Arinc661_Unit_t* unit);
 
@@ -244,8 +244,8 @@ static bool_t ReadUnit(const Utl_Xml_Node_t* node, const char_t* name, Utl_Arinc
  * \param[in]  name  Attribute name
  * \param[out] value Parsed value, or FALSE when absent
  *
- * \retval    TRUE  The attribute is absent or has XML Schema boolean syntax.
- * \retval    FALSE The attribute has another value.
+ * \retval    TRUE        if the attribute is absent or has XML Schema boolean syntax.
+ * \retval    FALSE       if the attribute has another value.
  */
 static bool_t ReadBoolean(const Utl_Xml_Node_t* node, const char_t* name, bool_t* value);
 
@@ -256,7 +256,7 @@ static bool_t ReadBoolean(const Utl_Xml_Node_t* node, const char_t* name, bool_t
  * \param[in,out] xml  Temporary XML storage
  * \param[in]     name Element name
  *
- * \return Unlinked element in temporary storage, or NULL when storage is exhausted.
+ * \return     Unlinked element in temporary storage, or NULL when storage is exhausted.
  */
 static Utl_Xml_Node_t* AppendElement(XmlWorkspace_t* xml, const char_t* name);
 
@@ -269,8 +269,8 @@ static Utl_Xml_Node_t* AppendElement(XmlWorkspace_t* xml, const char_t* name);
  * \param[in]     name  Attribute name
  * \param[in]     value Attribute value
  *
- * \retval    TRUE  The attribute was appended.
- * \retval    FALSE Storage is exhausted or the value cannot be written directly.
+ * \retval    TRUE        if the attribute was appended.
+ * \retval    FALSE       if storage is exhausted or the value cannot be written directly.
  */
 static bool_t AppendAttribute(XmlWorkspace_t* xml, Utl_Xml_Node_t* node, const char_t* name, const char_t* value);
 
@@ -281,7 +281,7 @@ static bool_t AppendAttribute(XmlWorkspace_t* xml, Utl_Xml_Node_t* node, const c
  * \param[in,out] xml   Temporary XML storage
  * \param[in]     value Integer to format
  *
- * \return Stable temporary text, or NULL when storage is exhausted.
+ * \return     Stable temporary text, or NULL when storage is exhausted.
  */
 static const char_t* FormatInteger(XmlWorkspace_t* xml, int64_t value);
 
@@ -292,7 +292,7 @@ static const char_t* FormatInteger(XmlWorkspace_t* xml, int64_t value);
  * \param[in,out] xml   Temporary XML storage
  * \param[in]     value Decimal to format
  *
- * \return Stable temporary text, or NULL when storage is exhausted.
+ * \return     Stable temporary text, or NULL when storage is exhausted.
  */
 static const char_t* FormatDecimal(XmlWorkspace_t* xml, float32_t value);
 
@@ -305,8 +305,8 @@ static const char_t* FormatDecimal(XmlWorkspace_t* xml, float32_t value);
  * \param[in]     name  Attribute name
  * \param[in]     value Integer value
  *
- * \retval    TRUE  The attribute was appended.
- * \retval    FALSE Temporary storage was exhausted.
+ * \retval    TRUE        if the attribute was appended.
+ * \retval    FALSE       if temporary storage was exhausted.
  */
 static bool_t AppendIntegerAttribute(XmlWorkspace_t* xml, Utl_Xml_Node_t* node, const char_t* name, int64_t value);
 
@@ -319,8 +319,8 @@ static bool_t AppendIntegerAttribute(XmlWorkspace_t* xml, Utl_Xml_Node_t* node, 
  * \param[in]     name  Attribute name
  * \param[in]     value Decimal value
  *
- * \retval    TRUE  The attribute was appended.
- * \retval    FALSE Temporary storage was exhausted or the value is not finite.
+ * \retval    TRUE        if the attribute was appended.
+ * \retval    FALSE       if temporary storage was exhausted or the value is not finite.
  */
 static bool_t AppendDecimalAttribute(XmlWorkspace_t* xml, Utl_Xml_Node_t* node, const char_t* name, float32_t value);
 
@@ -330,7 +330,7 @@ static bool_t AppendDecimalAttribute(XmlWorkspace_t* xml, Utl_Xml_Node_t* node, 
  *
  * \param[in] document XML document
  *
- * \return First top-level element, or NULL when absent.
+ * \return     First top-level element, or NULL when absent.
  */
 static Utl_Xml_Node_t* FindDocumentElement(const Utl_Xml_Document_t* document);
 
@@ -341,8 +341,8 @@ static Utl_Xml_Node_t* FindDocumentElement(const Utl_Xml_Document_t* document);
  * \param[in]  node Element with width, height, and optional units
  * \param[out] size Parsed size
  *
- * \retval    TRUE  Required values are valid.
- * \retval    FALSE A required value is absent or invalid.
+ * \retval    TRUE        if required values are valid.
+ * \retval    FALSE       if a required value is absent or invalid.
  */
 static bool_t ReadSize(const Utl_Xml_Node_t* node, Utl_Arinc661_Size_t* size);
 
@@ -353,8 +353,8 @@ static bool_t ReadSize(const Utl_Xml_Node_t* node, Utl_Arinc661_Size_t* size);
  * \param[in]  node      Element with x, y, width, and height
  * \param[out] rectangle Parsed rectangle
  *
- * \retval    TRUE  Required values are valid.
- * \retval    FALSE A required value is absent or invalid.
+ * \retval    TRUE        if required values are valid.
+ * \retval    FALSE       if a required value is absent or invalid.
  */
 static bool_t ReadRectangle(const Utl_Xml_Node_t* node, Utl_Arinc661_Rectangle_t* rectangle);
 
@@ -365,8 +365,8 @@ static bool_t ReadRectangle(const Utl_Xml_Node_t* node, Utl_Arinc661_Rectangle_t
  * \param[in]  node  Element with scale factors and optional units
  * \param[out] scale Parsed scaling factor
  *
- * \retval    TRUE  Required values are valid.
- * \retval    FALSE A required value is absent or invalid.
+ * \retval    TRUE        if required values are valid.
+ * \retval    FALSE       if a required value is absent or invalid.
  */
 static bool_t ReadScale(const Utl_Xml_Node_t* node, Utl_Arinc661_Scale_t* scale);
 
@@ -375,12 +375,12 @@ static bool_t ReadScale(const Utl_Xml_Node_t* node, Utl_Arinc661_Scale_t* scale)
  * \brief Reads one configuration screen and its child layouts and windows.
  *
  * \param[in,out] configuration Caller-owned result arrays
- * \param[in]     screenNode    Screen XML element
+ * \param[in]     element       Screen XML element
  *
- * \retval    TRUE  The supported screen data fits and is valid.
- * \retval    FALSE A value is invalid or storage is exhausted.
+ * \retval    TRUE        if the supported screen data fits and is valid.
+ * \retval    FALSE       if a value is invalid or storage is exhausted.
  */
-static bool_t ReadScreenHierarchy(Utl_Arinc661_Configuration_t* configuration, Utl_Xml_Node_t* screenNode);
+static bool_t ReadScreenHierarchy(Utl_Arinc661_Configuration_t* configuration, Utl_Xml_Node_t* element);
 
 /*************************************************************************************************/
 /**
@@ -389,8 +389,8 @@ static bool_t ReadScreenHierarchy(Utl_Arinc661_Configuration_t* configuration, U
  * \param[in,out] configuration Caller-owned result arrays
  * \param[in]     node          User application XML element
  *
- * \retval    TRUE  The application was read.
- * \retval    FALSE A required value is absent, malformed, or storage is exhausted.
+ * \retval    TRUE        if the application was read.
+ * \retval    FALSE       if a required value is absent, malformed, or storage is exhausted.
  */
 static bool_t ReadUserApplication(Utl_Arinc661_Configuration_t* configuration, const Utl_Xml_Node_t* node);
 
@@ -401,8 +401,8 @@ static bool_t ReadUserApplication(Utl_Arinc661_Configuration_t* configuration, c
  * \param[in,out] configuration Caller-owned result arrays
  * \param[in]     node          External source XML element
  *
- * \retval    TRUE  The external source was read.
- * \retval    FALSE A value is invalid or storage is exhausted.
+ * \retval    TRUE        if the external source was read.
+ * \retval    FALSE       if a value is invalid or storage is exhausted.
  */
 static bool_t ReadExternalSource(Utl_Arinc661_Configuration_t* configuration, const Utl_Xml_Node_t* node);
 
@@ -412,7 +412,7 @@ static bool_t ReadExternalSource(Utl_Arinc661_Configuration_t* configuration, co
  *
  * \param[in] unit Unit value
  *
- * \return Unit spelling, or NULL for an invalid value.
+ * \return     Unit spelling, or NULL for an invalid value.
  */
 static const char_t* UnitName(Utl_Arinc661_Unit_t unit);
 
@@ -425,8 +425,8 @@ static const char_t* UnitName(Utl_Arinc661_Unit_t unit);
  * \param[in]     name   Child element name
  * \param[in]     size   Size values
  *
- * \retval    TRUE  The size element was appended.
- * \retval    FALSE A value is invalid or storage is exhausted.
+ * \retval    TRUE        if the size element was appended.
+ * \retval    FALSE       if a value is invalid or storage is exhausted.
  */
 static bool_t WriteSize(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const char_t* name, const Utl_Arinc661_Size_t* size);
 
@@ -438,8 +438,8 @@ static bool_t WriteSize(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const char_
  * \param[in,out] parent    Owning XML element
  * \param[in]     rectangle Rectangle values
  *
- * \retval    TRUE  The rectangle element was appended.
- * \retval    FALSE Storage is exhausted.
+ * \retval    TRUE        if the rectangle element was appended.
+ * \retval    FALSE       if storage is exhausted.
  */
 static bool_t WriteRectangle(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const Utl_Arinc661_Rectangle_t* rectangle);
 
@@ -451,8 +451,8 @@ static bool_t WriteRectangle(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const 
  * \param[in,out] parent Owning XML element
  * \param[in]     scale  Scaling factor values
  *
- * \retval    TRUE  The scaling factor element was appended.
- * \retval    FALSE A value is invalid or storage is exhausted.
+ * \retval    TRUE        if the scaling factor element was appended.
+ * \retval    FALSE       if a value is invalid or storage is exhausted.
  */
 static bool_t WriteScale(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const Utl_Arinc661_Scale_t* scale);
 
@@ -464,8 +464,8 @@ static bool_t WriteScale(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const Utl_
  * \param[in,out] parent      Configuration XML element
  * \param[in]     application User application values
  *
- * \retval    TRUE  The user application was appended.
- * \retval    FALSE A value is invalid or storage is exhausted.
+ * \retval    TRUE        if the user application was appended.
+ * \retval    FALSE       if a value is invalid or storage is exhausted.
  */
 static bool_t WriteUserApplication(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const Utl_Arinc661_UserApplication_t* application);
 
@@ -477,8 +477,8 @@ static bool_t WriteUserApplication(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, 
  * \param[in,out] parent Configuration XML element
  * \param[in]     source External source attributes
  *
- * \retval    TRUE  The external source was appended.
- * \retval    FALSE Its identifier is out of range or storage is exhausted.
+ * \retval    TRUE        if the external source was appended.
+ * \retval    FALSE       if its identifier is out of range or storage is exhausted.
  */
 static bool_t WriteExternalSource(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const Utl_Arinc661_ExternalSource_t* source);
 
@@ -486,12 +486,12 @@ static bool_t WriteExternalSource(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, c
 /**
  * \brief Advances within one XML subtree without recursion.
  *
- * \param[in] rootNode    Root of the traversal
- * \param[in] currentNode Node just visited
+ * \param[in] root    Root of the traversal
+ * \param[in] current Node just visited
  *
- * \return Next node in document order, or NULL after the subtree.
+ * \return     Next node in document order, or NULL after the subtree.
  */
-static Utl_Xml_Node_t* NextSubtreeNode(Utl_Xml_Node_t* rootNode, Utl_Xml_Node_t* currentNode);
+static Utl_Xml_Node_t* NextSubtreeNode(Utl_Xml_Node_t* root, Utl_Xml_Node_t* current);
 
 /*************************************************************************************************/
 /**
@@ -502,8 +502,8 @@ static Utl_Xml_Node_t* NextSubtreeNode(Utl_Xml_Node_t* rootNode, Utl_Xml_Node_t*
  * \param[in]     owner      Kind of entity containing the model
  * \param[in]     ownerIndex Layer or widget index, or zero for the Definition File
  *
- * \retval    TRUE  All properties fit the supplied storage.
- * \retval    FALSE Property storage or string capacity was exceeded.
+ * \retval    TRUE        if all properties fit the supplied storage.
+ * \retval    FALSE       if property storage or string capacity was exceeded.
  */
 static bool_t ReadProperties(Utl_Arinc661_Definition_t* definition, Utl_Xml_Node_t* model, Utl_Arinc661_PropertyOwner_t owner, uint32_t ownerIndex);
 
@@ -517,8 +517,8 @@ static bool_t ReadProperties(Utl_Arinc661_Definition_t* definition, Utl_Xml_Node
  * \param[in]     owner      Kind of property owner
  * \param[in]     ownerIndex Layer or widget index, or zero for the Definition File
  *
- * \retval    TRUE  The model and its properties were appended.
- * \retval    FALSE Storage or a property value is invalid.
+ * \retval    TRUE        if the model and its properties were appended.
+ * \retval    FALSE       if storage or a property value is invalid.
  */
 static bool_t WriteProperties(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const Utl_Arinc661_Definition_t* definition, Utl_Arinc661_PropertyOwner_t owner, uint32_t ownerIndex);
 
@@ -1104,7 +1104,7 @@ static bool_t ReadScale(const Utl_Xml_Node_t* node, Utl_Arinc661_Scale_t* scale)
  * \par Details:
  *  None
  */
-static bool_t ReadScreenHierarchy(Utl_Arinc661_Configuration_t* configuration, Utl_Xml_Node_t* screenNode)
+static bool_t ReadScreenHierarchy(Utl_Arinc661_Configuration_t* configuration, Utl_Xml_Node_t* element)
 {
     Utl_Arinc661_Screen_t* screen;
     Utl_Arinc661_Layout_t* layout;
@@ -1130,21 +1130,21 @@ static bool_t ReadScreenHierarchy(Utl_Arinc661_Configuration_t* configuration, U
         screen_array_index = configuration->screenCount;
         screen             = &configuration->screens[screen_array_index];
         (void)memset(screen, 0, sizeof((*screen)));
-        is_valid = ReadInteger(screenNode, ARINC661_XML_ATTRIBUTE_ID, &screen->id);
+        is_valid = ReadInteger(element, ARINC661_XML_ATTRIBUTE_ID, &screen->id);
         if (is_valid)
         {
-            detail_node = FindChild(screenNode, ARINC661_DMC_ELEMENT_PIXEL_SIZE);
+            detail_node = FindChild(element, ARINC661_DMC_ELEMENT_PIXEL_SIZE);
             is_valid    = ReadSize(detail_node, &screen->pixelSize);
         }
         if (is_valid)
         {
-            detail_node = FindChild(screenNode, ARINC661_DMC_ELEMENT_PHYSICAL_DIMENSIONS);
+            detail_node = FindChild(element, ARINC661_DMC_ELEMENT_PHYSICAL_DIMENSIONS);
             is_valid    = ReadSize(detail_node, &screen->physicalDimensions);
         }
         if (is_valid)
         {
             configuration->screenCount += 1;
-            layout_node = screenNode->firstChild;
+            layout_node = element->firstChild;
             for (screen_index = 0; screen_index < ARINC661_XML_NODE_CAPACITY; ++screen_index)
             {
                 if (NULL == layout_node)
@@ -1609,19 +1609,19 @@ static bool_t WriteExternalSource(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, c
  * \par Details:
  *  None
  */
-static Utl_Xml_Node_t* NextSubtreeNode(Utl_Xml_Node_t* rootNode, Utl_Xml_Node_t* currentNode)
+static Utl_Xml_Node_t* NextSubtreeNode(Utl_Xml_Node_t* root, Utl_Xml_Node_t* current)
 {
     Utl_Xml_Node_t* next_node;
     Utl_Xml_Node_t* ancestor;
     uint32_t        ancestor_index;
 
-    next_node = currentNode->firstChild;
-    ancestor  = currentNode;
+    next_node = current->firstChild;
+    ancestor  = current;
     if (NULL == next_node)
     {
         for (ancestor_index = 0; ancestor_index < UTL_XML_NODE_MAX_DEPTH; ++ancestor_index)
         {
-            if (rootNode == ancestor)
+            if (root == ancestor)
             {
                 break;
             }
