@@ -331,7 +331,7 @@ static void UpdatePreviewMeasurements(ConfigurationEditor_t* editor)
         screen             = &editor->screens[screen_index];
         has_screen_width   = (0 < screen->pixelSize.width);
         has_screen_height  = (0 < screen->pixelSize.height);
-        is_drawable_screen = (has_screen_width && has_screen_height);
+        is_drawable_screen = !!(has_screen_width && has_screen_height);
         if (is_drawable_screen)
         {
             editor->drawableScreenCount += 1;
@@ -872,7 +872,7 @@ static void DrawScreenInspector(ConfigurationEditor_t* editor)
     {
         has_width_changed      = DrawIntegerField("Width", &screen->pixelSize.width);
         has_height_changed     = DrawIntegerField("Height", &screen->pixelSize.height);
-        has_pixel_size_changed = (has_width_changed || has_height_changed);
+        has_pixel_size_changed = !!(has_width_changed || has_height_changed);
         (void)DrawUnitField("Units", &screen->pixelSize.units);
         ImGui::EndTable();
         if (has_pixel_size_changed)
@@ -1126,7 +1126,7 @@ static void DrawVisualizer(const ConfigurationEditor_t* editor)
 
             has_canvas_width  = (0.0f < content_size.x);
             has_canvas_height = (0.0f < content_size.y);
-            has_canvas_space  = (has_canvas_width && has_canvas_height);
+            has_canvas_space  = !!(has_canvas_width && has_canvas_height);
             if (FALSE == has_canvas_space)
             {
                 ImGui::TextUnformatted("Preview area is too small.");
@@ -1150,7 +1150,7 @@ static void DrawVisualizer(const ConfigurationEditor_t* editor)
                     screen             = &editor->screens[screen_index];
                     has_screen_width   = (0 < screen->pixelSize.width);
                     has_screen_height  = (0 < screen->pixelSize.height);
-                    is_drawable_screen = (has_screen_width && has_screen_height);
+                    is_drawable_screen = !!(has_screen_width && has_screen_height);
                     if (is_drawable_screen)
                     {
                         screen_min  = screen_position;
