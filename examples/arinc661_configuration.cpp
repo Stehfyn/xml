@@ -39,6 +39,10 @@ extern "C"
 #define INSPECTOR_PANE_NAME       ("Inspector")
 #define VISUALIZER_PANE_NAME      ("Visualizer")
 #define CONFIGURATION_FILE_LABEL  ("arinc661_configuration.xml")
+#define HIERARCHY_PANE_COLUMN      (0)
+#define VISUALIZER_PANE_COLUMN     (1)
+#define INSPECTOR_PANE_COLUMN      (2)
+#define CONFIGURATION_PANE_COUNT  (3)
 
 #define CONFIGURATION_ADD_SCREEN_LABEL    ("+ Add Screen")
 #define CONFIGURATION_ADD_LAYOUT_LABEL    ("+ Add Layout")
@@ -325,6 +329,14 @@ static void DrawInspector(ConfigurationEditor_t* editor);
  * \retval None
  */
 static void DrawVisualizer(const ConfigurationEditor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Limits pending pane drags before ImGui applies them.
+ *
+ * \retval None
+ */
+static void ClampPaneResize(void);
 
 /*************************************************************************************************/
 /**
@@ -1319,6 +1331,34 @@ static void DrawVisualizer(const ConfigurationEditor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  Stops the left divider at the right divider.
+ *  Stops the right divider when the inspector reaches the hierarchy's width.
+ */
+static void ClampPaneResize(void)
+{
+    ImGuiTable* table;
+    float32_t   maximum_hierarchy_width;
+    float32_t   maximum_visualizer_width;
+
+    table = ImGui::GetCurrentTable();
+    if (HIERARCHY_PANE_COLUMN == table->ResizedColumn)
+    {
+        maximum_hierarchy_width  = table->Columns[INSPECTOR_PANE_COLUMN].MinX;
+        maximum_hierarchy_width -= table->Columns[HIERARCHY_PANE_COLUMN].MaxX;
+        maximum_hierarchy_width += table->Columns[HIERARCHY_PANE_COLUMN].WidthGiven;
+        table->ResizedColumnNextWidth = ImMin(table->ResizedColumnNextWidth, maximum_hierarchy_width);
+    }
+    else if (VISUALIZER_PANE_COLUMN == table->ResizedColumn)
+    {
+        maximum_visualizer_width = (table->Columns[VISUALIZER_PANE_COLUMN].WidthRequest + table->Columns[INSPECTOR_PANE_COLUMN].WidthRequest);
+        maximum_visualizer_width -= table->Columns[HIERARCHY_PANE_COLUMN].WidthGiven;
+        table->ResizedColumnNextWidth = ImMin(table->ResizedColumnNextWidth, maximum_visualizer_width);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Uses the visible file actions and property fields for the side pane defaults.
  */
 static void MeasurePaneWidths(float32_t* hierarchyWidth, float32_t* inspectorWidth)
@@ -1457,19 +1497,20 @@ void DrawConfiguration(ConfigurationEditor_t* editor)
         MeasurePaneWidths(&hierarchy_width, &inspector_width);
         table_size  = ImGui::GetContentRegionAvail();
         table_flags = (ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_NoPadOuterX | ImGuiTableFlags_NoPadInnerX);
-        if (ImGui::BeginTable("ConfigurationPanes", 3, table_flags, table_size))
+        if (ImGui::BeginTable("ConfigurationPanes", CONFIGURATION_PANE_COUNT, table_flags, table_size))
         {
             ImGui::TableSetupColumn(HIERARCHY_PANE_NAME, ImGuiTableColumnFlags_WidthFixed, hierarchy_width);
             ImGui::TableSetupColumn(VISUALIZER_PANE_NAME, ImGuiTableColumnFlags_WidthStretch);
             ImGui::TableSetupColumn(INSPECTOR_PANE_NAME, ImGuiTableColumnFlags_WidthFixed, inspector_width);
+            ClampPaneResize();
             ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.0f, 0.0f));
             ImGui::TableNextRow();
             ImGui::PopStyleVar();
-            ImGui::TableSetColumnIndex(0);
+            ImGui::TableSetColumnIndex(HIERARCHY_PANE_COLUMN);
             DrawHierarchyPane(editor);
-            ImGui::TableSetColumnIndex(2);
+            ImGui::TableSetColumnIndex(INSPECTOR_PANE_COLUMN);
             DrawInspector(editor);
-            ImGui::TableSetColumnIndex(1);
+            ImGui::TableSetColumnIndex(VISUALIZER_PANE_COLUMN);
             DrawVisualizer(editor);
             ImGui::EndTable();
         }
