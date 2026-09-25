@@ -37,6 +37,10 @@ extern "C"
 #define VISUALIZER_WINDOW_NAME    ("Visualizer")
 #define DOCKSPACE_NAME            ("ARINC661DockSpace")
 
+#define CONFIGURATION_ADD_SCREEN_LABEL    ("Add Screen")
+#define CONFIGURATION_ADD_LAYOUT_LABEL    ("Add Layout")
+#define CONFIGURATION_REMOVE_SCREEN_LABEL ("Remove Screen")
+
 #define VISUALIZER_CANVAS_COLOR        (IM_COL32(22, 27, 34, 255))
 #define VISUALIZER_SCREEN_COLOR        (IM_COL32(42, 50, 64, 255))
 #define VISUALIZER_SCREEN_BORDER_COLOR (IM_COL32(220, 230, 245, 255))
@@ -1032,19 +1036,19 @@ static void DrawConfigurationEditor(ConfigurationEditor_t* editor)
         if (editor->isLoaded)
         {
             ImGui::TextUnformatted("Hierarchy");
-            if (ImGui::SmallButton("Add Screen"))
+            if (ImGui::SmallButton(CONFIGURATION_ADD_SCREEN_LABEL))
             {
                 AddScreen(editor);
             }
             if (CONFIGURATION_SELECTION_SCREEN == editor->selectedKind)
             {
                 ImGui::SameLine();
-                if (ImGui::SmallButton("Add Layout"))
+                if (ImGui::SmallButton(CONFIGURATION_ADD_LAYOUT_LABEL))
                 {
                     AddLayout(editor, editor->selectedIndex);
                 }
                 ImGui::SameLine();
-                if (ImGui::SmallButton("Remove Screen"))
+                if (ImGui::SmallButton(CONFIGURATION_REMOVE_SCREEN_LABEL))
                 {
                     RemoveScreen(editor, editor->selectedIndex);
                     editor->selectedKind = CONFIGURATION_SELECTION_NONE;
@@ -1117,7 +1121,7 @@ static void DrawConfigurationEditor(ConfigurationEditor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Uses only typed screen and window dimensions prepared by utl_arinc661.
+ *  Fits the combined screen widths and tallest screen inside the available canvas.
  */
 static void DrawVisualizer(const ConfigurationEditor_t* editor)
 {
@@ -1142,18 +1146,24 @@ static void DrawVisualizer(const ConfigurationEditor_t* editor)
     char_t                       screen_label[64];
     float32_t                    available_width;
     float32_t                    available_height;
+    float32_t                    horizontal_padding;
+    float32_t                    screen_spacing_width;
     float32_t                    label_height;
     float32_t                    vertical_padding;
     float32_t                    unused_height;
+    float32_t                    width_scale;
+    float32_t                    height_scale;
     float32_t                    scale;
     float32_t                    x;
     float32_t                    y;
     uint32_t                     screen_index;
+    uint32_t                     screen_gap_count;
     uint32_t                     window_index;
     bool_t                       has_canvas_width;
     bool_t                       has_canvas_height;
     bool_t                       has_canvas_space;
-    bool_t                       has_layout;
+    bool_t                       has_valid_layout;
+    bool_t                       is_window_on_screen;
     bool_t                       has_screen_width;
     bool_t                       has_screen_height;
     bool_t                       is_drawable_screen;
@@ -1175,8 +1185,10 @@ static void DrawVisualizer(const ConfigurationEditor_t* editor)
             canvas_size  = ImGui::GetContentRegionAvail();
             label_height = ImGui::GetTextLineHeightWithSpacing();
 
-            available_width = (canvas_size.x - (2.0f * style->WindowPadding.x));
-            available_width -= (style->ItemSpacing.x * (float32_t)(editor->drawableScreenCount - 1));
+            screen_gap_count     = (editor->drawableScreenCount - 1);
+            horizontal_padding  = (2.0f * style->WindowPadding.x);
+            screen_spacing_width = (style->ItemSpacing.x * (float32_t)screen_gap_count);
+            available_width     = (canvas_size.x - (horizontal_padding + screen_spacing_width));
 
             vertical_padding  = (2.0f * style->WindowPadding.y);
             available_height  = (canvas_size.y - (label_height + vertical_padding));
@@ -1194,11 +1206,9 @@ static void DrawVisualizer(const ConfigurationEditor_t* editor)
                 canvas_max = (canvas_min + canvas_size);
                 draw_list->PushClipRect(canvas_min, canvas_max, TRUE);
                 draw_list->AddRectFilled(canvas_min, canvas_max, VISUALIZER_CANVAS_COLOR);
-                scale = available_width / editor->totalScreenWidth;
-                if ((available_height / editor->maximumScreenHeight) < scale)
-                {
-                    scale = available_height / editor->maximumScreenHeight;
-                }
+                width_scale   = (available_width / editor->totalScreenWidth);
+                height_scale  = (available_height / editor->maximumScreenHeight);
+                scale         = ImMin(width_scale, height_scale);
                 unused_height = (available_height - (editor->maximumScreenHeight * scale));
 
                 screen_origin = (canvas_min + style->WindowPadding);
@@ -1226,14 +1236,15 @@ static void DrawVisualizer(const ConfigurationEditor_t* editor)
                         draw_list->PushClipRect(screen_min, screen_max, TRUE);
                         for (window_index = 0; window_index < editor->configuration.windowCount; ++window_index)
                         {
-                            window     = &editor->windows[window_index];
-                            has_layout = (window->layoutIndex < editor->configuration.layoutCount);
-                            if (has_layout)
+                            window              = &editor->windows[window_index];
+                            has_valid_layout    = (window->layoutIndex < editor->configuration.layoutCount);
+                            is_window_on_screen = FALSE;
+                            if (has_valid_layout)
                             {
-                                layout     = &editor->layouts[window->layoutIndex];
-                                has_layout = (screen_index == layout->screenIndex);
+                                layout              = &editor->layouts[window->layoutIndex];
+                                is_window_on_screen = (screen_index == layout->screenIndex);
                             }
-                            if (has_layout)
+                            if (is_window_on_screen)
                             {
                                 area_offset = ImVec2((float32_t)window->pixelArea.x, (float32_t)window->pixelArea.y);
                                 area_size   = ImVec2((float32_t)window->pixelArea.width, (float32_t)window->pixelArea.height);
@@ -1261,20 +1272,53 @@ static void DrawVisualizer(const ConfigurationEditor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The configuration occupies the left dock and the visualizer the central dock.
+ *  Sizes the left dock from the screen toolbar row and leaves the remaining area to the visualizer.
  */
 static void BuildDockLayout(ImGuiID dockspaceId)
 {
+    const ImGuiStyle*    style;
     const ImGuiViewport* viewport;
+    ImVec2               add_screen_text_size;
+    ImVec2               add_layout_text_size;
+    ImVec2               remove_screen_text_size;
+    float32_t            button_padding_width;
+    float32_t            button_gap_width;
+    float32_t            add_screen_width;
+    float32_t            add_layout_width;
+    float32_t            remove_screen_width;
+    float32_t            button_row_width;
+    float32_t            configuration_width;
+    float32_t            minimum_split_width;
+    float32_t            split_width;
+    float32_t            configuration_ratio;
     ImGuiID              configuration_node_id;
     ImGuiID              visualizer_node_id;
 
-    viewport = ImGui::GetMainViewport();
+    style                   = &ImGui::GetStyle();
+    viewport                = ImGui::GetMainViewport();
+    add_screen_text_size    = ImGui::CalcTextSize(CONFIGURATION_ADD_SCREEN_LABEL);
+    add_layout_text_size    = ImGui::CalcTextSize(CONFIGURATION_ADD_LAYOUT_LABEL);
+    remove_screen_text_size = ImGui::CalcTextSize(CONFIGURATION_REMOVE_SCREEN_LABEL);
+    button_padding_width    = (style->FramePadding.x + style->FramePadding.x);
+    button_gap_width        = (style->ItemSpacing.x + style->ItemSpacing.x);
+    add_screen_width        = (add_screen_text_size.x + button_padding_width);
+    add_layout_width        = (add_layout_text_size.x + button_padding_width);
+    remove_screen_width     = (remove_screen_text_size.x + button_padding_width);
+    button_row_width        = ((add_screen_width + add_layout_width) + (remove_screen_width + button_gap_width));
+    configuration_width     = ((button_row_width + style->WindowPadding.x) + style->WindowPadding.x);
+    minimum_split_width     = (configuration_width + configuration_width);
+    split_width             = ImMax(viewport->WorkSize.x, minimum_split_width);
+    configuration_ratio     = (configuration_width / split_width);
     ImGui::DockBuilderRemoveNode(dockspaceId);
     ImGui::DockBuilderAddNode(dockspaceId, ImGuiDockNodeFlags_DockSpace);
     ImGui::DockBuilderSetNodePos(dockspaceId, viewport->WorkPos);
     ImGui::DockBuilderSetNodeSize(dockspaceId, viewport->WorkSize);
-    ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Left, 0.30f, &configuration_node_id, &visualizer_node_id);
+    ImGui::DockBuilderSplitNode(
+        dockspaceId,
+        ImGuiDir_Left,
+        configuration_ratio,
+        &configuration_node_id,
+        &visualizer_node_id);
     ImGui::DockBuilderDockWindow(CONFIGURATION_WINDOW_NAME, configuration_node_id);
     ImGui::DockBuilderDockWindow(VISUALIZER_WINDOW_NAME, visualizer_node_id);
     ImGui::DockBuilderFinish(dockspaceId);
