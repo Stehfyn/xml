@@ -47,6 +47,7 @@ extern "C"
 #define CONFIGURATION_WINDOW_FLAGS     (ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDocking)
 #define CONFIGURATION_PANE_TABLE_FLAGS (ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_NoPadOuterX | ImGuiTableFlags_NoPadInnerX)
 #define PANE_FLAGS                     (ImGuiChildFlags_AlwaysUseWindowPadding)
+#define PROPERTY_TABLE_FLAGS           (ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp)
 
 #define CONFIGURATION_ADD_SCREEN_LABEL     ("+ Add Screen")
 #define CONFIGURATION_ADD_LAYOUT_LABEL     ("+ Add Layout")
@@ -889,7 +890,6 @@ static void DrawHierarchy(Arinc661_Configuration_Editor_t* editor)
 static bool_t BeginPropertyTable(const char_t* name)
 {
     const ImGuiStyle* style;
-    ImGuiTableFlags   flags;
     ImVec2            label_size;
     float32_t         property_width;
     bool_t            is_visible;
@@ -897,8 +897,7 @@ static bool_t BeginPropertyTable(const char_t* name)
     style          = &ImGui::GetStyle();
     label_size     = ImGui::CalcTextSize(CONFIGURATION_BASE_UNIT_LABEL);
     property_width = (label_size.x + (style->FramePadding.x * 2.0f));
-    flags          = (ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp);
-    is_visible     = ImGui::BeginTable(name, 2, flags);
+    is_visible     = ImGui::BeginTable(name, 2, PROPERTY_TABLE_FLAGS);
     if (is_visible)
     {
         ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthFixed, property_width);
@@ -1024,6 +1023,7 @@ static void DrawScreenInspector(Arinc661_Configuration_Editor_t* editor)
     bool_t                 has_pixel_size_changed;
 
     screen = &editor->screens[editor->selectedIndex];
+
     ImGui::TextUnformatted("Screen");
     if (BeginPropertyTable("ScreenProperties"))
     {
@@ -1065,6 +1065,7 @@ static void DrawLayoutInspector(Arinc661_Configuration_Editor_t* editor)
     Utl_Arinc661_Layout_t* layout;
 
     layout = &editor->layouts[editor->selectedIndex];
+
     ImGui::TextUnformatted("Layout");
     if (BeginPropertyTable("LayoutProperties"))
     {
@@ -1083,6 +1084,7 @@ static void DrawWindowInspector(Arinc661_Configuration_Editor_t* editor)
     Utl_Arinc661_Window_t* window;
 
     window = &editor->windows[editor->selectedIndex];
+
     ImGui::TextUnformatted("Window");
     if (BeginPropertyTable("WindowProperties"))
     {
@@ -1143,6 +1145,7 @@ static void DrawInspector(Arinc661_Configuration_Editor_t* editor)
     {
         ImGui::TextUnformatted(INSPECTOR_PANE_NAME);
         ImGui::Separator();
+
         if (editor->isLoaded)
         {
             if (ARINC661_CONFIGURATION_SELECTION_SCREEN == editor->selectedKind)
@@ -1231,8 +1234,10 @@ static void DrawScene(Arinc661_Configuration_Editor_t* editor)
         style             = &ImGui::GetStyle();
         draw_list         = ImGui::GetWindowDrawList();
         status_bar_height = ImGui::GetFrameHeightWithSpacing();
+
         ImGui::TextUnformatted(SCENE_PANE_NAME);
         ImGui::Separator();
+
         if (FALSE == editor->isLoaded)
         {
             ImGui::TextUnformatted("No configuration loaded.");
@@ -1397,6 +1402,7 @@ static void DrawScene(Arinc661_Configuration_Editor_t* editor)
         status_bar_min.y     = (scene_window_max.y - style->WindowPadding.y - status_bar_height);
         status_bar_max       = (scene_window_max - style->WindowPadding);
         draw_list->AddRectFilled(status_bar_min, status_bar_max, ImGui::GetColorU32(ImGuiCol_FrameBg));
+        
         ImGui::SetCursorScreenPos(status_bar_min);
         ImGui::PushClipRect(status_bar_min, status_bar_max, TRUE);
         if (ImGui::Button(CONFIGURATION_RELOAD_XML_LABEL))
@@ -1618,6 +1624,7 @@ void Arinc661_Configuration_DrawEditor(Arinc661_Configuration_Editor_t* editor)
     float32_t            inspector_width;
 
     viewport = ImGui::GetMainViewport();
+
     ImGui::SetNextWindowPos(viewport->WorkPos);
     ImGui::SetNextWindowSize(viewport->WorkSize);
     ImGui::SetNextWindowViewport(viewport->ID);
