@@ -43,7 +43,9 @@ extern "C"
 #define INSPECTOR_PANE_COLUMN     (2)
 #define CONFIGURATION_PANE_COUNT  (3)
 #define INVALID_HIERARCHY_INDEX   (UINT32_MAX)
-#define CONFIGURATION_NO_IDENTIFIER (-1)
+
+#define CONFIGURATION_NO_IDENTIFIER  (-1)
+#define CONFIGURATION_MAX_IDENTIFIER (INT64_MAX)
 
 #define CONFIGURATION_WINDOW_FLAGS     (ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDocking)
 #define CONFIGURATION_PANE_TABLE_FLAGS (ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_NoPadOuterX | ImGuiTableFlags_NoPadInnerX)
@@ -147,9 +149,40 @@ static void BuildConfigurationFile(Arinc661_Configuration_Editor_t* editor);
  * \param[out] id            Next available identifier
  *
  * \retval     TRUE        if an identifier is available.
- * \retval     FALSE       if the identifier range is exhausted.
+ * \retval     FALSE       if the identifier range is exhausted or kind is invalid.
  */
 static bool_t NextIdentifier(const Arinc661_Configuration_Editor_t* editor, Arinc661_Configuration_SelectionKind_t kind, uint32_t screenIndex, int64_t* id);
+
+/*************************************************************************************************/
+/**
+ * \brief Finds the largest screen identifier used to choose the next one.
+ *
+ * \param[in]  editor   Editor state
+ *
+ * \return Largest screen identifier, or CONFIGURATION_NO_IDENTIFIER if there are no screens.
+ */
+static int64_t GetMaxScreenIdentifier(const Arinc661_Configuration_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Finds the largest identifier within a screen's layouts.
+ *
+ * \param[in]  editor        Editor state
+ * \param[in]  screenIndex   Owning screen index
+ *
+ * \return Largest layout identifier, or CONFIGURATION_NO_IDENTIFIER if the screen has no layouts.
+ */
+static int64_t GetMaxLayoutIdentifier(const Arinc661_Configuration_Editor_t* editor, uint32_t screenIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Finds the largest window identifier used to choose the next one.
+ *
+ * \param[in]  editor   Editor state
+ *
+ * \return Largest window identifier, or CONFIGURATION_NO_IDENTIFIER if there are no windows.
+ */
+static int64_t GetMaxWindowIdentifier(const Arinc661_Configuration_Editor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -412,10 +445,7 @@ static const char_t* EditorStatusToString(Arinc661_Configuration_Status_t status
         case ARINC661_CONFIGURATION_STATUS_LOADED:            return "Loaded arinc661_configuration.xml.";
         case ARINC661_CONFIGURATION_STATUS_INVALID_XML:       return "Invalid or unsupported display configuration XML.";
         default:
-        {
-            LOGASSERT(FALSE);
-            return "";
-        }
+          LOGFATAL("Invalid Arinc661_Configuration_Status_t!");
     }
 }
 
@@ -482,46 +512,107 @@ static void BuildConfigurationFile(Arinc661_Configuration_Editor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Layout identifiers are local to a screen. Screen and window identifiers are global.
+ *  Dispatches to the identifier search for the selected entity type.
  */
 static bool_t NextIdentifier(const Arinc661_Configuration_Editor_t* editor, Arinc661_Configuration_SelectionKind_t kind, uint32_t screenIndex, int64_t* id)
 {
-    int64_t  maximum_id;
-    uint32_t index;
-    bool_t   has_next_id;
+    int64_t maximum_id;
+    bool_t has_next_id;
 
-    maximum_id = CONFIGURATION_NO_IDENTIFIER;
-    if (ARINC661_CONFIGURATION_SELECTION_SCREEN == kind)
+    switch (kind)
     {
-        for (index = 0; index < editor->configuration.screenCount; ++index)
+        case ARINC661_CONFIGURATION_SELECTION_SCREEN:
         {
-            maximum_id = ImMax(maximum_id, editor->screens[index].id);
+            maximum_id = GetMaxScreenIdentifier(editor);
+            break;
+        }
+        case ARINC661_CONFIGURATION_SELECTION_LAYOUT:
+        {
+            maximum_id = GetMaxLayoutIdentifier(editor, screenIndex);
+            break;
+        }
+        case ARINC661_CONFIGURATION_SELECTION_WINDOW:
+        {
+            maximum_id = GetMaxWindowIdentifier(editor);
+            break;
+        }
+        case ARINC661_CONFIGURATION_SELECTION_NONE:
+        default:
+        {
+            return FALSE;
         }
     }
-    else if (ARINC661_CONFIGURATION_SELECTION_LAYOUT == kind)
-    {
-        for (index = 0; index < editor->configuration.layoutCount; ++index)
-        {
-            if (screenIndex == editor->layouts[index].screenIndex)
-            {
-                maximum_id = ImMax(maximum_id, editor->layouts[index].id);
-            }
-        }
-    }
-    else if (ARINC661_CONFIGURATION_SELECTION_WINDOW == kind)
-    {
-        for (index = 0; index < editor->configuration.windowCount; ++index)
-        {
-            maximum_id = ImMax(maximum_id, editor->windows[index].id);
-        }
-    }
-    has_next_id = (INT64_MAX != maximum_id);
+
+    has_next_id = (CONFIGURATION_MAX_IDENTIFIER != maximum_id);
     if (has_next_id)
     {
         (*id) = maximum_id + 1;
     }
 
     return has_next_id;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Screen identifiers are global to the configuration.
+ */
+static int64_t GetMaxScreenIdentifier(const Arinc661_Configuration_Editor_t* editor)
+{
+    int64_t  maximum_id;
+    uint32_t index;
+
+    maximum_id = CONFIGURATION_NO_IDENTIFIER;
+
+    for (index = 0; index < editor->configuration.screenCount; ++index)
+    {
+        maximum_id = ImMax(maximum_id, editor->screens[index].id);
+    }
+
+    return maximum_id;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Layout identifiers are local to their owning screen.
+ */
+static int64_t GetMaxLayoutIdentifier(const Arinc661_Configuration_Editor_t* editor, uint32_t screenIndex)
+{
+    int64_t  maximum_id;
+    uint32_t index;
+
+    maximum_id = CONFIGURATION_NO_IDENTIFIER;
+
+    for (index = 0; index < editor->configuration.layoutCount; ++index)
+    {
+        if (screenIndex == editor->layouts[index].screenIndex)
+        {
+            maximum_id = ImMax(maximum_id, editor->layouts[index].id);
+        }
+    }
+
+    return maximum_id;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Window identifiers are global to the configuration.
+ */
+static int64_t GetMaxWindowIdentifier(const Arinc661_Configuration_Editor_t* editor)
+{
+    int64_t  maximum_id;
+    uint32_t index;
+
+    maximum_id = CONFIGURATION_NO_IDENTIFIER;
+
+    for (index = 0; index < editor->configuration.windowCount; ++index)
+    {
+        maximum_id = ImMax(maximum_id, editor->windows[index].id);
+    }
+
+    return maximum_id;
 }
 
 /*************************************************************************************************/
