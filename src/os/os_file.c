@@ -72,3 +72,37 @@ int32_t OS_File_ReadFile(const char_t* filePath, byte_t* buffer, uint32_t buffer
 
     return result;
 }
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Returns a negative value for an open, write, or close error; otherwise returns the exact byte count.
+ */
+int32_t OS_File_WriteFile(const char_t* dstPath, const byte_t* buf, uint32_t numBytes)
+{
+    FILE*   file;
+    size_t  bytes_written;
+    int32_t result;
+
+    LOGASSERT(NULL != dstPath);
+    LOGASSERT(NULL != buf);
+    result = -1;
+    if (numBytes <= INT32_MAX)
+    {
+        file = fopen(dstPath, "wb");
+        if (NULL != file)
+        {
+            bytes_written = fwrite(buf, 1, numBytes, file);
+            if (numBytes == bytes_written)
+            {
+                result = (int32_t)bytes_written;
+            }
+            if (0 != fclose(file))
+            {
+                result = -1;
+            }
+        }
+    }
+
+    return result;
+}

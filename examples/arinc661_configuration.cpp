@@ -25,7 +25,6 @@ extern "C"
 
 #include <inttypes.h>
 #include <limits.h>
-#include <stdio.h>
 #include <string.h>
 
 /*=================================================================================================
@@ -403,9 +402,8 @@ static void UpdatePreviewMeasurements(Arinc661_Configuration_Editor_t* editor)
  */
 static void BuildConfigurationFile(Arinc661_Configuration_Editor_t* editor)
 {
-    FILE*    xml_file;
     uint64_t output_byte_count;
-    uint64_t bytes_written;
+    int32_t  bytes_written;
 
     output_byte_count = Utl_Arinc661_WriteConfiguration(&editor->configuration, editor->outputBuffer, sizeof(editor->outputBuffer), editor->workspace, sizeof(editor->workspace));
     if (0 == output_byte_count)
@@ -414,23 +412,14 @@ static void BuildConfigurationFile(Arinc661_Configuration_Editor_t* editor)
     }
     else
     {
-        xml_file = fopen(ARINC661_CONFIGURATION_XML_PATH, "wb");
-        if (NULL == xml_file)
+        bytes_written = OS_File_WriteFile(ARINC661_CONFIGURATION_XML_PATH, editor->outputBuffer, (uint32_t)output_byte_count);
+        if (output_byte_count == (uint64_t)bytes_written)
         {
-            (void)strcpy(editor->status, "Could not write arinc661_configuration.xml.");
+            (void)strcpy(editor->status, "Built arinc661_configuration.xml.");
         }
         else
         {
-            bytes_written = fwrite(editor->outputBuffer, 1, output_byte_count, xml_file);
-            (void)fclose(xml_file);
-            if (output_byte_count == bytes_written)
-            {
-                (void)strcpy(editor->status, "Built arinc661_configuration.xml.");
-            }
-            else
-            {
-                (void)strcpy(editor->status, "Could not finish writing arinc661_configuration.xml.");
-            }
+            (void)strcpy(editor->status, "Could not write arinc661_configuration.xml.");
         }
     }
 }

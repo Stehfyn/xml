@@ -50,4 +50,20 @@
  */
 int32_t OS_File_ReadFile(const char_t* filePath, byte_t* buffer, uint32_t bufferSize);
 
+/*************************************************************************************************/
+/**
+ * \brief Writes a buffer to a file, replacing its previous contents.
+ *
+ * \par Details:
+ *  The file is written in binary mode. An empty buffer creates or truncates the file.
+ *
+ * \param[in] dstPath    Non-NULL path to the file
+ * \param[in] buf        Non-NULL source buffer
+ * \param[in] numBytes   Number of bytes to write
+ *
+ * \retval    -1           The file could not be opened, fully written, or closed, or the byte count exceeds INT32_MAX.
+ * \retval    0..INT32_MAX Number of bytes written successfully.
+ */
+int32_t OS_File_WriteFile(const char_t* dstPath, const byte_t* buf, uint32_t numBytes);
+
 #endif /* XML_OS_FILE_H */
