@@ -10,6 +10,8 @@
 #include <limits.h>
 #include <stdio.h>
 
+void RunArinc661Tests(void);
+
 /*************************************************************************************************/
 /**
  * \par Details:
@@ -477,7 +479,7 @@ static void TestNumberScanning(void)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Runs the XML character, node initialization, writer, reader, and number scanning checks.
+ *  Runs the XML, number scanning, and ARINC 661 utility checks.
  */
 int main(void)
 {
@@ -489,5 +491,6 @@ int main(void)
     TestXmlDocumentWrite();
     TestXmlSchemaLocationWrite();
     TestXmlDocumentRoundTrip();
+    RunArinc661Tests();
     return 0;
 }

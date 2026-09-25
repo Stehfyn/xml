@@ -158,11 +158,14 @@ static void TestDefinition(void)
     assert(4 == definition.propertyCount);
 }
 
-int main(void)
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Runs the ARINC 661 checks as part of the utl test executable.
+ */
+void RunArinc661Tests(void)
 {
     TestConfiguration();
     TestIntegerBounds();
     TestDefinition();
-
-    return 0;
 }

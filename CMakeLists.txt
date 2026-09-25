@@ -35,9 +35,11 @@ endif()
 target_include_directories(os PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 add_library(utl STATIC
+    src/utl/utl_arinc661.c
     src/utl/utl_scan.c
     src/utl/utl_util.c
     src/utl/utl_xml.c
+    include/utl/utl_arinc661.h
     include/utl/utl_defines.h
     include/utl/utl_scan.h
     include/utl/utl_util.h
@@ -45,28 +47,18 @@ add_library(utl STATIC
 target_link_libraries(utl PUBLIC os)
 target_include_directories(utl PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
-add_library(utl_arinc661 STATIC
-    src/utl/utl_arinc661.c
-    include/utl/utl_arinc661.h)
-target_link_libraries(utl_arinc661 PUBLIC utl)
-target_include_directories(utl_arinc661 PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
-
-add_executable(utl_tests tests/utl_tests.c)
+add_executable(utl_tests
+    tests/utl_tests.c
+    tests/utl_arinc661_tests.c)
 target_link_libraries(utl_tests PRIVATE utl)
 
-add_executable(utl_arinc661_tests tests/utl_arinc661_tests.c)
-target_link_libraries(utl_arinc661_tests PRIVATE utl_arinc661)
-
-add_executable(arinc661_definition examples/arinc661_definition.c)
-target_link_libraries(arinc661_definition PRIVATE utl_arinc661)
-set_target_properties(arinc661_definition PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+add_executable(arinc661_example examples/arinc661_example.c)
+target_link_libraries(arinc661_example PRIVATE utl)
+set_target_properties(arinc661_example PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
 if(WIN32)
     set(IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui-docking")
-    add_executable(arinc661_configuration
-        examples/main.cpp
-        examples/arinc661_configuration.cpp
-        examples/arinc661_configuration.h
+    add_library(imgui STATIC
         "${IMGUI_DIR}/imgui.cpp"
         "${IMGUI_DIR}/imgui_demo.cpp"
         "${IMGUI_DIR}/imgui_draw.cpp"
@@ -75,19 +67,18 @@ if(WIN32)
         "${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp"
         "${IMGUI_DIR}/backends/imgui_impl_win32.cpp"
         "${IMGUI_DIR}/misc/cpp/imgui_stdlib.cpp")
-    target_compile_features(arinc661_configuration PRIVATE cxx_std_11)
-    target_include_directories(arinc661_configuration PRIVATE "${IMGUI_DIR}" "${IMGUI_DIR}/backends")
-    target_link_libraries(arinc661_configuration PRIVATE utl_arinc661 opengl32 gdi32 dwmapi)
+    target_compile_features(imgui PUBLIC cxx_std_11)
+    target_include_directories(imgui PUBLIC "${IMGUI_DIR}" "${IMGUI_DIR}/backends")
+
+    add_executable(arinc661_configuration
+        examples/main.cpp
+        examples/arinc661_configuration.cpp
+        examples/arinc661_configuration.h)
+    target_link_libraries(arinc661_configuration PRIVATE utl imgui opengl32 gdi32 dwmapi)
     set_target_properties(arinc661_configuration PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 endif()
-
-add_custom_target(arinc661_definition_xml
-    COMMAND $<TARGET_FILE:arinc661_definition>
-    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-    DEPENDS arinc661_definition)
 
 enable_testing()
 add_test(NAME utl_tests COMMAND utl_tests)
 set_tests_properties(utl_tests PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests")
-add_test(NAME utl_arinc661_tests COMMAND utl_arinc661_tests)
 set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT utl_tests)
