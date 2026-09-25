@@ -104,6 +104,16 @@ static const char_t* const c_unitNames[] =
 
 /*************************************************************************************************/
 /**
+ * \brief Returns the status bar text for an editor status.
+ *
+ * \param[in] status   Editor status
+ *
+ * \return Status text.
+ */
+static const char_t* EditorStatusToString(Arinc661_Configuration_Status_t status);
+
+/*************************************************************************************************/
+/**
  * \brief Recalculates the dimensions needed to fit drawable screens in the scene.
  *
  * \param[in,out] editor   Editor state
@@ -372,6 +382,41 @@ static void MeasurePaneWidths(const Arinc661_Configuration_Editor_t* editor, flo
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  Keeps all status bar messages in one place.
+ */
+static const char_t* EditorStatusToString(Arinc661_Configuration_Status_t status)
+{
+    switch (status)
+    {
+        case ARINC661_CONFIGURATION_STATUS_NONE:              return "";
+        case ARINC661_CONFIGURATION_STATUS_BUILD_FAILED:      return "Could not build the display configuration XML.";
+        case ARINC661_CONFIGURATION_STATUS_BUILT:             return "Built arinc661_configuration.xml.";
+        case ARINC661_CONFIGURATION_STATUS_WRITE_FAILED:      return "Could not write arinc661_configuration.xml.";
+        case ARINC661_CONFIGURATION_STATUS_SCREEN_ADDED:      return "Added screen. Build XML to save.";
+        case ARINC661_CONFIGURATION_STATUS_SCREEN_ADD_FAILED: return "Could not add another screen.";
+        case ARINC661_CONFIGURATION_STATUS_LAYOUT_ADDED:      return "Added layout. Build XML to save.";
+        case ARINC661_CONFIGURATION_STATUS_LAYOUT_ADD_FAILED: return "Could not add another layout.";
+        case ARINC661_CONFIGURATION_STATUS_WINDOW_ADDED:      return "Added window. Build XML to save.";
+        case ARINC661_CONFIGURATION_STATUS_WINDOW_ADD_FAILED: return "Could not add another window.";
+        case ARINC661_CONFIGURATION_STATUS_SCREEN_REMOVED:    return "Removed screen. Build XML to save.";
+        case ARINC661_CONFIGURATION_STATUS_LAYOUT_REMOVED:    return "Removed layout. Build XML to save.";
+        case ARINC661_CONFIGURATION_STATUS_WINDOW_REMOVED:    return "Removed window. Build XML to save.";
+        case ARINC661_CONFIGURATION_STATUS_READ_FAILED:       return "Could not read arinc661_configuration.xml.";
+        case ARINC661_CONFIGURATION_STATUS_INPUT_TOO_LARGE:   return "The XML file exceeds the input buffer.";
+        case ARINC661_CONFIGURATION_STATUS_INPUT_EMPTY:       return "The XML file is empty.";
+        case ARINC661_CONFIGURATION_STATUS_LOADED:            return "Loaded arinc661_configuration.xml.";
+        case ARINC661_CONFIGURATION_STATUS_INVALID_XML:       return "Invalid or unsupported display configuration XML.";
+        default:
+        {
+            LOGASSERT(FALSE);
+            return "";
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Sums valid screen widths and finds the tallest valid screen in the current configuration.
  */
 static void UpdatePreviewMeasurements(Arinc661_Configuration_Editor_t* editor)
@@ -413,18 +458,18 @@ static void BuildConfigurationFile(Arinc661_Configuration_Editor_t* editor)
     output_byte_count = Utl_Arinc661_WriteConfiguration(&editor->configuration, editor->outputBuffer, sizeof(editor->outputBuffer), editor->workspace, sizeof(editor->workspace));
     if (0 == output_byte_count)
     {
-        (void)strcpy(editor->status, "Could not build the display configuration XML.");
+        editor->status = ARINC661_CONFIGURATION_STATUS_BUILD_FAILED;
     }
     else
     {
         bytes_written = OS_File_WriteFile(ARINC661_CONFIGURATION_XML_PATH, editor->outputBuffer, (uint32_t)output_byte_count);
         if (output_byte_count == (uint64_t)bytes_written)
         {
-            (void)strcpy(editor->status, "Built arinc661_configuration.xml.");
+            editor->status = ARINC661_CONFIGURATION_STATUS_BUILT;
         }
         else
         {
-            (void)strcpy(editor->status, "Could not write arinc661_configuration.xml.");
+            editor->status = ARINC661_CONFIGURATION_STATUS_WRITE_FAILED;
         }
     }
 }
@@ -503,11 +548,11 @@ static void AddScreen(Arinc661_Configuration_Editor_t* editor)
         editor->selectedIndex             = editor->configuration.screenCount;
         editor->configuration.screenCount += 1;
         UpdatePreviewMeasurements(editor);
-        (void)strcpy(editor->status, "Added screen. Build XML to save.");
+        editor->status = ARINC661_CONFIGURATION_STATUS_SCREEN_ADDED;
     }
     else
     {
-        (void)strcpy(editor->status, "Could not add another screen.");
+        editor->status = ARINC661_CONFIGURATION_STATUS_SCREEN_ADD_FAILED;
     }
 }
 
@@ -534,11 +579,11 @@ static void AddLayout(Arinc661_Configuration_Editor_t* editor, uint32_t screenIn
         editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_LAYOUT;
         editor->selectedIndex = editor->configuration.layoutCount;
         editor->configuration.layoutCount += 1;
-        (void)strcpy(editor->status, "Added layout. Build XML to save.");
+        editor->status = ARINC661_CONFIGURATION_STATUS_LAYOUT_ADDED;
     }
     else
     {
-        (void)strcpy(editor->status, "Could not add another layout.");
+        editor->status = ARINC661_CONFIGURATION_STATUS_LAYOUT_ADD_FAILED;
     }
 }
 
@@ -576,11 +621,11 @@ static void AddWindow(Arinc661_Configuration_Editor_t* editor, uint32_t layoutIn
         editor->selectedKind           = ARINC661_CONFIGURATION_SELECTION_WINDOW;
         editor->selectedIndex          = editor->configuration.windowCount;
         editor->configuration.windowCount += 1;
-        (void)strcpy(editor->status, "Added window. Build XML to save.");
+        editor->status = ARINC661_CONFIGURATION_STATUS_WINDOW_ADDED;
     }
     else
     {
-        (void)strcpy(editor->status, "Could not add another window.");
+        editor->status = ARINC661_CONFIGURATION_STATUS_WINDOW_ADD_FAILED;
     }
 }
 
@@ -860,7 +905,7 @@ static void DrawHierarchy(Arinc661_Configuration_Editor_t* editor)
         RemoveScreen(editor, remove_screen_index);
         editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_NONE;
         editor->selectedIndex = 0;
-        (void)strcpy(editor->status, "Removed screen. Build XML to save.");
+        editor->status = ARINC661_CONFIGURATION_STATUS_SCREEN_REMOVED;
     }
     else if (INVALID_HIERARCHY_INDEX != remove_layout_index)
     {
@@ -868,7 +913,7 @@ static void DrawHierarchy(Arinc661_Configuration_Editor_t* editor)
         RemoveLayout(editor, remove_layout_index);
         editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_SCREEN;
         editor->selectedIndex = parent_index;
-        (void)strcpy(editor->status, "Removed layout. Build XML to save.");
+        editor->status = ARINC661_CONFIGURATION_STATUS_LAYOUT_REMOVED;
     }
     else if (INVALID_HIERARCHY_INDEX != remove_window_index)
     {
@@ -876,7 +921,7 @@ static void DrawHierarchy(Arinc661_Configuration_Editor_t* editor)
         RemoveWindow(editor, remove_window_index);
         editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_LAYOUT;
         editor->selectedIndex = parent_index;
-        (void)strcpy(editor->status, "Removed window. Build XML to save.");
+        editor->status = ARINC661_CONFIGURATION_STATUS_WINDOW_REMOVED;
     }
     else if (INVALID_HIERARCHY_INDEX != add_layout_screen_index)
     {
@@ -1425,7 +1470,7 @@ static void DrawScene(Arinc661_Configuration_Editor_t* editor)
         }
         ImGui::SameLine();
         ImGui::AlignTextToFramePadding();
-        ImGui::TextUnformatted(editor->status);
+        ImGui::TextUnformatted(EditorStatusToString(editor->status));
         ImGui::PopClipRect();
     }
     ImGui::EndChild();
@@ -1584,17 +1629,17 @@ void Arinc661_Configuration_Reload(Arinc661_Configuration_Editor_t* editor)
     document_byte_count = OS_File_ReadFile(ARINC661_CONFIGURATION_XML_PATH, editor->inputBuffer, sizeof(editor->inputBuffer));
     if (0 > document_byte_count)
     {
-        (void)strcpy(editor->status, "Could not read arinc661_configuration.xml.");
+        editor->status = ARINC661_CONFIGURATION_STATUS_READ_FAILED;
     }
     else
     {
         if (ARINC661_CONFIGURATION_MAX_DOCUMENT_BYTES < document_byte_count)
         {
-            (void)strcpy(editor->status, "The XML file exceeds the input buffer.");
+            editor->status = ARINC661_CONFIGURATION_STATUS_INPUT_TOO_LARGE;
         }
         else if (0 == document_byte_count)
         {
-            (void)strcpy(editor->status, "The XML file is empty.");
+            editor->status = ARINC661_CONFIGURATION_STATUS_INPUT_EMPTY;
         }
         else
         {
@@ -1607,11 +1652,11 @@ void Arinc661_Configuration_Reload(Arinc661_Configuration_Editor_t* editor)
                     editor->selectedKind = ARINC661_CONFIGURATION_SELECTION_SCREEN;
                 }
                 UpdatePreviewMeasurements(editor);
-                (void)strcpy(editor->status, "Loaded arinc661_configuration.xml.");
+                editor->status = ARINC661_CONFIGURATION_STATUS_LOADED;
             }
             else
             {
-                (void)strcpy(editor->status, "Invalid or unsupported display configuration XML.");
+                editor->status = ARINC661_CONFIGURATION_STATUS_INVALID_XML;
             }
         }
     }

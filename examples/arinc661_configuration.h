@@ -26,7 +26,6 @@ extern "C"
 #define ARINC661_CONFIGURATION_MAX_WINDOWS           (4096)
 #define ARINC661_CONFIGURATION_MAX_USER_APPLICATIONS (1024)
 #define ARINC661_CONFIGURATION_MAX_EXTERNAL_SOURCES  (1024)
-#define ARINC661_CONFIGURATION_STATUS_BYTES          (256)
 
 /*=================================================================================================
 ** 3.2 Types
@@ -43,6 +42,32 @@ typedef enum Arinc661_Configuration_SelectionKind_e
     ARINC661_CONFIGURATION_SELECTION_LAYOUT,
     ARINC661_CONFIGURATION_SELECTION_WINDOW
 } Arinc661_Configuration_SelectionKind_t;
+
+/*************************************************************************************************/
+/**
+ * \brief Message shown in the editor status bar.
+ */
+typedef enum Arinc661_Configuration_Status_e
+{
+    ARINC661_CONFIGURATION_STATUS_NONE,
+    ARINC661_CONFIGURATION_STATUS_BUILD_FAILED,
+    ARINC661_CONFIGURATION_STATUS_BUILT,
+    ARINC661_CONFIGURATION_STATUS_WRITE_FAILED,
+    ARINC661_CONFIGURATION_STATUS_SCREEN_ADDED,
+    ARINC661_CONFIGURATION_STATUS_SCREEN_ADD_FAILED,
+    ARINC661_CONFIGURATION_STATUS_LAYOUT_ADDED,
+    ARINC661_CONFIGURATION_STATUS_LAYOUT_ADD_FAILED,
+    ARINC661_CONFIGURATION_STATUS_WINDOW_ADDED,
+    ARINC661_CONFIGURATION_STATUS_WINDOW_ADD_FAILED,
+    ARINC661_CONFIGURATION_STATUS_SCREEN_REMOVED,
+    ARINC661_CONFIGURATION_STATUS_LAYOUT_REMOVED,
+    ARINC661_CONFIGURATION_STATUS_WINDOW_REMOVED,
+    ARINC661_CONFIGURATION_STATUS_READ_FAILED,
+    ARINC661_CONFIGURATION_STATUS_INPUT_TOO_LARGE,
+    ARINC661_CONFIGURATION_STATUS_INPUT_EMPTY,
+    ARINC661_CONFIGURATION_STATUS_LOADED,
+    ARINC661_CONFIGURATION_STATUS_INVALID_XML
+} Arinc661_Configuration_Status_t;
 
 /*************************************************************************************************/
 /**
@@ -64,7 +89,7 @@ typedef struct Arinc661_Configuration_Editor_s
     float32_t                              totalScreenWidth;                                                 ///< Sum of drawable screen widths.
     float32_t                              maximumScreenHeight;                                              ///< Largest drawable screen height.
     uint32_t                               drawableScreenCount;                                              ///< Screens with positive pixel size.
-    char_t                                 status[ARINC661_CONFIGURATION_STATUS_BYTES];                      ///< Current message.
+    Arinc661_Configuration_Status_t        status;                                                           ///< Current status message.
     bool_t                                 isLoaded;                                                         ///< TRUE after a successful read.
 } Arinc661_Configuration_Editor_t;
 
