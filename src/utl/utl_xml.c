@@ -1525,7 +1525,7 @@ bool_t Utl_Xml_IsAttributeValueChar(uint32_t codePoint)
     is_ampersand             = (UTL_XML_CHAR_AMP == codePoint);
     is_double_quote          = (UTL_XML_QUOTE_QUOT == codePoint);
     is_reserved              = is_less_than || is_ampersand || is_double_quote;
-    is_attribute_value_char = is_xml_char && (FALSE == is_reserved);
+    is_attribute_value_char  = is_xml_char && (FALSE == is_reserved);
 
     return is_attribute_value_char;
 }
@@ -1562,6 +1562,7 @@ bool_t Utl_Xml_IsAttributeValue(const byte_t* utf8Text, uint32_t byteCount)
                 is_space                 = (UTL_XML_CHAR_SPACE == value_byte);
                 is_normalized_whitespace = is_whitespace && (FALSE == is_space);
                 is_attribute_value       = is_attribute_value_char && (FALSE == is_normalized_whitespace);
+                
                 if (FALSE == is_attribute_value)
                 {
                     break;
@@ -2001,7 +2002,9 @@ uint64_t Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToRead
                         is_first_markup   = (bufferToReadDocumentFrom == document_cursor);
                         is_top_level      = (NULL == parent);
                         is_empty_document = (NULL == document->firstNode);
-                        is_valid          = is_first_markup && is_top_level && is_empty_document;
+
+                        is_valid = is_first_markup && is_top_level && is_empty_document;
+                        
                         if (is_valid)
                         {
                             whitespace_start = offset;
