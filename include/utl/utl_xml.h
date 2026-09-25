@@ -51,6 +51,7 @@
 #define UTL_XML_DECL_CLOSE   ("?>")      ///< XMLDecl closing delimiter.
 #define UTL_XML_VERSION_NAME ("version") ///< VersionInfo keyword.
 #define UTL_XML_VERSION_1_0  ("1.0")     ///< XML 1.0 version value.
+#define UTL_XML_VERSION_1_0_BYTE_COUNT (sizeof(UTL_XML_VERSION_1_0) - 1)
 
 /* XML 1.0 section 3.1, productions [40] STag, [42] ETag, [44] EmptyElemTag. */
 #define UTL_XML_STAG_OPEN            ("<")  ///< STag and EmptyElemTag opening delimiter.

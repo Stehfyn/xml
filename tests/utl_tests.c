@@ -422,6 +422,7 @@ static void TestXmlDocumentFailures(void)
     byte_t              output[sizeof("<root/>\n")];
     byte_t              bad_end_tag[] = "<root><child/></wrong>";
     byte_t              too_many_nodes[] = "<root><child/></root>";
+    byte_t              trailing_text[] = "<root/>oops";
     uint64_t            byte_count;
 
     Utl_Xml_InitializeDocument(&document);
@@ -447,6 +448,10 @@ static void TestXmlDocumentFailures(void)
 
     Utl_Xml_InitializeDocument(&document);
     byte_count = Utl_Xml_ReadDocument(&document, too_many_nodes, (uint64_t)(sizeof(too_many_nodes) - 1), nodes, 1, attributes, (uint32_t)COUNT_OF(attributes));
+    assert(0 == byte_count);
+
+    Utl_Xml_InitializeDocument(&document);
+    byte_count = Utl_Xml_ReadDocument(&document, trailing_text, (uint64_t)(sizeof(trailing_text) - 1), nodes, (uint32_t)COUNT_OF(nodes), attributes, (uint32_t)COUNT_OF(attributes));
     assert(0 == byte_count);
 }
 

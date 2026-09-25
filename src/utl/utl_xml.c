@@ -807,7 +807,11 @@ static bool_t ReadElementStart(const byte_t* markup, uint64_t markupByteCount, u
     for (attribute_index = 0; attribute_index < UTL_XML_NODE_MAX_ATTRIBUTES; ++attribute_index)
     {
         whitespace_start = (*position);
-        ReadWhitespace(markup, markupByteCount, position, FALSE);
+        is_valid = ReadWhitespace(markup, markupByteCount, position, FALSE);
+        if (FALSE == is_valid)
+        {
+            break;
+        }
         has_whitespace = (whitespace_start < (*position));
 
         if (FALSE == has_whitespace)
@@ -1663,14 +1667,15 @@ uint64_t Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToRead
     Utl_Xml_Node_t*       node;
     Utl_Xml_Node_t*       parent;
     const Utl_Xml_Node_t* root_node;
-    byte_t*               markup;
+    byte_t*               document_cursor;
     byte_t*               next_markup;
     const byte_t*         name;
     const byte_t*         version;
     uint64_t              bytes_read;
-    uint64_t              markup_byte_count;
-    uint64_t              position;
+    uint64_t              document_byte_count;
+    uint64_t              offset;
     uint64_t              whitespace_start;
+    size_t                remaining_byte_count;
     uint32_t              name_byte_count;
     uint32_t              version_byte_count;
     uint32_t              node_count;
@@ -1692,41 +1697,45 @@ uint64_t Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToRead
 
     bufferToReadDocumentFrom[sizeOfDocumentBuffer] = '\0';
     bytes_read       = 0;
-    position         = 0;
+    offset           = 0;
     node_count       = 0;
     attribute_count  = 0;
     parent           = NULL;
 
-    ReadWhitespace(bufferToReadDocumentFrom, sizeOfDocumentBuffer, &position, FALSE);
-
-    markup = bufferToReadDocumentFrom + position;
-    is_valid = (position < sizeOfDocumentBuffer);
+    is_valid = ReadWhitespace(bufferToReadDocumentFrom, sizeOfDocumentBuffer, &offset, FALSE);
 
     if (is_valid)
     {
+        is_valid = (offset < sizeOfDocumentBuffer);
+    }
+
+    if (is_valid)
+    {
+        document_cursor = bufferToReadDocumentFrom + offset;
         for (token_index = 0; token_index < UTL_XML_DOCUMENT_MAX_NODES; ++token_index)
         {
-            is_valid = (UTL_XML_CHAR_LT == markup[0]);
+            is_valid = (UTL_XML_CHAR_LT == document_cursor[0]);
             if (FALSE == is_valid)
             {
                 break;
             }
 
-            next_markup = (byte_t*)Utl_StrStr((const char_t*)(markup + 1), UTL_XML_STAG_OPEN, FALSE);
+            next_markup = (byte_t*)Utl_StrStr((const char_t*)(document_cursor + 1), UTL_XML_STAG_OPEN, FALSE);
 
             if (NULL != next_markup)
             {
                 next_markup[0] = '\0';
             }
 
-            markup_byte_count = (uint64_t)strlen((const char_t*)markup);
-            position          = 0;
+            remaining_byte_count = (size_t)(bufferToReadDocumentFrom + sizeOfDocumentBuffer - document_cursor);
+            document_byte_count  = (uint64_t)strnlen((const char_t*)document_cursor, remaining_byte_count);
+            offset            = 0;
             is_declaration    = FALSE;
-            is_end_tag = ReadToken(markup, markup_byte_count, &position, UTL_XML_ETAG_OPEN);
+            is_end_tag = ReadToken(document_cursor, document_byte_count, &offset, UTL_XML_ETAG_OPEN);
 
             if (FALSE == is_end_tag)
             {
-                is_declaration = ReadToken(markup, markup_byte_count, &position, UTL_XML_DECL_OPEN);
+                is_declaration = ReadToken(document_cursor, document_byte_count, &offset, UTL_XML_DECL_OPEN);
             }
 
             if (is_end_tag)
@@ -1734,16 +1743,23 @@ uint64_t Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToRead
                 is_valid = (NULL != parent);
                 if (is_valid)
                 {
-                    is_valid = ReadName(markup, markup_byte_count, &position, &name, &name_byte_count);
+                    is_valid = ReadName(document_cursor, document_byte_count, &offset, &name, &name_byte_count);
                 }
                 if (is_valid)
                 {
-                    is_valid = (parent->nameByteCount == name_byte_count) && (0 == memcmp(parent->name, name, name_byte_count));
+                    is_valid = (parent->nameByteCount == name_byte_count);
                 }
                 if (is_valid)
                 {
-                    ReadWhitespace(markup, markup_byte_count, &position, FALSE);
-                    is_valid = ReadToken(markup, markup_byte_count, &position, UTL_XML_TAG_CLOSE);
+                    is_valid = (0 == memcmp(parent->name, name, name_byte_count));
+                }
+                if (is_valid)
+                {
+                    is_valid = ReadWhitespace(document_cursor, document_byte_count, &offset, FALSE);
+                }
+                if (is_valid)
+                {
+                    is_valid = ReadToken(document_cursor, document_byte_count, &offset, UTL_XML_TAG_CLOSE);
                 }
                 if (is_valid)
                 {
@@ -1760,31 +1776,38 @@ uint64_t Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToRead
                     node = &nodes[node_count];
                     if (is_declaration)
                     {
-                        is_first_markup   = (bufferToReadDocumentFrom == markup);
+                        is_first_markup   = (bufferToReadDocumentFrom == document_cursor);
                         is_top_level      = (NULL == parent);
                         is_empty_document = (NULL == document->firstNode);
                         is_valid          = is_first_markup && is_top_level && is_empty_document;
                         if (is_valid)
                         {
-                            whitespace_start = position;
-                            ReadWhitespace(markup, markup_byte_count, &position, FALSE);
-                            is_valid = (whitespace_start < position);
+                            whitespace_start = offset;
+                            is_valid = ReadWhitespace(document_cursor, document_byte_count, &offset, FALSE);
                         }
                         if (is_valid)
                         {
-                            is_valid = ReadToken(markup, markup_byte_count, &position, UTL_XML_VERSION_NAME);
+                            is_valid = (whitespace_start < offset);
                         }
                         if (is_valid)
                         {
-                            is_valid = ReadAttributeValue(markup, markup_byte_count, &position, &version, &version_byte_count);
+                            is_valid = ReadToken(document_cursor, document_byte_count, &offset, UTL_XML_VERSION_NAME);
                         }
                         if (is_valid)
                         {
-                            is_valid = ((sizeof(UTL_XML_VERSION_1_0) - 1) == version_byte_count) && (0 == memcmp(version, UTL_XML_VERSION_1_0, version_byte_count));
+                            is_valid = ReadAttributeValue(document_cursor, document_byte_count, &offset, &version, &version_byte_count);
                         }
                         if (is_valid)
                         {
-                            is_valid = ReadToken(markup, markup_byte_count, &position, UTL_XML_DECL_CLOSE);
+                            is_valid = (UTL_XML_VERSION_1_0_BYTE_COUNT == version_byte_count);
+                        }
+                        if (is_valid)
+                        {
+                            is_valid = (0 == memcmp(version, UTL_XML_VERSION_1_0, version_byte_count));
+                        }
+                        if (is_valid)
+                        {
+                            is_valid = ReadToken(document_cursor, document_byte_count, &offset, UTL_XML_DECL_CLOSE);
                         }
                         if (is_valid)
                         {
@@ -1793,7 +1816,7 @@ uint64_t Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToRead
                     }
                     else
                     {
-                        is_valid = ReadElementStart(markup, markup_byte_count, &position, node, attributes, attributeCapacity, &attribute_count, &is_start_tag);
+                        is_valid = ReadElementStart(document_cursor, document_byte_count, &offset, node, attributes, attributeCapacity, &attribute_count, &is_start_tag);
                         if (is_valid && (NULL == parent))
                         {
                             is_valid = (NULL == FindNode(document, UTL_XML_NODE_ELEMENT));
@@ -1823,7 +1846,7 @@ uint64_t Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToRead
 
             if (is_valid)
             {
-                is_valid = ReadWhitespace(markup, markup_byte_count, &position, TRUE);
+                is_valid = ReadWhitespace(document_cursor, document_byte_count, &offset, TRUE);
             }
 
             if (NULL != next_markup)
@@ -1836,7 +1859,7 @@ uint64_t Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToRead
                 break;
             }
 
-            markup += markup_byte_count;
+            document_cursor += document_byte_count;
             if (NULL == next_markup)
             {
                 break;
@@ -1846,7 +1869,7 @@ uint64_t Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToRead
 
     if (is_valid)
     {
-        is_valid = ((bufferToReadDocumentFrom + sizeOfDocumentBuffer) == markup) && (NULL == parent);
+        is_valid = ((bufferToReadDocumentFrom + sizeOfDocumentBuffer) == document_cursor) && (NULL == parent);
     }
 
     if (is_valid)
@@ -1857,7 +1880,7 @@ uint64_t Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToRead
 
     if (is_valid)
     {
-        bytes_read = (uint64_t)(markup - bufferToReadDocumentFrom);
+        bytes_read = (uint64_t)(document_cursor - bufferToReadDocumentFrom);
     }
 
     return bytes_read;
