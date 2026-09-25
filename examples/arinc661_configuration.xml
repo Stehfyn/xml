@@ -9,11 +9,6 @@
                 <pixelArea x="0" y="0" width="2560" height="1024"/>
                 <scalingFactor xScale="20" yScale="20" baseUnit="screen" perUnit="pixel"/>
             </window>
-            <window id="3" name="window3">
-                <description/>
-                <pixelArea x="500" y="600" width="100" height="400"/>
-                <scalingFactor xScale="20" yScale="20" baseUnit="screen" perUnit="pixel"/>
-            </window>
         </layout>
     </screen>
     <screen id="1">

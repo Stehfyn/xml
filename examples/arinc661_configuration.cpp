@@ -43,6 +43,7 @@ extern "C"
 #define SCENE_PANE_COLUMN         (1)
 #define INSPECTOR_PANE_COLUMN     (2)
 #define CONFIGURATION_PANE_COUNT  (3)
+#define INVALID_HIERARCHY_INDEX   (UINT32_MAX)
 
 #define CONFIGURATION_ADD_SCREEN_LABEL     ("+ Add Screen")
 #define CONFIGURATION_ADD_LAYOUT_LABEL     ("+ Add Layout")
@@ -55,6 +56,10 @@ extern "C"
 #define CONFIGURATION_BASE_UNIT_LABEL      ("Base Unit")
 
 #define CONFIGURATION_HIERARCHY_LABEL_BYTES (UTL_ARINC661_MAX_NAME_BYTES + 64)
+
+#define HIERARCHY_BRANCH_FLAGS (ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_AllowOverlap)
+#define HIERARCHY_WINDOW_FLAGS (ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_AllowOverlap)
+#define HIERARCHY_ADD_FLAGS    (ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen)
 
 #define SCENE_CANVAS_COLOR        (IM_COL32(22, 27, 34, 255))
 #define SCENE_SCREEN_COLOR        (IM_COL32(42, 50, 64, 255))
@@ -349,7 +354,7 @@ static void ClampPaneResize(float32_t minimumHierarchyWidth);
  * \brief Measures the minimum hierarchy width and default inspector width.
  *
  * \param[in]  editor          Editor state containing hierarchy row labels
- * \param[out] hierarchyWidth  Minimum width needed for the hierarchy and file actions
+ * \param[out] hierarchyWidth  Minimum width needed for the hierarchy and file label
  * \param[out] inspectorWidth  Width needed for the property fields
  *
  * \retval None
@@ -750,15 +755,15 @@ static void DrawHierarchy(ConfigurationEditor_t* editor)
     bool_t                       is_screen_open;
     bool_t                       is_layout_open;
 
-    add_layout_screen_index = UINT32_MAX;
-    add_window_layout_index = UINT32_MAX;
-    remove_screen_index     = UINT32_MAX;
-    remove_layout_index     = UINT32_MAX;
-    remove_window_index     = UINT32_MAX;
+    add_layout_screen_index = INVALID_HIERARCHY_INDEX;
+    add_window_layout_index = INVALID_HIERARCHY_INDEX;
+    remove_screen_index     = INVALID_HIERARCHY_INDEX;
+    remove_layout_index     = INVALID_HIERARCHY_INDEX;
+    remove_window_index     = INVALID_HIERARCHY_INDEX;
     for (screen_index = 0; screen_index < editor->configuration.screenCount; ++screen_index)
     {
         screen = &editor->screens[screen_index];
-        flags  = (ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_AllowOverlap);
+        flags  = HIERARCHY_BRANCH_FLAGS;
         if ((CONFIGURATION_SELECTION_SCREEN == editor->selectedKind) && (screen_index == editor->selectedIndex))
         {
             flags |= ImGuiTreeNodeFlags_Selected;
@@ -783,7 +788,7 @@ static void DrawHierarchy(ConfigurationEditor_t* editor)
                 layout = &editor->layouts[layout_index];
                 if (screen_index == layout->screenIndex)
                 {
-                    flags = (ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_AllowOverlap);
+                    flags = HIERARCHY_BRANCH_FLAGS;
                     if ((CONFIGURATION_SELECTION_LAYOUT == editor->selectedKind) && (layout_index == editor->selectedIndex))
                     {
                         flags |= ImGuiTreeNodeFlags_Selected;
@@ -808,7 +813,7 @@ static void DrawHierarchy(ConfigurationEditor_t* editor)
                             window = &editor->windows[window_index];
                             if (layout_index == window->layoutIndex)
                             {
-                                flags = (ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_AllowOverlap);
+                                flags = HIERARCHY_WINDOW_FLAGS;
                                 if ((CONFIGURATION_SELECTION_WINDOW == editor->selectedKind) && (window_index == editor->selectedIndex))
                                 {
                                     flags |= ImGuiTreeNodeFlags_Selected;
@@ -828,8 +833,7 @@ static void DrawHierarchy(ConfigurationEditor_t* editor)
                                 ImGui::PopID();
                             }
                         }
-                        flags = (ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
-                        (void)ImGui::TreeNodeEx(CONFIGURATION_ADD_WINDOW_LABEL, flags);
+                        (void)ImGui::TreeNodeEx(CONFIGURATION_ADD_WINDOW_LABEL, HIERARCHY_ADD_FLAGS);
                         if (ImGui::IsItemClicked())
                         {
                             add_window_layout_index = layout_index;
@@ -838,8 +842,7 @@ static void DrawHierarchy(ConfigurationEditor_t* editor)
                     }
                 }
             }
-            flags = (ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
-            (void)ImGui::TreeNodeEx(CONFIGURATION_ADD_LAYOUT_LABEL, flags);
+            (void)ImGui::TreeNodeEx(CONFIGURATION_ADD_LAYOUT_LABEL, HIERARCHY_ADD_FLAGS);
             if (ImGui::IsItemClicked())
             {
                 add_layout_screen_index = screen_index;
@@ -847,20 +850,19 @@ static void DrawHierarchy(ConfigurationEditor_t* editor)
             ImGui::TreePop();
         }
     }
-    flags = (ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
-    (void)ImGui::TreeNodeEx(CONFIGURATION_ADD_SCREEN_LABEL, flags);
+    (void)ImGui::TreeNodeEx(CONFIGURATION_ADD_SCREEN_LABEL, HIERARCHY_ADD_FLAGS);
     if (ImGui::IsItemClicked())
     {
         AddScreen(editor);
     }
-    if (UINT32_MAX != remove_screen_index)
+    if (INVALID_HIERARCHY_INDEX != remove_screen_index)
     {
         RemoveScreen(editor, remove_screen_index);
         editor->selectedKind  = CONFIGURATION_SELECTION_NONE;
         editor->selectedIndex = 0;
         (void)strcpy(editor->status, "Removed screen. Build XML to save.");
     }
-    else if (UINT32_MAX != remove_layout_index)
+    else if (INVALID_HIERARCHY_INDEX != remove_layout_index)
     {
         parent_index = editor->layouts[remove_layout_index].screenIndex;
         RemoveLayout(editor, remove_layout_index);
@@ -868,7 +870,7 @@ static void DrawHierarchy(ConfigurationEditor_t* editor)
         editor->selectedIndex = parent_index;
         (void)strcpy(editor->status, "Removed layout. Build XML to save.");
     }
-    else if (UINT32_MAX != remove_window_index)
+    else if (INVALID_HIERARCHY_INDEX != remove_window_index)
     {
         parent_index = editor->windows[remove_window_index].layoutIndex;
         RemoveWindow(editor, remove_window_index);
@@ -876,11 +878,11 @@ static void DrawHierarchy(ConfigurationEditor_t* editor)
         editor->selectedIndex = parent_index;
         (void)strcpy(editor->status, "Removed window. Build XML to save.");
     }
-    else if (UINT32_MAX != add_layout_screen_index)
+    else if (INVALID_HIERARCHY_INDEX != add_layout_screen_index)
     {
         AddLayout(editor, add_layout_screen_index);
     }
-    else if (UINT32_MAX != add_window_layout_index)
+    else if (INVALID_HIERARCHY_INDEX != add_window_layout_index)
     {
         AddWindow(editor, add_window_layout_index);
     }
@@ -1120,7 +1122,7 @@ static void DrawWindowInspector(ConfigurationEditor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  File actions and the hierarchy share the left child pane.
+ *  The file label and hierarchy share the left child pane.
  */
 static void DrawHierarchyPane(ConfigurationEditor_t* editor)
 {
@@ -1129,19 +1131,6 @@ static void DrawHierarchyPane(ConfigurationEditor_t* editor)
         ImGui::TextUnformatted(HIERARCHY_PANE_NAME);
         ImGui::Separator();
         ImGui::TextUnformatted(CONFIGURATION_FILE_LABEL);
-        if (ImGui::Button(CONFIGURATION_RELOAD_XML_LABEL))
-        {
-            ReloadConfiguration(editor);
-        }
-        if (editor->isLoaded)
-        {
-            ImGui::SameLine();
-            if (ImGui::Button(CONFIGURATION_BUILD_XML_LABEL))
-            {
-                BuildConfigurationFile(editor);
-            }
-        }
-        ImGui::TextWrapped("%s", editor->status);
         if (editor->isLoaded)
         {
             DrawHierarchy(editor);
@@ -1180,10 +1169,6 @@ static void DrawInspector(ConfigurationEditor_t* editor)
                 ImGui::TextUnformatted("Select a screen, layout, or window.");
             }
         }
-        else
-        {
-            ImGui::TextUnformatted(editor->status);
-        }
     }
     ImGui::EndChild();
 }
@@ -1191,7 +1176,7 @@ static void DrawInspector(ConfigurationEditor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Fits the combined screen widths and tallest screen inside the available canvas, selects clicked geometry, and draws the selection overlay.
+ *  Fits the combined screen widths and tallest screen inside the available canvas, selects clicked geometry, and draws the selection overlay and status bar.
  */
 static void DrawScene(ConfigurationEditor_t* editor)
 {
@@ -1200,6 +1185,10 @@ static void DrawScene(ConfigurationEditor_t* editor)
     const Utl_Arinc661_Layout_t* layout;
     const Utl_Arinc661_Window_t* window;
     ImDrawList*                  draw_list;
+    ImVec2                       scene_window_min;
+    ImVec2                       scene_window_max;
+    ImVec2                       status_bar_min;
+    ImVec2                       status_bar_max;
     ImVec2                       canvas_min;
     ImVec2                       canvas_size;
     ImVec2                       canvas_max;
@@ -1224,6 +1213,7 @@ static void DrawScene(ConfigurationEditor_t* editor)
     float32_t                    width_scale;
     float32_t                    height_scale;
     float32_t                    scale;
+    float32_t                    status_bar_height;
     uint32_t                     screen_index;
     uint32_t                     window_index;
     bool_t                       has_canvas_width;
@@ -1245,11 +1235,14 @@ static void DrawScene(ConfigurationEditor_t* editor)
 
     if (ImGui::BeginChild(SCENE_PANE_NAME, ImVec2(0.0f, 0.0f), ImGuiChildFlags_AlwaysUseWindowPadding))
     {
+        style             = &ImGui::GetStyle();
+        draw_list         = ImGui::GetWindowDrawList();
+        status_bar_height = ImGui::GetFrameHeightWithSpacing();
         ImGui::TextUnformatted(SCENE_PANE_NAME);
         ImGui::Separator();
         if (FALSE == editor->isLoaded)
         {
-            ImGui::TextUnformatted(editor->status);
+            ImGui::TextUnformatted("No configuration loaded.");
         }
         else if (0 == editor->drawableScreenCount)
         {
@@ -1257,9 +1250,9 @@ static void DrawScene(ConfigurationEditor_t* editor)
         }
         else
         {
-            style        = &ImGui::GetStyle();
             canvas_min   = ImGui::GetCursorScreenPos();
             canvas_size  = ImGui::GetContentRegionAvail();
+            canvas_size.y -= (status_bar_height + style->ItemSpacing.y);
             label_height = ImGui::GetTextLineHeightWithSpacing();
 
             content_size = (canvas_size - (style->WindowPadding + style->WindowPadding));
@@ -1283,7 +1276,6 @@ static void DrawScene(ConfigurationEditor_t* editor)
                     editor->selectedIndex = 0;
                 }
                 mouse_position = ImGui::GetMousePos();
-                draw_list  = ImGui::GetWindowDrawList();
                 canvas_max = (canvas_min + canvas_size);
                 draw_list->PushClipRect(canvas_min, canvas_max, TRUE);
                 draw_list->AddRectFilled(canvas_min, canvas_max, SCENE_CANVAS_COLOR);
@@ -1406,6 +1398,30 @@ static void DrawScene(ConfigurationEditor_t* editor)
                 draw_list->PopClipRect();
             }
         }
+        scene_window_min     = ImGui::GetWindowPos();
+        scene_window_max     = (scene_window_min + ImGui::GetWindowSize());
+        status_bar_min       = (scene_window_min + style->WindowPadding);
+        status_bar_min.y     = (scene_window_max.y - style->WindowPadding.y - status_bar_height);
+        status_bar_max       = (scene_window_max - style->WindowPadding);
+        draw_list->AddRectFilled(status_bar_min, status_bar_max, ImGui::GetColorU32(ImGuiCol_FrameBg));
+        ImGui::SetCursorScreenPos(status_bar_min);
+        ImGui::PushClipRect(status_bar_min, status_bar_max, TRUE);
+        if (ImGui::Button(CONFIGURATION_RELOAD_XML_LABEL))
+        {
+            ReloadConfiguration(editor);
+        }
+        if (editor->isLoaded)
+        {
+            ImGui::SameLine();
+            if (ImGui::Button(CONFIGURATION_BUILD_XML_LABEL))
+            {
+                BuildConfigurationFile(editor);
+            }
+        }
+        ImGui::SameLine();
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(editor->status);
+        ImGui::PopClipRect();
     }
     ImGui::EndChild();
 }
@@ -1458,7 +1474,6 @@ static void MeasurePaneWidths(const ConfigurationEditor_t* editor, float32_t* hi
     const ImGuiStyle* style;
     ImVec2            button_padding;
     ImVec2            file_label_size;
-    ImVec2            toolbar_size;
     char_t            integer_text[32];
     char_t            hierarchy_label[CONFIGURATION_HIERARCHY_LABEL_BYTES];
     float32_t         hierarchy_row_padding;
@@ -1474,13 +1489,10 @@ static void MeasurePaneWidths(const ConfigurationEditor_t* editor, float32_t* hi
     ImFormatString(integer_text, sizeof(integer_text), "%" PRId64, INT64_MIN);
     button_padding  = (style->FramePadding + style->FramePadding);
     file_label_size = ImGui::CalcTextSize(CONFIGURATION_FILE_LABEL);
-    toolbar_size    = (ImGui::CalcTextSize(CONFIGURATION_RELOAD_XML_LABEL) + ImGui::CalcTextSize(CONFIGURATION_BUILD_XML_LABEL));
-
-    toolbar_size += (button_padding + button_padding + style->ItemSpacing + style->WindowPadding + style->WindowPadding);
 
     property_width    = (ImGui::CalcTextSize(CONFIGURATION_BASE_UNIT_LABEL).x + button_padding.x);
     value_width       = (ImGui::CalcTextSize(integer_text).x + button_padding.x);
-    (*hierarchyWidth) = ImMax(toolbar_size.x, (file_label_size.x + (style->WindowPadding.x * 2.0f)));
+    (*hierarchyWidth) = (file_label_size.x + (style->WindowPadding.x * 2.0f));
 
     hierarchy_row_padding  = (style->WindowPadding.x * 2.0f);
     hierarchy_row_padding += ImGui::GetTreeNodeToLabelSpacing();
