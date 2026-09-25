@@ -66,7 +66,6 @@ typedef struct ConfigurationEditor_s
     uint32_t                           drawableScreenCount;                                      ///< Screens with positive pixel size.
     char_t                             status[CONFIGURATION_STATUS_BYTES];                      ///< Current message.
     bool_t                             isLoaded;                                                ///< TRUE after a successful read.
-    bool_t                             isLayoutInitialized;                                     ///< TRUE after docking.
 } ConfigurationEditor_t;
 
 /*=================================================================================================
@@ -103,7 +102,7 @@ void ReloadConfiguration(ConfigurationEditor_t* editor);
 
 /*************************************************************************************************/
 /**
- * \brief Draws the configuration inspector and central visualizer.
+ * \brief Draws the hierarchy, visualizer, and inspector in one ImGui window.
  *
  * \param[in,out] editor Editor state
  *

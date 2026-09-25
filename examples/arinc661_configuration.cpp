@@ -35,9 +35,10 @@ extern "C"
 **===============================================================================================*/
 
 #define CONFIGURATION_WINDOW_NAME ("ARINC 661 Configuration")
-#define INSPECTOR_WINDOW_NAME     ("Inspector")
-#define VISUALIZER_WINDOW_NAME    ("Visualizer")
-#define DOCKSPACE_NAME            ("ARINC661DockSpace")
+#define HIERARCHY_PANE_NAME       ("Hierarchy")
+#define INSPECTOR_PANE_NAME       ("Inspector")
+#define VISUALIZER_PANE_NAME      ("Visualizer")
+#define CONFIGURATION_FILE_LABEL  ("arinc661_configuration.xml")
 
 #define CONFIGURATION_ADD_SCREEN_LABEL    ("+ Add Screen")
 #define CONFIGURATION_ADD_LAYOUT_LABEL    ("+ Add Layout")
@@ -297,17 +298,17 @@ static void DrawWindowInspector(ConfigurationEditor_t* editor);
 
 /*************************************************************************************************/
 /**
- * \brief Draws the configuration actions and hierarchy in the left window.
+ * \brief Draws the configuration actions and hierarchy in the left child pane.
  *
  * \param[in,out] editor Editor state
  *
  * \retval None
  */
-static void DrawConfigurationEditor(ConfigurationEditor_t* editor);
+static void DrawHierarchyPane(ConfigurationEditor_t* editor);
 
 /*************************************************************************************************/
 /**
- * \brief Draws the selected configuration item's properties in the right window.
+ * \brief Draws the selected configuration item's properties in the right child pane.
  *
  * \param[in,out] editor Editor state
  *
@@ -327,13 +328,14 @@ static void DrawVisualizer(const ConfigurationEditor_t* editor);
 
 /*************************************************************************************************/
 /**
- * \brief Docks the hierarchy on the left, visualizer centrally, and inspector on the right.
+ * \brief Measures the default widths of the hierarchy and inspector panes.
  *
- * \param[in] dockspaceId ImGui dockspace identifier
+ * \param[out] hierarchyWidth Width needed for the file actions
+ * \param[out] inspectorWidth Width needed for the property fields
  *
  * \retval None
  */
-static void BuildDockLayout(ImGuiID dockspaceId);
+static void MeasurePaneWidths(float32_t* hierarchyWidth, float32_t* inspectorWidth);
 
 /*=================================================================================================
 ** 4. PRIVATE FUNCTIONS
@@ -1099,13 +1101,15 @@ static void DrawWindowInspector(ConfigurationEditor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  File actions and the hierarchy occupy the left dock.
+ *  File actions and the hierarchy share the left child pane.
  */
-static void DrawConfigurationEditor(ConfigurationEditor_t* editor)
+static void DrawHierarchyPane(ConfigurationEditor_t* editor)
 {
-    if (ImGui::Begin(CONFIGURATION_WINDOW_NAME))
+    if (ImGui::BeginChild(HIERARCHY_PANE_NAME, ImVec2(0.0f, 0.0f), ImGuiChildFlags_AlwaysUseWindowPadding))
     {
-        ImGui::TextUnformatted("arinc661_configuration.xml");
+        ImGui::TextUnformatted(HIERARCHY_PANE_NAME);
+        ImGui::Separator();
+        ImGui::TextUnformatted(CONFIGURATION_FILE_LABEL);
         if (ImGui::Button(CONFIGURATION_RELOAD_XML_LABEL))
         {
             ReloadConfiguration(editor);
@@ -1121,22 +1125,23 @@ static void DrawConfigurationEditor(ConfigurationEditor_t* editor)
         ImGui::TextWrapped("%s", editor->status);
         if (editor->isLoaded)
         {
-            ImGui::TextUnformatted("Hierarchy");
             DrawHierarchy(editor);
         }
     }
-    ImGui::End();
+    ImGui::EndChild();
 }
 
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Shows the selected item's typed fields in the right dock.
+ *  Shows the selected item's typed fields in the right child pane.
  */
 static void DrawInspector(ConfigurationEditor_t* editor)
 {
-    if (ImGui::Begin(INSPECTOR_WINDOW_NAME))
+    if (ImGui::BeginChild(INSPECTOR_PANE_NAME, ImVec2(0.0f, 0.0f), ImGuiChildFlags_AlwaysUseWindowPadding))
     {
+        ImGui::TextUnformatted(INSPECTOR_PANE_NAME);
+        ImGui::Separator();
         if (editor->isLoaded)
         {
             if (CONFIGURATION_SELECTION_SCREEN == editor->selectedKind)
@@ -1161,7 +1166,7 @@ static void DrawInspector(ConfigurationEditor_t* editor)
             ImGui::TextUnformatted(editor->status);
         }
     }
-    ImGui::End();
+    ImGui::EndChild();
 }
 
 /*************************************************************************************************/
@@ -1208,8 +1213,10 @@ static void DrawVisualizer(const ConfigurationEditor_t* editor)
     bool_t                       has_screen_height;
     bool_t                       is_drawable_screen;
 
-    if (ImGui::Begin(VISUALIZER_WINDOW_NAME))
+    if (ImGui::BeginChild(VISUALIZER_PANE_NAME, ImVec2(0.0f, 0.0f), ImGuiChildFlags_AlwaysUseWindowPadding))
     {
+        ImGui::TextUnformatted(VISUALIZER_PANE_NAME);
+        ImGui::Separator();
         if (FALSE == editor->isLoaded)
         {
             ImGui::TextUnformatted(editor->status);
@@ -1306,62 +1313,40 @@ static void DrawVisualizer(const ConfigurationEditor_t* editor)
             }
         }
     }
-    ImGui::End();
+    ImGui::EndChild();
 }
 
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Measures the file actions and inspector fields, then keeps both side docks within their split widths.
+ *  Uses the visible file actions and property fields for the side pane defaults.
  */
-static void BuildDockLayout(ImGuiID dockspaceId)
+static void MeasurePaneWidths(float32_t* hierarchyWidth, float32_t* inspectorWidth)
 {
-    const ImGuiStyle*    style;
-    const ImGuiViewport* viewport;
-    ImVec2               button_padding;
-    ImVec2               toolbar_size;
-    char_t               integer_text[32];
-    float32_t            property_width;
-    float32_t            value_width;
-    float32_t            inspector_width;
-    float32_t            minimum_dockspace_width;
-    float32_t            configuration_ratio;
-    float32_t            remaining_width;
-    float32_t            inspector_ratio;
-    ImGuiID              configuration_node_id;
-    ImGuiID              remaining_node_id;
-    ImGuiID              visualizer_node_id;
-    ImGuiID              inspector_node_id;
+    const ImGuiStyle* style;
+    ImVec2            button_padding;
+    ImVec2            file_label_size;
+    ImVec2            toolbar_size;
+    char_t            integer_text[32];
+    float32_t         property_width;
+    float32_t         value_width;
 
-    style    = &ImGui::GetStyle();
-    viewport = ImGui::GetMainViewport();
+    style = &ImGui::GetStyle();
 
     (void)snprintf(integer_text, sizeof(integer_text), "%" PRId64, INT64_MIN);
-    button_padding = (style->FramePadding + style->FramePadding);
-    toolbar_size   = (ImGui::CalcTextSize(CONFIGURATION_RELOAD_XML_LABEL) + ImGui::CalcTextSize(CONFIGURATION_BUILD_XML_LABEL));
+    button_padding  = (style->FramePadding + style->FramePadding);
+    file_label_size = ImGui::CalcTextSize(CONFIGURATION_FILE_LABEL);
+    toolbar_size    = (ImGui::CalcTextSize(CONFIGURATION_RELOAD_XML_LABEL) + ImGui::CalcTextSize(CONFIGURATION_BUILD_XML_LABEL));
+
     toolbar_size += (button_padding + button_padding + style->ItemSpacing + style->WindowPadding + style->WindowPadding);
 
-    property_width  = (ImGui::CalcTextSize(CONFIGURATION_BASE_UNIT_LABEL).x + button_padding.x);
-    value_width     = (ImGui::CalcTextSize(integer_text).x + button_padding.x);
-    inspector_width = (property_width + value_width);
-    inspector_width += (style->CellPadding.x * 4.0f);
-    inspector_width += (style->WindowPadding.x * 2.0f);
-    inspector_width += style->ScrollbarSize;
-
-    minimum_dockspace_width = (toolbar_size.x + toolbar_size.x);
-    configuration_ratio     = (toolbar_size.x / ImMax(viewport->WorkSize.x, minimum_dockspace_width));
-    remaining_width         = (viewport->WorkSize.x * (1.0f - configuration_ratio));
-    inspector_ratio         = (inspector_width / ImMax(remaining_width, (inspector_width + inspector_width)));
-    ImGui::DockBuilderRemoveNode(dockspaceId);
-    ImGui::DockBuilderAddNode(dockspaceId, ImGuiDockNodeFlags_DockSpace);
-    ImGui::DockBuilderSetNodePos(dockspaceId, viewport->WorkPos);
-    ImGui::DockBuilderSetNodeSize(dockspaceId, viewport->WorkSize);
-    ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Left, configuration_ratio, &configuration_node_id, &remaining_node_id);
-    ImGui::DockBuilderSplitNode(remaining_node_id, ImGuiDir_Right, inspector_ratio, &inspector_node_id, &visualizer_node_id);
-    ImGui::DockBuilderDockWindow(CONFIGURATION_WINDOW_NAME, configuration_node_id);
-    ImGui::DockBuilderDockWindow(VISUALIZER_WINDOW_NAME, visualizer_node_id);
-    ImGui::DockBuilderDockWindow(INSPECTOR_WINDOW_NAME, inspector_node_id);
-    ImGui::DockBuilderFinish(dockspaceId);
+    property_width    = (ImGui::CalcTextSize(CONFIGURATION_BASE_UNIT_LABEL).x + button_padding.x);
+    value_width       = (ImGui::CalcTextSize(integer_text).x + button_padding.x);
+    (*hierarchyWidth) = ImMax(toolbar_size.x, (file_label_size.x + (style->WindowPadding.x * 2.0f)));
+    (*inspectorWidth) = (property_width + value_width);
+    (*inspectorWidth) += (style->CellPadding.x * 4.0f);
+    (*inspectorWidth) += (style->WindowPadding.x * 2.0f);
+    (*inspectorWidth) += style->ScrollbarSize;
 }
 
 /*=================================================================================================
@@ -1451,20 +1436,43 @@ void ReloadConfiguration(ConfigurationEditor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Draws the hierarchy, inspector, and visualizer from current typed configuration values.
+ *  Draws one viewport-sized window containing resizable hierarchy, visualizer, and inspector panes.
  */
 void DrawConfiguration(ConfigurationEditor_t* editor)
 {
-    ImGuiID dockspace_id;
+    const ImGuiViewport* viewport;
+    ImGuiWindowFlags     window_flags;
+    ImGuiTableFlags      table_flags;
+    ImVec2               table_size;
+    float32_t            hierarchy_width;
+    float32_t            inspector_width;
 
-    dockspace_id = ImHashStr(DOCKSPACE_NAME);
-    if (FALSE == editor->isLayoutInitialized)
+    viewport     = ImGui::GetMainViewport();
+    window_flags = (ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDocking);
+    ImGui::SetNextWindowPos(viewport->WorkPos);
+    ImGui::SetNextWindowSize(viewport->WorkSize);
+    ImGui::SetNextWindowViewport(viewport->ID);
+    if (ImGui::Begin(CONFIGURATION_WINDOW_NAME, NULL, window_flags))
     {
-        BuildDockLayout(dockspace_id);
-        editor->isLayoutInitialized = TRUE;
+        MeasurePaneWidths(&hierarchy_width, &inspector_width);
+        table_size  = ImGui::GetContentRegionAvail();
+        table_flags = (ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_NoPadOuterX | ImGuiTableFlags_NoPadInnerX);
+        if (ImGui::BeginTable("ConfigurationPanes", 3, table_flags, table_size))
+        {
+            ImGui::TableSetupColumn(HIERARCHY_PANE_NAME, ImGuiTableColumnFlags_WidthFixed, hierarchy_width);
+            ImGui::TableSetupColumn(VISUALIZER_PANE_NAME, ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn(INSPECTOR_PANE_NAME, ImGuiTableColumnFlags_WidthFixed, inspector_width);
+            ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.0f, 0.0f));
+            ImGui::TableNextRow();
+            ImGui::PopStyleVar();
+            ImGui::TableSetColumnIndex(0);
+            DrawHierarchyPane(editor);
+            ImGui::TableSetColumnIndex(2);
+            DrawInspector(editor);
+            ImGui::TableSetColumnIndex(1);
+            DrawVisualizer(editor);
+            ImGui::EndTable();
+        }
     }
-    ImGui::DockSpaceOverViewport(dockspace_id);
-    DrawConfigurationEditor(editor);
-    DrawInspector(editor);
-    DrawVisualizer(editor);
+    ImGui::End();
 }
