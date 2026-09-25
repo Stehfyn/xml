@@ -204,6 +204,11 @@ typedef enum Status_e
     STATUS_INPUT_EMPTY,
     STATUS_LOADED,
     STATUS_INVALID_XML,
+    STATUS_DUPLICATE_SCREEN_ID,
+    STATUS_DUPLICATE_LAYOUT_ID,
+    STATUS_DUPLICATE_WINDOW_ID,
+    STATUS_DUPLICATE_APPLICATION_ID,
+    STATUS_DUPLICATE_EXTERNAL_SOURCE_ID,
     STATUS_TOO_MANY_DOCUMENTS
 } Status_t;
 
@@ -400,6 +405,31 @@ static bool_t NextIdentifier(const Arinc661_Configuration_Document_t* editor, Se
 
 /*************************************************************************************************/
 /**
+ * \brief Checks an identifier against its required scope, excluding one existing item.
+ *
+ * \param[in] editor        Document to check
+ * \param[in] kind          Screen, layout, or window
+ * \param[in] screenIndex   Owning screen for a layout
+ * \param[in] itemIndex     Item whose identifier is being edited
+ * \param[in] id            Proposed identifier
+ *
+ * \retval    TRUE          if the identifier is unused in its scope.
+ * \retval    FALSE         if another item already uses it.
+ */
+static bool_t IsIdentifierUnique(const Arinc661_Configuration_Document_t* editor, SelectionKind_t kind, uint32_t screenIndex, uint32_t itemIndex, int64_t id);
+
+/*************************************************************************************************/
+/**
+ * \brief Finds the first repeated configuration identifier.
+ *
+ * \param[in] editor   Document to check
+ *
+ * \return STATUS_NONE when all identifiers are unique, or the duplicate's status.
+ */
+static Status_t CheckIdentifierUniqueness(const Arinc661_Configuration_Document_t* editor);
+
+/*************************************************************************************************/
+/**
  * \brief Finds the largest screen identifier used to choose the next one.
  *
  * \param[in]  editor   Editor state
@@ -538,6 +568,21 @@ static bool_t BeginPropertyTable(const char_t* name);
  * \retval        FALSE       if the value did not change.
  */
 static bool_t DrawIntegerField(const char_t* label, int64_t* value);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws an identifier and accepts only values unused by another item.
+ *
+ * \param[in,out] editor        Document containing the item
+ * \param[in]     kind          Screen, layout, or window
+ * \param[in]     screenIndex   Owning screen for a layout
+ * \param[in]     itemIndex     Index of the selected item
+ * \param[in,out] value         Identifier to edit
+ *
+ * \retval        TRUE          if the identifier changed.
+ * \retval        FALSE         otherwise.
+ */
+static bool_t DrawIdentifierField(Arinc661_Configuration_Document_t* editor, SelectionKind_t kind, uint32_t screenIndex, uint32_t itemIndex, int64_t* value);
 
 /*************************************************************************************************/
 /**
@@ -775,9 +820,9 @@ static const char_t* EditorStatusToString(int32_t status)
     switch (status)
     {
         case STATUS_NONE:                 return "";
-        case STATUS_FOLDER_PATH_REQUIRED: return "Enter a folder path.";
+        case STATUS_FOLDER_PATH_REQUIRED:            return "Enter a folder path.";
         case STATUS_XML_FILE_REQUIRED:    return "Select an XML file.";
-        case STATUS_SERIALIZATION_FAILED: return "Could not save XML file.";
+        case STATUS_SERIALIZATION_FAILED:            return "Could not save XML file.";
         case STATUS_SAVED:                return "Saved XML file.";
         case STATUS_ALL_SAVED:            return "Saved all changed XML files.";
         case STATUS_SAVE_ALL_FAILED:      return "Could not save every XML file.";
@@ -802,6 +847,11 @@ static const char_t* EditorStatusToString(int32_t status)
         case STATUS_INPUT_EMPTY:          return "The XML file is empty.";
         case STATUS_LOADED:               return "Loaded XML file.";
         case STATUS_INVALID_XML:          return "Invalid or unsupported display configuration XML.";
+        case STATUS_DUPLICATE_SCREEN_ID:  return "Screen IDs must be unique in this document.";
+        case STATUS_DUPLICATE_LAYOUT_ID:  return "Layout IDs must be unique within a screen.";
+        case STATUS_DUPLICATE_WINDOW_ID:  return "Window IDs must be unique in this document.";
+        case STATUS_DUPLICATE_APPLICATION_ID:     return "Application IDs must be unique in this document.";
+        case STATUS_DUPLICATE_EXTERNAL_SOURCE_ID:    return "External source IDs must be unique in this document.";
         case STATUS_TOO_MANY_DOCUMENTS:   return "Close a document before opening another XML file.";
         default:
           LOGFATAL("Invalid Status_t!");
@@ -908,6 +958,7 @@ static void UpdatePreviewMeasurements(Arinc661_Configuration_Document_t* editor)
 static void LoadConfigurationFile(Arinc661_Configuration_Editor_t* editor)
 {
     Arinc661_Configuration_Document_t* document;
+    Status_t                           identifier_status;
     char_t                             file_path[ARINC661_CONFIGURATION_MAX_FILE_PATH_BYTES];
     int32_t                            document_byte_count;
     uint32_t                           index;
@@ -983,6 +1034,14 @@ static void LoadConfigurationFile(Arinc661_Configuration_Editor_t* editor)
                 is_configuration = Utl_Arinc661_ReadConfiguration(&document->configuration, document->inputBuffer, (uint64_t)document_byte_count, document->workspace, sizeof(document->workspace));
                 if (is_configuration)
                 {
+                    identifier_status = CheckIdentifierUniqueness(document);
+                }
+                else
+                {
+                    identifier_status = STATUS_NONE;
+                }
+                if (is_configuration && (STATUS_NONE == identifier_status))
+                {
                     document->isLoaded = TRUE;
                     ImStrncpy(document->documentName, editor->selectedXmlFileName, sizeof(document->documentName));
                     ImStrncpy(document->documentPath, file_path, sizeof(document->documentPath));
@@ -995,6 +1054,10 @@ static void LoadConfigurationFile(Arinc661_Configuration_Editor_t* editor)
                     editor->activeDocumentIndex    = available_index;
                     editor->requestedDocumentIndex = available_index;
                     editor->status                 = STATUS_NONE;
+                }
+                else if (STATUS_NONE != identifier_status)
+                {
+                    editor->status = identifier_status;
                 }
                 else
                 {
@@ -1061,6 +1124,7 @@ static void CreateDocument(Arinc661_Configuration_Editor_t* editor)
  */
 static void UnloadConfigurationFile(Arinc661_Configuration_Document_t* editor)
 {
+    Status_t identifier_status;
     uint64_t output_byte_count;
     int32_t  bytes_written;
     bool_t   can_save_document;
@@ -1068,22 +1132,30 @@ static void UnloadConfigurationFile(Arinc661_Configuration_Document_t* editor)
     can_save_document = !!(editor->isLoaded && ('\0' != editor->documentPath[0]));
     if (can_save_document)
     {
-        output_byte_count = Utl_Arinc661_WriteConfiguration(&editor->configuration, editor->outputBuffer, sizeof(editor->outputBuffer), editor->workspace, sizeof(editor->workspace));
-        if (0 == output_byte_count)
+        identifier_status = CheckIdentifierUniqueness(editor);
+        if (STATUS_NONE != identifier_status)
         {
-            editor->status = STATUS_SERIALIZATION_FAILED;
+            editor->status = identifier_status;
         }
         else
         {
-            bytes_written = OS_File_WriteFile(editor->documentPath, editor->outputBuffer, (uint32_t)output_byte_count);
-            if (output_byte_count == (uint64_t)bytes_written)
+            output_byte_count = Utl_Arinc661_WriteConfiguration(&editor->configuration, editor->outputBuffer, sizeof(editor->outputBuffer), editor->workspace, sizeof(editor->workspace));
+            if (0 == output_byte_count)
             {
-                editor->isDirty = FALSE;
-                editor->status  = STATUS_SAVED;
+                editor->status = STATUS_SERIALIZATION_FAILED;
             }
             else
             {
-                editor->status = STATUS_WRITE_FAILED;
+                bytes_written = OS_File_WriteFile(editor->documentPath, editor->outputBuffer, (uint32_t)output_byte_count);
+                if (output_byte_count == (uint64_t)bytes_written)
+                {
+                    editor->isDirty = FALSE;
+                    editor->status  = STATUS_SAVED;
+                }
+                else
+                {
+                    editor->status = STATUS_WRITE_FAILED;
+                }
             }
         }
     }
@@ -1189,24 +1261,31 @@ static bool_t IsValidXmlFileName(const char_t* fileName)
         has_xml_extension = (0 == ImStricmp(fileName + file_name_length - extension_length, XML_EXTENSION));
         is_valid          = has_xml_extension;
     }
-    for (index = 0; (index < file_name_length) && is_valid; ++index)
+    if (is_valid)
     {
-        switch (fileName[index])
+        for (index = 0; index < file_name_length; ++index)
         {
-            case '\\':
-            case '/':
-            case ':':
-            case '*':
-            case '?':
-            case '"':
-            case '<':
-            case '>':
-            case '|':
+            switch (fileName[index])
             {
-                is_valid = FALSE;
-                break;
+                case '\\':
+                case '/':
+                case ':':
+                case '*':
+                case '?':
+                case '"':
+                case '<':
+                case '>':
+                case '|':
+                {
+                    is_valid = FALSE;
+                    break;
+                }
+                default:
+                {
+                    break;
+                }
             }
-            default:
+            if (FALSE == is_valid)
             {
                 break;
             }
@@ -1273,6 +1352,152 @@ static bool_t NextIdentifier(const Arinc661_Configuration_Document_t* editor, Se
     }
 
     return has_next_id;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Screen and window IDs are document-wide; layout IDs are local to one screen.
+ */
+static bool_t IsIdentifierUnique(const Arinc661_Configuration_Document_t* editor, SelectionKind_t kind, uint32_t screenIndex, uint32_t itemIndex, int64_t id)
+{
+    uint32_t index;
+    bool_t   is_unique;
+
+    is_unique = TRUE;
+    switch (kind)
+    {
+        case SELECTION_SCREEN:
+        {
+            for (index = 0; index < editor->configuration.screenCount; ++index)
+            {
+                if ((index != itemIndex) && (id == editor->screens[index].id))
+                {
+                    is_unique = FALSE;
+                    break;
+                }
+            }
+            break;
+        }
+        case SELECTION_LAYOUT:
+        {
+            for (index = 0; index < editor->configuration.layoutCount; ++index)
+            {
+                if ((index != itemIndex) && (screenIndex == editor->layouts[index].screenIndex) && (id == editor->layouts[index].id))
+                {
+                    is_unique = FALSE;
+                    break;
+                }
+            }
+            break;
+        }
+        case SELECTION_WINDOW:
+        {
+            for (index = 0; index < editor->configuration.windowCount; ++index)
+            {
+                if ((index != itemIndex) && (id == editor->windows[index].id))
+                {
+                    is_unique = FALSE;
+                    break;
+                }
+            }
+            break;
+        }
+        case SELECTION_NONE:
+        default:
+        {
+            is_unique = FALSE;
+            break;
+        }
+    }
+
+    return is_unique;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Also checks identifiers that are loaded and saved without inspector controls.
+ */
+static Status_t CheckIdentifierUniqueness(const Arinc661_Configuration_Document_t* editor)
+{
+    Status_t status;
+    uint32_t item_index;
+    uint32_t other_index;
+    bool_t   is_unique;
+
+    status = STATUS_NONE;
+    for (item_index = 0; item_index < editor->configuration.screenCount; ++item_index)
+    {
+        is_unique = IsIdentifierUnique(editor, SELECTION_SCREEN, 0, item_index, editor->screens[item_index].id);
+        if (FALSE == is_unique)
+        {
+            status = STATUS_DUPLICATE_SCREEN_ID;
+            break;
+        }
+    }
+    if (STATUS_NONE == status)
+    {
+        for (item_index = 0; item_index < editor->configuration.layoutCount; ++item_index)
+        {
+            is_unique = IsIdentifierUnique(editor, SELECTION_LAYOUT, editor->layouts[item_index].screenIndex, item_index, editor->layouts[item_index].id);
+            if (FALSE == is_unique)
+            {
+                status = STATUS_DUPLICATE_LAYOUT_ID;
+                break;
+            }
+        }
+    }
+    if (STATUS_NONE == status)
+    {
+        for (item_index = 0; item_index < editor->configuration.windowCount; ++item_index)
+        {
+            is_unique = IsIdentifierUnique(editor, SELECTION_WINDOW, 0, item_index, editor->windows[item_index].id);
+            if (FALSE == is_unique)
+            {
+                status = STATUS_DUPLICATE_WINDOW_ID;
+                break;
+            }
+        }
+    }
+    if (STATUS_NONE == status)
+    {
+        for (item_index = 0; item_index < editor->configuration.userApplicationCount; ++item_index)
+        {
+            for (other_index = item_index + 1; other_index < editor->configuration.userApplicationCount; ++other_index)
+            {
+                if (editor->userApplications[item_index].applicationId == editor->userApplications[other_index].applicationId)
+                {
+                    status = STATUS_DUPLICATE_APPLICATION_ID;
+                    break;
+                }
+            }
+            if (STATUS_NONE != status)
+            {
+                break;
+            }
+        }
+    }
+    if (STATUS_NONE == status)
+    {
+        for (item_index = 0; item_index < editor->configuration.externalSourceCount; ++item_index)
+        {
+            for (other_index = item_index + 1; other_index < editor->configuration.externalSourceCount; ++other_index)
+            {
+                if (editor->externalSources[item_index].id == editor->externalSources[other_index].id)
+                {
+                    status = STATUS_DUPLICATE_EXTERNAL_SOURCE_ID;
+                    break;
+                }
+            }
+            if (STATUS_NONE != status)
+            {
+                break;
+            }
+        }
+    }
+
+    return status;
 }
 
 /*************************************************************************************************/
@@ -1807,6 +2032,45 @@ static bool_t DrawIntegerField(const char_t* label, int64_t* value)
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  The input edits a temporary value so a duplicate never enters the document.
+ */
+static bool_t DrawIdentifierField(Arinc661_Configuration_Document_t* editor, SelectionKind_t kind, uint32_t screenIndex, uint32_t itemIndex, int64_t* value)
+{
+    int64_t candidate;
+    bool_t  has_changed;
+    bool_t  is_unique;
+    bool_t  was_updated;
+
+    candidate   = (*value);
+    has_changed = DrawIntegerField(ID_LABEL, &candidate);
+    was_updated = FALSE;
+    if (has_changed && (candidate != (*value)))
+    {
+        is_unique = IsIdentifierUnique(editor, kind, screenIndex, itemIndex, candidate);
+        if (is_unique)
+        {
+            (*value)    = candidate;
+            was_updated = TRUE;
+        }
+        else
+        {
+            switch (kind)
+            {
+                case SELECTION_SCREEN: editor->status = STATUS_DUPLICATE_SCREEN_ID; break;
+                case SELECTION_LAYOUT: editor->status = STATUS_DUPLICATE_LAYOUT_ID; break;
+                case SELECTION_WINDOW: editor->status = STATUS_DUPLICATE_WINDOW_ID; break;
+                case SELECTION_NONE:
+                default:              LOGFATAL("Invalid SelectionKind_t!");
+            }
+        }
+    }
+
+    return was_updated;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Draws a label and a floating-point input in the current two-column table.
  */
 static bool_t DrawDecimalField(const char_t* label, float32_t* value)
@@ -1920,7 +2184,7 @@ static void DrawScreenInspector(Arinc661_Configuration_Document_t* editor)
     ImGui::TextUnformatted(SCREEN_SECTION_LABEL);
     if (BeginPropertyTable(SCREEN_TABLE_ID))
     {
-        MarkDocumentDirty(editor, DrawIntegerField(ID_LABEL, &screen->id));
+        MarkDocumentDirty(editor, DrawIdentifierField(editor, SELECTION_SCREEN, 0, editor->selectedIndex, &screen->id));
         ImGui::EndTable();
     }
     ImGui::Separator();
@@ -1963,7 +2227,7 @@ static void DrawLayoutInspector(Arinc661_Configuration_Document_t* editor)
     ImGui::TextUnformatted(LAYOUT_SECTION_LABEL);
     if (BeginPropertyTable(LAYOUT_TABLE_ID))
     {
-        MarkDocumentDirty(editor, DrawIntegerField(ID_LABEL, &layout->id));
+        MarkDocumentDirty(editor, DrawIdentifierField(editor, SELECTION_LAYOUT, layout->screenIndex, editor->selectedIndex, &layout->id));
         ImGui::EndTable();
     }
 }
@@ -1982,7 +2246,7 @@ static void DrawWindowInspector(Arinc661_Configuration_Document_t* editor)
     ImGui::TextUnformatted(WINDOW_SECTION_LABEL);
     if (BeginPropertyTable(WINDOW_TABLE_ID))
     {
-        MarkDocumentDirty(editor, DrawIntegerField(ID_LABEL, &window->id));
+        MarkDocumentDirty(editor, DrawIdentifierField(editor, SELECTION_WINDOW, 0, editor->selectedIndex, &window->id));
         MarkDocumentDirty(editor, DrawTextField(NAME_LABEL, window->name, sizeof(window->name)));
         ImGui::EndTable();
     }
