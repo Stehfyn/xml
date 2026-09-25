@@ -1158,7 +1158,7 @@ static void DrawVisualizer(const ConfigurationEditor_t* editor)
                         screen_max  = (screen_min + (screen_size * scale));
                         draw_list->AddRectFilled(screen_min, screen_max, VISUALIZER_SCREEN_COLOR);
                         draw_list->AddRect(screen_min, screen_max, VISUALIZER_SCREEN_BORDER_COLOR);
-                        (void)snprintf(screen_label, sizeof(screen_label), "Screen %" PRId64, screen->id);
+                        (void)snprintf(screen_label, sizeof(screen_label), "Screen %" PRId64 " (%" PRId64 " x %" PRId64 ")", screen->id, screen->pixelSize.width, screen->pixelSize.height);
                         screen_label_size       = ImGui::CalcTextSize(screen_label);
                         screen_label_position   = screen_min;
                         screen_label_position.y = (screen_label_position.y - (screen_label_size.y + style->ItemSpacing.y));
