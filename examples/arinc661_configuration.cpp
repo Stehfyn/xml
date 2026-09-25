@@ -352,12 +352,7 @@ static void BuildConfigurationFile(ConfigurationEditor_t* editor)
     uint64_t output_byte_count;
     uint64_t bytes_written;
 
-    output_byte_count = Utl_Arinc661_WriteConfiguration(
-        &editor->configuration,
-        editor->outputBuffer,
-        sizeof(editor->outputBuffer),
-        editor->workspace,
-        sizeof(editor->workspace));
+    output_byte_count = Utl_Arinc661_WriteConfiguration(&editor->configuration, editor->outputBuffer, sizeof(editor->outputBuffer), editor->workspace, sizeof(editor->workspace));
     if (0 == output_byte_count)
     {
         (void)strcpy(editor->status, "Could not build the display configuration XML.");
@@ -1312,12 +1307,7 @@ void ReloadConfiguration(ConfigurationEditor_t* editor)
         }
         else
         {
-            is_configuration = Utl_Arinc661_ReadConfiguration(
-                &editor->configuration,
-                editor->inputBuffer,
-                (uint64_t)document_byte_count,
-                editor->workspace,
-                sizeof(editor->workspace));
+            is_configuration = Utl_Arinc661_ReadConfiguration(&editor->configuration, editor->inputBuffer, (uint64_t)document_byte_count, editor->workspace, sizeof(editor->workspace));
             if (is_configuration)
             {
                 editor->isLoaded = TRUE;
