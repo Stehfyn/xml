@@ -910,7 +910,7 @@ static void UnloadConfigurationFile(Arinc661_Configuration_Document_t* editor)
     int32_t  bytes_written;
     bool_t   can_save_document;
 
-    can_save_document = (editor->isLoaded && ('\0' != editor->documentPath[0]));
+    can_save_document = !!(editor->isLoaded && ('\0' != editor->documentPath[0]));
     if (can_save_document)
     {
         output_byte_count = Utl_Arinc661_WriteConfiguration(&editor->configuration, editor->outputBuffer, sizeof(editor->outputBuffer), editor->workspace, sizeof(editor->workspace));
