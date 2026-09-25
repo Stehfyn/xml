@@ -1231,12 +1231,7 @@ static void BuildDockLayout(ImGuiID dockspaceId)
     ImGui::DockBuilderAddNode(dockspaceId, ImGuiDockNodeFlags_DockSpace);
     ImGui::DockBuilderSetNodePos(dockspaceId, viewport->WorkPos);
     ImGui::DockBuilderSetNodeSize(dockspaceId, viewport->WorkSize);
-    ImGui::DockBuilderSplitNode(
-        dockspaceId,
-        ImGuiDir_Left,
-        configuration_ratio,
-        &configuration_node_id,
-        &visualizer_node_id);
+    ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Left, configuration_ratio, &configuration_node_id, &visualizer_node_id);
     ImGui::DockBuilderDockWindow(CONFIGURATION_WINDOW_NAME, configuration_node_id);
     ImGui::DockBuilderDockWindow(VISUALIZER_WINDOW_NAME, visualizer_node_id);
     ImGui::DockBuilderFinish(dockspaceId);
