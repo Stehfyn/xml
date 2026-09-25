@@ -1509,78 +1509,6 @@ bool_t Utl_Xml_IsString(const byte_t* utf8Text, uint32_t byteCount)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Checks the literal-character branch of AttValue for double quotes.
- */
-bool_t Utl_Xml_IsAttributeValueChar(uint32_t codePoint)
-{
-    bool_t is_xml_char;
-    bool_t is_less_than;
-    bool_t is_ampersand;
-    bool_t is_double_quote;
-    bool_t is_reserved;
-    bool_t is_attribute_value_char;
-
-    is_xml_char              = Utl_Xml_IsChar(codePoint);
-    is_less_than             = (UTL_XML_CHAR_LT == codePoint);
-    is_ampersand             = (UTL_XML_CHAR_AMP == codePoint);
-    is_double_quote          = (UTL_XML_QUOTE_QUOT == codePoint);
-    is_reserved              = is_less_than || is_ampersand || is_double_quote;
-    is_attribute_value_char  = is_xml_char && (FALSE == is_reserved);
-
-    return is_attribute_value_char;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Checks XML characters first, then excludes characters that cannot be written
- *  literally or would be changed by attribute-value normalization.
- */
-bool_t Utl_Xml_IsAttributeValue(const byte_t* utf8Text, uint32_t byteCount)
-{
-    bool_t   is_attribute_value;
-    bool_t   is_ascii;
-    bool_t   is_attribute_value_char;
-    bool_t   is_whitespace;
-    bool_t   is_space;
-    bool_t   is_normalized_whitespace;
-    uint32_t byte_index;
-    byte_t   value_byte;
-
-    is_attribute_value = TRUE;
-
-    if (Utl_Xml_IsString(utf8Text, byteCount))
-    {
-        for (byte_index = 0; byte_index < byteCount; ++byte_index)
-        {
-            value_byte = utf8Text[byte_index];
-            is_ascii   = (value_byte <= UTF8_ASCII_MAX_BYTE);
-            if (is_ascii)
-            {
-                is_attribute_value_char  = Utl_Xml_IsAttributeValueChar(value_byte);
-                is_whitespace            = Utl_Xml_IsWhitespace(value_byte);
-                is_space                 = (UTL_XML_CHAR_SPACE == value_byte);
-                is_normalized_whitespace = is_whitespace && (FALSE == is_space);
-                is_attribute_value       = is_attribute_value_char && (FALSE == is_normalized_whitespace);
-                
-                if (FALSE == is_attribute_value)
-                {
-                    break;
-                }
-            }
-        }
-    }
-    else
-    {
-        is_attribute_value = FALSE;
-    }
-
-    return is_attribute_value;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
  *  None
  */
 bool_t Utl_Xml_IsWhitespace(uint32_t codePoint)
@@ -1713,7 +1641,79 @@ bool_t Utl_Xml_IsName(const byte_t* utf8Text, uint32_t byteCount)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Stores borrowed byte spans and clears the attribute link.
+ *  Checks the literal-character branch of AttValue for double quotes.
+ */
+bool_t Utl_Xml_IsAttributeValueChar(uint32_t codePoint)
+{
+    bool_t is_xml_char;
+    bool_t is_less_than;
+    bool_t is_ampersand;
+    bool_t is_double_quote;
+    bool_t is_reserved;
+    bool_t is_attribute_value_char;
+
+    is_xml_char              = Utl_Xml_IsChar(codePoint);
+    is_less_than             = (UTL_XML_CHAR_LT == codePoint);
+    is_ampersand             = (UTL_XML_CHAR_AMP == codePoint);
+    is_double_quote          = (UTL_XML_QUOTE_QUOT == codePoint);
+    is_reserved              = is_less_than || is_ampersand || is_double_quote;
+    is_attribute_value_char  = is_xml_char && (FALSE == is_reserved);
+
+    return is_attribute_value_char;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Checks XML characters first, then excludes characters that cannot be written
+ *  literally or would be changed by attribute-value normalization.
+ */
+bool_t Utl_Xml_IsAttributeValue(const byte_t* utf8Text, uint32_t byteCount)
+{
+    bool_t   is_attribute_value;
+    bool_t   is_ascii;
+    bool_t   is_attribute_value_char;
+    bool_t   is_whitespace;
+    bool_t   is_space;
+    bool_t   is_normalized_whitespace;
+    uint32_t byte_index;
+    byte_t   value_byte;
+
+    is_attribute_value = TRUE;
+
+    if (Utl_Xml_IsString(utf8Text, byteCount))
+    {
+        for (byte_index = 0; byte_index < byteCount; ++byte_index)
+        {
+            value_byte = utf8Text[byte_index];
+            is_ascii   = (value_byte <= UTF8_ASCII_MAX_BYTE);
+            if (is_ascii)
+            {
+                is_attribute_value_char  = Utl_Xml_IsAttributeValueChar(value_byte);
+                is_whitespace            = Utl_Xml_IsWhitespace(value_byte);
+                is_space                 = (UTL_XML_CHAR_SPACE == value_byte);
+                is_normalized_whitespace = is_whitespace && (FALSE == is_space);
+                is_attribute_value       = is_attribute_value_char && (FALSE == is_normalized_whitespace);
+
+                if (FALSE == is_attribute_value)
+                {
+                    break;
+                }
+            }
+        }
+    }
+    else
+    {
+        is_attribute_value = FALSE;
+    }
+
+    return is_attribute_value;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  None
  */
 void Utl_Xml_InitializeAttribute(Utl_Xml_Attribute_t* attribute, const byte_t* name, uint32_t nameByteCount, const byte_t* value, uint32_t valueByteCount)
 {
