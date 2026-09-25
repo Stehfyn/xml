@@ -33,18 +33,6 @@ extern "C"
 
 /*************************************************************************************************/
 /**
- * \brief Kind of entity selected in the configuration hierarchy.
- */
-typedef enum Arinc661_Configuration_SelectionKind_e
-{
-    ARINC661_CONFIGURATION_SELECTION_NONE,
-    ARINC661_CONFIGURATION_SELECTION_SCREEN,
-    ARINC661_CONFIGURATION_SELECTION_LAYOUT,
-    ARINC661_CONFIGURATION_SELECTION_WINDOW
-} Arinc661_Configuration_SelectionKind_t;
-
-/*************************************************************************************************/
-/**
  * \brief Message shown in the editor status bar.
  */
 typedef enum Arinc661_Configuration_Status_e
@@ -71,10 +59,25 @@ typedef enum Arinc661_Configuration_Status_e
 
 /*************************************************************************************************/
 /**
+ * \brief Kind of entity selected in the configuration hierarchy.
+ */
+typedef enum Arinc661_Configuration_SelectionKind_e
+{
+    ARINC661_CONFIGURATION_SELECTION_NONE,
+    ARINC661_CONFIGURATION_SELECTION_SCREEN,
+    ARINC661_CONFIGURATION_SELECTION_LAYOUT,
+    ARINC661_CONFIGURATION_SELECTION_WINDOW
+} Arinc661_Configuration_SelectionKind_t;
+
+
+/*************************************************************************************************/
+/**
  * \brief Caller-owned document, conversion workspace, and editor presentation state.
  */
 typedef struct Arinc661_Configuration_Editor_s
 {
+    Arinc661_Configuration_Status_t        status;                                                           ///< Current status message.
+    bool_t                                 isLoaded;                                                         ///< TRUE after a successful read.
     byte_t                                 inputBuffer[ARINC661_CONFIGURATION_MAX_DOCUMENT_BYTES + 1];       ///< Input file bytes.
     byte_t                                 outputBuffer[ARINC661_CONFIGURATION_MAX_DOCUMENT_BYTES];          ///< Built XML bytes.
     uint64_t                               workspace[UTL_ARINC661_WORKSPACE_BYTES / sizeof(uint64_t)];       ///< XML conversion scratch space.
@@ -89,8 +92,6 @@ typedef struct Arinc661_Configuration_Editor_s
     float32_t                              totalScreenWidth;                                                 ///< Sum of drawable screen widths.
     float32_t                              maximumScreenHeight;                                              ///< Largest drawable screen height.
     uint32_t                               drawableScreenCount;                                              ///< Screens with positive pixel size.
-    Arinc661_Configuration_Status_t        status;                                                           ///< Current status message.
-    bool_t                                 isLoaded;                                                         ///< TRUE after a successful read.
 } Arinc661_Configuration_Editor_t;
 
 /*=================================================================================================
