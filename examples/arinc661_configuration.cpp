@@ -1354,11 +1354,8 @@ void UpdateConfiguration(ConfigurationEditor_t* editor)
             if (is_drawable_screen)
             {
                 editor->drawableScreenCount += 1;
-                editor->totalScreenWidth += (float32_t)screen->pixelSize.width;
-                if (editor->maximumScreenHeight < (float32_t)screen->pixelSize.height)
-                {
-                    editor->maximumScreenHeight = (float32_t)screen->pixelSize.height;
-                }
+                editor->totalScreenWidth    += (float32_t)screen->pixelSize.width;
+                editor->maximumScreenHeight = ImMax(editor->maximumScreenHeight, (float32_t)screen->pixelSize.height);
             }
         }
         editor->isPreviewDirty = FALSE;
