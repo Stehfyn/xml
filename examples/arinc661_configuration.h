@@ -37,18 +37,6 @@ extern "C"
 
 /*************************************************************************************************/
 /**
- * \brief Kind of entity selected in the configuration hierarchy.
- */
-typedef enum Arinc661_Configuration_SelectionKind_e
-{
-    ARINC661_CONFIGURATION_SELECTION_NONE,
-    ARINC661_CONFIGURATION_SELECTION_SCREEN,
-    ARINC661_CONFIGURATION_SELECTION_LAYOUT,
-    ARINC661_CONFIGURATION_SELECTION_WINDOW
-} Arinc661_Configuration_SelectionKind_t;
-
-/*************************************************************************************************/
-/**
  * \brief One open document and its conversion workspace.
  */
 typedef struct Arinc661_Configuration_Document_s
@@ -56,7 +44,7 @@ typedef struct Arinc661_Configuration_Document_s
     int32_t                                status;                                                           ///< Current status message.
     bool_t                                 isLoaded;                                                         ///< TRUE after a successful read.
     bool_t                                 isDirty;                                                          ///< TRUE when the loaded document has unsaved changes.
-    Arinc661_Configuration_SelectionKind_t selectedKind;                                                     ///< Selected entity type.
+    int32_t                                selectedKind;                                                     ///< Selected entity type.
     uint32_t                               selectedIndex;                                                    ///< Selected array index.
     float32_t                              totalScreenWidth;                                                 ///< Sum of drawable screen widths.
     float32_t                              maximumScreenHeight;                                              ///< Largest drawable screen height.
@@ -84,8 +72,12 @@ typedef struct Arinc661_Configuration_Editor_s
     uint32_t                            activeDocumentIndex;                                            ///< Selected document slot.
     uint32_t                            requestedDocumentIndex;                                         ///< Tab to select after opening a file.
     uint32_t                            pendingCloseDocumentIndex;                                      ///< Document awaiting close confirmation.
+    uint32_t                            pendingSaveDocumentIndex;                                       ///< Untitled document awaiting a filename.
+    bool_t                              isSaveAllPending;                                               ///< TRUE while Save All is naming untitled documents.
     char_t                              folderPath[ARINC661_CONFIGURATION_MAX_FOLDER_PATH_BYTES];       ///< Folder containing XML files.
     char_t                              selectedXmlFileName[ARINC661_CONFIGURATION_MAX_XML_NAME_BYTES]; ///< Selected XML filename.
+    char_t                              saveFolderPath[ARINC661_CONFIGURATION_MAX_FOLDER_PATH_BYTES];   ///< Folder chosen in the save dialog.
+    char_t                              saveFileName[ARINC661_CONFIGURATION_MAX_XML_NAME_BYTES];        ///< Filename chosen in the save dialog.
     Arinc661_Configuration_Document_t   documents[ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS];           ///< Document slots and XML workspaces.
 } Arinc661_Configuration_Editor_t;
 

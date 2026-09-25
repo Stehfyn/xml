@@ -39,6 +39,8 @@ extern "C"
 #define SCENE_PANE_NAME          ("Scene")
 #define FILE_CONTROLS_HEADER     ("File Controls")
 #define FILE_MENU_LABEL          ("File")
+#define NEW_MENU_LABEL           ("New")
+#define NEW_SHORTCUT_LABEL       ("Ctrl+N")
 #define SAVE_MENU_LABEL          ("Save")
 #define SAVE_ALL_MENU_LABEL      ("Save All")
 #define SAVE_SHORTCUT_LABEL      ("Ctrl+S")
@@ -50,7 +52,15 @@ extern "C"
 #define FOLDER_INPUT_ID          ("##configurationFolderPath")
 #define XML_LIST_ID              ("##xmlFiles")
 #define DOCUMENT_TAB_BAR_ID      ("##configurationDocuments")
-#define DOCUMENT_TAB_FORMAT      ("%s###%s")
+#define DOCUMENT_TAB_FORMAT      ("%s###%u")
+#define UNTITLED_DOCUMENT_FORMAT ("Untitled %u.xml")
+#define SAVE_AS_POPUP_ID         ("Save XML File")
+#define SAVE_AS_FOLDER_LABEL     ("Folder")
+#define SAVE_AS_NAME_LABEL       ("File name")
+#define SAVE_AS_FOLDER_INPUT_ID  ("##saveFolderPath")
+#define SAVE_AS_NAME_INPUT_ID    ("##saveFileName")
+#define SAVE_AS_CONFIRM_LABEL    ("Save")
+#define SAVE_AS_CANCEL_LABEL     ("Cancel")
 #define CLOSE_DOCUMENT_POPUP_ID  ("Unsaved Changes")
 #define CLOSE_DOCUMENT_PROMPT    ("Save changes before closing this document?")
 #define SAVE_DOCUMENT_LABEL      ("Save")
@@ -58,6 +68,7 @@ extern "C"
 #define CANCEL_CLOSE_LABEL       ("Cancel")
 #define PANE_TABLE_ID            ("ConfigurationPanes")
 #define SCENE_CANVAS_ID          ("Screen canvas")
+#define EMPTY_SCENE_LABEL        ("Add a screen to preview the configuration.")
 #define PROPERTY_INPUT_ID        ("##value")
 #define PROPERTY_COLUMN          ("Property")
 #define VALUE_COLUMN             ("Value")
@@ -80,6 +91,7 @@ extern "C"
 #define PROPERTY_TABLE_FLAGS (ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp)
 
 #define SAVE_SHORTCUT       (ImGuiMod_Ctrl | ImGuiKey_S)
+#define NEW_SHORTCUT        (ImGuiMod_Ctrl | ImGuiKey_N)
 #define SAVE_SHORTCUT_FLAGS (ImGuiInputFlags_RouteGlobal | ImGuiInputFlags_RouteOverActive)
 
 #define ADD_SCREEN_LABEL     ("+ Add Screen")
@@ -133,10 +145,13 @@ extern "C"
 #define INTEGER_TEXT_BYTES       (32)
 #define LABEL_FORMAT_BYTES       (64)
 #define HIERARCHY_LABEL_BYTES    (UTL_ARINC661_MAX_NAME_BYTES + LABEL_FORMAT_BYTES)
-#define DOCUMENT_TAB_LABEL_BYTES (ARINC661_CONFIGURATION_MAX_XML_NAME_BYTES + ARINC661_CONFIGURATION_MAX_FILE_PATH_BYTES + 4)
+#define DOCUMENT_TAB_LABEL_BYTES (ARINC661_CONFIGURATION_MAX_XML_NAME_BYTES + 16)
+#define SAVE_DIALOG_INPUT_WIDTH  (420.0f)
 
-#define DEFAULT_SCREEN_PIXEL_WIDTH  (640)
-#define DEFAULT_SCREEN_PIXEL_HEIGHT (480)
+#define DEFAULT_SCREEN_PIXEL_WIDTH     (640)
+#define DEFAULT_SCREEN_PIXEL_HEIGHT    (480)
+#define DEFAULT_SCREEN_PHYSICAL_WIDTH  (5)
+#define DEFAULT_SCREEN_PHYSICAL_HEIGHT (4)
 
 #define HIERARCHY_BRANCH_FLAGS (ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_AllowOverlap)
 #define HIERARCHY_WINDOW_FLAGS (ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_AllowOverlap)
@@ -159,44 +174,72 @@ extern "C"
 /**
  * \brief Message shown in the editor status bar.
  */
-typedef enum Arinc661_Configuration_Status_e
+typedef enum Status_e
 {
-    ARINC661_CONFIGURATION_STATUS_NONE,
-    ARINC661_CONFIGURATION_STATUS_FOLDER_PATH_REQUIRED,
-    ARINC661_CONFIGURATION_STATUS_XML_FILE_REQUIRED,
-    ARINC661_CONFIGURATION_STATUS_SERIALIZATION_FAILED,
-    ARINC661_CONFIGURATION_STATUS_SAVED,
-    ARINC661_CONFIGURATION_STATUS_ALL_SAVED,
-    ARINC661_CONFIGURATION_STATUS_SAVE_ALL_FAILED,
-    ARINC661_CONFIGURATION_STATUS_WRITE_FAILED,
-    ARINC661_CONFIGURATION_STATUS_SCREEN_ADDED,
-    ARINC661_CONFIGURATION_STATUS_SCREEN_ADD_FAILED,
-    ARINC661_CONFIGURATION_STATUS_LAYOUT_ADDED,
-    ARINC661_CONFIGURATION_STATUS_LAYOUT_ADD_FAILED,
-    ARINC661_CONFIGURATION_STATUS_WINDOW_ADDED,
-    ARINC661_CONFIGURATION_STATUS_WINDOW_ADD_FAILED,
-    ARINC661_CONFIGURATION_STATUS_SCREEN_REMOVED,
-    ARINC661_CONFIGURATION_STATUS_LAYOUT_REMOVED,
-    ARINC661_CONFIGURATION_STATUS_WINDOW_REMOVED,
-    ARINC661_CONFIGURATION_STATUS_READ_FAILED,
-    ARINC661_CONFIGURATION_STATUS_INPUT_TOO_LARGE,
-    ARINC661_CONFIGURATION_STATUS_INPUT_EMPTY,
-    ARINC661_CONFIGURATION_STATUS_LOADED,
-    ARINC661_CONFIGURATION_STATUS_INVALID_XML,
-    ARINC661_CONFIGURATION_STATUS_TOO_MANY_DOCUMENTS
-} Arinc661_Configuration_Status_t;
+    STATUS_NONE,
+    STATUS_FOLDER_PATH_REQUIRED,
+    STATUS_XML_FILE_REQUIRED,
+    STATUS_SERIALIZATION_FAILED,
+    STATUS_SAVED,
+    STATUS_ALL_SAVED,
+    STATUS_SAVE_ALL_FAILED,
+    STATUS_NEW_DOCUMENT,
+    STATUS_SAVE_NAME_REQUIRED,
+    STATUS_SAVE_NAME_INVALID,
+    STATUS_SAVE_FILE_EXISTS,
+    STATUS_SAVE_FOLDER_INVALID,
+    STATUS_SAVE_ALL_CANCELED,
+    STATUS_WRITE_FAILED,
+    STATUS_SCREEN_ADDED,
+    STATUS_SCREEN_ADD_FAILED,
+    STATUS_LAYOUT_ADDED,
+    STATUS_LAYOUT_ADD_FAILED,
+    STATUS_WINDOW_ADDED,
+    STATUS_WINDOW_ADD_FAILED,
+    STATUS_SCREEN_REMOVED,
+    STATUS_LAYOUT_REMOVED,
+    STATUS_WINDOW_REMOVED,
+    STATUS_READ_FAILED,
+    STATUS_INPUT_TOO_LARGE,
+    STATUS_INPUT_EMPTY,
+    STATUS_LOADED,
+    STATUS_INVALID_XML,
+    STATUS_TOO_MANY_DOCUMENTS
+} Status_t;
+
+/*************************************************************************************************/
+/**
+ * \brief Kind of entity selected in the configuration hierarchy.
+ */
+typedef enum SelectionKind_e
+{
+    SELECTION_NONE,
+    SELECTION_SCREEN,
+    SELECTION_LAYOUT,
+    SELECTION_WINDOW
+} SelectionKind_t;
 
 /*************************************************************************************************/
 /**
  * \brief State shared with each XML filename shown in the list box.
  */
-typedef struct Arinc661_Configuration_XmlFileListContext_s
+typedef struct XmlFileListContext_s
 {
     Arinc661_Configuration_Editor_t* editor;
     uint32_t                         xmlFileCount;
     bool_t                           hasSelectedFile;
     bool_t                           shouldDraw;
-} Arinc661_Configuration_XmlFileListContext_t;
+} XmlFileListContext_t;
+
+/*************************************************************************************************/
+/**
+ * \brief Filename sought while checking a new document's save destination.
+ */
+typedef struct FileMatchContext_s
+{
+    const char_t* fileName;
+    bool_t        isFound;
+} FileMatchContext_t;
 
 /*=================================================================================================
 ** 3.3 External global variables
@@ -280,6 +323,16 @@ static void LoadConfigurationFile(Arinc661_Configuration_Editor_t* editor);
 
 /*************************************************************************************************/
 /**
+ * \brief Opens an untitled document in an available fixed slot.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+static void CreateDocument(Arinc661_Configuration_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
  * \brief Writes the in-memory display configuration to the configured file path.
  *
  * \param[in,out] editor   Editor state
@@ -287,6 +340,17 @@ static void LoadConfigurationFile(Arinc661_Configuration_Editor_t* editor);
  * \retval        None
  */
 static void UnloadConfigurationFile(Arinc661_Configuration_Document_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Saves a named document or requests a filename for an untitled document.
+ *
+ * \param[in,out] editor          Editor state
+ * \param[in]     documentIndex   Document slot to save
+ *
+ * \retval        None
+ */
+static void SaveDocument(Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex);
 
 /*************************************************************************************************/
 /**
@@ -300,6 +364,28 @@ static void SaveAllDocuments(Arinc661_Configuration_Editor_t* editor);
 
 /*************************************************************************************************/
 /**
+ * \brief Checks whether a filename is suitable for a new XML document.
+ *
+ * \param[in] fileName   Proposed filename
+ *
+ * \retval    TRUE       if it is a valid XML filename.
+ * \retval    FALSE      otherwise.
+ */
+static bool_t IsValidXmlFileName(const char_t* fileName);
+
+/*************************************************************************************************/
+/**
+ * \brief Checks one enumerated filename against a proposed save name.
+ *
+ * \param[in] fileName   Enumerated filename
+ * \param[in] context    Proposed filename and match state
+ *
+ * \retval    None
+ */
+static void FindMatchingFile(const char_t* fileName, void* context);
+
+/*************************************************************************************************/
+/**
  * \brief Chooses the next identifier for a screen, layout, or window.
  *
  * \param[in]  editor        Editor state
@@ -310,7 +396,7 @@ static void SaveAllDocuments(Arinc661_Configuration_Editor_t* editor);
  * \retval     TRUE        if an identifier is available.
  * \retval     FALSE       if the identifier range is exhausted or kind is invalid.
  */
-static bool_t NextIdentifier(const Arinc661_Configuration_Document_t* editor, Arinc661_Configuration_SelectionKind_t kind, uint32_t screenIndex, int64_t* id);
+static bool_t NextIdentifier(const Arinc661_Configuration_Document_t* editor, SelectionKind_t kind, uint32_t screenIndex, int64_t* id);
 
 /*************************************************************************************************/
 /**
@@ -585,6 +671,16 @@ static void DrawFileMenuBar(Arinc661_Configuration_Editor_t* editor);
 
 /*************************************************************************************************/
 /**
+ * \brief Draws the filename dialog for an untitled document.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+static void DrawSaveAsDialog(Arinc661_Configuration_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
  * \brief Draws document tabs and handles save confirmation for dirty tabs.
  *
  * \param[in,out] editor   Editor state
@@ -678,31 +774,37 @@ static const char_t* EditorStatusToString(int32_t status)
 {
     switch (status)
     {
-        case ARINC661_CONFIGURATION_STATUS_NONE:                 return "";
-        case ARINC661_CONFIGURATION_STATUS_FOLDER_PATH_REQUIRED: return "Enter a folder path.";
-        case ARINC661_CONFIGURATION_STATUS_XML_FILE_REQUIRED:    return "Select an XML file.";
-        case ARINC661_CONFIGURATION_STATUS_SERIALIZATION_FAILED: return "Could not save XML file.";
-        case ARINC661_CONFIGURATION_STATUS_SAVED:                return "Saved XML file.";
-        case ARINC661_CONFIGURATION_STATUS_ALL_SAVED:            return "Saved all changed XML files.";
-        case ARINC661_CONFIGURATION_STATUS_SAVE_ALL_FAILED:      return "Could not save every XML file.";
-        case ARINC661_CONFIGURATION_STATUS_WRITE_FAILED:         return "Could not write XML file.";
-        case ARINC661_CONFIGURATION_STATUS_SCREEN_ADDED:         return "Added screen.";
-        case ARINC661_CONFIGURATION_STATUS_SCREEN_ADD_FAILED:    return "Could not add another screen.";
-        case ARINC661_CONFIGURATION_STATUS_LAYOUT_ADDED:         return "Added layout.";
-        case ARINC661_CONFIGURATION_STATUS_LAYOUT_ADD_FAILED:    return "Could not add another layout.";
-        case ARINC661_CONFIGURATION_STATUS_WINDOW_ADDED:         return "Added window.";
-        case ARINC661_CONFIGURATION_STATUS_WINDOW_ADD_FAILED:    return "Could not add another window.";
-        case ARINC661_CONFIGURATION_STATUS_SCREEN_REMOVED:       return "Removed screen.";
-        case ARINC661_CONFIGURATION_STATUS_LAYOUT_REMOVED:       return "Removed layout.";
-        case ARINC661_CONFIGURATION_STATUS_WINDOW_REMOVED:       return "Removed window.";
-        case ARINC661_CONFIGURATION_STATUS_READ_FAILED:          return "Could not read XML file.";
-        case ARINC661_CONFIGURATION_STATUS_INPUT_TOO_LARGE:      return "The XML file exceeds the input buffer.";
-        case ARINC661_CONFIGURATION_STATUS_INPUT_EMPTY:          return "The XML file is empty.";
-        case ARINC661_CONFIGURATION_STATUS_LOADED:               return "Loaded XML file.";
-        case ARINC661_CONFIGURATION_STATUS_INVALID_XML:          return "Invalid or unsupported display configuration XML.";
-        case ARINC661_CONFIGURATION_STATUS_TOO_MANY_DOCUMENTS:   return "Close a document before opening another XML file.";
+        case STATUS_NONE:                 return "";
+        case STATUS_FOLDER_PATH_REQUIRED: return "Enter a folder path.";
+        case STATUS_XML_FILE_REQUIRED:    return "Select an XML file.";
+        case STATUS_SERIALIZATION_FAILED: return "Could not save XML file.";
+        case STATUS_SAVED:                return "Saved XML file.";
+        case STATUS_ALL_SAVED:            return "Saved all changed XML files.";
+        case STATUS_SAVE_ALL_FAILED:      return "Could not save every XML file.";
+        case STATUS_NEW_DOCUMENT:         return "Created a new XML document.";
+        case STATUS_SAVE_NAME_REQUIRED:   return "Enter an XML filename.";
+        case STATUS_SAVE_NAME_INVALID:    return "Enter a valid filename ending in .xml.";
+        case STATUS_SAVE_FILE_EXISTS:     return "An XML file with that name already exists.";
+        case STATUS_SAVE_FOLDER_INVALID:  return "Could not read the save folder.";
+        case STATUS_SAVE_ALL_CANCELED:    return "Save All canceled.";
+        case STATUS_WRITE_FAILED:         return "Could not write XML file.";
+        case STATUS_SCREEN_ADDED:         return "Added screen.";
+        case STATUS_SCREEN_ADD_FAILED:    return "Could not add another screen.";
+        case STATUS_LAYOUT_ADDED:         return "Added layout.";
+        case STATUS_LAYOUT_ADD_FAILED:    return "Could not add another layout.";
+        case STATUS_WINDOW_ADDED:         return "Added window.";
+        case STATUS_WINDOW_ADD_FAILED:    return "Could not add another window.";
+        case STATUS_SCREEN_REMOVED:       return "Removed screen.";
+        case STATUS_LAYOUT_REMOVED:       return "Removed layout.";
+        case STATUS_WINDOW_REMOVED:       return "Removed window.";
+        case STATUS_READ_FAILED:          return "Could not read XML file.";
+        case STATUS_INPUT_TOO_LARGE:      return "The XML file exceeds the input buffer.";
+        case STATUS_INPUT_EMPTY:          return "The XML file is empty.";
+        case STATUS_LOADED:               return "Loaded XML file.";
+        case STATUS_INVALID_XML:          return "Invalid or unsupported display configuration XML.";
+        case STATUS_TOO_MANY_DOCUMENTS:   return "Close a document before opening another XML file.";
         default:
-          LOGFATAL("Invalid Arinc661_Configuration_Status_t!");
+          LOGFATAL("Invalid Status_t!");
     }
 }
 
@@ -743,16 +845,20 @@ static void JoinFolderPath(const char_t* folderPath, const char_t* fileName, cha
  */
 static bool_t GetSelectedFilePath(Arinc661_Configuration_Editor_t* editor, char_t* filePath, uint32_t capacity)
 {
+    bool_t has_folder_path;
+    bool_t has_xml_file_name;
     bool_t has_selected_file;
 
-    has_selected_file = FALSE;
-    if ('\0' == editor->folderPath[0])
+    has_folder_path    = ('\0' != editor->folderPath[0]);
+    has_xml_file_name  = ('\0' != editor->selectedXmlFileName[0]);
+    has_selected_file  = FALSE;
+    if (FALSE == has_folder_path)
     {
-        editor->status = ARINC661_CONFIGURATION_STATUS_FOLDER_PATH_REQUIRED;
+        editor->status = STATUS_FOLDER_PATH_REQUIRED;
     }
-    else if ('\0' == editor->selectedXmlFileName[0])
+    else if (FALSE == has_xml_file_name)
     {
-        editor->status = ARINC661_CONFIGURATION_STATUS_XML_FILE_REQUIRED;
+        editor->status = STATUS_XML_FILE_REQUIRED;
     }
     else
     {
@@ -834,18 +940,18 @@ static void LoadConfigurationFile(Arinc661_Configuration_Editor_t* editor)
         {
             editor->activeDocumentIndex    = document_index;
             editor->requestedDocumentIndex = document_index;
-            editor->status                 = ARINC661_CONFIGURATION_STATUS_NONE;
+            editor->status                 = STATUS_NONE;
         }
         else if (INVALID_DOCUMENT_INDEX == available_index)
         {
-            editor->status = ARINC661_CONFIGURATION_STATUS_TOO_MANY_DOCUMENTS;
+            editor->status = STATUS_TOO_MANY_DOCUMENTS;
         }
         else
         {
             document = &editor->documents[available_index];
             document->isLoaded            = FALSE;
             document->isDirty             = FALSE;
-            document->selectedKind        = ARINC661_CONFIGURATION_SELECTION_NONE;
+            document->selectedKind        = SELECTION_NONE;
             document->selectedIndex       = 0;
             document->totalScreenWidth    = 0.0f;
             document->maximumScreenHeight = 0.0f;
@@ -862,15 +968,15 @@ static void LoadConfigurationFile(Arinc661_Configuration_Editor_t* editor)
             document_byte_count = OS_File_ReadFile(file_path, document->inputBuffer, sizeof(document->inputBuffer));
             if (0 > document_byte_count)
             {
-                editor->status = ARINC661_CONFIGURATION_STATUS_READ_FAILED;
+                editor->status = STATUS_READ_FAILED;
             }
             else if (0 == document_byte_count)
             {
-                editor->status = ARINC661_CONFIGURATION_STATUS_INPUT_EMPTY;
+                editor->status = STATUS_INPUT_EMPTY;
             }
             else if (ARINC661_CONFIGURATION_MAX_DOCUMENT_BYTES < document_byte_count)
             {
-                editor->status = ARINC661_CONFIGURATION_STATUS_INPUT_TOO_LARGE;
+                editor->status = STATUS_INPUT_TOO_LARGE;
             }
             else
             {
@@ -882,20 +988,69 @@ static void LoadConfigurationFile(Arinc661_Configuration_Editor_t* editor)
                     ImStrncpy(document->documentPath, file_path, sizeof(document->documentPath));
                     if (0 < document->configuration.screenCount)
                     {
-                        document->selectedKind = ARINC661_CONFIGURATION_SELECTION_SCREEN;
+                        document->selectedKind = SELECTION_SCREEN;
                     }
                     UpdatePreviewMeasurements(document);
-                    document->status              = ARINC661_CONFIGURATION_STATUS_LOADED;
+                    document->status              = STATUS_LOADED;
                     editor->activeDocumentIndex    = available_index;
                     editor->requestedDocumentIndex = available_index;
-                    editor->status                 = ARINC661_CONFIGURATION_STATUS_NONE;
+                    editor->status                 = STATUS_NONE;
                 }
                 else
                 {
-                    editor->status = ARINC661_CONFIGURATION_STATUS_INVALID_XML;
+                    editor->status = STATUS_INVALID_XML;
                 }
             }
         }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Starts an empty, dirty document in one initialized slot.
+ */
+static void CreateDocument(Arinc661_Configuration_Editor_t* editor)
+{
+    Arinc661_Configuration_Document_t* document;
+    uint32_t                           document_index;
+    uint32_t                           available_index;
+
+    available_index = INVALID_DOCUMENT_INDEX;
+    for (document_index = 0; document_index < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS; ++document_index)
+    {
+        if (FALSE == editor->documents[document_index].isLoaded)
+        {
+            available_index = document_index;
+            break;
+        }
+    }
+    if (INVALID_DOCUMENT_INDEX == available_index)
+    {
+        editor->status = STATUS_TOO_MANY_DOCUMENTS;
+    }
+    else
+    {
+        document = &editor->documents[available_index];
+        document->status              = STATUS_NEW_DOCUMENT;
+        document->isLoaded            = TRUE;
+        document->isDirty             = TRUE;
+        document->selectedKind        = SELECTION_NONE;
+        document->selectedIndex       = 0;
+        document->totalScreenWidth    = 0.0f;
+        document->maximumScreenHeight = 0.0f;
+        document->drawableScreenCount = 0;
+        ImFormatString(document->documentName, sizeof(document->documentName), UNTITLED_DOCUMENT_FORMAT, available_index + 1);
+        document->documentPath[0] = '\0';
+        document->configuration.screenCount          = 0;
+        document->configuration.layoutCount          = 0;
+        document->configuration.windowCount          = 0;
+        document->configuration.userApplicationCount = 0;
+        document->configuration.externalSourceCount  = 0;
+        document->configuration.hasMetaData          = FALSE;
+        editor->activeDocumentIndex    = available_index;
+        editor->requestedDocumentIndex = available_index;
+        editor->status                 = STATUS_NONE;
     }
 }
 
@@ -916,7 +1071,7 @@ static void UnloadConfigurationFile(Arinc661_Configuration_Document_t* editor)
         output_byte_count = Utl_Arinc661_WriteConfiguration(&editor->configuration, editor->outputBuffer, sizeof(editor->outputBuffer), editor->workspace, sizeof(editor->workspace));
         if (0 == output_byte_count)
         {
-            editor->status = ARINC661_CONFIGURATION_STATUS_SERIALIZATION_FAILED;
+            editor->status = STATUS_SERIALIZATION_FAILED;
         }
         else
         {
@@ -924,17 +1079,40 @@ static void UnloadConfigurationFile(Arinc661_Configuration_Document_t* editor)
             if (output_byte_count == (uint64_t)bytes_written)
             {
                 editor->isDirty = FALSE;
-                editor->status  = ARINC661_CONFIGURATION_STATUS_SAVED;
+                editor->status  = STATUS_SAVED;
             }
             else
             {
-                editor->status = ARINC661_CONFIGURATION_STATUS_WRITE_FAILED;
+                editor->status = STATUS_WRITE_FAILED;
             }
         }
     }
     else
     {
-        editor->status = ARINC661_CONFIGURATION_STATUS_XML_FILE_REQUIRED;
+        editor->status = STATUS_XML_FILE_REQUIRED;
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Untitled documents need a filename before their first write.
+ */
+static void SaveDocument(Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex)
+{
+    Arinc661_Configuration_Document_t* document;
+
+    document       = &editor->documents[documentIndex];
+    editor->status = STATUS_NONE;
+    if ('\0' == document->documentPath[0])
+    {
+        editor->pendingSaveDocumentIndex = documentIndex;
+        ImStrncpy(editor->saveFolderPath, editor->folderPath, sizeof(editor->saveFolderPath));
+        ImStrncpy(editor->saveFileName, document->documentName, sizeof(editor->saveFileName));
+    }
+    else
+    {
+        UnloadConfigurationFile(document);
     }
 }
 
@@ -950,25 +1128,107 @@ static void SaveAllDocuments(Arinc661_Configuration_Editor_t* editor)
     bool_t                             all_saved;
 
     all_saved = TRUE;
+    editor->pendingSaveDocumentIndex = INVALID_DOCUMENT_INDEX;
     for (document_index = 0; document_index < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS; ++document_index)
     {
         document = &editor->documents[document_index];
         if (document->isLoaded && document->isDirty)
         {
-            UnloadConfigurationFile(document);
-            if (document->isDirty)
+            if ('\0' == document->documentPath[0])
             {
+                if (INVALID_DOCUMENT_INDEX == editor->pendingSaveDocumentIndex)
+                {
+                    SaveDocument(editor, document_index);
+                }
                 all_saved = FALSE;
+            }
+            else
+            {
+                UnloadConfigurationFile(document);
+                if (document->isDirty)
+                {
+                    all_saved = FALSE;
+                }
             }
         }
     }
-    if (all_saved)
+    if (INVALID_DOCUMENT_INDEX != editor->pendingSaveDocumentIndex)
     {
-        editor->status = ARINC661_CONFIGURATION_STATUS_ALL_SAVED;
+        editor->isSaveAllPending = TRUE;
+    }
+    else if (all_saved)
+    {
+        editor->isSaveAllPending = FALSE;
+        editor->status           = STATUS_ALL_SAVED;
     }
     else
     {
-        editor->status = ARINC661_CONFIGURATION_STATUS_SAVE_ALL_FAILED;
+        editor->isSaveAllPending = FALSE;
+        editor->status           = STATUS_SAVE_ALL_FAILED;
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Keeps a new file inside its selected folder and requires the XML extension.
+ */
+static bool_t IsValidXmlFileName(const char_t* fileName)
+{
+    size_t  file_name_length;
+    size_t  extension_length;
+    size_t  index;
+    bool_t  is_valid;
+    bool_t  has_xml_extension;
+
+    file_name_length = ImStrlen(fileName);
+    extension_length = ImStrlen(XML_EXTENSION);
+    is_valid         = (extension_length < file_name_length);
+    if (is_valid)
+    {
+        has_xml_extension = (0 == ImStricmp(fileName + file_name_length - extension_length, XML_EXTENSION));
+        is_valid          = has_xml_extension;
+    }
+    for (index = 0; (index < file_name_length) && is_valid; ++index)
+    {
+        switch (fileName[index])
+        {
+            case '\\':
+            case '/':
+            case ':':
+            case '*':
+            case '?':
+            case '"':
+            case '<':
+            case '>':
+            case '|':
+            {
+                is_valid = FALSE;
+                break;
+            }
+            default:
+            {
+                break;
+            }
+        }
+    }
+
+    return is_valid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Uses the directory enumerator's existing filename conversion to detect collisions.
+ */
+static void FindMatchingFile(const char_t* fileName, void* context)
+{
+    FileMatchContext_t* match_context;
+
+    match_context = (FileMatchContext_t*)context;
+    if (0 == ImStricmp(fileName, match_context->fileName))
+    {
+        match_context->isFound = TRUE;
     }
 }
 
@@ -977,29 +1237,29 @@ static void SaveAllDocuments(Arinc661_Configuration_Editor_t* editor)
  * \par Details:
  *  Dispatches to the identifier search for the selected entity type.
  */
-static bool_t NextIdentifier(const Arinc661_Configuration_Document_t* editor, Arinc661_Configuration_SelectionKind_t kind, uint32_t screenIndex, int64_t* id)
+static bool_t NextIdentifier(const Arinc661_Configuration_Document_t* editor, SelectionKind_t kind, uint32_t screenIndex, int64_t* id)
 {
     int64_t maximum_id;
     bool_t  has_next_id;
 
     switch (kind)
     {
-        case ARINC661_CONFIGURATION_SELECTION_SCREEN:
+        case SELECTION_SCREEN:
         {
             maximum_id = GetMaxScreenIdentifier(editor);
             break;
         }
-        case ARINC661_CONFIGURATION_SELECTION_LAYOUT:
+        case SELECTION_LAYOUT:
         {
             maximum_id = GetMaxLayoutIdentifier(editor, screenIndex);
             break;
         }
-        case ARINC661_CONFIGURATION_SELECTION_WINDOW:
+        case SELECTION_WINDOW:
         {
             maximum_id = GetMaxWindowIdentifier(editor);
             break;
         }
-        case ARINC661_CONFIGURATION_SELECTION_NONE:
+        case SELECTION_NONE:
         default:
         {
             return FALSE;
@@ -1091,7 +1351,7 @@ static void AddScreen(Arinc661_Configuration_Document_t* editor)
     bool_t                 has_id;
 
     has_capacity = (editor->configuration.screenCount < editor->configuration.screenCapacity);
-    has_id       = NextIdentifier(editor, ARINC661_CONFIGURATION_SELECTION_SCREEN, 0, &id);
+    has_id       = NextIdentifier(editor, SELECTION_SCREEN, 0, &id);
     if (has_capacity && has_id)
     {
         screen = &editor->screens[editor->configuration.screenCount];
@@ -1100,19 +1360,19 @@ static void AddScreen(Arinc661_Configuration_Document_t* editor)
         screen->pixelSize.width           = DEFAULT_SCREEN_PIXEL_WIDTH;
         screen->pixelSize.height          = DEFAULT_SCREEN_PIXEL_HEIGHT;
         screen->pixelSize.units           = UTL_ARINC661_UNIT_PIXEL;
-        screen->physicalDimensions.width  = 5;
-        screen->physicalDimensions.height = 4;
+        screen->physicalDimensions.width  = DEFAULT_SCREEN_PHYSICAL_WIDTH;
+        screen->physicalDimensions.height = DEFAULT_SCREEN_PHYSICAL_HEIGHT;
         screen->physicalDimensions.units  = UTL_ARINC661_UNIT_INCH;
-        editor->selectedKind              = ARINC661_CONFIGURATION_SELECTION_SCREEN;
+        editor->selectedKind              = SELECTION_SCREEN;
         editor->selectedIndex             = editor->configuration.screenCount;
         editor->configuration.screenCount += 1;
         UpdatePreviewMeasurements(editor);
         editor->isDirty = TRUE;
-        editor->status  = ARINC661_CONFIGURATION_STATUS_SCREEN_ADDED;
+        editor->status  = STATUS_SCREEN_ADDED;
     }
     else
     {
-        editor->status = ARINC661_CONFIGURATION_STATUS_SCREEN_ADD_FAILED;
+        editor->status = STATUS_SCREEN_ADD_FAILED;
     }
 }
 
@@ -1129,22 +1389,22 @@ static void AddLayout(Arinc661_Configuration_Document_t* editor, uint32_t screen
     bool_t                 has_id;
 
     has_capacity = (editor->configuration.layoutCount < editor->configuration.layoutCapacity);
-    has_id       = NextIdentifier(editor, ARINC661_CONFIGURATION_SELECTION_LAYOUT, screenIndex, &id);
+    has_id       = NextIdentifier(editor, SELECTION_LAYOUT, screenIndex, &id);
     if (has_capacity && has_id)
     {
         layout = &editor->layouts[editor->configuration.layoutCount];
         (void)memset(layout, 0, sizeof((*layout)));
         layout->id            = id;
         layout->screenIndex   = screenIndex;
-        editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_LAYOUT;
+        editor->selectedKind  = SELECTION_LAYOUT;
         editor->selectedIndex = editor->configuration.layoutCount;
         editor->configuration.layoutCount += 1;
         editor->isDirty = TRUE;
-        editor->status  = ARINC661_CONFIGURATION_STATUS_LAYOUT_ADDED;
+        editor->status  = STATUS_LAYOUT_ADDED;
     }
     else
     {
-        editor->status = ARINC661_CONFIGURATION_STATUS_LAYOUT_ADD_FAILED;
+        editor->status = STATUS_LAYOUT_ADD_FAILED;
     }
 }
 
@@ -1163,7 +1423,7 @@ static void AddWindow(Arinc661_Configuration_Document_t* editor, uint32_t layout
     bool_t                       has_id;
 
     has_capacity = (editor->configuration.windowCount < editor->configuration.windowCapacity);
-    has_id       = NextIdentifier(editor, ARINC661_CONFIGURATION_SELECTION_WINDOW, 0, &id);
+    has_id       = NextIdentifier(editor, SELECTION_WINDOW, 0, &id);
     if (has_capacity && has_id)
     {
         layout = &editor->layouts[layoutIndex];
@@ -1179,15 +1439,15 @@ static void AddWindow(Arinc661_Configuration_Document_t* editor, uint32_t layout
         window->scalingFactor.yScale   = 20.0f;
         window->scalingFactor.baseUnit = UTL_ARINC661_UNIT_SCREEN;
         window->scalingFactor.perUnit  = UTL_ARINC661_UNIT_PIXEL;
-        editor->selectedKind           = ARINC661_CONFIGURATION_SELECTION_WINDOW;
+        editor->selectedKind           = SELECTION_WINDOW;
         editor->selectedIndex          = editor->configuration.windowCount;
         editor->configuration.windowCount += 1;
         editor->isDirty = TRUE;
-        editor->status  = ARINC661_CONFIGURATION_STATUS_WINDOW_ADDED;
+        editor->status  = STATUS_WINDOW_ADDED;
     }
     else
     {
-        editor->status = ARINC661_CONFIGURATION_STATUS_WINDOW_ADD_FAILED;
+        editor->status = STATUS_WINDOW_ADD_FAILED;
     }
 }
 
@@ -1371,7 +1631,7 @@ static void DrawHierarchy(Arinc661_Configuration_Document_t* editor)
     {
         screen = &editor->screens[screen_index];
         flags  = HIERARCHY_BRANCH_FLAGS;
-        if ((ARINC661_CONFIGURATION_SELECTION_SCREEN == editor->selectedKind) && (screen_index == editor->selectedIndex))
+        if ((SELECTION_SCREEN == editor->selectedKind) && (screen_index == editor->selectedIndex))
         {
             flags |= ImGuiTreeNodeFlags_Selected;
         }
@@ -1379,7 +1639,7 @@ static void DrawHierarchy(Arinc661_Configuration_Document_t* editor)
         is_screen_open = ImGui::TreeNodeEx(SCREEN_NODE_ID, flags, SCREEN_LABEL_FORMAT, screen->id);
         if (ImGui::IsItemClicked())
         {
-            editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_SCREEN;
+            editor->selectedKind  = SELECTION_SCREEN;
             editor->selectedIndex = screen_index;
         }
         row_height = ImGui::GetItemRectSize().y;
@@ -1396,7 +1656,7 @@ static void DrawHierarchy(Arinc661_Configuration_Document_t* editor)
                 if (screen_index == layout->screenIndex)
                 {
                     flags = HIERARCHY_BRANCH_FLAGS;
-                    if ((ARINC661_CONFIGURATION_SELECTION_LAYOUT == editor->selectedKind) && (layout_index == editor->selectedIndex))
+                    if ((SELECTION_LAYOUT == editor->selectedKind) && (layout_index == editor->selectedIndex))
                     {
                         flags |= ImGuiTreeNodeFlags_Selected;
                     }
@@ -1404,7 +1664,7 @@ static void DrawHierarchy(Arinc661_Configuration_Document_t* editor)
                     is_layout_open = ImGui::TreeNodeEx(LAYOUT_NODE_ID, flags, LAYOUT_LABEL_FORMAT, layout->id);
                     if (ImGui::IsItemClicked())
                     {
-                        editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_LAYOUT;
+                        editor->selectedKind  = SELECTION_LAYOUT;
                         editor->selectedIndex = layout_index;
                     }
                     row_height = ImGui::GetItemRectSize().y;
@@ -1421,7 +1681,7 @@ static void DrawHierarchy(Arinc661_Configuration_Document_t* editor)
                             if (layout_index == window->layoutIndex)
                             {
                                 flags = HIERARCHY_WINDOW_FLAGS;
-                                if ((ARINC661_CONFIGURATION_SELECTION_WINDOW == editor->selectedKind) && (window_index == editor->selectedIndex))
+                                if ((SELECTION_WINDOW == editor->selectedKind) && (window_index == editor->selectedIndex))
                                 {
                                     flags |= ImGuiTreeNodeFlags_Selected;
                                 }
@@ -1429,7 +1689,7 @@ static void DrawHierarchy(Arinc661_Configuration_Document_t* editor)
                                 (void)ImGui::TreeNodeEx(WINDOW_NODE_ID, flags, WINDOW_LABEL_FORMAT, window->id, window->name);
                                 if (ImGui::IsItemClicked())
                                 {
-                                    editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_WINDOW;
+                                    editor->selectedKind  = SELECTION_WINDOW;
                                     editor->selectedIndex = window_index;
                                 }
                                 row_height = ImGui::GetItemRectSize().y;
@@ -1465,28 +1725,28 @@ static void DrawHierarchy(Arinc661_Configuration_Document_t* editor)
     if (INVALID_HIERARCHY_INDEX != remove_screen_index)
     {
         RemoveScreen(editor, remove_screen_index);
-        editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_NONE;
+        editor->selectedKind  = SELECTION_NONE;
         editor->selectedIndex = 0;
         editor->isDirty       = TRUE;
-        editor->status        = ARINC661_CONFIGURATION_STATUS_SCREEN_REMOVED;
+        editor->status        = STATUS_SCREEN_REMOVED;
     }
     else if (INVALID_HIERARCHY_INDEX != remove_layout_index)
     {
         parent_index = editor->layouts[remove_layout_index].screenIndex;
         RemoveLayout(editor, remove_layout_index);
-        editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_SCREEN;
+        editor->selectedKind  = SELECTION_SCREEN;
         editor->selectedIndex = parent_index;
         editor->isDirty       = TRUE;
-        editor->status        = ARINC661_CONFIGURATION_STATUS_LAYOUT_REMOVED;
+        editor->status        = STATUS_LAYOUT_REMOVED;
     }
     else if (INVALID_HIERARCHY_INDEX != remove_window_index)
     {
         parent_index = editor->windows[remove_window_index].layoutIndex;
         RemoveWindow(editor, remove_window_index);
-        editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_LAYOUT;
+        editor->selectedKind  = SELECTION_LAYOUT;
         editor->selectedIndex = parent_index;
         editor->isDirty       = TRUE;
-        editor->status        = ARINC661_CONFIGURATION_STATUS_WINDOW_REMOVED;
+        editor->status        = STATUS_WINDOW_REMOVED;
     }
     else if (INVALID_HIERARCHY_INDEX != add_layout_screen_index)
     {
@@ -1639,7 +1899,7 @@ static void MarkDocumentDirty(Arinc661_Configuration_Document_t* editor, bool_t 
     if (hasChanged)
     {
         editor->isDirty = TRUE;
-        editor->status  = ARINC661_CONFIGURATION_STATUS_NONE;
+        editor->status  = STATUS_NONE;
     }
 }
 
@@ -1755,13 +2015,13 @@ static void DrawWindowInspector(Arinc661_Configuration_Document_t* editor)
  */
 static void DrawXmlFileEntry(const char_t* fileName, void* context)
 {
-    Arinc661_Configuration_XmlFileListContext_t* list_context;
+    XmlFileListContext_t* list_context;
     size_t                                      file_name_length;
     size_t                                      extension_length;
     bool_t                                      is_xml_file;
     bool_t                                      is_selected;
 
-    list_context     = (Arinc661_Configuration_XmlFileListContext_t*)context;
+    list_context     = (XmlFileListContext_t*)context;
     file_name_length = ImStrlen(fileName);
     extension_length = ImStrlen(XML_EXTENSION);
     is_xml_file      = (extension_length <= file_name_length);
@@ -1803,7 +2063,7 @@ static void DrawXmlFileEntry(const char_t* fileName, void* context)
  */
 static void DrawXmlFileList(Arinc661_Configuration_Editor_t* editor)
 {
-    Arinc661_Configuration_XmlFileListContext_t context;
+    XmlFileListContext_t context;
     bool_t                                      is_enumerated;
     bool_t                                      is_selection_missing;
     uint32_t                                    visible_row_count;
@@ -1821,7 +2081,7 @@ static void DrawXmlFileList(Arinc661_Configuration_Editor_t* editor)
         editor->selectedXmlFileName[0] = '\0';
         if (INVALID_DOCUMENT_INDEX == editor->activeDocumentIndex)
         {
-            editor->status = ARINC661_CONFIGURATION_STATUS_XML_FILE_REQUIRED;
+            editor->status = STATUS_XML_FILE_REQUIRED;
         }
     }
 
@@ -1874,15 +2134,15 @@ static void DrawFileControls(Arinc661_Configuration_Editor_t* editor)
             editor->selectedXmlFileName[0] = '\0';
             if (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex)
             {
-                editor->status = ARINC661_CONFIGURATION_STATUS_NONE;
+                editor->status = STATUS_NONE;
             }
             else if ('\0' == editor->folderPath[0])
             {
-                editor->status = ARINC661_CONFIGURATION_STATUS_FOLDER_PATH_REQUIRED;
+                editor->status = STATUS_FOLDER_PATH_REQUIRED;
             }
             else
             {
-                editor->status = ARINC661_CONFIGURATION_STATUS_XML_FILE_REQUIRED;
+                editor->status = STATUS_XML_FILE_REQUIRED;
             }
         }
         if ('\0' != editor->folderPath[0])
@@ -1904,10 +2164,10 @@ static void CloseDocument(Arinc661_Configuration_Editor_t* editor, uint32_t docu
     uint32_t                           index;
 
     document                      = &editor->documents[documentIndex];
-    document->status              = ARINC661_CONFIGURATION_STATUS_NONE;
+    document->status              = STATUS_NONE;
     document->isLoaded            = FALSE;
     document->isDirty             = FALSE;
-    document->selectedKind        = ARINC661_CONFIGURATION_SELECTION_NONE;
+    document->selectedKind        = SELECTION_NONE;
     document->selectedIndex       = 0;
     document->totalScreenWidth    = 0.0f;
     document->maximumScreenHeight = 0.0f;
@@ -1936,11 +2196,11 @@ static void CloseDocument(Arinc661_Configuration_Editor_t* editor, uint32_t docu
     }
     if (INVALID_DOCUMENT_INDEX == editor->activeDocumentIndex)
     {
-        editor->status = ARINC661_CONFIGURATION_STATUS_XML_FILE_REQUIRED;
+        editor->status = STATUS_XML_FILE_REQUIRED;
     }
     else
     {
-        editor->status = ARINC661_CONFIGURATION_STATUS_NONE;
+        editor->status = STATUS_NONE;
     }
 }
 
@@ -1955,26 +2215,39 @@ static void DrawFileMenuBar(Arinc661_Configuration_Editor_t* editor)
     uint32_t                           document_index;
     bool_t                             has_active_document;
     bool_t                             has_dirty_documents;
+    bool_t                             has_available_document;
 
-    has_active_document = (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex);
-    has_dirty_documents = FALSE;
+    has_active_document    = (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex);
+    has_dirty_documents    = FALSE;
+    has_available_document = FALSE;
     for (document_index = 0; document_index < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS; ++document_index)
     {
         document = &editor->documents[document_index];
-        if (document->isLoaded && document->isDirty)
+        if (document->isLoaded)
         {
-            has_dirty_documents = TRUE;
+            if (document->isDirty)
+            {
+                has_dirty_documents = TRUE;
+            }
+        }
+        else
+        {
+            has_available_document = TRUE;
         }
     }
     if (ImGui::BeginMenuBar())
     {
         if (ImGui::BeginMenu(FILE_MENU_LABEL))
         {
+            if (ImGui::MenuItem(NEW_MENU_LABEL, NEW_SHORTCUT_LABEL, false, has_available_document))
+            {
+                CreateDocument(editor);
+            }
+            ImGui::Separator();
             if (ImGui::MenuItem(SAVE_MENU_LABEL, SAVE_SHORTCUT_LABEL, false, has_active_document))
             {
-                document = &editor->documents[editor->activeDocumentIndex];
-                editor->status = ARINC661_CONFIGURATION_STATUS_NONE;
-                UnloadConfigurationFile(document);
+                editor->isSaveAllPending = FALSE;
+                SaveDocument(editor, editor->activeDocumentIndex);
             }
             if (ImGui::MenuItem(SAVE_ALL_MENU_LABEL, NULL, false, has_dirty_documents))
             {
@@ -1997,6 +2270,10 @@ static void DrawFileMenuBar(Arinc661_Configuration_Editor_t* editor)
         }
         ImGui::EndMenuBar();
     }
+    if (ImGui::Shortcut(NEW_SHORTCUT, SAVE_SHORTCUT_FLAGS))
+    {
+        CreateDocument(editor);
+    }
 }
 
 /*************************************************************************************************/
@@ -2014,6 +2291,8 @@ static void DrawDocumentTabs(Arinc661_Configuration_Editor_t* editor)
     bool                                is_tab_open;
     bool                                is_tab_visible;
     bool_t                              has_open_documents;
+    bool_t                              has_pending_close;
+    bool_t                              has_pending_save;
 
     has_open_documents = FALSE;
     document_to_close  = INVALID_DOCUMENT_INDEX;
@@ -2042,7 +2321,7 @@ static void DrawDocumentTabs(Arinc661_Configuration_Editor_t* editor)
                     {
                         tab_flags |= ImGuiTabItemFlags_SetSelected;
                     }
-                    ImFormatString(tab_label, sizeof(tab_label), DOCUMENT_TAB_FORMAT, document->documentName, document->documentPath);
+                    ImFormatString(tab_label, sizeof(tab_label), DOCUMENT_TAB_FORMAT, document->documentName, document_index);
                     is_tab_open    = true;
                     is_tab_visible = ImGui::BeginTabItem(tab_label, &is_tab_open, tab_flags);
                     if (is_tab_visible)
@@ -2072,7 +2351,9 @@ static void DrawDocumentTabs(Arinc661_Configuration_Editor_t* editor)
     {
         CloseDocument(editor, document_to_close);
     }
-    if (INVALID_DOCUMENT_INDEX != editor->pendingCloseDocumentIndex)
+    has_pending_close = (INVALID_DOCUMENT_INDEX != editor->pendingCloseDocumentIndex);
+    has_pending_save  = (INVALID_DOCUMENT_INDEX != editor->pendingSaveDocumentIndex);
+    if (has_pending_close && (FALSE == has_pending_save))
     {
         document = &editor->documents[editor->pendingCloseDocumentIndex];
         ImGui::OpenPopup(CLOSE_DOCUMENT_POPUP_ID);
@@ -2081,8 +2362,12 @@ static void DrawDocumentTabs(Arinc661_Configuration_Editor_t* editor)
             ImGui::TextUnformatted(CLOSE_DOCUMENT_PROMPT);
             if (ImGui::Button(SAVE_DOCUMENT_LABEL))
             {
-                UnloadConfigurationFile(document);
-                if (FALSE == document->isDirty)
+                SaveDocument(editor, editor->pendingCloseDocumentIndex);
+                if (INVALID_DOCUMENT_INDEX != editor->pendingSaveDocumentIndex)
+                {
+                    ImGui::CloseCurrentPopup();
+                }
+                else if (FALSE == document->isDirty)
                 {
                     CloseDocument(editor, editor->pendingCloseDocumentIndex);
                     editor->pendingCloseDocumentIndex = INVALID_DOCUMENT_INDEX;
@@ -2102,13 +2387,162 @@ static void DrawDocumentTabs(Arinc661_Configuration_Editor_t* editor)
                 editor->pendingCloseDocumentIndex = INVALID_DOCUMENT_INDEX;
                 ImGui::CloseCurrentPopup();
             }
-            if (ARINC661_CONFIGURATION_STATUS_WRITE_FAILED == document->status)
+            if (STATUS_WRITE_FAILED == document->status)
             {
                 ImGui::TextUnformatted(EditorStatusToString(document->status));
             }
-            if (ARINC661_CONFIGURATION_STATUS_SERIALIZATION_FAILED == document->status)
+            if (STATUS_SERIALIZATION_FAILED == document->status)
             {
                 ImGui::TextUnformatted(EditorStatusToString(document->status));
+            }
+            ImGui::EndPopup();
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Names an untitled document in an existing folder before its first write.
+ */
+static void DrawSaveAsDialog(Arinc661_Configuration_Editor_t* editor)
+{
+    Arinc661_Configuration_Document_t* document;
+    FileMatchContext_t                 match_context;
+    const char_t*                      status_text;
+    char_t                             file_path[ARINC661_CONFIGURATION_MAX_FILE_PATH_BYTES];
+    char_t                             previous_name[ARINC661_CONFIGURATION_MAX_XML_NAME_BYTES];
+    uint32_t                           document_index;
+    uint32_t                           open_document_index;
+    bool_t                             has_folder_path;
+    bool_t                             has_file_name;
+    bool_t                             has_valid_name;
+    bool_t                             is_enumerated;
+    bool_t                             is_already_open;
+    bool_t                             was_save_all_pending;
+
+    if (INVALID_DOCUMENT_INDEX != editor->pendingSaveDocumentIndex)
+    {
+        document_index = editor->pendingSaveDocumentIndex;
+        document       = &editor->documents[document_index];
+        ImGui::OpenPopup(SAVE_AS_POPUP_ID);
+        if (ImGui::BeginPopupModal(SAVE_AS_POPUP_ID, NULL, ImGuiWindowFlags_AlwaysAutoResize))
+        {
+            ImGui::TextUnformatted(SAVE_AS_FOLDER_LABEL);
+            ImGui::SetNextItemWidth(SAVE_DIALOG_INPUT_WIDTH);
+            if (ImGui::InputText(SAVE_AS_FOLDER_INPUT_ID, editor->saveFolderPath, sizeof(editor->saveFolderPath)))
+            {
+                editor->status = STATUS_NONE;
+            }
+            ImGui::TextUnformatted(SAVE_AS_NAME_LABEL);
+            ImGui::SetNextItemWidth(SAVE_DIALOG_INPUT_WIDTH);
+            if (ImGui::InputText(SAVE_AS_NAME_INPUT_ID, editor->saveFileName, sizeof(editor->saveFileName)))
+            {
+                editor->status = STATUS_NONE;
+            }
+            if (ImGui::Button(SAVE_AS_CONFIRM_LABEL))
+            {
+                has_folder_path = ('\0' != editor->saveFolderPath[0]);
+                has_file_name   = ('\0' != editor->saveFileName[0]);
+                has_valid_name  = IsValidXmlFileName(editor->saveFileName);
+                if (FALSE == has_folder_path)
+                {
+                    editor->status = STATUS_FOLDER_PATH_REQUIRED;
+                }
+                else if (FALSE == has_file_name)
+                {
+                    editor->status = STATUS_SAVE_NAME_REQUIRED;
+                }
+                else if (FALSE == has_valid_name)
+                {
+                    editor->status = STATUS_SAVE_NAME_INVALID;
+                }
+                else
+                {
+                    match_context.fileName = editor->saveFileName;
+                    match_context.isFound  = FALSE;
+                    is_enumerated = OS_File_EnumerateFiles(editor->saveFolderPath, FindMatchingFile, &match_context);
+                    if (FALSE == is_enumerated)
+                    {
+                        editor->status = STATUS_SAVE_FOLDER_INVALID;
+                    }
+                    else if (match_context.isFound)
+                    {
+                        editor->status = STATUS_SAVE_FILE_EXISTS;
+                    }
+                    else
+                    {
+                        JoinFolderPath(editor->saveFolderPath, editor->saveFileName, file_path, sizeof(file_path));
+                        is_already_open = FALSE;
+                        for (open_document_index = 0; open_document_index < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS; ++open_document_index)
+                        {
+                            if (editor->documents[open_document_index].isLoaded)
+                            {
+                                if (0 == ImStricmp(editor->documents[open_document_index].documentPath, file_path))
+                                {
+                                    is_already_open = TRUE;
+                                }
+                            }
+                        }
+                        if (is_already_open)
+                        {
+                            editor->status = STATUS_SAVE_FILE_EXISTS;
+                        }
+                        else
+                        {
+                            ImStrncpy(previous_name, document->documentName, sizeof(previous_name));
+                            ImStrncpy(document->documentName, editor->saveFileName, sizeof(document->documentName));
+                            ImStrncpy(document->documentPath, file_path, sizeof(document->documentPath));
+                            UnloadConfigurationFile(document);
+                            if (document->isDirty)
+                            {
+                                editor->status           = document->status;
+                                document->documentPath[0] = '\0';
+                                ImStrncpy(document->documentName, previous_name, sizeof(document->documentName));
+                            }
+                            else
+                            {
+                                editor->pendingSaveDocumentIndex = INVALID_DOCUMENT_INDEX;
+                                editor->status                   = STATUS_NONE;
+                                ImGui::CloseCurrentPopup();
+                                if (document_index == editor->pendingCloseDocumentIndex)
+                                {
+                                    CloseDocument(editor, document_index);
+                                    editor->pendingCloseDocumentIndex = INVALID_DOCUMENT_INDEX;
+                                }
+                                else if (editor->isSaveAllPending)
+                                {
+                                    SaveAllDocuments(editor);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            ImGui::SameLine();
+            if (ImGui::Button(SAVE_AS_CANCEL_LABEL))
+            {
+                was_save_all_pending = editor->isSaveAllPending;
+                editor->pendingSaveDocumentIndex = INVALID_DOCUMENT_INDEX;
+                editor->isSaveAllPending          = FALSE;
+                if (document_index == editor->pendingCloseDocumentIndex)
+                {
+                    editor->pendingCloseDocumentIndex = INVALID_DOCUMENT_INDEX;
+                }
+                if (was_save_all_pending)
+                {
+                    editor->status = STATUS_SAVE_ALL_CANCELED;
+                }
+                else
+                {
+                    editor->status = STATUS_NONE;
+                }
+                ImGui::CloseCurrentPopup();
+            }
+            status_text = EditorStatusToString(editor->status);
+            if ('\0' != status_text[0])
+            {
+                ImGui::TextUnformatted(status_text);
             }
             ImGui::EndPopup();
         }
@@ -2175,15 +2609,15 @@ static void DrawInspectorPane(Arinc661_Configuration_Document_t* editor)
 
         if (editor->isLoaded)
         {
-            if (ARINC661_CONFIGURATION_SELECTION_SCREEN == editor->selectedKind)
+            if (SELECTION_SCREEN == editor->selectedKind)
             {
                 DrawScreenInspector(editor);
             }
-            else if (ARINC661_CONFIGURATION_SELECTION_LAYOUT == editor->selectedKind)
+            else if (SELECTION_LAYOUT == editor->selectedKind)
             {
                 DrawLayoutInspector(editor);
             }
-            else if (ARINC661_CONFIGURATION_SELECTION_WINDOW == editor->selectedKind)
+            else if (SELECTION_WINDOW == editor->selectedKind)
             {
                 DrawWindowInspector(editor);
             }
@@ -2264,6 +2698,10 @@ static void DrawScenePane(Arinc661_Configuration_Document_t* editor)
         {
             ImGui::TextUnformatted("No configuration loaded.");
         }
+        else if (0 == editor->configuration.screenCount)
+        {
+            ImGui::TextUnformatted(EMPTY_SCENE_LABEL);
+        }
         else if (0 == editor->drawableScreenCount)
         {
             ImGui::TextUnformatted("No screens with positive pixel dimensions.");
@@ -2291,7 +2729,7 @@ static void DrawScenePane(Arinc661_Configuration_Document_t* editor)
                 is_canvas_clicked = ImGui::IsItemClicked();
                 if (is_canvas_clicked)
                 {
-                    editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_NONE;
+                    editor->selectedKind  = SELECTION_NONE;
                     editor->selectedIndex = 0;
                 }
                 mouse_position = ImGui::GetMousePos();
@@ -2331,7 +2769,7 @@ static void DrawScenePane(Arinc661_Configuration_Document_t* editor)
                             is_screen_hit       = !!(is_screen_body_hit || is_screen_label_hit);
                             if (is_screen_hit)
                             {
-                                editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_SCREEN;
+                                editor->selectedKind  = SELECTION_SCREEN;
                                 editor->selectedIndex = screen_index;
                             }
                         }
@@ -2360,16 +2798,16 @@ static void DrawScenePane(Arinc661_Configuration_Document_t* editor)
                                     is_window_hit = ImRect(area_min, area_max).Contains(mouse_position);
                                     if (is_window_hit)
                                     {
-                                        editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_WINDOW;
+                                        editor->selectedKind  = SELECTION_WINDOW;
                                         editor->selectedIndex = window_index;
                                     }
                                 }
                                 is_selected_layout_window = FALSE;
-                                if (ARINC661_CONFIGURATION_SELECTION_LAYOUT == editor->selectedKind)
+                                if (SELECTION_LAYOUT == editor->selectedKind)
                                 {
                                     is_selected_layout_window = (window->layoutIndex == editor->selectedIndex);
                                 }
-                                else if (ARINC661_CONFIGURATION_SELECTION_WINDOW == editor->selectedKind)
+                                else if (SELECTION_WINDOW == editor->selectedKind)
                                 {
                                     if (window_index == editor->selectedIndex)
                                     {
@@ -2402,7 +2840,7 @@ static void DrawScenePane(Arinc661_Configuration_Document_t* editor)
                         {
                             draw_list->AddRectFilled(selected_window_min, selected_window_max, SCENE_SELECTION_OVERLAY_COLOR);
                         }
-                        is_selected_screen = (ARINC661_CONFIGURATION_SELECTION_SCREEN == editor->selectedKind);
+                        is_selected_screen = (SELECTION_SCREEN == editor->selectedKind);
                         if (is_selected_screen)
                         {
                             is_selected_screen = (screen_index == editor->selectedIndex);
@@ -2583,19 +3021,23 @@ void Arinc661_Configuration_Initialize(Arinc661_Configuration_Editor_t* editor)
     Arinc661_Configuration_Document_t* document;
     uint32_t                           document_index;
 
-    editor->status                    = ARINC661_CONFIGURATION_STATUS_XML_FILE_REQUIRED;
+    editor->status                    = STATUS_XML_FILE_REQUIRED;
     editor->activeDocumentIndex       = INVALID_DOCUMENT_INDEX;
     editor->requestedDocumentIndex    = INVALID_DOCUMENT_INDEX;
     editor->pendingCloseDocumentIndex = INVALID_DOCUMENT_INDEX;
+    editor->pendingSaveDocumentIndex  = INVALID_DOCUMENT_INDEX;
+    editor->isSaveAllPending          = FALSE;
     ImStrncpy(editor->folderPath, DEFAULT_FOLDER_PATH, sizeof(editor->folderPath));
     (void)memset(editor->selectedXmlFileName, 0, sizeof(editor->selectedXmlFileName));
+    (void)memset(editor->saveFolderPath, 0, sizeof(editor->saveFolderPath));
+    (void)memset(editor->saveFileName, 0, sizeof(editor->saveFileName));
     for (document_index = 0; document_index < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS; ++document_index)
     {
         document = &editor->documents[document_index];
-        document->status              = ARINC661_CONFIGURATION_STATUS_NONE;
+        document->status              = STATUS_NONE;
         document->isLoaded            = FALSE;
         document->isDirty             = FALSE;
-        document->selectedKind        = ARINC661_CONFIGURATION_SELECTION_NONE;
+        document->selectedKind        = SELECTION_NONE;
         document->selectedIndex       = 0;
         document->totalScreenWidth    = 0.0f;
         document->maximumScreenHeight = 0.0f;
@@ -2648,13 +3090,14 @@ void Arinc661_Configuration_DrawEditor(Arinc661_Configuration_Editor_t* editor)
         DrawFileMenuBar(editor);
         DrawFileControls(editor);
         DrawDocumentTabs(editor);
+        DrawSaveAsDialog(editor);
         DrawPanes(editor);
         if (ImGui::Shortcut(SAVE_SHORTCUT, SAVE_SHORTCUT_FLAGS))
         {
             if (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex)
             {
-                editor->status = ARINC661_CONFIGURATION_STATUS_NONE;
-                UnloadConfigurationFile(&editor->documents[editor->activeDocumentIndex]);
+                editor->isSaveAllPending = FALSE;
+                SaveDocument(editor, editor->activeDocumentIndex);
             }
         }
         DrawStatusBar(editor);
