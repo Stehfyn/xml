@@ -39,11 +39,13 @@ extern "C"
 #define DOCKSPACE_NAME            ("ARINC661DockSpace")
 
 #define CONFIGURATION_ADD_SCREEN_LABEL    ("+ Add Screen")
-#define CONFIGURATION_ADD_LAYOUT_LABEL    ("Add Layout")
-#define CONFIGURATION_ADD_WINDOW_LABEL    ("Add Window")
+#define CONFIGURATION_ADD_LAYOUT_LABEL    ("+ Add Layout")
+#define CONFIGURATION_ADD_WINDOW_LABEL    ("+ Add Window")
 #define CONFIGURATION_REMOVE_SCREEN_LABEL ("Remove Screen")
 #define CONFIGURATION_REMOVE_LAYOUT_LABEL ("Remove Layout")
 #define CONFIGURATION_REMOVE_WINDOW_LABEL ("Remove Window")
+#define CONFIGURATION_RELOAD_XML_LABEL     ("Reload XML")
+#define CONFIGURATION_BUILD_XML_LABEL      ("Build XML")
 
 #define VISUALIZER_CANVAS_COLOR        (IM_COL32(22, 27, 34, 255))
 #define VISUALIZER_SCREEN_COLOR        (IM_COL32(42, 50, 64, 255))
@@ -181,7 +183,19 @@ static void RemoveScreen(ConfigurationEditor_t* editor, uint32_t screenIndex);
 
 /*************************************************************************************************/
 /**
- * \brief Draws the selection tree and its screen add and remove controls.
+ * \brief Draws an X remove control beside the preceding tree row.
+ *
+ * \param[in] label     Button identifier and tooltip text
+ * \param[in] rowHeight Height of the tree row
+ *
+ * \retval TRUE  The remove control was clicked.
+ * \retval FALSE The remove control was not clicked.
+ */
+static bool_t DrawRemoveButton(const char_t* label, float32_t rowHeight);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws the selection tree and its add and remove controls.
  *
  * \param[in,out] editor Editor state
  *
@@ -639,37 +653,79 @@ static void RemoveScreen(ConfigurationEditor_t* editor, uint32_t screenIndex)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Iterates the typed parent indices and applies a requested screen removal after traversal.
+ *  Fits the X to the current font and centers it in a tree-row-height hit area.
+ */
+static bool_t DrawRemoveButton(const char_t* label, float32_t rowHeight)
+{
+    ImDrawList* draw_list;
+    ImVec2      button_size;
+    ImVec2      cross_half_size;
+    ImVec2      cross_center;
+    ImVec2      cross_min;
+    ImVec2      cross_max;
+    ImVec2      cross_left_bottom;
+    ImVec2      cross_right_top;
+    ImU32       cross_color;
+    float32_t   cross_size;
+    bool_t      is_clicked;
+
+    draw_list       = ImGui::GetWindowDrawList();
+    button_size     = ImVec2(ImGui::GetTextLineHeight(), rowHeight);
+    cross_size      = ImMin(ImGui::CalcTextSize("x").x, ImGui::GetTextLineHeight());
+    cross_half_size = (ImVec2(cross_size, cross_size) * 0.5f);
+
+    ImGui::SameLine();
+    is_clicked = ImGui::InvisibleButton(label, button_size);
+    ImGui::SetItemTooltip("%s", label);
+    cross_center      = ((ImGui::GetItemRectMin() + ImGui::GetItemRectMax()) * 0.5f);
+    cross_min         = (cross_center - cross_half_size);
+    cross_max         = (cross_center + cross_half_size);
+    cross_left_bottom = ImVec2(cross_min.x, cross_max.y);
+    cross_right_top   = ImVec2(cross_max.x, cross_min.y);
+    cross_color       = ImGui::GetColorU32(ImGuiCol_TextDisabled);
+    if (ImGui::IsItemHovered())
+    {
+        cross_color = ImGui::GetColorU32(ImGuiCol_Text);
+    }
+    draw_list->AddLine(cross_min, cross_max, cross_color);
+    draw_list->AddLine(cross_left_bottom, cross_right_top, cross_color);
+
+    return is_clicked;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Iterates the typed parent indices and applies requested additions or removals after traversal.
  */
 static void DrawHierarchy(ConfigurationEditor_t* editor)
 {
     const Utl_Arinc661_Screen_t* screen;
     const Utl_Arinc661_Layout_t* layout;
     const Utl_Arinc661_Window_t* window;
-    const ImGuiStyle*            style;
-    ImDrawList*                  draw_list;
     ImGuiTreeNodeFlags           flags;
-    ImVec2                       remove_button_size;
-    ImVec2                       cross_min;
-    ImVec2                       cross_max;
-    ImVec2                       cross_left_bottom;
-    ImVec2                       cross_right_top;
-    ImU32                        cross_color;
+    float32_t                    row_height;
     uint32_t                     screen_index;
     uint32_t                     layout_index;
     uint32_t                     window_index;
+    uint32_t                     parent_index;
+    uint32_t                     add_layout_screen_index;
+    uint32_t                     add_window_layout_index;
     uint32_t                     remove_screen_index;
+    uint32_t                     remove_layout_index;
+    uint32_t                     remove_window_index;
     bool_t                       is_screen_open;
     bool_t                       is_layout_open;
 
-    style               = &ImGui::GetStyle();
-    draw_list           = ImGui::GetWindowDrawList();
-    remove_button_size  = ImVec2(ImGui::GetFrameHeight(), ImGui::GetFrameHeight());
-    remove_screen_index = UINT32_MAX;
+    add_layout_screen_index = UINT32_MAX;
+    add_window_layout_index = UINT32_MAX;
+    remove_screen_index     = UINT32_MAX;
+    remove_layout_index     = UINT32_MAX;
+    remove_window_index     = UINT32_MAX;
     for (screen_index = 0; screen_index < editor->configuration.screenCount; ++screen_index)
     {
         screen = &editor->screens[screen_index];
-        flags  = (ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow);
+        flags  = (ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_AllowOverlap);
         if ((CONFIGURATION_SELECTION_SCREEN == editor->selectedKind) && (screen_index == editor->selectedIndex))
         {
             flags |= ImGuiTreeNodeFlags_Selected;
@@ -681,23 +737,11 @@ static void DrawHierarchy(ConfigurationEditor_t* editor)
             editor->selectedKind  = CONFIGURATION_SELECTION_SCREEN;
             editor->selectedIndex = screen_index;
         }
-        ImGui::SameLine();
-        if (ImGui::InvisibleButton(CONFIGURATION_REMOVE_SCREEN_LABEL, remove_button_size))
+        row_height = ImGui::GetItemRectSize().y;
+        if (DrawRemoveButton(CONFIGURATION_REMOVE_SCREEN_LABEL, row_height))
         {
             remove_screen_index = screen_index;
         }
-        ImGui::SetItemTooltip("%s", CONFIGURATION_REMOVE_SCREEN_LABEL);
-        cross_min         = (ImGui::GetItemRectMin() + style->FramePadding);
-        cross_max         = (ImGui::GetItemRectMax() - style->FramePadding);
-        cross_left_bottom = ImVec2(cross_min.x, cross_max.y);
-        cross_right_top   = ImVec2(cross_max.x, cross_min.y);
-        cross_color       = ImGui::GetColorU32(ImGuiCol_TextDisabled);
-        if (ImGui::IsItemHovered())
-        {
-            cross_color = ImGui::GetColorU32(ImGuiCol_Text);
-        }
-        draw_list->AddLine(cross_min, cross_max, cross_color);
-        draw_list->AddLine(cross_left_bottom, cross_right_top, cross_color);
         ImGui::PopID();
         if (is_screen_open)
         {
@@ -706,7 +750,7 @@ static void DrawHierarchy(ConfigurationEditor_t* editor)
                 layout = &editor->layouts[layout_index];
                 if (screen_index == layout->screenIndex)
                 {
-                    flags = (ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow);
+                    flags = (ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_AllowOverlap);
                     if ((CONFIGURATION_SELECTION_LAYOUT == editor->selectedKind) && (layout_index == editor->selectedIndex))
                     {
                         flags |= ImGuiTreeNodeFlags_Selected;
@@ -718,6 +762,11 @@ static void DrawHierarchy(ConfigurationEditor_t* editor)
                         editor->selectedKind  = CONFIGURATION_SELECTION_LAYOUT;
                         editor->selectedIndex = layout_index;
                     }
+                    row_height = ImGui::GetItemRectSize().y;
+                    if (DrawRemoveButton(CONFIGURATION_REMOVE_LAYOUT_LABEL, row_height))
+                    {
+                        remove_layout_index = layout_index;
+                    }
                     ImGui::PopID();
                     if (is_layout_open)
                     {
@@ -726,7 +775,7 @@ static void DrawHierarchy(ConfigurationEditor_t* editor)
                             window = &editor->windows[window_index];
                             if (layout_index == window->layoutIndex)
                             {
-                                flags = (ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+                                flags = (ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_AllowOverlap);
                                 if ((CONFIGURATION_SELECTION_WINDOW == editor->selectedKind) && (window_index == editor->selectedIndex))
                                 {
                                     flags |= ImGuiTreeNodeFlags_Selected;
@@ -738,12 +787,29 @@ static void DrawHierarchy(ConfigurationEditor_t* editor)
                                     editor->selectedKind  = CONFIGURATION_SELECTION_WINDOW;
                                     editor->selectedIndex = window_index;
                                 }
+                                row_height = ImGui::GetItemRectSize().y;
+                                if (DrawRemoveButton(CONFIGURATION_REMOVE_WINDOW_LABEL, row_height))
+                                {
+                                    remove_window_index = window_index;
+                                }
                                 ImGui::PopID();
                             }
+                        }
+                        flags = (ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+                        (void)ImGui::TreeNodeEx(CONFIGURATION_ADD_WINDOW_LABEL, flags);
+                        if (ImGui::IsItemClicked())
+                        {
+                            add_window_layout_index = layout_index;
                         }
                         ImGui::TreePop();
                     }
                 }
+            }
+            flags = (ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+            (void)ImGui::TreeNodeEx(CONFIGURATION_ADD_LAYOUT_LABEL, flags);
+            if (ImGui::IsItemClicked())
+            {
+                add_layout_screen_index = screen_index;
             }
             ImGui::TreePop();
         }
@@ -760,6 +826,30 @@ static void DrawHierarchy(ConfigurationEditor_t* editor)
         editor->selectedKind  = CONFIGURATION_SELECTION_NONE;
         editor->selectedIndex = 0;
         (void)strcpy(editor->status, "Removed screen. Build XML to save.");
+    }
+    else if (UINT32_MAX != remove_layout_index)
+    {
+        parent_index = editor->layouts[remove_layout_index].screenIndex;
+        RemoveLayout(editor, remove_layout_index);
+        editor->selectedKind  = CONFIGURATION_SELECTION_SCREEN;
+        editor->selectedIndex = parent_index;
+        (void)strcpy(editor->status, "Removed layout. Build XML to save.");
+    }
+    else if (UINT32_MAX != remove_window_index)
+    {
+        parent_index = editor->windows[remove_window_index].layoutIndex;
+        RemoveWindow(editor, remove_window_index);
+        editor->selectedKind  = CONFIGURATION_SELECTION_LAYOUT;
+        editor->selectedIndex = parent_index;
+        (void)strcpy(editor->status, "Removed window. Build XML to save.");
+    }
+    else if (UINT32_MAX != add_layout_screen_index)
+    {
+        AddLayout(editor, add_layout_screen_index);
+    }
+    else if (UINT32_MAX != add_window_layout_index)
+    {
+        AddWindow(editor, add_window_layout_index);
     }
 }
 
@@ -1003,19 +1093,18 @@ static void DrawConfigurationEditor(ConfigurationEditor_t* editor)
 {
     ImVec2    available_size;
     float32_t hierarchy_height;
-    uint32_t  parent_index;
 
     if (ImGui::Begin(CONFIGURATION_WINDOW_NAME))
     {
         ImGui::TextUnformatted("arinc661_configuration.xml");
-        if (ImGui::Button("Reload XML"))
+        if (ImGui::Button(CONFIGURATION_RELOAD_XML_LABEL))
         {
             ReloadConfiguration(editor);
         }
         if (editor->isLoaded)
         {
             ImGui::SameLine();
-            if (ImGui::Button("Build XML"))
+            if (ImGui::Button(CONFIGURATION_BUILD_XML_LABEL))
             {
                 BuildConfigurationFile(editor);
             }
@@ -1024,45 +1113,6 @@ static void DrawConfigurationEditor(ConfigurationEditor_t* editor)
         if (editor->isLoaded)
         {
             ImGui::TextUnformatted("Hierarchy");
-            if (CONFIGURATION_SELECTION_SCREEN == editor->selectedKind)
-            {
-                if (ImGui::SmallButton(CONFIGURATION_ADD_LAYOUT_LABEL))
-                {
-                    AddLayout(editor, editor->selectedIndex);
-                }
-            }
-            else if (CONFIGURATION_SELECTION_LAYOUT == editor->selectedKind)
-            {
-                if (ImGui::SmallButton(CONFIGURATION_ADD_WINDOW_LABEL))
-                {
-                    AddWindow(editor, editor->selectedIndex);
-                }
-                ImGui::SameLine();
-                if (ImGui::SmallButton(CONFIGURATION_REMOVE_LAYOUT_LABEL))
-                {
-                    parent_index = editor->layouts[editor->selectedIndex].screenIndex;
-                    RemoveLayout(editor, editor->selectedIndex);
-                    editor->selectedKind  = CONFIGURATION_SELECTION_SCREEN;
-                    editor->selectedIndex = parent_index;
-                    (void)strcpy(editor->status, "Removed layout. Build XML to save.");
-                }
-            }
-            else if (CONFIGURATION_SELECTION_WINDOW == editor->selectedKind)
-            {
-                if (ImGui::SmallButton(CONFIGURATION_ADD_WINDOW_LABEL))
-                {
-                    AddWindow(editor, editor->windows[editor->selectedIndex].layoutIndex);
-                }
-                ImGui::SameLine();
-                if (ImGui::SmallButton(CONFIGURATION_REMOVE_WINDOW_LABEL))
-                {
-                    parent_index = editor->windows[editor->selectedIndex].layoutIndex;
-                    RemoveWindow(editor, editor->selectedIndex);
-                    editor->selectedKind  = CONFIGURATION_SELECTION_LAYOUT;
-                    editor->selectedIndex = parent_index;
-                    (void)strcpy(editor->status, "Removed window. Build XML to save.");
-                }
-            }
             available_size   = ImGui::GetContentRegionAvail();
             hierarchy_height = (available_size.y / 2.0f);
             if (ImGui::BeginChild("Hierarchy", ImVec2(0.0f, hierarchy_height), TRUE))
@@ -1240,14 +1290,13 @@ static void DrawVisualizer(const ConfigurationEditor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Measures the hierarchy action row and limits the left dock to half the viewport.
+ *  Measures the file action row and limits the left dock to half the viewport.
  */
 static void BuildDockLayout(ImGuiID dockspaceId)
 {
     const ImGuiStyle*    style;
     const ImGuiViewport* viewport;
     ImVec2               button_padding;
-    ImVec2               action_size;
     ImVec2               toolbar_size;
     float32_t            minimum_dockspace_width;
     float32_t            configuration_ratio;
@@ -1258,9 +1307,7 @@ static void BuildDockLayout(ImGuiID dockspaceId)
     viewport = ImGui::GetMainViewport();
 
     button_padding = (style->FramePadding + style->FramePadding);
-    toolbar_size   = (ImGui::CalcTextSize(CONFIGURATION_ADD_WINDOW_LABEL) + ImGui::CalcTextSize(CONFIGURATION_REMOVE_LAYOUT_LABEL));
-    action_size    = (ImGui::CalcTextSize(CONFIGURATION_ADD_WINDOW_LABEL) + ImGui::CalcTextSize(CONFIGURATION_REMOVE_WINDOW_LABEL));
-    toolbar_size.x = ImMax(toolbar_size.x, action_size.x);
+    toolbar_size   = (ImGui::CalcTextSize(CONFIGURATION_RELOAD_XML_LABEL) + ImGui::CalcTextSize(CONFIGURATION_BUILD_XML_LABEL));
 
     toolbar_size += (button_padding + button_padding + style->ItemSpacing + style->WindowPadding + style->WindowPadding);
 
