@@ -80,11 +80,7 @@
 #define ARINC661_XML_ATTRIBUTE_LIBRARY_VERSION    ("library_version")
 #define ARINC661_XML_ATTRIBUTE_SUPPLEMENT_VERSION ("supp_version")
 
-/* FACE Units and XML Schema boolean lexical values. */
-#define ARINC661_XML_UNIT_INCH     ("inch")
-#define ARINC661_XML_UNIT_MM       ("mm")
-#define ARINC661_XML_UNIT_SCREEN   ("screen")
-#define ARINC661_XML_UNIT_PIXEL    ("pixel")
+/* XML Schema boolean lexical values. */
 #define ARINC661_XML_BOOLEAN_TRUE  ("true")
 #define ARINC661_XML_BOOLEAN_FALSE ("false")
 #define ARINC661_XML_BOOLEAN_ONE   ("1")
@@ -791,22 +787,22 @@ static bool_t ReadUnit(const Utl_Xml_Node_t* node, const char_t* name, Utl_Arinc
     if (NULL != attribute)
     {
         is_valid = FALSE;
-        if (HasAttributeValue(attribute, ARINC661_XML_UNIT_INCH))
+        if (HasAttributeValue(attribute, UTL_ARINC661_XML_UNIT_INCH))
         {
             (*unit) = UTL_ARINC661_UNIT_INCH;
             is_valid = TRUE;
         }
-        else if (HasAttributeValue(attribute, ARINC661_XML_UNIT_MM))
+        else if (HasAttributeValue(attribute, UTL_ARINC661_XML_UNIT_MM))
         {
             (*unit) = UTL_ARINC661_UNIT_MM;
             is_valid = TRUE;
         }
-        else if (HasAttributeValue(attribute, ARINC661_XML_UNIT_SCREEN))
+        else if (HasAttributeValue(attribute, UTL_ARINC661_XML_UNIT_SCREEN))
         {
             (*unit) = UTL_ARINC661_UNIT_SCREEN;
             is_valid = TRUE;
         }
-        else if (HasAttributeValue(attribute, ARINC661_XML_UNIT_PIXEL))
+        else if (HasAttributeValue(attribute, UTL_ARINC661_XML_UNIT_PIXEL))
         {
             (*unit) = UTL_ARINC661_UNIT_PIXEL;
             is_valid = TRUE;
@@ -1393,19 +1389,19 @@ static const char_t* UnitName(Utl_Arinc661_Unit_t unit)
     name = NULL;
     if (UTL_ARINC661_UNIT_INCH == unit)
     {
-        name = ARINC661_XML_UNIT_INCH;
+        name = UTL_ARINC661_XML_UNIT_INCH;
     }
     else if (UTL_ARINC661_UNIT_MM == unit)
     {
-        name = ARINC661_XML_UNIT_MM;
+        name = UTL_ARINC661_XML_UNIT_MM;
     }
     else if (UTL_ARINC661_UNIT_SCREEN == unit)
     {
-        name = ARINC661_XML_UNIT_SCREEN;
+        name = UTL_ARINC661_XML_UNIT_SCREEN;
     }
     else if (UTL_ARINC661_UNIT_PIXEL == unit)
     {
-        name = ARINC661_XML_UNIT_PIXEL;
+        name = UTL_ARINC661_XML_UNIT_PIXEL;
     }
 
     return name;

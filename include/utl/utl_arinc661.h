@@ -30,6 +30,12 @@
 #define UTL_ARINC661_MAX_PATH_BYTES        (512)
 #define UTL_ARINC661_WORKSPACE_BYTES       (16777216)
 
+/* FACE DisplayManagement.xsd unit spellings. */
+#define UTL_ARINC661_XML_UNIT_INCH   ("inch")
+#define UTL_ARINC661_XML_UNIT_MM     ("mm")
+#define UTL_ARINC661_XML_UNIT_SCREEN ("screen")
+#define UTL_ARINC661_XML_UNIT_PIXEL  ("pixel")
+
 /*=================================================================================================
 ** 3.2 Types
 **===============================================================================================*/

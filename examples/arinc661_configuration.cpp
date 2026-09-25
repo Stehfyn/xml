@@ -92,10 +92,10 @@ extern "C"
  */
 static const char_t* const c_unitNames[] =
 {
-    "inch",
-    "mm",
-    "screen",
-    "pixel"
+    UTL_ARINC661_XML_UNIT_INCH,
+    UTL_ARINC661_XML_UNIT_MM,
+    UTL_ARINC661_XML_UNIT_SCREEN,
+    UTL_ARINC661_XML_UNIT_PIXEL
 };
 
 /*=================================================================================================
