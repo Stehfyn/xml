@@ -79,13 +79,13 @@ static const char_t* const c_unitNames[] =
 
 /*************************************************************************************************/
 /**
- * \brief Reads example file bytes through the in-memory ARINC 661 reader.
+ * \brief Recalculates the dimensions needed to fit drawable screens in the visualizer.
  *
  * \param[in,out] editor Editor state
  *
  * \retval None
  */
-static void ReadConfigurationFile(ConfigurationEditor_t* editor);
+static void UpdatePreviewMeasurements(ConfigurationEditor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -313,59 +313,30 @@ static void BuildDockLayout(ImGuiID dockspaceId);
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Reads file bytes only; utl_arinc661 owns XML interpretation.
+ *  Sums valid screen widths and finds the tallest valid screen in the current configuration.
  */
-static void ReadConfigurationFile(ConfigurationEditor_t* editor)
+static void UpdatePreviewMeasurements(ConfigurationEditor_t* editor)
 {
-    int32_t document_byte_count;
-    bool_t  is_configuration;
+    const Utl_Arinc661_Screen_t* screen;
+    uint32_t                     screen_index;
+    bool_t                       has_screen_width;
+    bool_t                       has_screen_height;
+    bool_t                       is_drawable_screen;
 
-    editor->isLoaded                           = FALSE;
-    editor->selectedKind                       = CONFIGURATION_SELECTION_NONE;
-    editor->configuration.screenCount          = 0;
-    editor->configuration.layoutCount          = 0;
-    editor->configuration.windowCount          = 0;
-    editor->configuration.userApplicationCount = 0;
-    editor->configuration.externalSourceCount  = 0;
-    editor->configuration.hasMetaData          = FALSE;
-    document_byte_count = OS_File_ReadFile(ARINC661_CONFIGURATION_XML_PATH, editor->inputBuffer, sizeof(editor->inputBuffer));
-    if (0 > document_byte_count)
+    editor->totalScreenWidth    = 0.0f;
+    editor->maximumScreenHeight = 0.0f;
+    editor->drawableScreenCount = 0;
+    for (screen_index = 0; screen_index < editor->configuration.screenCount; ++screen_index)
     {
-        (void)strcpy(editor->status, "Could not read arinc661_configuration.xml.");
-    }
-    else
-    {
-        if (CONFIGURATION_MAX_DOCUMENT_BYTES < document_byte_count)
+        screen             = &editor->screens[screen_index];
+        has_screen_width   = (0 < screen->pixelSize.width);
+        has_screen_height  = (0 < screen->pixelSize.height);
+        is_drawable_screen = (has_screen_width && has_screen_height);
+        if (is_drawable_screen)
         {
-            (void)strcpy(editor->status, "The XML file exceeds the input buffer.");
-        }
-        else if (0 == document_byte_count)
-        {
-            (void)strcpy(editor->status, "The XML file is empty.");
-        }
-        else
-        {
-            is_configuration = Utl_Arinc661_ReadDisplayManagementConfiguration(
-                &editor->configuration,
-                editor->inputBuffer,
-                (uint64_t)document_byte_count,
-                editor->workspace,
-                sizeof(editor->workspace));
-            if (is_configuration)
-            {
-                editor->isLoaded       = TRUE;
-                editor->isPreviewDirty = TRUE;
-                if (0 < editor->configuration.screenCount)
-                {
-                    editor->selectedKind  = CONFIGURATION_SELECTION_SCREEN;
-                    editor->selectedIndex = 0;
-                }
-                (void)strcpy(editor->status, "Loaded arinc661_configuration.xml.");
-            }
-            else
-            {
-                (void)strcpy(editor->status, "Invalid or unsupported display configuration XML.");
-            }
+            editor->drawableScreenCount += 1;
+            editor->totalScreenWidth    += (float32_t)screen->pixelSize.width;
+            editor->maximumScreenHeight = ImMax(editor->maximumScreenHeight, (float32_t)screen->pixelSize.height);
         }
     }
 }
@@ -487,7 +458,7 @@ static void AddScreen(ConfigurationEditor_t* editor)
         editor->selectedKind              = CONFIGURATION_SELECTION_SCREEN;
         editor->selectedIndex             = editor->configuration.screenCount;
         editor->configuration.screenCount += 1;
-        editor->isPreviewDirty = TRUE;
+        UpdatePreviewMeasurements(editor);
         (void)strcpy(editor->status, "Added screen. Build XML to save.");
     }
     else
@@ -561,7 +532,6 @@ static void AddWindow(ConfigurationEditor_t* editor, uint32_t layoutIndex)
         editor->selectedKind           = CONFIGURATION_SELECTION_WINDOW;
         editor->selectedIndex          = editor->configuration.windowCount;
         editor->configuration.windowCount += 1;
-        editor->isPreviewDirty = TRUE;
         (void)strcpy(editor->status, "Added window. Build XML to save.");
     }
     else
@@ -589,7 +559,6 @@ static void RemoveWindow(ConfigurationEditor_t* editor, uint32_t windowIndex)
             ((uint64_t)remaining_count * sizeof(editor->windows[0])));
     }
     editor->configuration.windowCount -= 1;
-    editor->isPreviewDirty = TRUE;
 }
 
 /*************************************************************************************************/
@@ -628,7 +597,6 @@ static void RemoveLayout(ConfigurationEditor_t* editor, uint32_t layoutIndex)
             ((uint64_t)remaining_count * sizeof(editor->layouts[0])));
     }
     editor->configuration.layoutCount -= 1;
-    editor->isPreviewDirty = TRUE;
 }
 
 /*************************************************************************************************/
@@ -667,7 +635,7 @@ static void RemoveScreen(ConfigurationEditor_t* editor, uint32_t screenIndex)
             ((uint64_t)remaining_count * sizeof(editor->screens[0])));
     }
     editor->configuration.screenCount -= 1;
-    editor->isPreviewDirty = TRUE;
+    UpdatePreviewMeasurements(editor);
 }
 
 /*************************************************************************************************/
@@ -892,6 +860,9 @@ static bool_t DrawUnitField(const char_t* label, Utl_Arinc661_Unit_t* unit)
 static void DrawScreenInspector(ConfigurationEditor_t* editor)
 {
     Utl_Arinc661_Screen_t* screen;
+    bool_t                 has_width_changed;
+    bool_t                 has_height_changed;
+    bool_t                 has_pixel_size_changed;
 
     screen = &editor->screens[editor->selectedIndex];
     ImGui::TextUnformatted("Screen");
@@ -904,16 +875,15 @@ static void DrawScreenInspector(ConfigurationEditor_t* editor)
     ImGui::TextUnformatted("Pixel Size");
     if (BeginPropertyTable("PixelSizeProperties"))
     {
-        if (DrawIntegerField("Width", &screen->pixelSize.width))
-        {
-            editor->isPreviewDirty = TRUE;
-        }
-        if (DrawIntegerField("Height", &screen->pixelSize.height))
-        {
-            editor->isPreviewDirty = TRUE;
-        }
+        has_width_changed      = DrawIntegerField("Width", &screen->pixelSize.width);
+        has_height_changed     = DrawIntegerField("Height", &screen->pixelSize.height);
+        has_pixel_size_changed = (has_width_changed || has_height_changed);
         (void)DrawUnitField("Units", &screen->pixelSize.units);
         ImGui::EndTable();
+        if (has_pixel_size_changed)
+        {
+            UpdatePreviewMeasurements(editor);
+        }
     }
     ImGui::Separator();
     ImGui::TextUnformatted("Physical Dimensions");
@@ -965,22 +935,10 @@ static void DrawWindowInspector(ConfigurationEditor_t* editor)
     ImGui::TextUnformatted("Pixel Area");
     if (BeginPropertyTable("PixelAreaProperties"))
     {
-        if (DrawIntegerField("X", &window->pixelArea.x))
-        {
-            editor->isPreviewDirty = TRUE;
-        }
-        if (DrawIntegerField("Y", &window->pixelArea.y))
-        {
-            editor->isPreviewDirty = TRUE;
-        }
-        if (DrawIntegerField("Width", &window->pixelArea.width))
-        {
-            editor->isPreviewDirty = TRUE;
-        }
-        if (DrawIntegerField("Height", &window->pixelArea.height))
-        {
-            editor->isPreviewDirty = TRUE;
-        }
+        (void)DrawIntegerField("X", &window->pixelArea.x);
+        (void)DrawIntegerField("Y", &window->pixelArea.y);
+        (void)DrawIntegerField("Width", &window->pixelArea.width);
+        (void)DrawIntegerField("Height", &window->pixelArea.height);
         ImGui::EndTable();
     }
     ImGui::Separator();
@@ -1011,7 +969,7 @@ static void DrawConfigurationEditor(ConfigurationEditor_t* editor)
         ImGui::TextUnformatted("arinc661_configuration.xml");
         if (ImGui::Button("Reload XML"))
         {
-            ReadConfigurationFile(editor);
+            ReloadConfiguration(editor);
         }
         if (editor->isLoaded)
         {
@@ -1173,7 +1131,7 @@ static void DrawVisualizer(const ConfigurationEditor_t* editor)
 
             has_canvas_width  = (0.0f < content_size.x);
             has_canvas_height = (0.0f < content_size.y);
-            has_canvas_space  = !!(has_canvas_width && has_canvas_height);
+            has_canvas_space  = (has_canvas_width && has_canvas_height);
             if (FALSE == has_canvas_space)
             {
                 ImGui::TextUnformatted("Preview area is too small.");
@@ -1197,7 +1155,7 @@ static void DrawVisualizer(const ConfigurationEditor_t* editor)
                     screen             = &editor->screens[screen_index];
                     has_screen_width   = (0 < screen->pixelSize.width);
                     has_screen_height  = (0 < screen->pixelSize.height);
-                    is_drawable_screen = !!(has_screen_width && has_screen_height);
+                    is_drawable_screen = (has_screen_width && has_screen_height);
                     if (is_drawable_screen)
                     {
                         screen_min  = screen_position;
@@ -1296,7 +1254,7 @@ static void BuildDockLayout(ImGuiID dockspaceId)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Binds fixed caller-owned arrays before reading the example file.
+ *  Binds the fixed arrays and their capacities in the zero-initialized editor.
  */
 void InitializeConfiguration(ConfigurationEditor_t* editor)
 {
@@ -1310,44 +1268,71 @@ void InitializeConfiguration(ConfigurationEditor_t* editor)
     editor->configuration.windowCapacity          = CONFIGURATION_MAX_WINDOWS;
     editor->configuration.userApplicationCapacity = CONFIGURATION_MAX_USER_APPLICATIONS;
     editor->configuration.externalSourceCapacity  = CONFIGURATION_MAX_EXTERNAL_SOURCES;
-    editor->isLayoutInitialized                   = FALSE;
-    editor->isPreviewDirty                        = FALSE;
-    ReadConfigurationFile(editor);
-    UpdateConfiguration(editor);
 }
 
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Refreshes only presentation measurements; XML was interpreted at file read time.
+ *  Reads the example file and replaces the editor's typed configuration and selection.
  */
-void UpdateConfiguration(ConfigurationEditor_t* editor)
+void ReloadConfiguration(ConfigurationEditor_t* editor)
 {
-    const Utl_Arinc661_Screen_t* screen;
-    uint32_t                     screen_index;
-    bool_t                       has_screen_width;
-    bool_t                       has_screen_height;
-    bool_t                       is_drawable_screen;
+    int32_t document_byte_count;
+    bool_t  is_configuration;
 
-    if (editor->isPreviewDirty)
+    editor->isLoaded      = FALSE;
+    editor->selectedKind  = CONFIGURATION_SELECTION_NONE;
+    editor->selectedIndex = 0;
+
+    editor->configuration.screenCount          = 0;
+    editor->configuration.layoutCount          = 0;
+    editor->configuration.windowCount          = 0;
+    editor->configuration.userApplicationCount = 0;
+    editor->configuration.externalSourceCount  = 0;
+    editor->configuration.hasMetaData          = FALSE;
+
+    editor->totalScreenWidth    = 0.0f;
+    editor->maximumScreenHeight = 0.0f;
+    editor->drawableScreenCount = 0;
+
+    document_byte_count = OS_File_ReadFile(ARINC661_CONFIGURATION_XML_PATH, editor->inputBuffer, sizeof(editor->inputBuffer));
+    if (0 > document_byte_count)
     {
-        editor->totalScreenWidth    = 0.0f;
-        editor->maximumScreenHeight = 0.0f;
-        editor->drawableScreenCount = 0;
-        for (screen_index = 0; screen_index < editor->configuration.screenCount; ++screen_index)
+        (void)strcpy(editor->status, "Could not read arinc661_configuration.xml.");
+    }
+    else
+    {
+        if (CONFIGURATION_MAX_DOCUMENT_BYTES < document_byte_count)
         {
-            screen             = &editor->screens[screen_index];
-            has_screen_width   = (0 < screen->pixelSize.width);
-            has_screen_height  = (0 < screen->pixelSize.height);
-            is_drawable_screen = !!(has_screen_width && has_screen_height);
-            if (is_drawable_screen)
+            (void)strcpy(editor->status, "The XML file exceeds the input buffer.");
+        }
+        else if (0 == document_byte_count)
+        {
+            (void)strcpy(editor->status, "The XML file is empty.");
+        }
+        else
+        {
+            is_configuration = Utl_Arinc661_ReadDisplayManagementConfiguration(
+                &editor->configuration,
+                editor->inputBuffer,
+                (uint64_t)document_byte_count,
+                editor->workspace,
+                sizeof(editor->workspace));
+            if (is_configuration)
             {
-                editor->drawableScreenCount += 1;
-                editor->totalScreenWidth    += (float32_t)screen->pixelSize.width;
-                editor->maximumScreenHeight = ImMax(editor->maximumScreenHeight, (float32_t)screen->pixelSize.height);
+                editor->isLoaded = TRUE;
+                if (0 < editor->configuration.screenCount)
+                {
+                    editor->selectedKind = CONFIGURATION_SELECTION_SCREEN;
+                }
+                UpdatePreviewMeasurements(editor);
+                (void)strcpy(editor->status, "Loaded arinc661_configuration.xml.");
+            }
+            else
+            {
+                (void)strcpy(editor->status, "Invalid or unsupported display configuration XML.");
             }
         }
-        editor->isPreviewDirty = FALSE;
     }
 }
 

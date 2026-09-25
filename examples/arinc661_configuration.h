@@ -67,7 +67,6 @@ typedef struct ConfigurationEditor_s
     char_t                             status[CONFIGURATION_STATUS_BYTES];                      ///< Current message.
     bool_t                             isLoaded;                                                ///< TRUE after a successful read.
     bool_t                             isLayoutInitialized;                                     ///< TRUE after docking.
-    bool_t                             isPreviewDirty;                                          ///< TRUE after a dimension edit.
 } ConfigurationEditor_t;
 
 /*=================================================================================================
@@ -84,7 +83,7 @@ typedef struct ConfigurationEditor_s
 
 /*************************************************************************************************/
 /**
- * \brief Initializes fixed storage and reads the example configuration file.
+ * \brief Binds fixed arrays and their capacities in a zero-initialized editor.
  *
  * \param[in,out] editor Editor state
  *
@@ -94,13 +93,13 @@ void InitializeConfiguration(ConfigurationEditor_t* editor);
 
 /*************************************************************************************************/
 /**
- * \brief Refreshes visualizer measurements after a data edit.
+ * \brief Reloads the example file into the editor's typed configuration.
  *
  * \param[in,out] editor Editor state
  *
  * \retval None
  */
-void UpdateConfiguration(ConfigurationEditor_t* editor);
+void ReloadConfiguration(ConfigurationEditor_t* editor);
 
 /*************************************************************************************************/
 /**

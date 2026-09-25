@@ -309,7 +309,6 @@ static void EndFrame(WindowThreadState_t* window)
 static void DrawFrame(WindowThreadState_t* window)
 {
     AcquireSRWLockExclusive(&window->presentLock);
-    UpdateConfiguration(window->editor);
     BeginFrame();
     DrawConfiguration(window->editor);
     EndFrame(window);
@@ -572,7 +571,6 @@ static LRESULT WINAPI WindowProcedure(HWND windowHandle, UINT message, WPARAM wo
             if ((NULL != window->editor) && (FALSE == window->isDone.load()))
             {
                 AcquireSRWLockExclusive(&window->presentLock);
-                UpdateConfiguration(window->editor);
                 BeginFrame();
                 DrawConfiguration(window->editor);
                 EndFrame(window);
@@ -698,6 +696,7 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
 
     configuration_editor = (ConfigurationEditor_t*)OS_CALLOC(sizeof(ConfigurationEditor_t));
     InitializeConfiguration(configuration_editor);
+    ReloadConfiguration(configuration_editor);
     window->editor = configuration_editor;
     window->isInitialized = TRUE;
     LOGASSERT(FALSE != ::SetEvent(window->readyEvent));
