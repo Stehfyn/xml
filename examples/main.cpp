@@ -310,7 +310,7 @@ static void DrawFrame(WindowThreadState_t* window)
 {
     AcquireSRWLockExclusive(&window->presentLock);
     BeginFrame();
-    DrawConfiguration(window->editor);
+    DrawConfigurationEditor(window->editor);
     EndFrame(window);
     ReleaseSRWLockExclusive(&window->presentLock);
     LOGASSERT(S_OK == ::DwmFlush());
@@ -572,7 +572,7 @@ static LRESULT WINAPI WindowProcedure(HWND windowHandle, UINT message, WPARAM wo
             {
                 AcquireSRWLockExclusive(&window->presentLock);
                 BeginFrame();
-                DrawConfiguration(window->editor);
+                DrawConfigurationEditor(window->editor);
                 EndFrame(window);
                 ReleaseSRWLockExclusive(&window->presentLock);
                 LOGASSERT(S_OK == ::DwmFlush());
@@ -748,7 +748,7 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Opens the configuration editor and its live screen visualizer.
+ *  Opens the configuration editor and its live scene view.
  */
 int main(void)
 {

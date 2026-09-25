@@ -37,29 +37,33 @@ extern "C"
 #define CONFIGURATION_WINDOW_NAME ("ARINC 661 Configuration")
 #define HIERARCHY_PANE_NAME       ("Hierarchy")
 #define INSPECTOR_PANE_NAME       ("Inspector")
-#define VISUALIZER_PANE_NAME      ("Visualizer")
+#define SCENE_PANE_NAME           ("Scene")
 #define CONFIGURATION_FILE_LABEL  ("arinc661_configuration.xml")
-#define HIERARCHY_PANE_COLUMN      (0)
-#define VISUALIZER_PANE_COLUMN     (1)
-#define INSPECTOR_PANE_COLUMN      (2)
+#define HIERARCHY_PANE_COLUMN     (0)
+#define SCENE_PANE_COLUMN         (1)
+#define INSPECTOR_PANE_COLUMN     (2)
 #define CONFIGURATION_PANE_COUNT  (3)
 
-#define CONFIGURATION_ADD_SCREEN_LABEL    ("+ Add Screen")
-#define CONFIGURATION_ADD_LAYOUT_LABEL    ("+ Add Layout")
-#define CONFIGURATION_ADD_WINDOW_LABEL    ("+ Add Window")
-#define CONFIGURATION_REMOVE_SCREEN_LABEL ("Remove Screen")
-#define CONFIGURATION_REMOVE_LAYOUT_LABEL ("Remove Layout")
-#define CONFIGURATION_REMOVE_WINDOW_LABEL ("Remove Window")
+#define CONFIGURATION_ADD_SCREEN_LABEL     ("+ Add Screen")
+#define CONFIGURATION_ADD_LAYOUT_LABEL     ("+ Add Layout")
+#define CONFIGURATION_ADD_WINDOW_LABEL     ("+ Add Window")
+#define CONFIGURATION_REMOVE_SCREEN_LABEL  ("Remove Screen")
+#define CONFIGURATION_REMOVE_LAYOUT_LABEL  ("Remove Layout")
+#define CONFIGURATION_REMOVE_WINDOW_LABEL  ("Remove Window")
 #define CONFIGURATION_RELOAD_XML_LABEL     ("Reload XML")
 #define CONFIGURATION_BUILD_XML_LABEL      ("Build XML")
 #define CONFIGURATION_BASE_UNIT_LABEL      ("Base Unit")
 
-#define VISUALIZER_CANVAS_COLOR        (IM_COL32(22, 27, 34, 255))
-#define VISUALIZER_SCREEN_COLOR        (IM_COL32(42, 50, 64, 255))
-#define VISUALIZER_SCREEN_BORDER_COLOR (IM_COL32(220, 230, 245, 255))
-#define VISUALIZER_WINDOW_COLOR        (IM_COL32(42, 154, 188, 80))
-#define VISUALIZER_WINDOW_BORDER_COLOR (IM_COL32(97, 221, 245, 255))
-#define VISUALIZER_TEXT_COLOR          (IM_COL32(240, 248, 255, 255))
+#define CONFIGURATION_HIERARCHY_LABEL_BYTES (UTL_ARINC661_MAX_NAME_BYTES + 64)
+
+#define SCENE_CANVAS_COLOR        (IM_COL32(22, 27, 34, 255))
+#define SCENE_SCREEN_COLOR        (IM_COL32(42, 50, 64, 255))
+#define SCENE_SCREEN_BORDER_COLOR (IM_COL32(220, 230, 245, 255))
+#define SCENE_WINDOW_COLOR        (IM_COL32(42, 154, 188, 80))
+#define SCENE_WINDOW_BORDER_COLOR (IM_COL32(97, 221, 245, 255))
+#define SCENE_TEXT_COLOR          (IM_COL32(240, 248, 255, 255))
+
+#define SCENE_SELECTION_OVERLAY_COLOR (IM_COL32(255, 255, 255, 40))
 
 /*=================================================================================================
 ** 3.2 Types
@@ -91,7 +95,7 @@ static const char_t* const c_unitNames[] =
 
 /*************************************************************************************************/
 /**
- * \brief Recalculates the dimensions needed to fit drawable screens in the visualizer.
+ * \brief Recalculates the dimensions needed to fit drawable screens in the scene.
  *
  * \param[in,out] editor Editor state
  *
@@ -322,32 +326,35 @@ static void DrawInspector(ConfigurationEditor_t* editor);
 
 /*************************************************************************************************/
 /**
- * \brief Draws screen and window geometry in the center panel.
+ * \brief Draws screen and window geometry with selected hierarchy items highlighted.
  *
- * \param[in] editor Editor state
+ * \param[in,out] editor Editor state and hierarchy selection
  *
  * \retval None
  */
-static void DrawVisualizer(const ConfigurationEditor_t* editor);
+static void DrawScene(ConfigurationEditor_t* editor);
 
 /*************************************************************************************************/
 /**
  * \brief Limits pending pane drags before ImGui applies them.
  *
+ * \param[in] minimumHierarchyWidth Width required by the hierarchy controls
+ *
  * \retval None
  */
-static void ClampPaneResize(void);
+static void ClampPaneResize(float32_t minimumHierarchyWidth);
 
 /*************************************************************************************************/
 /**
- * \brief Measures the default widths of the hierarchy and inspector panes.
+ * \brief Measures the minimum hierarchy width and default inspector width.
  *
- * \param[out] hierarchyWidth Width needed for the file actions
- * \param[out] inspectorWidth Width needed for the property fields
+ * \param[in]  editor          Editor state containing hierarchy row labels
+ * \param[out] hierarchyWidth  Minimum width needed for the hierarchy and file actions
+ * \param[out] inspectorWidth  Width needed for the property fields
  *
  * \retval None
  */
-static void MeasurePaneWidths(float32_t* hierarchyWidth, float32_t* inspectorWidth);
+static void MeasurePaneWidths(const ConfigurationEditor_t* editor, float32_t* hierarchyWidth, float32_t* inspectorWidth);
 
 /*=================================================================================================
 ** 4. PRIVATE FUNCTIONS
@@ -559,7 +566,7 @@ static void AddWindow(ConfigurationEditor_t* editor, uint32_t layoutIndex)
         window = &editor->windows[editor->configuration.windowCount];
         (void)memset(window, 0, sizeof((*window)));
         window->id = id;
-        (void)snprintf(window->name, sizeof(window->name), "window%" PRId64, id);
+        ImFormatString(window->name, sizeof(window->name), "window%" PRId64, id);
         window->layoutIndex            = layoutIndex;
         window->pixelArea.width        = screen->pixelSize.width;
         window->pixelArea.height       = screen->pixelSize.height;
@@ -1184,9 +1191,9 @@ static void DrawInspector(ConfigurationEditor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Fits the combined screen widths and tallest screen inside the available canvas.
+ *  Fits the combined screen widths and tallest screen inside the available canvas, selects clicked geometry, and draws the selection overlay.
  */
-static void DrawVisualizer(const ConfigurationEditor_t* editor)
+static void DrawScene(ConfigurationEditor_t* editor)
 {
     const ImGuiStyle*            style;
     const Utl_Arinc661_Screen_t* screen;
@@ -1207,6 +1214,9 @@ static void DrawVisualizer(const ConfigurationEditor_t* editor)
     ImVec2                       area_size;
     ImVec2                       area_min;
     ImVec2                       area_max;
+    ImVec2                       selected_window_min;
+    ImVec2                       selected_window_max;
+    ImVec2                       mouse_position;
     char_t                       screen_label[64];
     char_t                       window_label[UTL_ARINC661_MAX_NAME_BYTES + 64];
     float32_t                    label_height;
@@ -1224,10 +1234,18 @@ static void DrawVisualizer(const ConfigurationEditor_t* editor)
     bool_t                       has_screen_width;
     bool_t                       has_screen_height;
     bool_t                       is_drawable_screen;
+    bool_t                       is_selected_screen;
+    bool_t                       is_selected_layout_window;
+    bool_t                       has_selected_window_area;
+    bool_t                       is_canvas_clicked;
+    bool_t                       is_screen_body_hit;
+    bool_t                       is_screen_label_hit;
+    bool_t                       is_screen_hit;
+    bool_t                       is_window_hit;
 
-    if (ImGui::BeginChild(VISUALIZER_PANE_NAME, ImVec2(0.0f, 0.0f), ImGuiChildFlags_AlwaysUseWindowPadding))
+    if (ImGui::BeginChild(SCENE_PANE_NAME, ImVec2(0.0f, 0.0f), ImGuiChildFlags_AlwaysUseWindowPadding))
     {
-        ImGui::TextUnformatted(VISUALIZER_PANE_NAME);
+        ImGui::TextUnformatted(SCENE_PANE_NAME);
         ImGui::Separator();
         if (FALSE == editor->isLoaded)
         {
@@ -1258,10 +1276,17 @@ static void DrawVisualizer(const ConfigurationEditor_t* editor)
             else
             {
                 (void)ImGui::InvisibleButton("Screen canvas", canvas_size);
+                is_canvas_clicked = ImGui::IsItemClicked();
+                if (is_canvas_clicked)
+                {
+                    editor->selectedKind  = CONFIGURATION_SELECTION_NONE;
+                    editor->selectedIndex = 0;
+                }
+                mouse_position = ImGui::GetMousePos();
                 draw_list  = ImGui::GetWindowDrawList();
                 canvas_max = (canvas_min + canvas_size);
                 draw_list->PushClipRect(canvas_min, canvas_max, TRUE);
-                draw_list->AddRectFilled(canvas_min, canvas_max, VISUALIZER_CANVAS_COLOR);
+                draw_list->AddRectFilled(canvas_min, canvas_max, SCENE_CANVAS_COLOR);
                 width_scale   = (content_size.x / editor->totalScreenWidth);
                 height_scale  = (content_size.y / editor->maximumScreenHeight);
                 scale         = ImMin(width_scale, height_scale);
@@ -1280,14 +1305,27 @@ static void DrawVisualizer(const ConfigurationEditor_t* editor)
                         screen_min  = screen_position;
                         screen_size = ImVec2((float32_t)screen->pixelSize.width, (float32_t)screen->pixelSize.height);
                         screen_max  = (screen_min + (screen_size * scale));
-                        draw_list->AddRectFilled(screen_min, screen_max, VISUALIZER_SCREEN_COLOR);
-                        draw_list->AddRect(screen_min, screen_max, VISUALIZER_SCREEN_BORDER_COLOR);
-                        (void)snprintf(screen_label, sizeof(screen_label), "Screen %" PRId64 " (%" PRId64 " x %" PRId64 ")", screen->id, screen->pixelSize.width, screen->pixelSize.height);
+
+                        draw_list->AddRectFilled(screen_min, screen_max, SCENE_SCREEN_COLOR);
+                        ImFormatString(screen_label, sizeof(screen_label), "Screen %" PRId64 " (%" PRId64 " x %" PRId64 ")", screen->id, screen->pixelSize.width, screen->pixelSize.height);
                         screen_label_size       = ImGui::CalcTextSize(screen_label);
                         screen_label_position   = screen_min;
                         screen_label_position.y = (screen_label_position.y - (screen_label_size.y + style->ItemSpacing.y));
-                        draw_list->AddText(screen_label_position, VISUALIZER_TEXT_COLOR, screen_label);
+                        is_screen_body_hit = FALSE;
+                        if (is_canvas_clicked)
+                        {
+                            is_screen_body_hit  = ImRect(screen_min, screen_max).Contains(mouse_position);
+                            is_screen_label_hit = ImRect(screen_label_position, (screen_label_position + screen_label_size)).Contains(mouse_position);
+                            is_screen_hit       = !!(is_screen_body_hit || is_screen_label_hit);
+                            if (is_screen_hit)
+                            {
+                                editor->selectedKind  = CONFIGURATION_SELECTION_SCREEN;
+                                editor->selectedIndex = screen_index;
+                            }
+                        }
+                        draw_list->AddText(screen_label_position, SCENE_TEXT_COLOR, screen_label);
                         draw_list->PushClipRect(screen_min, screen_max, TRUE);
+                        has_selected_window_area = FALSE;
                         for (window_index = 0; window_index < editor->configuration.windowCount; ++window_index)
                         {
                             window              = &editor->windows[window_index];
@@ -1304,20 +1342,64 @@ static void DrawVisualizer(const ConfigurationEditor_t* editor)
                                 area_size   = ImVec2((float32_t)window->pixelArea.width, (float32_t)window->pixelArea.height);
                                 area_min    = (screen_min + (area_offset * scale));
                                 area_max    = (area_min + (area_size * scale));
-                                draw_list->AddRectFilled(area_min, area_max, VISUALIZER_WINDOW_COLOR);
-                                draw_list->AddRect(area_min, area_max, VISUALIZER_WINDOW_BORDER_COLOR);
+
+                                if (is_screen_body_hit)
+                                {
+                                    is_window_hit = ImRect(area_min, area_max).Contains(mouse_position);
+                                    if (is_window_hit)
+                                    {
+                                        editor->selectedKind  = CONFIGURATION_SELECTION_WINDOW;
+                                        editor->selectedIndex = window_index;
+                                    }
+                                }
+                                is_selected_layout_window = FALSE;
+                                if (CONFIGURATION_SELECTION_LAYOUT == editor->selectedKind)
+                                {
+                                    is_selected_layout_window = (window->layoutIndex == editor->selectedIndex);
+                                }
+                                else if (CONFIGURATION_SELECTION_WINDOW == editor->selectedKind)
+                                {
+                                    if (window_index == editor->selectedIndex)
+                                    {
+                                        selected_window_min      = area_min;
+                                        selected_window_max      = area_max;
+                                        has_selected_window_area = TRUE;
+                                    }
+                                }
+
+                                draw_list->AddRectFilled(area_min, area_max, SCENE_WINDOW_COLOR);
+                                draw_list->AddRect(area_min, area_max, SCENE_WINDOW_BORDER_COLOR);
                                 if ('\0' != window->name[0])
                                 {
-                                    (void)snprintf(window_label, sizeof(window_label), "%s (%" PRId64 " x %" PRId64 ")", window->name, window->pixelArea.width, window->pixelArea.height);
+                                    ImFormatString(window_label, sizeof(window_label), "%s (%" PRId64 " x %" PRId64 ")", window->name, window->pixelArea.width, window->pixelArea.height);
                                 }
                                 else
                                 {
-                                    (void)snprintf(window_label, sizeof(window_label), "Window %" PRId64 " (%" PRId64 " x %" PRId64 ")", window->id, window->pixelArea.width, window->pixelArea.height);
+                                    ImFormatString(window_label, sizeof(window_label), "Window %" PRId64 " (%" PRId64 " x %" PRId64 ")",
+                                                   window->id, window->pixelArea.width, window->pixelArea.height);
                                 }
-                                draw_list->AddText((area_min + style->FramePadding), VISUALIZER_TEXT_COLOR, window_label);
+                                draw_list->AddText((area_min + style->FramePadding), SCENE_TEXT_COLOR, window_label);
+                                if (is_selected_layout_window)
+                                {
+                                    draw_list->AddRectFilled(area_min, area_max, SCENE_SELECTION_OVERLAY_COLOR);
+                                }
                             }
                         }
+                        if (has_selected_window_area)
+                        {
+                            draw_list->AddRectFilled(selected_window_min, selected_window_max, SCENE_SELECTION_OVERLAY_COLOR);
+                        }
+                        is_selected_screen = (CONFIGURATION_SELECTION_SCREEN == editor->selectedKind);
+                        if (is_selected_screen)
+                        {
+                            is_selected_screen = (screen_index == editor->selectedIndex);
+                        }
+                        if (is_selected_screen)
+                        {
+                            draw_list->AddRectFilled(screen_min, screen_max, SCENE_SELECTION_OVERLAY_COLOR);
+                        }
                         draw_list->PopClipRect();
+                        draw_list->AddRect(screen_min, screen_max, SCENE_SCREEN_BORDER_COLOR);
                         screen_position.x = (screen_max.x + style->ItemSpacing.x);
                     }
                 }
@@ -1331,49 +1413,65 @@ static void DrawVisualizer(const ConfigurationEditor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Stops the left divider at the right divider.
+ *  Keeps the hierarchy controls visible and stops the left divider at the right divider.
  *  Stops the right divider when the inspector reaches the hierarchy's width.
  */
-static void ClampPaneResize(void)
+static void ClampPaneResize(float32_t minimumHierarchyWidth)
 {
     ImGuiTable* table;
     float32_t   maximum_hierarchy_width;
-    float32_t   maximum_visualizer_width;
+    float32_t   maximum_scene_width;
+    float32_t   minimum_divider_spacing;
+    float32_t   minimum_hierarchy_width;
 
     table = ImGui::GetCurrentTable();
     if (HIERARCHY_PANE_COLUMN == table->ResizedColumn)
     {
+        minimum_divider_spacing  = (table->MinColumnWidth + (table->CellPaddingX * 2.0f));
+        minimum_divider_spacing += table->CellSpacingX1;
+        minimum_divider_spacing += table->CellSpacingX2;
+
         maximum_hierarchy_width  = table->Columns[INSPECTOR_PANE_COLUMN].MinX;
         maximum_hierarchy_width -= table->Columns[HIERARCHY_PANE_COLUMN].MaxX;
         maximum_hierarchy_width += table->Columns[HIERARCHY_PANE_COLUMN].WidthGiven;
-        table->ResizedColumnNextWidth = ImMin(table->ResizedColumnNextWidth, maximum_hierarchy_width);
+        maximum_hierarchy_width -= minimum_divider_spacing;
+
+        minimum_hierarchy_width = ImMin(minimumHierarchyWidth, maximum_hierarchy_width);
+
+        table->ResizedColumnNextWidth = ImClamp(table->ResizedColumnNextWidth, minimum_hierarchy_width, maximum_hierarchy_width);
     }
-    else if (VISUALIZER_PANE_COLUMN == table->ResizedColumn)
+    else if (SCENE_PANE_COLUMN == table->ResizedColumn)
     {
-        maximum_visualizer_width = (table->Columns[VISUALIZER_PANE_COLUMN].WidthRequest + table->Columns[INSPECTOR_PANE_COLUMN].WidthRequest);
-        maximum_visualizer_width -= table->Columns[HIERARCHY_PANE_COLUMN].WidthGiven;
-        table->ResizedColumnNextWidth = ImMin(table->ResizedColumnNextWidth, maximum_visualizer_width);
+        maximum_scene_width = (table->Columns[SCENE_PANE_COLUMN].WidthRequest + table->Columns[INSPECTOR_PANE_COLUMN].WidthRequest);
+        maximum_scene_width -= table->Columns[HIERARCHY_PANE_COLUMN].WidthGiven;
+        table->ResizedColumnNextWidth = ImMin(table->ResizedColumnNextWidth, maximum_scene_width);
     }
 }
 
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Uses the visible file actions and property fields for the side pane defaults.
+ *  Includes every hierarchy label and its adjacent remove control in the left pane minimum.
  */
-static void MeasurePaneWidths(float32_t* hierarchyWidth, float32_t* inspectorWidth)
+static void MeasurePaneWidths(const ConfigurationEditor_t* editor, float32_t* hierarchyWidth, float32_t* inspectorWidth)
 {
     const ImGuiStyle* style;
     ImVec2            button_padding;
     ImVec2            file_label_size;
     ImVec2            toolbar_size;
     char_t            integer_text[32];
+    char_t            hierarchy_label[CONFIGURATION_HIERARCHY_LABEL_BYTES];
+    float32_t         hierarchy_row_padding;
+    float32_t         hierarchy_row_width;
     float32_t         property_width;
     float32_t         value_width;
+    uint32_t          screen_index;
+    uint32_t          layout_index;
+    uint32_t          window_index;
 
     style = &ImGui::GetStyle();
 
-    (void)snprintf(integer_text, sizeof(integer_text), "%" PRId64, INT64_MIN);
+    ImFormatString(integer_text, sizeof(integer_text), "%" PRId64, INT64_MIN);
     button_padding  = (style->FramePadding + style->FramePadding);
     file_label_size = ImGui::CalcTextSize(CONFIGURATION_FILE_LABEL);
     toolbar_size    = (ImGui::CalcTextSize(CONFIGURATION_RELOAD_XML_LABEL) + ImGui::CalcTextSize(CONFIGURATION_BUILD_XML_LABEL));
@@ -1383,6 +1481,35 @@ static void MeasurePaneWidths(float32_t* hierarchyWidth, float32_t* inspectorWid
     property_width    = (ImGui::CalcTextSize(CONFIGURATION_BASE_UNIT_LABEL).x + button_padding.x);
     value_width       = (ImGui::CalcTextSize(integer_text).x + button_padding.x);
     (*hierarchyWidth) = ImMax(toolbar_size.x, (file_label_size.x + (style->WindowPadding.x * 2.0f)));
+
+    hierarchy_row_padding  = (style->WindowPadding.x * 2.0f);
+    hierarchy_row_padding += ImGui::GetTreeNodeToLabelSpacing();
+    hierarchy_row_padding += style->ItemSpacing.x;
+    hierarchy_row_padding += ImGui::GetTextLineHeight();
+
+    for (screen_index = 0; screen_index < editor->configuration.screenCount; ++screen_index)
+    {
+        ImFormatString(hierarchy_label, sizeof(hierarchy_label), "Screen %" PRId64, editor->screens[screen_index].id);
+        hierarchy_row_width = (ImGui::CalcTextSize(hierarchy_label).x + hierarchy_row_padding);
+        (*hierarchyWidth)   = ImMax((*hierarchyWidth), hierarchy_row_width);
+    }
+
+    for (layout_index = 0; layout_index < editor->configuration.layoutCount; ++layout_index)
+    {
+        ImFormatString(hierarchy_label, sizeof(hierarchy_label), "Layout %" PRId64, editor->layouts[layout_index].id);
+        hierarchy_row_width = (ImGui::CalcTextSize(hierarchy_label).x + hierarchy_row_padding + style->IndentSpacing);
+        (*hierarchyWidth)   = ImMax((*hierarchyWidth), hierarchy_row_width);
+    }
+
+    for (window_index = 0; window_index < editor->configuration.windowCount; ++window_index)
+    {
+        ImFormatString(hierarchy_label, sizeof(hierarchy_label), "Window %" PRId64 " (%s)", editor->windows[window_index].id, editor->windows[window_index].name);
+        hierarchy_row_width = (ImGui::CalcTextSize(hierarchy_label).x + hierarchy_row_padding + (style->IndentSpacing * 2.0f));
+        (*hierarchyWidth)   = ImMax((*hierarchyWidth), hierarchy_row_width);
+    }
+
+    (*hierarchyWidth) += style->ScrollbarSize;
+
     (*inspectorWidth) = (property_width + value_width);
     (*inspectorWidth) += (style->CellPadding.x * 4.0f);
     (*inspectorWidth) += (style->WindowPadding.x * 2.0f);
@@ -1476,15 +1603,15 @@ void ReloadConfiguration(ConfigurationEditor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Draws one viewport-sized window containing resizable hierarchy, visualizer, and inspector panes.
+ *  Draws one viewport-sized window containing resizable hierarchy, scene, and inspector panes.
  */
-void DrawConfiguration(ConfigurationEditor_t* editor)
+void DrawConfigurationEditor(ConfigurationEditor_t* editor)
 {
     const ImGuiViewport* viewport;
     ImGuiWindowFlags     window_flags;
     ImGuiTableFlags      table_flags;
     ImVec2               table_size;
-    float32_t            hierarchy_width;
+    float32_t            minimum_hierarchy_width;
     float32_t            inspector_width;
 
     viewport     = ImGui::GetMainViewport();
@@ -1494,15 +1621,15 @@ void DrawConfiguration(ConfigurationEditor_t* editor)
     ImGui::SetNextWindowViewport(viewport->ID);
     if (ImGui::Begin(CONFIGURATION_WINDOW_NAME, NULL, window_flags))
     {
-        MeasurePaneWidths(&hierarchy_width, &inspector_width);
+        MeasurePaneWidths(editor, &minimum_hierarchy_width, &inspector_width);
         table_size  = ImGui::GetContentRegionAvail();
         table_flags = (ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_NoPadOuterX | ImGuiTableFlags_NoPadInnerX);
         if (ImGui::BeginTable("ConfigurationPanes", CONFIGURATION_PANE_COUNT, table_flags, table_size))
         {
-            ImGui::TableSetupColumn(HIERARCHY_PANE_NAME, ImGuiTableColumnFlags_WidthFixed, hierarchy_width);
-            ImGui::TableSetupColumn(VISUALIZER_PANE_NAME, ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn(HIERARCHY_PANE_NAME, ImGuiTableColumnFlags_WidthFixed, minimum_hierarchy_width);
+            ImGui::TableSetupColumn(SCENE_PANE_NAME, ImGuiTableColumnFlags_WidthStretch);
             ImGui::TableSetupColumn(INSPECTOR_PANE_NAME, ImGuiTableColumnFlags_WidthFixed, inspector_width);
-            ClampPaneResize();
+            ClampPaneResize(minimum_hierarchy_width);
             ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.0f, 0.0f));
             ImGui::TableNextRow();
             ImGui::PopStyleVar();
@@ -1510,8 +1637,8 @@ void DrawConfiguration(ConfigurationEditor_t* editor)
             DrawHierarchyPane(editor);
             ImGui::TableSetColumnIndex(INSPECTOR_PANE_COLUMN);
             DrawInspector(editor);
-            ImGui::TableSetColumnIndex(VISUALIZER_PANE_COLUMN);
-            DrawVisualizer(editor);
+            ImGui::TableSetColumnIndex(SCENE_PANE_COLUMN);
+            DrawScene(editor);
             ImGui::EndTable();
         }
     }

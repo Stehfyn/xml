@@ -102,12 +102,12 @@ void ReloadConfiguration(ConfigurationEditor_t* editor);
 
 /*************************************************************************************************/
 /**
- * \brief Draws the hierarchy, visualizer, and inspector in one ImGui window.
+ * \brief Draws the hierarchy, scene, and inspector in one ImGui window.
  *
  * \param[in,out] editor Editor state
  *
  * \retval None
  */
-void DrawConfiguration(ConfigurationEditor_t* editor);
+void DrawConfigurationEditor(ConfigurationEditor_t* editor);
 
 #endif /* ARINC661_CONFIGURATION_H */
