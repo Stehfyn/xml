@@ -59,7 +59,9 @@ extern "C"
 #define CONFIGURATION_BUILD_XML_LABEL      ("Build XML")
 #define CONFIGURATION_BASE_UNIT_LABEL      ("Base Unit")
 
-#define CONFIGURATION_HIERARCHY_LABEL_BYTES (UTL_ARINC661_MAX_NAME_BYTES + 64)
+#define CONFIGURATION_INTEGER_TEXT_BYTES   (32)
+#define CONFIGURATION_LABEL_FORMAT_BYTES   (64)
+#define CONFIGURATION_HIERARCHY_LABEL_BYTES (UTL_ARINC661_MAX_NAME_BYTES + CONFIGURATION_LABEL_FORMAT_BYTES)
 
 #define HIERARCHY_BRANCH_FLAGS (ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_AllowOverlap)
 #define HIERARCHY_WINDOW_FLAGS (ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_AllowOverlap)
@@ -905,7 +907,7 @@ static void DrawHierarchy(Arinc661_Configuration_Editor_t* editor)
         RemoveScreen(editor, remove_screen_index);
         editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_NONE;
         editor->selectedIndex = 0;
-        editor->status = ARINC661_CONFIGURATION_STATUS_SCREEN_REMOVED;
+        editor->status        = ARINC661_CONFIGURATION_STATUS_SCREEN_REMOVED;
     }
     else if (INVALID_HIERARCHY_INDEX != remove_layout_index)
     {
@@ -913,7 +915,7 @@ static void DrawHierarchy(Arinc661_Configuration_Editor_t* editor)
         RemoveLayout(editor, remove_layout_index);
         editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_SCREEN;
         editor->selectedIndex = parent_index;
-        editor->status = ARINC661_CONFIGURATION_STATUS_LAYOUT_REMOVED;
+        editor->status        = ARINC661_CONFIGURATION_STATUS_LAYOUT_REMOVED;
     }
     else if (INVALID_HIERARCHY_INDEX != remove_window_index)
     {
@@ -921,7 +923,7 @@ static void DrawHierarchy(Arinc661_Configuration_Editor_t* editor)
         RemoveWindow(editor, remove_window_index);
         editor->selectedKind  = ARINC661_CONFIGURATION_SELECTION_LAYOUT;
         editor->selectedIndex = parent_index;
-        editor->status = ARINC661_CONFIGURATION_STATUS_WINDOW_REMOVED;
+        editor->status        = ARINC661_CONFIGURATION_STATUS_WINDOW_REMOVED;
     }
     else if (INVALID_HIERARCHY_INDEX != add_layout_screen_index)
     {
@@ -1253,8 +1255,8 @@ static void DrawScene(Arinc661_Configuration_Editor_t* editor)
     ImVec2                       selected_window_min;
     ImVec2                       selected_window_max;
     ImVec2                       mouse_position;
-    char_t                       screen_label[64];
-    char_t                       window_label[UTL_ARINC661_MAX_NAME_BYTES + 64];
+    char_t                       screen_label[CONFIGURATION_LABEL_FORMAT_BYTES];
+    char_t                       window_label[UTL_ARINC661_MAX_NAME_BYTES + CONFIGURATION_LABEL_FORMAT_BYTES];
     float32_t                    label_height;
     float32_t                    unused_height;
     float32_t                    width_scale;
@@ -1524,7 +1526,7 @@ static void MeasurePaneWidths(const Arinc661_Configuration_Editor_t* editor, flo
     const ImGuiStyle* style;
     ImVec2            button_padding;
     ImVec2            file_label_size;
-    char_t            integer_text[32];
+    char_t            integer_text[CONFIGURATION_INTEGER_TEXT_BYTES];
     char_t            hierarchy_label[CONFIGURATION_HIERARCHY_LABEL_BYTES];
     float32_t         hierarchy_row_padding;
     float32_t         hierarchy_row_width;
