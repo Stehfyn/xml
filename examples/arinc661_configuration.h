@@ -58,7 +58,7 @@ typedef struct ConfigurationEditor_s
     Utl_Arinc661_Window_t              windows[CONFIGURATION_MAX_WINDOWS];                      ///< Window values.
     Utl_Arinc661_UserApplication_t     userApplications[CONFIGURATION_MAX_USER_APPLICATIONS];  ///< User application values.
     Utl_Arinc661_ExternalSource_t      externalSources[CONFIGURATION_MAX_EXTERNAL_SOURCES];    ///< External source values.
-    Utl_Arinc661_DisplayManagementConfiguration_t configuration;                               ///< Display management configuration values.
+    Utl_Arinc661_Configuration_t       configuration;                                          ///< Display management configuration values.
     ConfigurationSelectionKind_t       selectedKind;                                             ///< Selected entity type.
     uint32_t                           selectedIndex;                                            ///< Selected array index.
     float32_t                          totalScreenWidth;                                         ///< Sum of drawable screen widths.

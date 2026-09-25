@@ -380,7 +380,7 @@ static bool_t ReadScale(const Utl_Xml_Node_t* node, Utl_Arinc661_Scale_t* scale)
  * \retval    TRUE  The supported screen data fits and is valid.
  * \retval    FALSE A value is invalid or storage is exhausted.
  */
-static bool_t ReadScreenHierarchy(Utl_Arinc661_DisplayManagementConfiguration_t* configuration, Utl_Xml_Node_t* screenNode);
+static bool_t ReadScreenHierarchy(Utl_Arinc661_Configuration_t* configuration, Utl_Xml_Node_t* screenNode);
 
 /*************************************************************************************************/
 /**
@@ -392,7 +392,7 @@ static bool_t ReadScreenHierarchy(Utl_Arinc661_DisplayManagementConfiguration_t*
  * \retval    TRUE  The application was read.
  * \retval    FALSE A required value is absent, malformed, or storage is exhausted.
  */
-static bool_t ReadUserApplication(Utl_Arinc661_DisplayManagementConfiguration_t* configuration, const Utl_Xml_Node_t* node);
+static bool_t ReadUserApplication(Utl_Arinc661_Configuration_t* configuration, const Utl_Xml_Node_t* node);
 
 /*************************************************************************************************/
 /**
@@ -404,7 +404,7 @@ static bool_t ReadUserApplication(Utl_Arinc661_DisplayManagementConfiguration_t*
  * \retval    TRUE  The external source was read.
  * \retval    FALSE A value is invalid or storage is exhausted.
  */
-static bool_t ReadExternalSource(Utl_Arinc661_DisplayManagementConfiguration_t* configuration, const Utl_Xml_Node_t* node);
+static bool_t ReadExternalSource(Utl_Arinc661_Configuration_t* configuration, const Utl_Xml_Node_t* node);
 
 /*************************************************************************************************/
 /**
@@ -1104,7 +1104,7 @@ static bool_t ReadScale(const Utl_Xml_Node_t* node, Utl_Arinc661_Scale_t* scale)
  * \par Details:
  *  None
  */
-static bool_t ReadScreenHierarchy(Utl_Arinc661_DisplayManagementConfiguration_t* configuration, Utl_Xml_Node_t* screenNode)
+static bool_t ReadScreenHierarchy(Utl_Arinc661_Configuration_t* configuration, Utl_Xml_Node_t* screenNode)
 {
     Utl_Arinc661_Screen_t* screen;
     Utl_Arinc661_Layout_t* layout;
@@ -1270,7 +1270,7 @@ static bool_t ReadScreenHierarchy(Utl_Arinc661_DisplayManagementConfiguration_t*
  * \par Details:
  *  None
  */
-static bool_t ReadUserApplication(Utl_Arinc661_DisplayManagementConfiguration_t* configuration, const Utl_Xml_Node_t* node)
+static bool_t ReadUserApplication(Utl_Arinc661_Configuration_t* configuration, const Utl_Xml_Node_t* node)
 {
     Utl_Arinc661_UserApplication_t* application;
     const Utl_Xml_Attribute_t*      df_path;
@@ -1321,7 +1321,7 @@ static bool_t ReadUserApplication(Utl_Arinc661_DisplayManagementConfiguration_t*
  * \par Details:
  *  None
  */
-static bool_t ReadExternalSource(Utl_Arinc661_DisplayManagementConfiguration_t* configuration, const Utl_Xml_Node_t* node)
+static bool_t ReadExternalSource(Utl_Arinc661_Configuration_t* configuration, const Utl_Xml_Node_t* node)
 {
     Utl_Arinc661_ExternalSource_t* source;
     int64_t                        id;
@@ -1759,7 +1759,7 @@ static bool_t WriteProperties(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const
  * \par Details:
  *  XML nodes and attributes live only in the opaque temporary workspace.
  */
-bool_t Utl_Arinc661_ReadDisplayManagementConfiguration(Utl_Arinc661_DisplayManagementConfiguration_t* configuration, byte_t* buffer, uint64_t byteCount, void* workspace, uint64_t workspaceSize)
+bool_t Utl_Arinc661_ReadConfiguration(Utl_Arinc661_Configuration_t* configuration, byte_t* buffer, uint64_t byteCount, void* workspace, uint64_t workspaceSize)
 {
     XmlWorkspace_t  xml;
     Utl_Xml_Node_t* root;
@@ -1849,7 +1849,7 @@ bool_t Utl_Arinc661_ReadDisplayManagementConfiguration(Utl_Arinc661_DisplayManag
  * \par Details:
  *  Constructs an XML document from the separate configuration values and serializes it in memory.
  */
-uint64_t Utl_Arinc661_WriteDisplayManagementConfiguration(const Utl_Arinc661_DisplayManagementConfiguration_t* configuration, byte_t* buffer, uint64_t capacity, void* workspace, uint64_t workspaceSize)
+uint64_t Utl_Arinc661_WriteConfiguration(const Utl_Arinc661_Configuration_t* configuration, byte_t* buffer, uint64_t capacity, void* workspace, uint64_t workspaceSize)
 {
     XmlWorkspace_t               xml;
     Utl_Xml_Node_t*              declaration;

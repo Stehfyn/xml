@@ -352,7 +352,7 @@ static void BuildConfigurationFile(ConfigurationEditor_t* editor)
     uint64_t output_byte_count;
     uint64_t bytes_written;
 
-    output_byte_count = Utl_Arinc661_WriteDisplayManagementConfiguration(
+    output_byte_count = Utl_Arinc661_WriteConfiguration(
         &editor->configuration,
         editor->outputBuffer,
         sizeof(editor->outputBuffer),
@@ -1312,7 +1312,7 @@ void ReloadConfiguration(ConfigurationEditor_t* editor)
         }
         else
         {
-            is_configuration = Utl_Arinc661_ReadDisplayManagementConfiguration(
+            is_configuration = Utl_Arinc661_ReadConfiguration(
                 &editor->configuration,
                 editor->inputBuffer,
                 (uint64_t)document_byte_count,

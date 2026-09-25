@@ -145,7 +145,7 @@ typedef struct Utl_Arinc661_ExternalSource_s
 /**
  * \brief Caller-owned FACE display management configuration data.
  */
-typedef struct Utl_Arinc661_DisplayManagementConfiguration_s
+typedef struct Utl_Arinc661_Configuration_s
 {
     Utl_Arinc661_Screen_t*          screens;                 ///< Screen storage.
     Utl_Arinc661_Layout_t*          layouts;                 ///< Layout storage.
@@ -163,7 +163,7 @@ typedef struct Utl_Arinc661_DisplayManagementConfiguration_s
     uint32_t                        userApplicationCount;    ///< User applications in use.
     uint32_t                        externalSourceCount;     ///< External sources in use.
     bool_t                          hasMetaData;             ///< TRUE when an empty metaData element is present.
-} Utl_Arinc661_DisplayManagementConfiguration_t;
+} Utl_Arinc661_Configuration_t;
 
 /*************************************************************************************************/
 /**
@@ -270,7 +270,7 @@ typedef struct Utl_Arinc661_Definition_s
  * \retval    TRUE  The supported configuration values were read.
  * \retval    FALSE A supported value is invalid or supplied storage is insufficient.
  */
-bool_t Utl_Arinc661_ReadDisplayManagementConfiguration(Utl_Arinc661_DisplayManagementConfiguration_t* configuration, byte_t* buffer, uint64_t byteCount, void* workspace, uint64_t workspaceSize);
+bool_t Utl_Arinc661_ReadConfiguration(Utl_Arinc661_Configuration_t* configuration, byte_t* buffer, uint64_t byteCount, void* workspace, uint64_t workspaceSize);
 
 /*************************************************************************************************/
 /**
@@ -297,7 +297,7 @@ bool_t Utl_Arinc661_ReadDisplayManagementConfiguration(Utl_Arinc661_DisplayManag
  *
  * \return Number of bytes written, or zero when a value or temporary storage is invalid.
  */
-uint64_t Utl_Arinc661_WriteDisplayManagementConfiguration(const Utl_Arinc661_DisplayManagementConfiguration_t* configuration, byte_t* buffer, uint64_t capacity, void* workspace, uint64_t workspaceSize);
+uint64_t Utl_Arinc661_WriteConfiguration(const Utl_Arinc661_Configuration_t* configuration, byte_t* buffer, uint64_t capacity, void* workspace, uint64_t workspaceSize);
 
 /*************************************************************************************************/
 /**
