@@ -407,48 +407,71 @@ static void TestXmlDocumentRoundTrip(void)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Checks complete-span scanning, signed bounds, and XML Schema decimal syntax.
+ *  Checks numeric prefixes, signed bounds, and XML Schema decimal syntax.
  */
 static void TestNumberScanning(void)
 {
-    const byte_t minimum[]         = "-9223372036854775808";
-    const byte_t maximum[]         = "+9223372036854775807";
-    const byte_t overflow[]        = "9223372036854775808";
-    const byte_t decimal[]         = "-.125";
-    const byte_t exponent[]        = "1e3";
-    const byte_t non_ascii_digit[] = {0xB2};
+    const char_t minimum[]         = "-9223372036854775808";
+    const char_t maximum[]         = "+9223372036854775807";
+    const char_t overflow[]        = "9223372036854775808";
+    const char_t decimal[]         = "-.125";
+    const char_t exponent[]        = "1e3";
+    const char_t non_ascii_digit[] = {(char_t)0xB2};
+    char_t       long_decimal[204];
     int64_t      integer;
-    float32_t    fraction;
-    bool_t       is_valid;
+    float64_t    fraction;
+    int32_t      consumed;
 
     integer  = 0;
-    is_valid = Utl_Scan_Int64(minimum, (sizeof(minimum) - 1), &integer);
-    assert(is_valid);
+    consumed = Utl_Scan_Int64(minimum, &integer);
+    assert((sizeof(minimum) - 1) == consumed);
     assert(INT64_MIN == integer);
 
-    is_valid = Utl_Scan_Int64(maximum, (sizeof(maximum) - 1), &integer);
-    assert(is_valid);
+    consumed = Utl_Scan_Int64(maximum, &integer);
+    assert((sizeof(maximum) - 1) == consumed);
     assert(INT64_MAX == integer);
 
-    is_valid = Utl_Scan_Int64(overflow, (sizeof(overflow) - 1), &integer);
-    assert(FALSE == is_valid);
+    consumed = Utl_Scan_Int64(overflow, &integer);
+    assert(-1 == consumed);
     assert(INT64_MAX == integer);
 
-    is_valid = Utl_Scan_Int64(non_ascii_digit, sizeof(non_ascii_digit), &integer);
-    assert(FALSE == is_valid);
+    consumed = Utl_Scan_Int64(non_ascii_digit, &integer);
+    assert(-1 == consumed);
     assert(INT64_MAX == integer);
 
-    is_valid = Utl_Scan_Float32(decimal, (sizeof(decimal) - 1), &fraction);
-    assert(is_valid);
-    assert(-0.125f == fraction);
+    consumed = Utl_Scan_Int64("42tail", &integer);
+    assert(2 == consumed);
+    assert(42 == integer);
 
-    is_valid = Utl_Scan_Float32(exponent, (sizeof(exponent) - 1), &fraction);
-    assert(FALSE == is_valid);
-    assert(-0.125f == fraction);
+    consumed = Utl_Scan_Int64("+", &integer);
+    assert(-1 == consumed);
+    assert(42 == integer);
 
-    is_valid = Utl_Scan_Float32(non_ascii_digit, sizeof(non_ascii_digit), &fraction);
-    assert(FALSE == is_valid);
-    assert(-0.125f == fraction);
+    fraction = 0.0;
+    consumed = Utl_Scan_Float(decimal, &fraction);
+    assert((sizeof(decimal) - 1) == consumed);
+    assert(-0.125 == fraction);
+
+    consumed = Utl_Scan_Float(exponent, &fraction);
+    assert(1 == consumed);
+    assert(1.0 == fraction);
+
+    consumed = Utl_Scan_Float("2.5tail", &fraction);
+    assert(3 == consumed);
+    assert(2.5 == fraction);
+
+    long_decimal[0] = '0';
+    long_decimal[1] = '.';
+    memset(long_decimal + 2, '0', 200);
+    long_decimal[202] = '1';
+    long_decimal[203] = '\0';
+    consumed = Utl_Scan_Float(long_decimal, &fraction);
+    assert(203 == consumed);
+    assert(0.0 < fraction);
+
+    consumed = Utl_Scan_Float(non_ascii_digit, &fraction);
+    assert(-1 == consumed);
+    assert(0.0 < fraction);
 }
 
 /*************************************************************************************************/

@@ -78,6 +78,15 @@ static void TestConfiguration(void)
     assert(is_valid);
     assert(1.0e-40f == windows[0].scalingFactor.xScale);
     assert(FLT_MAX == windows[0].scalingFactor.yScale);
+
+    {
+        char_t* scale_text = strstr((char_t*)input, "xScale=\"20.0\"");
+        assert(NULL != scale_text);
+        memcpy(scale_text + (sizeof("xScale=\"") - 1), "1e03", 4);
+        is_valid = Utl_Arinc661_ReadConfiguration(&configuration, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
+        assert(FALSE == is_valid);
+        assert(0 == configuration.screenCount);
+    }
 }
 
 /*************************************************************************************************/
@@ -88,6 +97,7 @@ static void TestIntegerBounds(void)
 {
     byte_t minimum_input[] = "<configuration><screen id=\"-9223372036854775808\"><pixelSize width=\"9223372036854775807\" height=\"1\"/><physicalDimensions width=\"1\" height=\"1\"/></screen></configuration>";
     byte_t overflow_input[] = "<configuration><screen id=\"9223372036854775808\"><pixelSize width=\"1\" height=\"1\"/><physicalDimensions width=\"1\" height=\"1\"/></screen></configuration>";
+    byte_t trailing_input[] = "<configuration><screen id=\"12x\"><pixelSize width=\"1\" height=\"1\"/><physicalDimensions width=\"1\" height=\"1\"/></screen></configuration>";
     Utl_Arinc661_Screen_t screen[1];
     Utl_Arinc661_Configuration_t configuration;
     bool_t is_valid;
@@ -101,6 +111,10 @@ static void TestIntegerBounds(void)
     assert(INT64_MAX == screen[0].pixelSize.width);
 
     is_valid = Utl_Arinc661_ReadConfiguration(&configuration, overflow_input, sizeof(overflow_input) - 1, c_workspace, sizeof(c_workspace));
+    assert(FALSE == is_valid);
+    assert(0 == configuration.screenCount);
+
+    is_valid = Utl_Arinc661_ReadConfiguration(&configuration, trailing_input, sizeof(trailing_input) - 1, c_workspace, sizeof(c_workspace));
     assert(FALSE == is_valid);
     assert(0 == configuration.screenCount);
 }

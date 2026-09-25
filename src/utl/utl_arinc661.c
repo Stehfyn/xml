@@ -720,18 +720,25 @@ static bool_t CopyAttribute(const Utl_Xml_Node_t* node, const char_t* name, char
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Parses only the counted bytes and rejects leading whitespace and trailing data.
+ *  Requires the scanned prefix to fill the counted attribute value.
  */
 static bool_t ReadInteger(const Utl_Xml_Node_t* node, const char_t* name, int64_t* value)
 {
     const Utl_Xml_Attribute_t* attribute;
+    int64_t                    parsed_value;
+    int32_t                    consumed;
     bool_t                     is_valid;
 
     attribute = FindAttribute(node, name);
     is_valid  = (NULL != attribute);
     if (is_valid)
     {
-        is_valid = Utl_Scan_Int64(attribute->value, attribute->valueByteCount, value);
+        consumed = Utl_Scan_Int64((const char_t*)attribute->value, &parsed_value);
+        is_valid = (0 < consumed) && ((uint32_t)consumed == attribute->valueByteCount);
+        if (is_valid)
+        {
+            (*value) = parsed_value;
+        }
     }
 
     return is_valid;
@@ -740,18 +747,29 @@ static bool_t ReadInteger(const Utl_Xml_Node_t* node, const char_t* name, int64_
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Converts a counted decimal attribute to float32_t.
+ *  Converts a complete counted decimal attribute to float32_t.
  */
 static bool_t ReadDecimal(const Utl_Xml_Node_t* node, const char_t* name, float32_t* value)
 {
     const Utl_Xml_Attribute_t* attribute;
+    float64_t                  parsed_value;
+    int32_t                    consumed;
     bool_t                     is_valid;
 
     attribute = FindAttribute(node, name);
     is_valid  = (NULL != attribute);
     if (is_valid)
     {
-        is_valid = Utl_Scan_Float32(attribute->value, attribute->valueByteCount, value);
+        consumed = Utl_Scan_Float((const char_t*)attribute->value, &parsed_value);
+        is_valid = (0 < consumed) && ((uint32_t)consumed == attribute->valueByteCount);
+        if (is_valid)
+        {
+            is_valid = (parsed_value <= FLT_MAX) && (parsed_value >= -FLT_MAX);
+        }
+        if (is_valid)
+        {
+            (*value) = (float32_t)parsed_value;
+        }
     }
 
     return is_valid;

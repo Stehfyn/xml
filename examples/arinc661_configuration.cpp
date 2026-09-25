@@ -44,6 +44,9 @@ extern "C"
 #define CONFIGURATION_PANE_COUNT  (3)
 #define INVALID_HIERARCHY_INDEX   (UINT32_MAX)
 
+#define CONFIGURATION_WINDOW_FLAGS     (ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDocking)
+#define CONFIGURATION_PANE_TABLE_FLAGS (ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_NoPadOuterX | ImGuiTableFlags_NoPadInnerX)
+
 #define CONFIGURATION_ADD_SCREEN_LABEL     ("+ Add Screen")
 #define CONFIGURATION_ADD_LAYOUT_LABEL     ("+ Add Layout")
 #define CONFIGURATION_ADD_WINDOW_LABEL     ("+ Add Window")
@@ -1609,23 +1612,19 @@ void Arinc661_Configuration_Reload(Arinc661_Configuration_Editor_t* editor)
 void Arinc661_Configuration_DrawEditor(Arinc661_Configuration_Editor_t* editor)
 {
     const ImGuiViewport* viewport;
-    ImGuiWindowFlags     window_flags;
-    ImGuiTableFlags      table_flags;
     ImVec2               table_size;
     float32_t            minimum_hierarchy_width;
     float32_t            inspector_width;
 
-    viewport     = ImGui::GetMainViewport();
-    window_flags = (ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDocking);
+    viewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos(viewport->WorkPos);
     ImGui::SetNextWindowSize(viewport->WorkSize);
     ImGui::SetNextWindowViewport(viewport->ID);
-    if (ImGui::Begin(CONFIGURATION_WINDOW_NAME, NULL, window_flags))
+    if (ImGui::Begin(CONFIGURATION_WINDOW_NAME, NULL, CONFIGURATION_WINDOW_FLAGS))
     {
         MeasurePaneWidths(editor, &minimum_hierarchy_width, &inspector_width);
-        table_size  = ImGui::GetContentRegionAvail();
-        table_flags = (ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_NoPadOuterX | ImGuiTableFlags_NoPadInnerX);
-        if (ImGui::BeginTable("ConfigurationPanes", CONFIGURATION_PANE_COUNT, table_flags, table_size))
+        table_size = ImGui::GetContentRegionAvail();
+        if (ImGui::BeginTable("ConfigurationPanes", CONFIGURATION_PANE_COUNT, CONFIGURATION_PANE_TABLE_FLAGS, table_size))
         {
             ImGui::TableSetupColumn(HIERARCHY_PANE_NAME, ImGuiTableColumnFlags_WidthFixed, minimum_hierarchy_width);
             ImGui::TableSetupColumn(SCENE_PANE_NAME, ImGuiTableColumnFlags_WidthStretch);

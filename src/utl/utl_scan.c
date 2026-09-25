@@ -15,7 +15,6 @@
 
 #include "os/os_assert.h"
 
-#include <ctype.h>
 #include <float.h>
 #include <limits.h>
 #include <stdlib.h>
@@ -56,81 +55,81 @@
  * \par Details:
  *  Checks each digit against the remaining range before multiplying.
  */
-bool_t Utl_Scan_Int64(const byte_t* text, uint64_t byteCount, int64_t* value)
+int32_t Utl_Scan_Int64(const char_t* a, int64_t* v)
 {
     uint64_t magnitude;
     uint64_t limit;
     uint64_t digit;
-    uint64_t byte_index;
-    byte_t   current_byte;
+    uint32_t byte_index;
+    char_t   current_byte;
+    int32_t  result;
     bool_t   is_negative;
     bool_t   is_digit;
-    bool_t   has_capacity;
+    bool_t   has_digits;
     bool_t   is_valid;
 
-    LOGASSERT(NULL != text);
-    LOGASSERT(NULL != value);
+    LOGASSERT(NULL != a);
+    LOGASSERT(NULL != v);
 
     byte_index  = 0;
     is_negative = FALSE;
-    if (0 < byteCount)
+    if ('-' == a[0])
     {
-        current_byte = text[0];
-        if ('-' == current_byte)
-        {
-            is_negative = TRUE;
-            byte_index  = 1;
-        }
-        else if ('+' == current_byte)
-        {
-            byte_index = 1;
-        }
+        is_negative = TRUE;
+        byte_index  = 1;
     }
-    is_valid  = (byte_index < byteCount);
+    else if ('+' == a[0])
+    {
+        byte_index = 1;
+    }
+    has_digits = FALSE;
+    is_valid   = TRUE;
     magnitude = 0;
     limit     = (uint64_t)INT64_MAX;
     if (is_negative)
     {
         limit += 1;
     }
-    for (; byte_index < byteCount; ++byte_index)
+    for (;;)
     {
-        current_byte = text[byte_index];
-        is_digit     = (0 != isdigit(current_byte)) && (current_byte <= '9');
+        current_byte = a[byte_index];
+        is_digit     = ('0' <= current_byte) && (current_byte <= '9');
         if (FALSE == is_digit)
         {
-            is_valid = FALSE;
             break;
         }
-        digit        = (uint64_t)(current_byte - '0');
-        has_capacity = (magnitude <= ((limit - digit) / 10));
-        if (FALSE == has_capacity)
+        has_digits = TRUE;
+        digit      = (uint64_t)(current_byte - '0');
+        if ((INT32_MAX == byte_index) || (magnitude > ((limit - digit) / 10)))
         {
             is_valid = FALSE;
             break;
         }
         magnitude = (magnitude * 10) + digit;
+        byte_index += 1;
     }
-    if (is_valid)
+    result = -1;
+    if (is_valid && has_digits)
     {
         if (is_negative)
         {
             if (limit == magnitude)
             {
-                (*value) = INT64_MIN;
+                (*v) = INT64_MIN;
             }
             else
             {
-                (*value) = -(int64_t)magnitude;
+                (*v) = -(int64_t)magnitude;
             }
         }
         else
         {
-            (*value) = (int64_t)magnitude;
+            (*v) = (int64_t)magnitude;
         }
+        result = (int32_t)byte_index;
     }
 
-    return is_valid;
+    return result;
 }
 
 /*************************************************************************************************/
@@ -138,67 +137,64 @@ bool_t Utl_Scan_Int64(const byte_t* text, uint64_t byteCount, int64_t* value)
  * \par Details:
  *  Validates the XML Schema decimal lexical form before using the C conversion.
  */
-bool_t Utl_Scan_Float32(const byte_t* text, uint64_t byteCount, float32_t* value)
+int32_t Utl_Scan_Float(const char_t* a, float64_t* v)
 {
-    char_t    number[(UTL_SCAN_MAX_FLOAT32_BYTES + 1)];
+    char_t    number[UTL_SCAN_MAX_FLOAT_BYTES + 1];
     char_t*   end;
-    uint64_t  byte_index;
-    float32_t parsed_value;
-    bool_t    has_content;
-    bool_t    fits_number;
+    uint32_t  byte_index;
+    float64_t parsed_value;
+    int32_t   result;
     bool_t    has_digits;
     bool_t    has_point;
     bool_t    is_digit;
     bool_t    is_valid;
 
-    LOGASSERT(NULL != text);
-    LOGASSERT(NULL != value);
+    LOGASSERT(NULL != a);
+    LOGASSERT(NULL != v);
 
-    has_content = (0 < byteCount);
-    fits_number = (byteCount <= UTL_SCAN_MAX_FLOAT32_BYTES);
-    is_valid    = has_content && fits_number;
-    if (is_valid)
+    byte_index = 0;
+    if (('+' == a[0]) || ('-' == a[0]))
     {
-        byte_index = 0;
-        if (('+' == text[0]) || ('-' == text[0]))
+        byte_index = 1;
+    }
+    has_digits = FALSE;
+    has_point  = FALSE;
+    is_valid   = TRUE;
+    for (;;)
+    {
+        is_digit = ('0' <= a[byte_index]) && (a[byte_index] <= '9');
+        if (is_digit)
         {
-            byte_index = 1;
+            has_digits = TRUE;
         }
-        has_digits = FALSE;
-        has_point  = FALSE;
-        for (; byte_index < byteCount; ++byte_index)
+        else if (('.' == a[byte_index]) && (FALSE == has_point))
         {
-            is_digit = (0 != isdigit(text[byte_index])) && (text[byte_index] <= '9');
-            if (is_digit)
-            {
-                has_digits = TRUE;
-            }
-            else if (('.' == text[byte_index]) && (FALSE == has_point))
-            {
-                has_point = TRUE;
-            }
-            else
-            {
-                is_valid = FALSE;
-                break;
-            }
+            has_point = TRUE;
         }
-        if (FALSE == has_digits)
+        else
+        {
+            break;
+        }
+        if (UTL_SCAN_MAX_FLOAT_BYTES == byte_index)
         {
             is_valid = FALSE;
+            break;
         }
-        if (is_valid)
+        byte_index += 1;
+    }
+
+    result = -1;
+    if (is_valid && has_digits)
+    {
+        (void)memcpy(number, a, byte_index);
+        number[byte_index] = '\0';
+        parsed_value = strtod(number, &end);
+        if ((end == (number + byte_index)) && (parsed_value <= DBL_MAX) && (parsed_value >= -DBL_MAX))
         {
-            (void)memcpy(number, text, byteCount);
-            number[byteCount] = '\0';
-            parsed_value = strtof(number, &end);
-            is_valid     = ('\0' == (*end)) && (parsed_value <= FLT_MAX) && (parsed_value >= -FLT_MAX);
-            if (is_valid)
-            {
-                (*value) = parsed_value;
-            }
+            (*v)  = parsed_value;
+            result = (int32_t)byte_index;
         }
     }
 
-    return is_valid;
+    return result;
 }

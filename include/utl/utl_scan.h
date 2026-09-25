@@ -22,7 +22,7 @@
 ** 3.1 Macros
 **===============================================================================================*/
 
-#define UTL_SCAN_MAX_FLOAT32_BYTES (95) ///< Maximum counted decimal bytes accepted for float32_t.
+#define UTL_SCAN_MAX_FLOAT_BYTES (2047) ///< Maximum decimal prefix length accepted by Utl_Scan_Float.
 
 /*=================================================================================================
 ** 3.2 Types
@@ -42,48 +42,47 @@
 
 /*************************************************************************************************/
 /**
- * \brief Scans a complete counted decimal integer into a signed 64-bit value.
+ * \brief Scans a decimal integer prefix into a signed 64-bit value.
  *
  * \par Details:
- *  An optional leading sign is followed by one or more ASCII digits. Whitespace,
- *  trailing data, and values outside the signed 64-bit range are rejected.
+ *  An optional leading sign is followed by one or more ASCII digits. Scanning stops
+ *  at the first non-digit. Leading whitespace and values outside the signed 64-bit
+ *  range are rejected.
  *
  * \par Requirements:
- *  - 001 This function shall consume the complete counted span.
+ *  - 001 This function shall return the number of characters in the numeric prefix.
  *  - 002 This function shall reject values outside the signed 64-bit range.
- *  - 003 This function shall leave value unchanged on failure.
+ *  - 003 This function shall leave v unchanged on failure.
  *
- * \param[in]  text        Non-NULL byte span
- * \param[in]  byteCount   Number of bytes in the span
- * \param[out] value       Non-NULL destination, written only on success
+ * \param[in]  a   Non-NULL text, readable through the first non-digit or NUL
+ * \param[out] v   Non-NULL destination, written only on success
  *
- * \retval     TRUE        if the entire span is a representable integer.
- * \retval     FALSE       if the span is empty, malformed, or out of range.
+ * \retval     -1             The prefix is missing, malformed, too long, or out of range.
+ * \retval     1..INT32_MAX   Number of characters consumed.
  */
-bool_t Utl_Scan_Int64(const byte_t* text, uint64_t byteCount, int64_t* value);
+int32_t Utl_Scan_Int64(const char_t* a, int64_t* v);
 
 /*************************************************************************************************/
 /**
- * \brief Scans a complete counted XML Schema decimal into a finite float32_t.
+ * \brief Scans an XML Schema decimal prefix into a finite float64_t.
  *
  * \par Details:
  *  XML Schema decimal permits an optional sign, decimal digits, and an optional
- *  decimal point. At least one digit is required. Exponents and surrounding
- *  whitespace are not part of its lexical form.
+ *  decimal point. At least one digit is required. Scanning stops at the first
+ *  character outside this form. Exponents and leading whitespace are not consumed.
  *  https://www.w3.org/TR/xmlschema-2/#decimal
  *
  * \par Requirements:
- *  - 001 This function shall consume the complete counted span.
- *  - 002 This function shall reject exponent notation and non-finite results.
- *  - 003 This function shall leave value unchanged on failure.
+ *  - 001 This function shall return the number of characters in the decimal prefix.
+ *  - 002 This function shall reject non-finite results and prefixes longer than UTL_SCAN_MAX_FLOAT_BYTES.
+ *  - 003 This function shall leave v unchanged on failure.
  *
- * \param[in]  text        Non-NULL byte span
- * \param[in]  byteCount   Number of bytes, at most UTL_SCAN_MAX_FLOAT32_BYTES
- * \param[out] value       Non-NULL destination, written only on success
+ * \param[in]  a   Non-NULL text, readable through the first non-decimal character or NUL
+ * \param[out] v   Non-NULL destination, written only on success
  *
- * \retval     TRUE        if the entire span is a finite decimal value.
- * \retval     FALSE       if the span is empty, malformed, too long, or out of range.
+ * \retval     -1             The prefix is missing, malformed, too long, or out of range.
+ * \retval     1..INT32_MAX   Number of characters consumed.
  */
-bool_t Utl_Scan_Float32(const byte_t* text, uint64_t byteCount, float32_t* value);
+int32_t Utl_Scan_Float(const char_t* a, float64_t* v);
 
 #endif /* UTL_SCAN_H */
