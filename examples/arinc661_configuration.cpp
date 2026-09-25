@@ -38,8 +38,8 @@ extern "C"
 #define INSPECTOR_PANE_NAME           ("Inspector")
 #define SCENE_PANE_NAME               ("Scene")
 #define CONFIGURATION_FILE_PATH_LABEL ("File Path")
-#define HIERARCHY_PANE_COLUMN         (0)
-#define SCENE_PANE_COLUMN             (1)
+#define HIERARCHY_PANE_COLUMN_IDX     (0)
+#define SCENE_PANE_COLUMN_IDX         (1)
 #define INSPECTOR_PANE_COLUMN         (2)
 #define CONFIGURATION_PANE_COUNT      (3)
 #define INVALID_HIERARCHY_INDEX       (UINT32_MAX)
@@ -67,7 +67,6 @@ extern "C"
 #define CONFIGURATION_HIERARCHY_LABEL_BYTES (UTL_ARINC661_MAX_NAME_BYTES + CONFIGURATION_LABEL_FORMAT_BYTES)
 #define CONFIGURATION_DEFAULT_SCREEN_PIXEL_WIDTH  (640)
 #define CONFIGURATION_DEFAULT_SCREEN_PIXEL_HEIGHT (480)
-#define CONFIGURATION_MIN_FILE_PATH_INPUT_WIDTH    (240.0f)
 
 #define HIERARCHY_BRANCH_FLAGS (ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_AllowOverlap)
 #define HIERARCHY_WINDOW_FLAGS (ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_AllowOverlap)
@@ -374,7 +373,17 @@ static void DrawWindowInspector(Arinc661_Configuration_Editor_t* editor);
 
 /*************************************************************************************************/
 /**
- * \brief Draws the configuration actions and hierarchy in the left child pane.
+ * \brief Draws the file path, file actions, and status above the panes.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+static void DrawFileControls(Arinc661_Configuration_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws the configuration hierarchy in the left child pane.
  *
  * \param[in,out] editor   Editor state
  *
@@ -417,7 +426,7 @@ static void ClampPaneResize(float32_t minimumHierarchyWidth);
  * \brief Measures the minimum hierarchy width and default inspector width.
  *
  * \param[in]  editor           Editor state containing hierarchy row labels
- * \param[out] hierarchyWidth   Minimum width needed for the hierarchy and file path input
+ * \param[out] hierarchyWidth   Minimum width needed for hierarchy controls
  * \param[out] inspectorWidth   Width needed for the property fields
  *
  * \retval     None
@@ -1349,7 +1358,41 @@ static void DrawWindowInspector(Arinc661_Configuration_Editor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The file path input and hierarchy share the left child pane.
+ *  Keeps file controls together above the editor panes.
+ */
+static void DrawFileControls(Arinc661_Configuration_Editor_t* editor)
+{
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted(CONFIGURATION_FILE_PATH_LABEL);
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(-1.0f);
+    if (ImGui::InputText("##configurationFilePath", editor->filePath, sizeof(editor->filePath)))
+    {
+        editor->status = ('\0' == editor->filePath[0]) ? ARINC661_CONFIGURATION_STATUS_FILE_PATH_REQUIRED : ARINC661_CONFIGURATION_STATUS_NONE;
+    }
+
+    if (ImGui::Button(CONFIGURATION_LOAD_XML_LABEL))
+    {
+        LoadConfigurationFile(editor);
+    }
+    if (editor->isLoaded)
+    {
+        ImGui::SameLine();
+        if (ImGui::Button(CONFIGURATION_BUILD_XML_LABEL))
+        {
+            UnloadConfigurationFile(editor);
+        }
+    }
+    ImGui::SameLine();
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted(EditorStatusToString(editor->status));
+    ImGui::Separator();
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Keeps the hierarchy in the left child pane.
  */
 static void DrawHierarchyPane(Arinc661_Configuration_Editor_t* editor)
 {
@@ -1357,12 +1400,6 @@ static void DrawHierarchyPane(Arinc661_Configuration_Editor_t* editor)
     {
         ImGui::TextUnformatted(HIERARCHY_PANE_NAME);
         ImGui::Separator();
-        ImGui::TextUnformatted(CONFIGURATION_FILE_PATH_LABEL);
-        ImGui::SetNextItemWidth(-1.0f);
-        if (ImGui::InputText("##configurationFilePath", editor->filePath, sizeof(editor->filePath)))
-        {
-            editor->status = ('\0' == editor->filePath[0]) ? ARINC661_CONFIGURATION_STATUS_FILE_PATH_REQUIRED : ARINC661_CONFIGURATION_STATUS_NONE;
-        }
         if (editor->isLoaded)
         {
             DrawHierarchy(editor);
@@ -1409,7 +1446,7 @@ static void DrawInspector(Arinc661_Configuration_Editor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Fits the combined screen widths and tallest screen inside the available canvas, selects clicked geometry, and draws the selection overlay and status bar.
+ *  Fits the combined screen widths and tallest screen inside the available canvas, selects clicked geometry, and draws the selection overlay.
  */
 static void DrawScene(Arinc661_Configuration_Editor_t* editor)
 {
@@ -1419,10 +1456,6 @@ static void DrawScene(Arinc661_Configuration_Editor_t* editor)
     const Utl_Arinc661_Window_t* window;
     const char_t*               fmt;
     ImDrawList*                  draw_list;
-    ImVec2                       scene_window_min;
-    ImVec2                       scene_window_max;
-    ImVec2                       status_bar_min;
-    ImVec2                       status_bar_max;
     ImVec2                       canvas_min;
     ImVec2                       canvas_size;
     ImVec2                       canvas_max;
@@ -1447,7 +1480,6 @@ static void DrawScene(Arinc661_Configuration_Editor_t* editor)
     float32_t                    width_scale;
     float32_t                    height_scale;
     float32_t                    scale;
-    float32_t                    status_bar_height;
     uint32_t                     screen_index;
     uint32_t                     window_index;
     bool_t                       has_canvas_width;
@@ -1469,9 +1501,8 @@ static void DrawScene(Arinc661_Configuration_Editor_t* editor)
 
     if (ImGui::BeginChild(SCENE_PANE_NAME, ImVec2(0.0f, 0.0f), PANE_FLAGS))
     {
-        style             = &ImGui::GetStyle();
-        draw_list         = ImGui::GetWindowDrawList();
-        status_bar_height = ImGui::GetFrameHeightWithSpacing();
+        style     = &ImGui::GetStyle();
+        draw_list = ImGui::GetWindowDrawList();
 
         ImGui::TextUnformatted(SCENE_PANE_NAME);
         ImGui::Separator();
@@ -1488,7 +1519,6 @@ static void DrawScene(Arinc661_Configuration_Editor_t* editor)
         {
             canvas_min   = ImGui::GetCursorScreenPos();
             canvas_size  = ImGui::GetContentRegionAvail();
-            canvas_size.y -= (status_bar_height + style->ItemSpacing.y);
             label_height = ImGui::GetTextLineHeightWithSpacing();
 
             content_size = (canvas_size - (style->WindowPadding + style->WindowPadding));
@@ -1636,31 +1666,6 @@ static void DrawScene(Arinc661_Configuration_Editor_t* editor)
                 draw_list->PopClipRect();
             }
         }
-        scene_window_min     = ImGui::GetWindowPos();
-        scene_window_max     = (scene_window_min + ImGui::GetWindowSize());
-        status_bar_min       = (scene_window_min + style->WindowPadding);
-        status_bar_min.y     = (scene_window_max.y - style->WindowPadding.y - status_bar_height);
-        status_bar_max       = (scene_window_max - style->WindowPadding);
-        draw_list->AddRectFilled(status_bar_min, status_bar_max, ImGui::GetColorU32(ImGuiCol_FrameBg));
-        
-        ImGui::SetCursorScreenPos(status_bar_min);
-        ImGui::PushClipRect(status_bar_min, status_bar_max, TRUE);
-        if (ImGui::Button(CONFIGURATION_LOAD_XML_LABEL))
-        {
-            LoadConfigurationFile(editor);
-        }
-        if (editor->isLoaded)
-        {
-            ImGui::SameLine();
-            if (ImGui::Button(CONFIGURATION_BUILD_XML_LABEL))
-            {
-                UnloadConfigurationFile(editor);
-            }
-        }
-        ImGui::SameLine();
-        ImGui::AlignTextToFramePadding();
-        ImGui::TextUnformatted(EditorStatusToString(editor->status));
-        ImGui::PopClipRect();
     }
     ImGui::EndChild();
 }
@@ -1680,25 +1685,25 @@ static void ClampPaneResize(float32_t minimumHierarchyWidth)
     float32_t   minimum_hierarchy_width;
 
     table = ImGui::GetCurrentTable();
-    if (HIERARCHY_PANE_COLUMN == table->ResizedColumn)
+    if (HIERARCHY_PANE_COLUMN_IDX == table->ResizedColumn)
     {
         minimum_divider_spacing  = (table->MinColumnWidth + (table->CellPaddingX * 2.0f));
         minimum_divider_spacing += table->CellSpacingX1;
         minimum_divider_spacing += table->CellSpacingX2;
 
         maximum_hierarchy_width  = table->Columns[INSPECTOR_PANE_COLUMN].MinX;
-        maximum_hierarchy_width -= table->Columns[HIERARCHY_PANE_COLUMN].MaxX;
-        maximum_hierarchy_width += table->Columns[HIERARCHY_PANE_COLUMN].WidthGiven;
+        maximum_hierarchy_width -= table->Columns[HIERARCHY_PANE_COLUMN_IDX].MaxX;
+        maximum_hierarchy_width += table->Columns[HIERARCHY_PANE_COLUMN_IDX].WidthGiven;
         maximum_hierarchy_width -= minimum_divider_spacing;
 
         minimum_hierarchy_width = ImMin(minimumHierarchyWidth, maximum_hierarchy_width);
 
         table->ResizedColumnNextWidth = ImClamp(table->ResizedColumnNextWidth, minimum_hierarchy_width, maximum_hierarchy_width);
     }
-    else if (SCENE_PANE_COLUMN == table->ResizedColumn)
+    else if (SCENE_PANE_COLUMN_IDX == table->ResizedColumn)
     {
-        maximum_scene_width = (table->Columns[SCENE_PANE_COLUMN].WidthRequest + table->Columns[INSPECTOR_PANE_COLUMN].WidthRequest);
-        maximum_scene_width -= table->Columns[HIERARCHY_PANE_COLUMN].WidthGiven;
+        maximum_scene_width = (table->Columns[SCENE_PANE_COLUMN_IDX].WidthRequest + table->Columns[INSPECTOR_PANE_COLUMN].WidthRequest);
+        maximum_scene_width -= table->Columns[HIERARCHY_PANE_COLUMN_IDX].WidthGiven;
         table->ResizedColumnNextWidth = ImMin(table->ResizedColumnNextWidth, maximum_scene_width);
     }
 }
@@ -1712,7 +1717,6 @@ static void MeasurePaneWidths(const Arinc661_Configuration_Editor_t* editor, flo
 {
     const ImGuiStyle* style;
     ImVec2            button_padding;
-    ImVec2            file_path_label_size;
     char_t            integer_text[CONFIGURATION_INTEGER_TEXT_BYTES];
     char_t            hierarchy_label[CONFIGURATION_HIERARCHY_LABEL_BYTES];
     float32_t         hierarchy_row_padding;
@@ -1726,17 +1730,19 @@ static void MeasurePaneWidths(const Arinc661_Configuration_Editor_t* editor, flo
     style = &ImGui::GetStyle();
 
     ImFormatString(integer_text, sizeof(integer_text), "%" PRId64, INT64_MIN);
-    button_padding  = (style->FramePadding + style->FramePadding);
-    file_path_label_size = ImGui::CalcTextSize(CONFIGURATION_FILE_PATH_LABEL);
+    button_padding = (style->FramePadding + style->FramePadding);
 
     property_width    = (ImGui::CalcTextSize(CONFIGURATION_BASE_UNIT_LABEL).x + button_padding.x);
     value_width       = (ImGui::CalcTextSize(integer_text).x + button_padding.x);
-    (*hierarchyWidth) = (ImMax(file_path_label_size.x, CONFIGURATION_MIN_FILE_PATH_INPUT_WIDTH) + (style->WindowPadding.x * 2.0f));
+    (*hierarchyWidth) = (ImGui::CalcTextSize(HIERARCHY_PANE_NAME).x + (style->WindowPadding.x * 2.0f));
 
     hierarchy_row_padding  = (style->WindowPadding.x * 2.0f);
     hierarchy_row_padding += ImGui::GetTreeNodeToLabelSpacing();
     hierarchy_row_padding += style->ItemSpacing.x;
     hierarchy_row_padding += ImGui::GetTextLineHeight();
+
+    hierarchy_row_width = (ImGui::CalcTextSize(CONFIGURATION_ADD_SCREEN_LABEL).x + hierarchy_row_padding);
+    (*hierarchyWidth)   = ImMax((*hierarchyWidth), hierarchy_row_width);
 
     for (screen_index = 0; screen_index < editor->configuration.screenCount; ++screen_index)
     {
@@ -1817,7 +1823,7 @@ void Arinc661_Configuration_Initialize(Arinc661_Configuration_Editor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Draws one viewport-sized window containing resizable hierarchy, scene, and inspector panes.
+ *  Draws file controls above the resizable hierarchy, scene, and inspector panes.
  */
 void Arinc661_Configuration_DrawEditor(Arinc661_Configuration_Editor_t* editor)
 {
@@ -1833,6 +1839,7 @@ void Arinc661_Configuration_DrawEditor(Arinc661_Configuration_Editor_t* editor)
     ImGui::SetNextWindowViewport(viewport->ID);
     if (ImGui::Begin(CONFIGURATION_WINDOW_NAME, NULL, CONFIGURATION_WINDOW_FLAGS))
     {
+        DrawFileControls(editor);
         MeasurePaneWidths(editor, &minimum_hierarchy_width, &inspector_width);
         table_size = ImGui::GetContentRegionAvail();
         if (ImGui::BeginTable("ConfigurationPanes", CONFIGURATION_PANE_COUNT, CONFIGURATION_PANE_TABLE_FLAGS, table_size))
@@ -1844,11 +1851,11 @@ void Arinc661_Configuration_DrawEditor(Arinc661_Configuration_Editor_t* editor)
             ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.0f, 0.0f));
             ImGui::TableNextRow();
             ImGui::PopStyleVar();
-            ImGui::TableSetColumnIndex(HIERARCHY_PANE_COLUMN);
+            ImGui::TableSetColumnIndex(HIERARCHY_PANE_COLUMN_IDX);
             DrawHierarchyPane(editor);
             ImGui::TableSetColumnIndex(INSPECTOR_PANE_COLUMN);
             DrawInspector(editor);
-            ImGui::TableSetColumnIndex(SCENE_PANE_COLUMN);
+            ImGui::TableSetColumnIndex(SCENE_PANE_COLUMN_IDX);
             DrawScene(editor);
             ImGui::EndTable();
         }
