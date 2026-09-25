@@ -592,10 +592,12 @@ static void AddWindow(Arinc661_Configuration_Editor_t* editor, uint32_t layoutIn
 static void RemoveWindow(Arinc661_Configuration_Editor_t* editor, uint32_t windowIndex)
 {
     uint32_t remaining_count;
+    bool_t   has_remaining;
 
     LOGASSERT(windowIndex < editor->configuration.windowCount);
     remaining_count = (editor->configuration.windowCount - (windowIndex + 1));
-    if (0 < remaining_count)
+    has_remaining  = (0 < remaining_count);
+    if (has_remaining)
     {
         (void)memmove(
             &editor->windows[windowIndex],
@@ -614,6 +616,7 @@ static void RemoveLayout(Arinc661_Configuration_Editor_t* editor, uint32_t layou
 {
     uint32_t window_index;
     uint32_t remaining_count;
+    bool_t   has_remaining;
 
     LOGASSERT(layoutIndex < editor->configuration.layoutCount);
     window_index = 0;
@@ -633,7 +636,8 @@ static void RemoveLayout(Arinc661_Configuration_Editor_t* editor, uint32_t layou
         }
     }
     remaining_count = (editor->configuration.layoutCount - (layoutIndex + 1));
-    if (0 < remaining_count)
+    has_remaining  = (0 < remaining_count);
+    if (has_remaining)
     {
         (void)memmove(
             &editor->layouts[layoutIndex],
@@ -652,6 +656,7 @@ static void RemoveScreen(Arinc661_Configuration_Editor_t* editor, uint32_t scree
 {
     uint32_t layout_index;
     uint32_t remaining_count;
+    bool_t   has_remaining;
 
     LOGASSERT(screenIndex < editor->configuration.screenCount);
     layout_index = 0;
@@ -671,7 +676,8 @@ static void RemoveScreen(Arinc661_Configuration_Editor_t* editor, uint32_t scree
         }
     }
     remaining_count = (editor->configuration.screenCount - (screenIndex + 1));
-    if (0 < remaining_count)
+    has_remaining  = (0 < remaining_count);
+    if (has_remaining)
     {
         (void)memmove(
             &editor->screens[screenIndex],
