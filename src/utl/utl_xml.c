@@ -150,6 +150,114 @@ static uint32_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t offs
 
 /*************************************************************************************************/
 /**
+ * \brief Checks whether a decoded code point is a permitted XML 1.0 character.
+ *
+ * \par Details:
+ *  XML 1.0 (Fifth Edition), production [2] Char:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-Char
+ *
+ * \param[in] codePoint   Decoded Unicode code point to classify
+ *
+ * \retval    TRUE        if the code point is a permitted XML 1.0 character.
+ * \retval    FALSE       otherwise
+ */
+static bool_t IsChar(uint32_t codePoint);
+
+/*************************************************************************************************/
+/**
+ * \brief Checks a counted UTF-8 byte span against XML 1.0 Char.
+ *
+ * \par Details:
+ *  XML 1.0 (Fifth Edition), production [2] Char:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-Char
+ *
+ * \param[in] utf8Text    Non-NULL UTF-8 byte span
+ * \param[in] byteCount   Number of bytes in the span
+ *
+ * \retval    TRUE        if the complete string is valid XML character data.
+ * \retval    FALSE       otherwise
+ */
+static bool_t IsString(const byte_t* utf8Text, uint32_t byteCount);
+
+/*************************************************************************************************/
+/**
+ * \brief Checks whether a decoded code point is a permitted XML 1.0 whitespace character.
+ *
+ * \par Details:
+ *  XML 1.0 (Fifth Edition), production [3] S:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-S
+ *
+ * \param[in] codePoint   Decoded Unicode code point to classify
+ *
+ * \retval    TRUE        if the code point is a permitted XML 1.0 whitespace character.
+ * \retval    FALSE       otherwise
+ */
+static bool_t IsWhitespace(uint32_t codePoint);
+
+/*************************************************************************************************/
+/**
+ * \brief Checks whether a decoded code point is a permitted XML 1.0 NameStartChar.
+ *
+ * \par Details:
+ *  XML 1.0 (Fifth Edition), production [4] NameStartChar:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-NameStartChar
+ *
+ * \param[in] codePoint   Decoded Unicode code point to classify
+ *
+ * \retval    TRUE        if the code point is a permitted XML 1.0 NameStartChar.
+ * \retval    FALSE       otherwise
+ */
+static bool_t IsNameStartChar(uint32_t codePoint);
+
+/*************************************************************************************************/
+/**
+ * \brief Checks whether a decoded code point is a permitted XML 1.0 NameChar.
+ *
+ * \par Details:
+ *  XML 1.0 (Fifth Edition), production [4a] NameChar:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-NameChar
+ *
+ * \param[in] codePoint   Decoded Unicode code point to classify
+ *
+ * \retval    TRUE        if the code point is a permitted XML 1.0 NameChar.
+ * \retval    FALSE       otherwise
+ */
+static bool_t IsNameChar(uint32_t codePoint);
+
+/*************************************************************************************************/
+/**
+ * \brief Checks a counted UTF-8 byte span against XML 1.0 Name.
+ *
+ * \par Details:
+ *  XML 1.0 (Fifth Edition), production [5] Name:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-Name
+ *
+ * \param[in] utf8Text    Non-NULL UTF-8 byte span
+ * \param[in] byteCount   Nonzero number of bytes in the span
+ *
+ * \retval    TRUE        if the complete string is a permitted XML 1.0 Name.
+ * \retval    FALSE       otherwise
+ */
+static bool_t IsName(const byte_t* utf8Text, uint32_t byteCount);
+
+/*************************************************************************************************/
+/**
+ * \brief Checks whether a code point is permitted literally in a double-quoted XML attribute value.
+ *
+ * \par Details:
+ *  XML 1.0 (Fifth Edition), production [10] AttValue:
+ *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-AttValue
+ *  Tab, LF, and CR are permitted literally; section 3.3.3 normalizes them to spaces.
+ *
+ * \param[in] codePoint   Decoded Unicode code point to classify
+ *
+ * \retval    TRUE        if the code point is permitted literally in a double-quoted attribute value.
+ * \retval    FALSE       otherwise
+ */
+static bool_t IsAttributeValueChar(uint32_t codePoint);
+
+/*************************************************************************************************/
+/**
  * \brief Finds an attribute with the requested name.
  *
  * \param[in] node            Element whose attributes are searched
@@ -542,6 +650,215 @@ static uint32_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t offs
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  None
+ */
+static bool_t IsChar(uint32_t codePoint)
+{
+    bool_t is_tab                   = (UTL_XML_CHAR_TAB == codePoint);
+    bool_t is_line_feed             = (UTL_XML_CHAR_LF == codePoint);
+    bool_t is_carriage_return       = (UTL_XML_CHAR_CR == codePoint);
+    bool_t is_bmp_before_surrogates = InRange(codePoint, 0x20, 0xD7FF);
+    bool_t is_bmp_after_surrogates  = InRange(codePoint, 0xE000, 0xFFFD);
+    bool_t is_supplementary         = InRange(codePoint, 0x10000, 0x10FFFF);
+
+    return is_tab || is_line_feed || is_carriage_return || is_bmp_before_surrogates || is_bmp_after_surrogates || is_supplementary;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Empty strings are permitted as attribute values.
+ */
+static bool_t IsString(const byte_t* utf8Text, uint32_t byteCount)
+{
+    bool_t   is_xml_string;
+    uint32_t byte_offset;
+    uint32_t code_point;
+    uint32_t decoded_byte_count;
+    bool_t   decode_failed;
+    bool_t   is_invalid_code_point;
+
+    LOGASSERT(NULL != utf8Text);
+    LOGASSERT(UTL_XML_MAX_VALUE_BYTES >= byteCount);
+
+    is_xml_string = TRUE;
+
+    for (byte_offset = 0; byte_offset < byteCount; byte_offset += decoded_byte_count)
+    {
+        code_point = DecodeUtf8(utf8Text, byteCount, byte_offset, &decoded_byte_count);
+
+        decode_failed         = (0 == decoded_byte_count);
+        is_invalid_code_point = (FALSE == IsChar(code_point));
+
+        if (decode_failed || is_invalid_code_point)
+        {
+            is_xml_string = FALSE;
+            break;
+        }
+    }
+
+    return is_xml_string;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  None
+ */
+static bool_t IsWhitespace(uint32_t codePoint)
+{
+    bool_t is_space           = (UTL_XML_CHAR_SPACE == codePoint);
+    bool_t is_tab             = (UTL_XML_CHAR_TAB == codePoint);
+    bool_t is_carriage_return = (UTL_XML_CHAR_CR == codePoint);
+    bool_t is_line_feed       = (UTL_XML_CHAR_LF == codePoint);
+
+    return is_space || is_tab || is_carriage_return || is_line_feed;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  None
+ */
+static bool_t IsNameStartChar(uint32_t codePoint)
+{
+    uint32_t range_index;
+    bool_t   is_name_start_char;
+    uint32_t first;
+    uint32_t last;
+
+    is_name_start_char = FALSE;
+
+    for (range_index = 0; range_index < COUNT_OF(c_xmlNameStartCharRanges); ++range_index)
+    {
+        first = c_xmlNameStartCharRanges[range_index].first;
+        last  = c_xmlNameStartCharRanges[range_index].last;
+
+        is_name_start_char = InRange(codePoint, first, last);
+
+        if (is_name_start_char)
+        {
+            break;
+        }
+    }
+
+    return is_name_start_char;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  None
+ */
+static bool_t IsNameChar(uint32_t codePoint)
+{
+    bool_t   is_name_char;
+    uint32_t range_index;
+    uint32_t first;
+    uint32_t last;
+
+    is_name_char = FALSE;
+
+    if (IsNameStartChar(codePoint))
+    {
+        is_name_char = TRUE;
+    }
+    else
+    {
+        for (range_index = 0; range_index < COUNT_OF(c_xmlNameCharRanges); ++range_index)
+        {
+            first = c_xmlNameCharRanges[range_index].first;
+            last  = c_xmlNameCharRanges[range_index].last;
+
+            is_name_char = InRange(codePoint, first, last);
+
+            if (is_name_char)
+            {
+                break;
+            }
+        }
+    }
+
+    return is_name_char;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Uses XML 1.0 NameStartChar and NameChar after strict UTF-8 decoding.
+ */
+static bool_t IsName(const byte_t* utf8Text, uint32_t byteCount)
+{
+    bool_t   is_name;
+    uint32_t byte_offset;
+    uint32_t code_point;
+    uint32_t decoded_byte_count;
+    bool_t   decode_failed;
+
+    LOGASSERT(NULL != utf8Text);
+    LOGASSERT(0 < byteCount);
+    LOGASSERT(UTL_XML_MAX_NAME_BYTES >= byteCount);
+
+    is_name = TRUE;
+
+    for (byte_offset = 0; byte_offset < byteCount; byte_offset += decoded_byte_count)
+    {
+        code_point = DecodeUtf8(utf8Text, byteCount, byte_offset, &decoded_byte_count);
+
+        decode_failed = (0 == decoded_byte_count);
+
+        if (decode_failed)
+        {
+            is_name = FALSE;
+        }
+        else
+        {
+            if (0 == byte_offset)
+            {
+                is_name = IsNameStartChar(code_point);
+            }
+            else
+            {
+                is_name = IsNameChar(code_point);
+            }
+        }
+
+        if (FALSE == is_name)
+        {
+            break;
+        }
+    }
+
+    return is_name;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Checks the literal-character branch of AttValue for double quotes.
+ */
+static bool_t IsAttributeValueChar(uint32_t codePoint)
+{
+    bool_t is_xml_char;
+    bool_t is_less_than;
+    bool_t is_ampersand;
+    bool_t is_double_quote;
+    bool_t is_reserved;
+    bool_t is_attribute_value_char;
+
+    is_xml_char              = IsChar(codePoint);
+    is_less_than             = (UTL_XML_CHAR_LT == codePoint);
+    is_ampersand             = (UTL_XML_CHAR_AMP == codePoint);
+    is_double_quote          = (UTL_XML_QUOTE_QUOT == codePoint);
+    is_reserved              = is_less_than || is_ampersand || is_double_quote;
+    is_attribute_value_char  = is_xml_char && (FALSE == is_reserved);
+
+    return is_attribute_value_char;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Compares byte contents only when the names have the same byte count.
  */
 static const Utl_Xml_Attribute_t* FindAttribute(const Utl_Xml_Node_t* node, const Utl_Xml_Attribute_t* attribute, const byte_t* name, uint32_t nameByteCount)
@@ -729,7 +1046,7 @@ static bool_t ReadWhitespace(const byte_t* bytes, uint64_t byteCount, uint64_t* 
     {
         for (byte_index = (*position); byte_index < byteCount; ++byte_index)
         {
-            is_whitespace = Utl_Xml_IsWhitespace(bytes[byte_index]);
+            is_whitespace = IsWhitespace(bytes[byte_index]);
 
             if (FALSE == is_whitespace)
             {
@@ -771,7 +1088,7 @@ static bool_t ReadName(const byte_t* bytes, uint64_t byteCount, uint64_t* positi
 
     for (byte_index = (*position); byte_index < byteCount; ++byte_index)
     {
-        is_whitespace = Utl_Xml_IsWhitespace(bytes[byte_index]);
+        is_whitespace = IsWhitespace(bytes[byte_index]);
         is_equals     = (UTL_XML_EQ == bytes[byte_index]);
         is_slash      = ('/' == bytes[byte_index]);
         is_tag_close  = (UTL_XML_CHAR_GT == bytes[byte_index]);
@@ -791,7 +1108,7 @@ static bool_t ReadName(const byte_t* bytes, uint64_t byteCount, uint64_t* positi
 
     if (is_valid)
     {
-        is_valid = Utl_Xml_IsName(parsed_name, (uint32_t)span_byte_count);
+        is_valid = IsName(parsed_name, (uint32_t)span_byte_count);
     }
     if (is_valid)
     {
@@ -1165,7 +1482,7 @@ static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byt
 
     if (is_valid)
     {
-        is_valid = Utl_Xml_IsName(node->name, node->nameByteCount);
+        is_valid = IsName(node->name, node->nameByteCount);
     }
     if (is_valid)
     {
@@ -1199,7 +1516,7 @@ static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byt
         }
         if (is_valid)
         {
-            is_valid = Utl_Xml_IsName(current_attribute->name, current_attribute->nameByteCount);
+            is_valid = IsName(current_attribute->name, current_attribute->nameByteCount);
         }
         if (is_valid)
         {
@@ -1456,215 +1773,6 @@ static bool_t WriteRootNode(byte_t* output, uint64_t capacity, uint64_t* byteCou
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
- */
-bool_t Utl_Xml_IsChar(uint32_t codePoint)
-{
-    bool_t is_tab                   = (UTL_XML_CHAR_TAB == codePoint);
-    bool_t is_line_feed             = (UTL_XML_CHAR_LF == codePoint);
-    bool_t is_carriage_return       = (UTL_XML_CHAR_CR == codePoint);
-    bool_t is_bmp_before_surrogates = InRange(codePoint, 0x20, 0xD7FF);
-    bool_t is_bmp_after_surrogates  = InRange(codePoint, 0xE000, 0xFFFD);
-    bool_t is_supplementary         = InRange(codePoint, 0x10000, 0x10FFFF);
-
-    return is_tab || is_line_feed || is_carriage_return || is_bmp_before_surrogates || is_bmp_after_surrogates || is_supplementary;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Empty strings are permitted as attribute values.
- */
-bool_t Utl_Xml_IsString(const byte_t* utf8Text, uint32_t byteCount)
-{
-    bool_t   is_xml_string;
-    uint32_t byte_offset;
-    uint32_t code_point;
-    uint32_t decoded_byte_count;
-    bool_t   decode_failed;
-    bool_t   is_invalid_code_point;
-
-    LOGASSERT(NULL != utf8Text);
-    LOGASSERT(UTL_XML_MAX_VALUE_BYTES >= byteCount);
-
-    is_xml_string = TRUE;
-
-    for (byte_offset = 0; byte_offset < byteCount; byte_offset += decoded_byte_count)
-    {
-        code_point = DecodeUtf8(utf8Text, byteCount, byte_offset, &decoded_byte_count);
-
-        decode_failed         = (0 == decoded_byte_count);
-        is_invalid_code_point = (FALSE == Utl_Xml_IsChar(code_point));
-
-        if (decode_failed || is_invalid_code_point)
-        {
-            is_xml_string = FALSE;
-            break;
-        }
-    }
-
-    return is_xml_string;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  None
- */
-bool_t Utl_Xml_IsWhitespace(uint32_t codePoint)
-{
-    bool_t is_space           = (UTL_XML_CHAR_SPACE == codePoint);
-    bool_t is_tab             = (UTL_XML_CHAR_TAB == codePoint);
-    bool_t is_carriage_return = (UTL_XML_CHAR_CR == codePoint);
-    bool_t is_line_feed       = (UTL_XML_CHAR_LF == codePoint);
-
-    return is_space || is_tab || is_carriage_return || is_line_feed;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  None
- */
-bool_t Utl_Xml_IsNameStartChar(uint32_t codePoint)
-{
-    uint32_t range_index;
-    bool_t   is_name_start_char;
-    uint32_t first;
-    uint32_t last;
-
-    is_name_start_char = FALSE;
-
-    for (range_index = 0; range_index < COUNT_OF(c_xmlNameStartCharRanges); ++range_index)
-    {
-        first = c_xmlNameStartCharRanges[range_index].first;
-        last  = c_xmlNameStartCharRanges[range_index].last;
-
-        is_name_start_char = InRange(codePoint, first, last);
-
-        if (is_name_start_char)
-        {
-            break;
-        }
-    }
-
-    return is_name_start_char;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  None
- */
-bool_t Utl_Xml_IsNameChar(uint32_t codePoint)
-{
-    bool_t   is_name_char;
-    uint32_t range_index;
-    uint32_t first;
-    uint32_t last;
-
-    is_name_char = FALSE;
-
-    if (Utl_Xml_IsNameStartChar(codePoint))
-    {
-        is_name_char = TRUE;
-    }
-    else
-    {
-        for (range_index = 0; range_index < COUNT_OF(c_xmlNameCharRanges); ++range_index)
-        {
-            first = c_xmlNameCharRanges[range_index].first;
-            last  = c_xmlNameCharRanges[range_index].last;
-
-            is_name_char = InRange(codePoint, first, last);
-
-            if (is_name_char)
-            {
-                break;
-            }
-        }
-    }
-
-    return is_name_char;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Uses XML 1.0 NameStartChar and NameChar after strict UTF-8 decoding.
- */
-bool_t Utl_Xml_IsName(const byte_t* utf8Text, uint32_t byteCount)
-{
-    bool_t   is_name;
-    uint32_t byte_offset;
-    uint32_t code_point;
-    uint32_t decoded_byte_count;
-    bool_t   decode_failed;
-
-    LOGASSERT(NULL != utf8Text);
-    LOGASSERT(0 < byteCount);
-    LOGASSERT(UTL_XML_MAX_NAME_BYTES >= byteCount);
-
-    is_name = TRUE;
-
-    for (byte_offset = 0; byte_offset < byteCount; byte_offset += decoded_byte_count)
-    {
-        code_point = DecodeUtf8(utf8Text, byteCount, byte_offset, &decoded_byte_count);
-
-        decode_failed = (0 == decoded_byte_count);
-
-        if (decode_failed)
-        {
-            is_name = FALSE;
-        }
-        else
-        {
-            if (0 == byte_offset)
-            {
-                is_name = Utl_Xml_IsNameStartChar(code_point);
-            }
-            else
-            {
-                is_name = Utl_Xml_IsNameChar(code_point);
-            }
-        }
-
-        if (FALSE == is_name)
-        {
-            break;
-        }
-    }
-
-    return is_name;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Checks the literal-character branch of AttValue for double quotes.
- */
-bool_t Utl_Xml_IsAttributeValueChar(uint32_t codePoint)
-{
-    bool_t is_xml_char;
-    bool_t is_less_than;
-    bool_t is_ampersand;
-    bool_t is_double_quote;
-    bool_t is_reserved;
-    bool_t is_attribute_value_char;
-
-    is_xml_char              = Utl_Xml_IsChar(codePoint);
-    is_less_than             = (UTL_XML_CHAR_LT == codePoint);
-    is_ampersand             = (UTL_XML_CHAR_AMP == codePoint);
-    is_double_quote          = (UTL_XML_QUOTE_QUOT == codePoint);
-    is_reserved              = is_less_than || is_ampersand || is_double_quote;
-    is_attribute_value_char  = is_xml_char && (FALSE == is_reserved);
-
-    return is_attribute_value_char;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
  *  Checks XML characters first, then excludes characters that cannot be written
  *  literally or would be changed by attribute-value normalization.
  */
@@ -1681,7 +1789,7 @@ bool_t Utl_Xml_IsAttributeValue(const byte_t* utf8Text, uint32_t byteCount)
 
     is_attribute_value = TRUE;
 
-    if (Utl_Xml_IsString(utf8Text, byteCount))
+    if (IsString(utf8Text, byteCount))
     {
         for (byte_index = 0; byte_index < byteCount; ++byte_index)
         {
@@ -1689,8 +1797,8 @@ bool_t Utl_Xml_IsAttributeValue(const byte_t* utf8Text, uint32_t byteCount)
             is_ascii   = (value_byte <= UTF8_ASCII_MAX_BYTE);
             if (is_ascii)
             {
-                is_attribute_value_char  = Utl_Xml_IsAttributeValueChar(value_byte);
-                is_whitespace            = Utl_Xml_IsWhitespace(value_byte);
+                is_attribute_value_char  = IsAttributeValueChar(value_byte);
+                is_whitespace            = IsWhitespace(value_byte);
                 is_space                 = (UTL_XML_CHAR_SPACE == value_byte);
                 is_normalized_whitespace = is_whitespace && (FALSE == is_space);
                 is_attribute_value       = is_attribute_value_char && (FALSE == is_normalized_whitespace);
@@ -1783,7 +1891,7 @@ void Utl_Xml_AppendAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribut
     LOGASSERT(UTL_XML_NODE_ELEMENT == node->type);
     LOGASSERT(node->attributeCount < UTL_XML_NODE_MAX_ATTRIBUTES);
 
-    is_name = Utl_Xml_IsName(attribute->name, attribute->nameByteCount);
+    is_name = IsName(attribute->name, attribute->nameByteCount);
     LOGASSERT(is_name);
 
     is_attribute_value = Utl_Xml_IsAttributeValue(attribute->value, attribute->valueByteCount);

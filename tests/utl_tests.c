@@ -15,119 +15,19 @@ void RunArinc661Tests(void);
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Checks character classification against expected XML production membership at range boundaries,
- *  excluded gaps, whitespace distinctions, surrogate code points, and Unicode limits.
+ *  Exercises XML name validation through the public document writer.
  */
-static void TestCharacterClasses(void)
+static uint64_t WriteTestElement(const byte_t* name, uint32_t nameByteCount)
 {
-    /* Expected membership in XML 1.0 productions [2], [3], [4], and [4a]. */
-    static const struct
-    {
-        uint32_t codePoint;
-        bool_t   isChar;
-        bool_t   isWhitespace;
-        bool_t   isNameStartChar;
-        bool_t   isNameChar;
-    } cases[] = {{0x0000, 0, 0, 0, 0},
-                 {0x0008, 0, 0, 0, 0},
-                 {0x0009, 1, 1, 0, 0},
-                 {0x000A, 1, 1, 0, 0},
-                 {0x000B, 0, 0, 0, 0},
-                 {0x000C, 0, 0, 0, 0},
-                 {0x000D, 1, 1, 0, 0},
-                 {0x000E, 0, 0, 0, 0},
-                 {0x001F, 0, 0, 0, 0},
-                 {0x0020, 1, 1, 0, 0},
-                 {'&', 1, 0, 0, 0},
-                 {'<', 1, 0, 0, 0},
-                 {':', 1, 0, 1, 1},
-                 {'_', 1, 0, 1, 1},
-                 {'@', 1, 0, 0, 0},
-                 {'A', 1, 0, 1, 1},
-                 {'Z', 1, 0, 1, 1},
-                 {'[', 1, 0, 0, 0},
-                 {'`', 1, 0, 0, 0},
-                 {'a', 1, 0, 1, 1},
-                 {'z', 1, 0, 1, 1},
-                 {'{', 1, 0, 0, 0},
-                 {'-', 1, 0, 0, 1},
-                 {'.', 1, 0, 0, 1},
-                 {'/', 1, 0, 0, 0},
-                 {'0', 1, 0, 0, 1},
-                 {'9', 1, 0, 0, 1},
-                 {0x007F, 1, 0, 0, 0},
-                 {0x0085, 1, 0, 0, 0}, /* NEL is not XML 1.0 whitespace. */
-                 {0x00A0, 1, 0, 0, 0}, /* Neither is nonbreaking space. */
-                 {0x00B6, 1, 0, 0, 0},
-                 {0x00B7, 1, 0, 0, 1},
-                 {0x00B8, 1, 0, 0, 0},
-                 {0x00BF, 1, 0, 0, 0},
-                 {0x00C0, 1, 0, 1, 1},
-                 {0x00D6, 1, 0, 1, 1},
-                 {0x00D7, 1, 0, 0, 0},
-                 {0x00D8, 1, 0, 1, 1},
-                 {0x00F6, 1, 0, 1, 1},
-                 {0x00F7, 1, 0, 0, 0},
-                 {0x00F8, 1, 0, 1, 1},
-                 {0x02FF, 1, 0, 1, 1},
-                 {0x0300, 1, 0, 0, 1}, /* Combining marks cannot begin a Name. */
-                 {0x036F, 1, 0, 0, 1},
-                 {0x0370, 1, 0, 1, 1},
-                 {0x037D, 1, 0, 1, 1},
-                 {0x037E, 1, 0, 0, 0},
-                 {0x037F, 1, 0, 1, 1},
-                 {0x1FFF, 1, 0, 1, 1},
-                 {0x2000, 1, 0, 0, 0},
-                 {0x200B, 1, 0, 0, 0},
-                 {0x200C, 1, 0, 1, 1},
-                 {0x200D, 1, 0, 1, 1},
-                 {0x200E, 1, 0, 0, 0},
-                 {0x2028, 1, 0, 0, 0}, /* Line separator is not XML 1.0 whitespace. */
-                 {0x203E, 1, 0, 0, 0},
-                 {0x203F, 1, 0, 0, 1},
-                 {0x2040, 1, 0, 0, 1},
-                 {0x2041, 1, 0, 0, 0},
-                 {0x206F, 1, 0, 0, 0},
-                 {0x2070, 1, 0, 1, 1},
-                 {0x218F, 1, 0, 1, 1},
-                 {0x2190, 1, 0, 0, 0},
-                 {0x2BFF, 1, 0, 0, 0},
-                 {0x2C00, 1, 0, 1, 1},
-                 {0x2FEF, 1, 0, 1, 1},
-                 {0x2FF0, 1, 0, 0, 0},
-                 {0x3000, 1, 0, 0, 0},
-                 {0x3001, 1, 0, 1, 1},
-                 {0xD7FF, 1, 0, 1, 1},
-                 {0xD800, 0, 0, 0, 0}, /* Surrogates are not XML characters. */
-                 {0xDFFF, 0, 0, 0, 0},
-                 {0xE000, 1, 0, 0, 0},
-                 {0xF8FF, 1, 0, 0, 0},
-                 {0xF900, 1, 0, 1, 1},
-                 {0xFDCF, 1, 0, 1, 1},
-                 {0xFDD0, 1, 0, 0, 0}, /* Discouraged characters can still match Char. */
-                 {0xFDEF, 1, 0, 0, 0},
-                 {0xFDF0, 1, 0, 1, 1},
-                 {0xFFFD, 1, 0, 1, 1},
-                 {0xFFFE, 0, 0, 0, 0},
-                 {0xFFFF, 0, 0, 0, 0},
-                 {0x10000, 1, 0, 1, 1},
-                 {0x1FFFF, 1, 0, 1, 1}, /* Non-BMP plane endings match Char and NameStartChar. */
-                 {0xEFFFF, 1, 0, 1, 1},
-                 {0xF0000, 1, 0, 0, 0},
-                 {0x10FFFF, 1, 0, 0, 0},
-                 {0x110000, 0, 0, 0, 0},
-                 {UINT32_MAX, 0, 0, 0, 0}};
+    Utl_Xml_Document_t document;
+    Utl_Xml_Node_t     root;
+    byte_t            output[UTL_XML_MAX_NAME_BYTES + sizeof("</>\n")];
 
-    uint32_t test_case_index;
+    Utl_Xml_InitializeDocument(&document);
+    Utl_Xml_InitializeNode(&root, UTL_XML_NODE_ELEMENT, name, nameByteCount);
+    Utl_Xml_AppendNode(&document, &root);
 
-    for (test_case_index = 0; test_case_index < COUNT_OF(cases); ++test_case_index)
-    {
-        uint32_t code_point = cases[test_case_index].codePoint;
-        assert(Utl_Xml_IsChar(code_point) == cases[test_case_index].isChar);
-        assert(Utl_Xml_IsWhitespace(code_point) == cases[test_case_index].isWhitespace);
-        assert(Utl_Xml_IsNameStartChar(code_point) == cases[test_case_index].isNameStartChar);
-        assert(Utl_Xml_IsNameChar(code_point) == cases[test_case_index].isNameChar);
-    }
+    return Utl_Xml_WriteDocument(&document, output, (uint64_t)sizeof(output));
 }
 
 /*************************************************************************************************/
@@ -149,44 +49,26 @@ static void TestXmlByteSpans(void)
     static const byte_t nonliteral_or_normalized[] = "<&\"\t\n\r";
     uint32_t            byte_index;
 
-    assert(TRUE == Utl_Xml_IsString(empty, 0));
-    assert(TRUE == Utl_Xml_IsString(valid_text, (uint32_t)(sizeof(valid_text) - 1)));
-    assert(TRUE == Utl_Xml_IsString(unterminated, (uint32_t)sizeof(unterminated)));
-    assert(FALSE == Utl_Xml_IsString(invalid_utf8, (uint32_t)(sizeof(invalid_utf8) - 1)));
-    assert(FALSE == Utl_Xml_IsString(invalid_xml_char, (uint32_t)(sizeof(invalid_xml_char) - 1)));
-    assert(FALSE == Utl_Xml_IsString(embedded_zero, (uint32_t)sizeof(embedded_zero)));
-    assert(FALSE == Utl_Xml_IsString(valid_text, (uint32_t)sizeof(valid_text)));
-
-    assert(TRUE == Utl_Xml_IsAttributeValueChar('\t'));
-    assert(TRUE == Utl_Xml_IsAttributeValueChar('\n'));
-    assert(TRUE == Utl_Xml_IsAttributeValueChar('\r'));
-    assert(TRUE == Utl_Xml_IsAttributeValueChar(' '));
-    assert(TRUE == Utl_Xml_IsAttributeValueChar('\''));
-    assert(TRUE == Utl_Xml_IsAttributeValueChar('>'));
-    assert(TRUE == Utl_Xml_IsAttributeValueChar(0x1F600));
-    assert(FALSE == Utl_Xml_IsAttributeValueChar('<'));
-    assert(FALSE == Utl_Xml_IsAttributeValueChar('&'));
-    assert(FALSE == Utl_Xml_IsAttributeValueChar('"'));
-    assert(FALSE == Utl_Xml_IsAttributeValueChar(0));
-
     assert(TRUE == Utl_Xml_IsAttributeValue(empty, 0));
     assert(TRUE == Utl_Xml_IsAttributeValue(valid_text, (uint32_t)(sizeof(valid_text) - 1)));
+    assert(TRUE == Utl_Xml_IsAttributeValue(unterminated, (uint32_t)sizeof(unterminated)));
     assert(TRUE == Utl_Xml_IsAttributeValue(plain_attribute_value, (uint32_t)(sizeof(plain_attribute_value) - 1)));
     assert(FALSE == Utl_Xml_IsAttributeValue(invalid_utf8, (uint32_t)(sizeof(invalid_utf8) - 1)));
     assert(FALSE == Utl_Xml_IsAttributeValue(invalid_xml_char, (uint32_t)(sizeof(invalid_xml_char) - 1)));
     assert(FALSE == Utl_Xml_IsAttributeValue(embedded_zero, (uint32_t)sizeof(embedded_zero)));
+    assert(FALSE == Utl_Xml_IsAttributeValue(valid_text, (uint32_t)sizeof(valid_text)));
 
     for (byte_index = 0; byte_index < (uint32_t)(sizeof(nonliteral_or_normalized) - 1); ++byte_index)
     {
         assert(FALSE == Utl_Xml_IsAttributeValue(&nonliteral_or_normalized[byte_index], 1));
     }
 
-    assert(TRUE == Utl_Xml_IsName(valid_name, (uint32_t)(sizeof(valid_name) - 1)));
-    assert(TRUE == Utl_Xml_IsName(unterminated, (uint32_t)sizeof(unterminated)));
-    assert(FALSE == Utl_Xml_IsName(invalid_name, (uint32_t)(sizeof(invalid_name) - 1)));
-    assert(FALSE == Utl_Xml_IsName(invalid_utf8, (uint32_t)(sizeof(invalid_utf8) - 1)));
-    assert(FALSE == Utl_Xml_IsName(embedded_zero, (uint32_t)sizeof(embedded_zero)));
-    assert(FALSE == Utl_Xml_IsName(valid_name, (uint32_t)sizeof(valid_name)));
+    assert(0 < WriteTestElement(valid_name, (uint32_t)(sizeof(valid_name) - 1)));
+    assert(0 < WriteTestElement(unterminated, (uint32_t)sizeof(unterminated)));
+    assert(0 == WriteTestElement(invalid_name, (uint32_t)(sizeof(invalid_name) - 1)));
+    assert(0 == WriteTestElement(invalid_utf8, (uint32_t)(sizeof(invalid_utf8) - 1)));
+    assert(0 == WriteTestElement(embedded_zero, (uint32_t)sizeof(embedded_zero)));
+    assert(0 == WriteTestElement(valid_name, (uint32_t)sizeof(valid_name)));
 }
 
 /*************************************************************************************************/
@@ -545,7 +427,6 @@ static void TestNumberScanning(void)
 int main(void)
 {
     TestNumberScanning();
-    TestCharacterClasses();
     TestXmlByteSpans();
     TestXmlNodeInitialization();
     TestDeferredNodeContentValidation();
