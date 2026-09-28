@@ -184,6 +184,7 @@ int main(void)
     configuration.userApplicationCount    = COUNT_OF(applications);
     configuration.externalSourceCount     = 0;
     configuration.hasMetaData             = FALSE;
+    configuration.hasXmlDeclaration       = TRUE;
 
     screens[0].id                        = 0;
     screens[0].pixelSize.width           = EXAMPLE_PIXEL_WIDTH;

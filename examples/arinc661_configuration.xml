@@ -1,5 +1,4 @@
-<?xml version="1.0"?>
-<configuration>
+<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="H3.xsd">
     <screen id="0">
         <pixelSize width="2560" height="1024" units="pixel"/>
         <physicalDimensions width="20" height="8" units="inch"/>

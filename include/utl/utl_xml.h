@@ -22,12 +22,15 @@
 ** 3.1 Macros
 **===============================================================================================*/
 
+/* Arbitrarily chosen storage and traversal limits; these are not XML specification limits. */
 #define UTL_XML_MAX_NAME_BYTES          (1024UL)    ///< Maximum UTF-8 bytes in an element or attribute name, excluding a zero terminator
 #define UTL_XML_MAX_VALUE_BYTES         (1048576UL) ///< Maximum UTF-8 bytes in an attribute value, excluding quotes and a zero terminator
 #define UTL_XML_NODE_MAX_ATTRIBUTES     (256UL)     ///< Maximum attributes on one element.
 #define UTL_XML_NODE_MAX_DEPTH          (65536UL)   ///< Maximum ancestor links checked when appending a child.
-#define UTL_XML_DOCUMENT_MAX_ROOT_NODES (2UL)       ///< Maximum top-level nodes: an XML declaration and one document element.
 #define UTL_XML_DOCUMENT_MAX_NODES      (4096UL)    ///< Maximum element nodes visited by the writer or markup spans read by the reader.
+
+/* Nominally one document element, or two top-level nodes when an XML declaration provides version information. */
+#define UTL_XML_DOCUMENT_MAX_ROOT_NODES (2UL)       ///< Maximum top-level nodes: one document element plus an optional XML declaration
 
 /*=================================================================================================
 ** 3.2 Types
@@ -258,8 +261,8 @@ void Utl_Xml_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node);
  *
  * \par Requirements:
  *  - 001 This function shall append nodes and attributes in source order.
- *  - 002 This function shall fail an assertion if document, bufferToReadDocumentFrom, nodes, or attributes is NULL, or if document is not empty.
- *  - 003 This function shall return zero for input outside the supported form or for insufficient storage.
+ *  - 002 This function shall return zero for input outside the supported form or for insufficient storage.
+ *  - 003 This function shall fail an assertion if document, bufferToReadDocumentFrom, nodes, or attributes is NULL, or if document is not empty.
  *
  * \param[in,out] document                   Initialized, empty document
  * \param[in,out] bufferToReadDocumentFrom   UTF-8 XML bytes with one writable byte after sizeOfDocumentBuffer bytes
@@ -296,9 +299,9 @@ uint64_t Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToRead
  *  - 002 This function shall write nodes, children, and attributes in append order.
  *  - 003 This function shall return the number of bytes written, without writing a zero terminator.
  *  - 004 This function shall place nested nodes on indented LF-separated lines.
- *  - 005 This function shall fail an assertion if document or bufferToWriteDocumentIn is NULL.
- *  - 006 This function shall return zero for invalid element names or attribute content.
- *  - 007 This function shall return zero before writing beyond sizeOfDocumentBuffer.
+ *  - 005 This function shall return zero for invalid element names or attribute content.
+ *  - 006 This function shall return zero before writing beyond sizeOfDocumentBuffer.
+ *  - 007 This function shall fail an assertion if document or bufferToWriteDocumentIn is NULL.
  *
  * \param[in]  document                  Document to write
  * \param[out] bufferToWriteDocumentIn   Caller-provided byte storage

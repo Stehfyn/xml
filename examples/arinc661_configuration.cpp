@@ -1106,6 +1106,8 @@ static void LoadConfigurationFile(Arinc661_Configuration_Editor_t* editor, const
             document->configuration.userApplicationCount = 0;
             document->configuration.externalSourceCount  = 0;
             document->configuration.hasMetaData          = FALSE;
+            document->configuration.hasXmlDeclaration    = FALSE;
+            document->configuration.schemaLocation[0]    = '\0';
             document->documentName[0]                    = '\0';
             document->documentPath[0]                    = '\0';
 
@@ -1208,6 +1210,8 @@ static void CreateDocument(Arinc661_Configuration_Editor_t* editor)
         document->configuration.userApplicationCount = 0;
         document->configuration.externalSourceCount  = 0;
         document->configuration.hasMetaData          = FALSE;
+        document->configuration.hasXmlDeclaration    = FALSE;
+        document->configuration.schemaLocation[0]    = '\0';
         editor->activeDocumentIndex    = available_index;
         editor->requestedDocumentIndex = available_index;
         editor->status                 = STATUS_NONE;
@@ -2710,6 +2714,8 @@ static void CloseDocument(Arinc661_Configuration_Editor_t* editor, uint32_t docu
     document->configuration.userApplicationCount = 0;
     document->configuration.externalSourceCount  = 0;
     document->configuration.hasMetaData          = FALSE;
+    document->configuration.hasXmlDeclaration    = FALSE;
+    document->configuration.schemaLocation[0]    = '\0';
     if (documentIndex == editor->activeDocumentIndex)
     {
         editor->activeDocumentIndex    = INVALID_DOCUMENT_INDEX;
@@ -3622,6 +3628,8 @@ void Arinc661_Configuration_Initialize(Arinc661_Configuration_Editor_t* editor)
         document->configuration.userApplicationCount    = 0;
         document->configuration.externalSourceCount     = 0;
         document->configuration.hasMetaData             = FALSE;
+        document->configuration.hasXmlDeclaration       = FALSE;
+        document->configuration.schemaLocation[0]       = '\0';
     }
 }
 
