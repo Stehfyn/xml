@@ -30,35 +30,7 @@
 #define UTL_XML_NODE_MAX_DEPTH      (65536)   ///< Maximum ancestor links checked when appending a child.
 
 #define UTL_XML_DOCUMENT_MAX_ROOT_NODES (2)     ///< Maximum top-level nodes: an XML declaration and one document element.
-#define UTL_XML_DOCUMENT_MAX_NODES      (4096)  ///< Maximum element nodes visited by the writer or markup spans read by the reader.
-
-/* XML 1.0 sections 2.2 and 2.3, productions [2] Char and [3] S. */
-#define UTL_XML_CHAR_TAB   ('\t') ///< Horizontal tab.
-#define UTL_XML_CHAR_LF    ('\n') ///< Line feed; normalized line ending (section 2.11).
-#define UTL_XML_CHAR_CR    ('\r') ///< Carriage return.
-#define UTL_XML_CHAR_SPACE (' ')  ///< Space.
-
-/* XML 1.0 section 2.4, production [14] CharData. */
-#define UTL_XML_CHAR_AMP ('&') ///< Ampersand.
-#define UTL_XML_CHAR_LT  ('<') ///< Less-than sign.
-#define UTL_XML_CHAR_GT  ('>') ///< Greater-than sign.
-
-/* XML 1.0 section 2.3, production [10] AttValue, and section 2.8, [25] Eq. */
-#define UTL_XML_QUOTE_QUOT ('"')  ///< Double-quoted literal delimiter.
-#define UTL_XML_EQ         ('=')  ///< Eq also permits surrounding S.
-
-/* XML 1.0 section 2.8, productions [23] XMLDecl, [24] VersionInfo, [26] VersionNum. */
-#define UTL_XML_DECL_OPEN    ("<?xml")   ///< XMLDecl opening delimiter; S follows.
-#define UTL_XML_DECL_CLOSE   ("?>")      ///< XMLDecl closing delimiter.
-#define UTL_XML_VERSION_NAME ("version") ///< VersionInfo keyword.
-#define UTL_XML_VERSION_1_0  ("1.0")     ///< XML 1.0 version value.
-#define UTL_XML_VERSION_1_0_BYTE_COUNT (sizeof(UTL_XML_VERSION_1_0) - 1)
-
-/* XML 1.0 section 3.1, productions [40] STag, [42] ETag, [44] EmptyElemTag. */
-#define UTL_XML_STAG_OPEN            ("<")  ///< STag and EmptyElemTag opening delimiter.
-#define UTL_XML_ETAG_OPEN            ("</") ///< ETag opening delimiter.
-#define UTL_XML_TAG_CLOSE            (">")  ///< STag and ETag closing delimiter.
-#define UTL_XML_EMPTY_ELEM_TAG_CLOSE ("/>") ///< EmptyElemTag closing delimiter.
+#define UTL_XML_DOCUMENT_MAX_NODES      (4096) ///< Maximum element nodes visited by the writer or markup spans read by the reader.
 
 /*=================================================================================================
 ** 3.2 Types
