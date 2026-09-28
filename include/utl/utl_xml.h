@@ -22,15 +22,12 @@
 ** 3.1 Macros
 **===============================================================================================*/
 
-/* Maximum accepted UTF-8 name and value byte counts. */
-#define UTL_XML_MAX_NAME_BYTES  (1024)
-#define UTL_XML_MAX_VALUE_BYTES (1048576)
-
-#define UTL_XML_NODE_MAX_ATTRIBUTES (256)     ///< Maximum attributes on one element.
-#define UTL_XML_NODE_MAX_DEPTH      (65536)   ///< Maximum ancestor links checked when appending a child.
-
-#define UTL_XML_DOCUMENT_MAX_ROOT_NODES (2)     ///< Maximum top-level nodes: an XML declaration and one document element.
-#define UTL_XML_DOCUMENT_MAX_NODES      (4096) ///< Maximum element nodes visited by the writer or markup spans read by the reader.
+#define UTL_XML_MAX_NAME_BYTES          (1024UL)    ///< Maximum UTF-8 bytes in an element or attribute name, excluding a zero terminator
+#define UTL_XML_MAX_VALUE_BYTES         (1048576UL) ///< Maximum UTF-8 bytes in an attribute value, excluding quotes and a zero terminator
+#define UTL_XML_NODE_MAX_ATTRIBUTES     (256UL)     ///< Maximum attributes on one element.
+#define UTL_XML_NODE_MAX_DEPTH          (65536UL)   ///< Maximum ancestor links checked when appending a child.
+#define UTL_XML_DOCUMENT_MAX_ROOT_NODES (2UL)       ///< Maximum top-level nodes: an XML declaration and one document element.
+#define UTL_XML_DOCUMENT_MAX_NODES      (4096UL)    ///< Maximum element nodes visited by the writer or markup spans read by the reader.
 
 /*=================================================================================================
 ** 3.2 Types
@@ -52,21 +49,21 @@ typedef enum Utl_Xml_NodeType_e
  */
 typedef struct Utl_Xml_Attribute_s
 {
-    const byte_t*               name;           ///< Borrowed UTF-8 XML name bytes.
+    const byte_t*               name;           ///< Pointer to UTF-8 XML name bytes
     uint32_t                    nameByteCount;  ///< Number of name bytes.
-    const byte_t*               value;          ///< Borrowed UTF-8 XML value bytes.
+    const byte_t*               value;          ///< Pointer to UTF-8 XML value bytes
     uint32_t                    valueByteCount; ///< Number of value bytes.
     struct Utl_Xml_Attribute_s* next;           ///< Next attribute in insertion order, or NULL.
 } Utl_Xml_Attribute_t;
 
 /*************************************************************************************************/
 /**
- * \brief Caller-owned XML node with borrowed strings and forward links for serialization.
+ * \brief Caller-owned XML node with pointers to strings and forward links for serialization.
  */
 typedef struct Utl_Xml_Node_s
 {
     Utl_Xml_NodeType_t     type;           ///< Kind of XML node.
-    const byte_t*          name;           ///< Borrowed element name; NULL for the XML declaration.
+    const byte_t*          name;           ///< Pointer to the element name; NULL for the XML declaration
     uint32_t               nameByteCount;  ///< Number of name bytes; zero when name is NULL.
     struct Utl_Xml_Node_s* parent;         ///< Parent set when appended, or NULL.
     struct Utl_Xml_Node_s* firstChild;     ///< First child of an element, or NULL.
@@ -133,14 +130,14 @@ bool_t Utl_Xml_IsAttributeValue(const byte_t* utf8Text, uint32_t byteCount);
  *
  * \par Requirements:
  *  - 001 This function shall store name, value, and their byte counts without checking XML syntax or length.
- *  - 002 This function shall borrow the byte spans; the caller shall keep them valid while referenced.
+ *  - 002 This function shall store pointers to the byte spans without copying them; the caller shall keep the spans valid while referenced.
  *  - 003 This function shall clear the attribute's next link.
  *  - 004 This function shall fail an assertion if attribute, name, or value is NULL.
  *
  * \param[out] attribute        Uninitialized caller-owned attribute storage
- * \param[in]  name             Borrowed UTF-8 name byte span
+ * \param[in]  name             Pointer to a UTF-8 name byte span
  * \param[in]  nameByteCount    Number of name bytes
- * \param[in]  value            Borrowed UTF-8 value byte span
+ * \param[in]  value            Pointer to a UTF-8 value byte span
  * \param[in]  valueByteCount   Number of value bytes
  *
  * \retval     None
@@ -153,7 +150,7 @@ void Utl_Xml_InitializeAttribute(Utl_Xml_Attribute_t* attribute, const byte_t* n
  *
  * \par Requirements:
  *  - 001 This function shall store type, name, and its byte count without checking XML syntax or length.
- *  - 002 This function shall borrow a non-NULL name; the caller shall keep it valid while referenced.
+ *  - 002 This function shall store the name pointer without copying its bytes; the caller shall keep a non-NULL name valid while referenced.
  *  - 003 This function shall clear the node's tree and attribute links.
  *  - 004 This function shall require a zero byte count when name is NULL.
  *  - 005 This function shall fail an assertion if node is NULL.
@@ -163,7 +160,7 @@ void Utl_Xml_InitializeAttribute(Utl_Xml_Attribute_t* attribute, const byte_t* n
  *
  * \param[out] node            Uninitialized caller-owned node storage
  * \param[in]  type            XML node kind
- * \param[in]  name            Borrowed UTF-8 name byte span or NULL
+ * \param[in]  name            Pointer to a UTF-8 name byte span or NULL
  * \param[in]  nameByteCount   Number of name bytes
  *
  * \retval     None
@@ -190,7 +187,7 @@ void Utl_Xml_InitializeDocument(Utl_Xml_Document_t* document);
  *
  * \par Requirements:
  *  - 001 This function shall require a valid XML name and an XML character value without <, &, ", or whitespace other than spaces.
- *  - 002 This function shall enforce UTL_XML_NODE_MAX_ATTRIBUTES and preserve the borrowed byte spans.
+ *  - 002 This function shall enforce UTL_XML_NODE_MAX_ATTRIBUTES and preserve the pointers to the name and value byte spans.
  *  - 003 This function shall fail an assertion for NULL arguments, a non-element node, a duplicate name, or an attribute already linked to the element.
  *
  * \param[in,out] node        Element receiving the attribute
@@ -255,7 +252,7 @@ void Utl_Xml_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node);
  *  no references and no whitespace other than spaces. Whitespace between tags is
  *  not stored, so writing the document reproduces the writer's formatting.
  *  The reader writes a zero terminator at bufferToReadDocumentFrom[sizeOfDocumentBuffer]
- *  and uses Utl_StrStr to find each <. Names and values borrow the buffer.
+ *  and uses Utl_StrStr to find each <. Name and value pointers refer to bytes in the buffer.
  *  The caller keeps bufferToReadDocumentFrom, nodes, and attributes valid while the
  *  document is used.
  *
@@ -291,7 +288,7 @@ uint64_t Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToRead
  *
  *  XML declaration markup is written with version="1.0".
  *  The writer uses LF line endings and four spaces per nesting level.
- *  The caller keeps nodes, attributes, and borrowed byte spans valid while
+ *  The caller keeps nodes, attributes, and the byte spans they point to valid while
  *  serializing, with bufferToWriteDocumentIn disjoint from them.
  *
  * \par Requirements:

@@ -482,7 +482,7 @@ static bool_t ReadElementEnd(const byte_t* markup, uint64_t markupByteCount, uin
  * \brief Reads the next markup span, including the whitespace after its tag.
  *
  * \param[in,out] reader           Shared input position and markup count
- * \param[out]    markup           Beginning of the borrowed span
+ * \param[out]    markup           Pointer to the beginning of the input span
  * \param[out]    markupByteCount  Number of bytes in the span
  *
  * \retval        TRUE             if a span was read within the document's markup limit.
