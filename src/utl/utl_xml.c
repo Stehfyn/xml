@@ -51,6 +51,7 @@
 #define TAG_CLOSE            (">")  ///< STag and ETag closing delimiter.
 #define EMPTY_ELEM_TAG_CLOSE ("/>") ///< EmptyElemTag closing delimiter.
 
+#define TOKEN_MAX_BYTES (sizeof(VERSION_NAME)) ///< Longest supported token, including its zero terminator.
 #define INDENT_SPACES_PER_LEVEL (4)
 
 /* UTF-8 leading-byte ranges and their payload bits. */
@@ -339,7 +340,7 @@ static const Utl_Xml_Node_t* FindAncestor(const Utl_Xml_Node_t* parent, const Ut
  * \retval    non-NULL   matching top-level node.
  * \retval    NULL       if no top-level node has the requested type.
  */
-static const Utl_Xml_Node_t* FindNode(const Utl_Xml_Document_t* document, Utl_Xml_NodeType_t type);
+static const Utl_Xml_Node_t* FindRootNode(const Utl_Xml_Document_t* document, Utl_Xml_NodeType_t type);
 
 /*************************************************************************************************/
 /**
@@ -671,7 +672,27 @@ static bool_t InRange(uint32_t codePoint, uint32_t first, uint32_t last)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Rejects truncated sequences, overlong forms, surrogates, and code points above U+10FFFF.
+ *  Decodes one code point at offset. For example, the three-byte EURO SIGN
+ *  between the ASCII letters A and B is decoded as follows:
+ *
+ * \code{.txt}
+ * Byte index:        0  1  2  3  4
+ * Input bytes:     41 E2 82 AC 42   (hexadecimal)
+ * Offset:              1
+ *
+ * E2 = 1110 0010  -> payload 0010
+ * 82 = 10 000010  -> payload 000010
+ * AC = 10 101100  -> payload 101100
+ * Combined payload: 0010 000010 101100 = U+20AC
+ *
+ * Return value: 0x20AC; decodedByteCount: 3
+ * The caller advances from offset 1 to offset 4 to decode B next.
+ * \endcode
+ *
+ *  Rejects invalid leading or continuation bytes, truncated sequences, overlong
+ *  forms, surrogates, and code points above U+10FFFF. Failure leaves
+ *  decodedByteCount at zero. A valid U+0000 also returns zero, but consumes one
+ *  byte; callers use decodedByteCount to distinguish it from failure.
  */
 static uint32_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t offset, uint32_t* decodedByteCount)
 {
@@ -688,8 +709,10 @@ static uint32_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t offs
     bool_t   is_surrogate;
     bool_t   is_valid;
 
+    // Keep the failure result until the complete sequence has passed validation
     code_point = 0;
     (*decodedByteCount) = 0;
+    // Check the starting offset before accessing the leading byte
     is_valid = (offset < numBytes);
 
     if (is_valid)
@@ -697,8 +720,10 @@ static uint32_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t offs
         position = offset;
         first    = bytes[position];
 
+        // The leading byte selects the payload bits, sequence length, and minimum value
         if (first <= UTF8_ASCII_MAX_BYTE)
         {
+            // ASCII, including U+0000, needs no continuation bytes
             decoded           = first;
             minimum           = 0;
             num_continuations = 0;
@@ -723,6 +748,7 @@ static uint32_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t offs
         }
         else
         {
+            // Reject standalone continuation bytes and unsupported leading-byte patterns
             is_valid = FALSE;
         }
 
@@ -732,12 +758,14 @@ static uint32_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t offs
             {
                 ++position;
 
+                // Reject a truncated sequence before accessing the next byte
                 is_position_valid = (position < numBytes);
 
                 is_valid = is_position_valid;
 
                 if (is_valid)
                 {
+                    // Each continuation byte must begin with the binary prefix 10
                     is_continuation_byte = (UTF8_CONTINUATION_PREFIX == (bytes[position] & UTF8_CONTINUATION_PREFIX_MASK));
                     is_valid = is_continuation_byte;
                 }
@@ -747,24 +775,28 @@ static uint32_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t offs
                     break;
                 }
 
+                // Append the continuation byte's six payload bits to the accumulated value
                 decoded = (decoded << UTF8_CONTINUATION_PAYLOAD_BITS) | (bytes[position] & UTF8_CONTINUATION_PAYLOAD_MASK);
             }
         }
 
         if (is_valid)
         {
+            // Enforce the shortest encoding for this length and the Unicode upper bound
             is_code_point_in_range = InRange(decoded, minimum, UTF8_MAX_CODE_POINT);
             is_valid = is_code_point_in_range;
         }
 
         if (is_valid)
         {
+            // Surrogate code points are not Unicode scalar values and cannot appear in UTF-8
             is_surrogate = InRange(decoded, UTF8_SURROGATE_MIN_CODE_POINT, UTF8_SURROGATE_MAX_CODE_POINT);
             is_valid = (FALSE == is_surrogate);
         }
 
         if (is_valid)
         {
+            // Publish the code point and consumed byte count only after every check succeeds
             code_point = decoded;
             (*decodedByteCount) = num_continuations + 1;
         }
@@ -849,8 +881,8 @@ static bool_t IsWhitespace(uint32_t codePoint)
  */
 static bool_t IsNameStartChar(uint32_t codePoint)
 {
-    uint32_t range_index;
     bool_t   is_name_start_char;
+    uint32_t range_index;
     uint32_t first;
     uint32_t last;
 
@@ -1068,14 +1100,14 @@ static const Utl_Xml_Node_t* FindAncestor(const Utl_Xml_Node_t* parent, const Ut
  * \par Details:
  *  None
  */
-static const Utl_Xml_Node_t* FindNode(const Utl_Xml_Document_t* document, Utl_Xml_NodeType_t type)
+static const Utl_Xml_Node_t* FindRootNode(const Utl_Xml_Document_t* document, Utl_Xml_NodeType_t type)
 {
     const Utl_Xml_Node_t* current_node;
     const Utl_Xml_Node_t* found_node;
     uint32_t              node_index;
     bool_t                has_node;
 
-    found_node = NULL;
+    found_node   = NULL;
     current_node = document->firstNode;
 
     for (node_index = 0; node_index < UTL_XML_DOCUMENT_MAX_ROOT_NODES; ++node_index)
@@ -1108,7 +1140,25 @@ static const Utl_Xml_Node_t* FindNode(const Utl_Xml_Document_t* document, Utl_Xm
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Advances position only when the token is present.
+ *  Matches a fixed XML token at the current position. For example, reading the
+ *  empty-element closing delimiter after the name in <panel/>:
+ *
+ * \verbatim
+ * Byte index:   0 1 2 3 4 5 6 7
+ * Input bytes:  < p a n e l / >
+ * byteCount:    8
+ * token:        "/>"
+ * position:     6 -> 8
+ * Return:       TRUE
+ * \endverbatim
+ *
+ *  With <panel> instead, the same token fails at position 6 and leaves position
+ *  unchanged, so the caller can try ">" at that offset.
+ *
+ *  The token's zero terminator must occur within TOKEN_MAX_BYTES and is not part
+ *  of the match. Input bytes are bounded by byteCount and need no zero terminator.
+ *  A mismatched byte, incomplete input, or missing token terminator returns FALSE
+ *  without advancing position, even when an initial part of the token matches.
  */
 static bool_t ReadToken(const byte_t* bytes, uint64_t byteCount, uint64_t* position, const char_t* token)
 {
@@ -1121,22 +1171,31 @@ static bool_t ReadToken(const byte_t* bytes, uint64_t byteCount, uint64_t* posit
 
     is_valid = TRUE;
 
-    for (byte_index = 0; '\0' != token[byte_index]; ++byte_index)
+    for (byte_index = 0; byte_index < TOKEN_MAX_BYTES; ++byte_index)
     {
+        // The terminator ends the token and is not part of the input to match
+        if ('\0' == token[byte_index])
+        {
+            break;
+        }
+
         token_byte = token[byte_index];
 
+        // Validate the starting offset before subtracting it from the input size
         is_position_valid = ((*position) < byteCount);
 
         is_valid = is_position_valid;
 
         if (is_valid)
         {
+            // Check the remaining input before forming the byte's absolute offset
             is_token_byte_available = (byte_index < (byteCount - (*position)));
 
             is_valid = is_token_byte_available;
         }
         if (is_valid)
         {
+            // Compare the token literally, without skipping whitespace or changing case
             is_matching_byte = (token_byte == bytes[(*position) + byte_index]);
 
             is_valid = is_matching_byte;
@@ -1144,12 +1203,19 @@ static bool_t ReadToken(const byte_t* bytes, uint64_t byteCount, uint64_t* posit
 
         if (FALSE == is_valid)
         {
+            // Stop at the first unavailable or mismatched byte
             break;
         }
     }
 
     if (is_valid)
     {
+        // Exhausting the token bound without seeing a terminator is a failure
+        is_valid = (byte_index < TOKEN_MAX_BYTES);
+    }
+    if (is_valid)
+    {
+        // Consume the token only after every byte and its terminator have been checked
         (*position) += byte_index;
     }
 
@@ -1159,32 +1225,53 @@ static bool_t ReadToken(const byte_t* bytes, uint64_t byteCount, uint64_t* posit
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
+ *  Skips XML whitespace (space, tab, carriage return, and line feed) from the
+ *  current position, stopping at the first other byte or the end of the input.
+ *  For example, skipping a line feed and indentation before an element:
+ *
+ * \verbatim
+ * Input bytes:       "\n    <button/>"  (\n represents one line-feed byte)
+ * byteCount:         14
+ * Initial position:  0
+ *
+ * mustReachEnd   Return   Final position
+ * FALSE         TRUE     5 (the '<' before button)
+ * TRUE          FALSE    5 (the '<' before button)
+ * \endverbatim
+ *
+ *  With mustReachEnd set, all remaining bytes must be whitespace. For example,
+ *  "\r\n  " advances position from 0 to 4 and returns TRUE in either mode.
+ *  Position still advances past any whitespace when mustReachEnd rejects a
+ *  following non-whitespace byte.
+ *
+ *  Whitespace is optional: starting at byteCount succeeds in either mode.
+ *  Starting beyond byteCount returns FALSE without changing position.
  */
 static bool_t ReadWhitespace(const byte_t* bytes, uint64_t byteCount, uint64_t* position, bool_t mustReachEnd)
 {
-    uint64_t byte_index;
-    bool_t   is_whitespace;
     bool_t   is_valid;
+    uint64_t byte_index;
 
+    // Allow an empty remaining span, but reject an offset beyond the input
     is_valid = ((*position) <= byteCount);
 
     if (is_valid)
     {
         for (byte_index = (*position); byte_index < byteCount; ++byte_index)
         {
-            is_whitespace = IsWhitespace(bytes[byte_index]);
-
-            if (FALSE == is_whitespace)
+            // Leave the first non-whitespace byte for the caller to read
+            if (FALSE == IsWhitespace(bytes[byte_index]))
             {
                 break;
             }
         }
 
+        // Consume the whitespace even if the trailing-content check below fails
         (*position) = byte_index;
 
         if (mustReachEnd)
         {
+            // Reject any remaining content when only trailing whitespace is allowed
             is_valid = (byte_index == byteCount);
         }
     }
@@ -1195,7 +1282,30 @@ static bool_t ReadWhitespace(const byte_t* bytes, uint64_t byteCount, uint64_t* 
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The name ends at whitespace, =, /, or >.
+ *  Reads an element or attribute name at the current position. For example,
+ *  the caller can read both names in this empty-element tag:
+ *
+ * \code{.xml}
+ * <button id="start"/>
+ * \endcode
+ *
+ * \verbatim
+ * byteCount: 20
+ *
+ * Initial position   Name bytes   nameByteCount   Final position   Return
+ * 1                  button       6               7 (space)        TRUE
+ * 8                  id           2              10 ('=')          TRUE
+ * \endverbatim
+ *
+ *  These are separate calls after the caller consumes the preceding delimiter
+ *  or whitespace. The scan ends at XML whitespace, =, /, >, or byteCount and
+ *  leaves any delimiter unread. Leading whitespace is not skipped.
+ *
+ *  The name must be nonempty, fit within UTL_XML_MAX_NAME_BYTES, and contain
+ *  valid UTF-8 code points permitted by the XML name rules. On success, name
+ *  points into the original input and nameByteCount gives its length in bytes;
+ *  no bytes are copied or zero terminator added. On failure, position, name,
+ *  and nameByteCount remain unchanged.
  */
 static bool_t ReadName(const byte_t* bytes, uint64_t byteCount, uint64_t* position, const byte_t** name, uint32_t* nameByteCount)
 {
@@ -1211,8 +1321,10 @@ static bool_t ReadName(const byte_t* bytes, uint64_t byteCount, uint64_t* positi
     bool_t        is_within_name_limit;
     bool_t        is_valid;
 
+    // Retain the start of the name so the result can reference the original input
     parsed_name = bytes + (*position);
 
+    // Find the candidate span before validating its UTF-8 code points
     for (byte_index = (*position); byte_index < byteCount; ++byte_index)
     {
         is_whitespace = IsWhitespace(bytes[byte_index]);
@@ -1223,10 +1335,12 @@ static bool_t ReadName(const byte_t* bytes, uint64_t byteCount, uint64_t* positi
 
         if (is_name_end)
         {
+            // Leave the delimiter for the caller to process after the name
             break;
         }
     }
 
+    // Reject empty or oversized spans before narrowing the length for validation
     span_byte_count      = byte_index - (*position);
     has_name_bytes       = (0 < span_byte_count);
     is_within_name_limit = (span_byte_count <= UTL_XML_MAX_NAME_BYTES);
@@ -1235,10 +1349,12 @@ static bool_t ReadName(const byte_t* bytes, uint64_t byteCount, uint64_t* positi
 
     if (is_valid)
     {
+        // Validate the first code point as a name start and the rest as name characters
         is_valid = IsName(parsed_name, (uint32_t)span_byte_count);
     }
     if (is_valid)
     {
+        // Publish the name and advance only after the complete span is valid
         (*nameByteCount) = (uint32_t)span_byte_count;
         (*position)      = byte_index;
         (*name)          = parsed_name;
@@ -1585,39 +1701,79 @@ static bool_t ReadMarkup(XmlReader_t* reader, const byte_t** markup, uint64_t* m
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The open element is the parent of the elements that follow it. A closed
- *  root ends this traversal; storage and markup counts remain document-wide.
+ *  Reads one root element and its descendants without recursion. For example,
+ *  this subtree combines nested start/end tags with empty-element tags:
+ *
+ * \code{.xml}
+ * <menu>
+ *     <group>
+ *         <item name="open"/>
+ *     </group>
+ *     <separator/>
+ * </menu>
+ * \endcode
+ *
+ * \verbatim
+ * Markup                 Parent after reading
+ * <menu>                 menu
+ * <group>                group
+ * <item name="open"/>     group
+ * </group>               menu
+ * <separator/>           menu
+ * </menu>                NULL (root complete)
+ * \endverbatim
+ *
+ *  The first element is appended to the document; later elements are appended
+ *  to the current parent. A start tag makes its node the new parent. An empty
+ *  element leaves the parent unchanged, while a matching end tag moves back to
+ *  the enclosing parent. An empty root completes the traversal immediately.
+ *
+ *  Each markup span includes the bytes after its tag up to the next markup or
+ *  end of input. Only XML whitespace is accepted there. Once the root is closed,
+ *  any following markup is left for the document reader to handle.
+ *
+ *  Node storage, attribute storage, and markup counts are shared across the
+ *  document. This example uses four nodes, one attribute, and six markup spans;
+ *  closing tags count toward UTL_XML_DOCUMENT_MAX_NODES but need no node storage.
+ *  Invalid input, exhausted storage, or reaching the markup limit with an open
+ *  element returns FALSE. Input position, counts, and partial results are not
+ *  rolled back on failure.
  */
 static bool_t ReadElement(XmlReader_t* reader)
 {
     Utl_Xml_Node_t* node;
     Utl_Xml_Node_t* parent;
-    const byte_t*  markup;
-    uint64_t       markup_byte_count;
-    uint64_t       position;
-    uint64_t       token_position;
-    uint32_t       markup_index;
-    bool_t         is_end_tag;
-    bool_t         is_start_tag;
-    bool_t         is_valid;
+    const byte_t*   markup;
+    uint64_t        markup_byte_count;
+    uint64_t        position;
+    uint64_t        token_position;
+    uint32_t        markup_index;
+    bool_t          is_end_tag;
+    bool_t          is_start_tag;
+    bool_t          is_valid;
 
+    // No element is open yet; reading no markup must leave the result invalid
     parent   = NULL;
     is_valid = FALSE;
 
+    // Use the remaining document-wide markup budget, including closing tags
     for (markup_index = reader->markupCount; markup_index < UTL_XML_DOCUMENT_MAX_NODES; ++markup_index)
     {
+        // Obtain the next markup span and advance the shared input position
         is_valid = ReadMarkup(reader, &markup, &markup_byte_count);
         if (FALSE == is_valid)
         {
             break;
         }
 
+        // Probe with a separate offset so the tag reader still starts at byte zero
         position       = 0;
         token_position = 0;
         is_end_tag = ReadToken(markup, markup_byte_count, &token_position, ETAG_OPEN);
 
         if (is_end_tag)
         {
+            // A closing tag requires an open element and must match its name
             is_valid = (NULL != parent);
             if (is_valid)
             {
@@ -1625,11 +1781,13 @@ static bool_t ReadElement(XmlReader_t* reader)
             }
             if (is_valid)
             {
+                // The enclosing element becomes the parent for subsequent siblings
                 parent = parent->parent;
             }
         }
         else
         {
+            // Each start tag or empty-element tag needs one caller-provided node
             is_valid = (reader->nodeCount < reader->nodeCapacity);
             if (is_valid)
             {
@@ -1640,16 +1798,19 @@ static bool_t ReadElement(XmlReader_t* reader)
             {
                 if (NULL == parent)
                 {
+                    // The first element belongs to the document's top-level list
                     Utl_Xml_AppendNode(reader->document, node);
                 }
                 else
                 {
+                    // Preserve source order within the open parent's child list
                     Utl_Xml_AppendChild(parent, node);
                 }
                 reader->nodeCount += 1;
 
                 if (is_start_tag)
                 {
+                    // Descend only when this element still needs a matching end tag
                     parent = node;
                 }
             }
@@ -1657,8 +1818,10 @@ static bool_t ReadElement(XmlReader_t* reader)
 
         if (is_valid)
         {
+            // Reject text or other content after the tag; only whitespace may remain
             is_valid = ReadWhitespace(markup, markup_byte_count, &position, TRUE);
         }
+        // Stop on a parsing failure or after the root has been completely closed
         if ((FALSE == is_valid) || (NULL == parent))
         {
             break;
@@ -1667,6 +1830,7 @@ static bool_t ReadElement(XmlReader_t* reader)
 
     if (is_valid)
     {
+        // Exhausting the markup budget while an element is still open is a failure
         is_valid = (NULL == parent);
     }
 
@@ -1721,7 +1885,7 @@ static bool_t ReadRootNode(XmlReader_t* reader)
     }
     else
     {
-        is_valid = (NULL == FindNode(reader->document, UTL_XML_NODE_ELEMENT));
+        is_valid = (NULL == FindRootNode(reader->document, UTL_XML_NODE_ELEMENT));
         if (is_valid)
         {
             is_valid = ReadElement(reader);
@@ -1734,7 +1898,8 @@ static bool_t ReadRootNode(XmlReader_t* reader)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
+ *  Writes bytes up to the token's zero terminator. Returns FALSE if the terminator
+ *  is not found within TOKEN_MAX_BYTES or the output buffer runs out of space.
  */
 static bool_t WriteToken(byte_t* output, uint64_t capacity, uint64_t* byteCount, const char_t* token)
 {
@@ -1744,13 +1909,25 @@ static bool_t WriteToken(byte_t* output, uint64_t capacity, uint64_t* byteCount,
     LOGASSERT(NULL != token);
 
     is_valid = TRUE;
-    for (byte_index = 0; '\0' != token[byte_index]; ++byte_index)
+    for (byte_index = 0; byte_index < TOKEN_MAX_BYTES; ++byte_index)
     {
+        // The terminator ends the token and must not be written to the output
+        if ('\0' == token[byte_index])
+        {
+            break;
+        }
+
         is_valid = WriteByte(output, capacity, byteCount, token[byte_index]);
         if (FALSE == is_valid)
         {
             break;
         }
+    }
+
+    if (is_valid)
+    {
+        // Exhausting the token bound without seeing a terminator is a failure
+        is_valid = (byte_index < TOKEN_MAX_BYTES);
     }
 
     return is_valid;
@@ -1759,7 +1936,14 @@ static bool_t WriteToken(byte_t* output, uint64_t capacity, uint64_t* byteCount,
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
+ *  Writes the fixed XML 1.0 declaration:
+ *
+ * \code{.xml}
+ * <?xml version="1.0"?>
+ * \endcode
+ *
+ *  The declaration node has no name and a zero name byte count.
+ *  Utl_Xml_WriteDocument appends the line feed after this declaration.
  */
 static bool_t WriteDeclaration(byte_t* output, uint64_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
 {
@@ -1811,7 +1995,20 @@ static bool_t WriteDeclaration(byte_t* output, uint64_t capacity, uint64_t* byte
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
+ *  Writes an opening tag when the element has children, for example:
+ *
+ * \code{.xml}
+ * <settings name="display">
+ * \endcode
+ *
+ *  An element without children is written as a complete empty-element tag:
+ *
+ * \code{.xml}
+ * <setting name="brightness" value="80"/>
+ * \endcode
+ *
+ *  Attributes retain their insertion order and use double-quoted literal values.
+ *  WriteElement supplies indentation, line feeds, and any descendants.
  */
 static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
 {
@@ -1826,6 +2023,7 @@ static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byt
     bool_t                     has_value_bytes;
     bool_t                     is_valid;
 
+    // Check storage pointers and limits before validating or writing the element name
     has_name                        = (NULL != node->name);
     has_name_bytes                  = (0 < node->nameByteCount);
     is_name_within_limit            = (node->nameByteCount <= UTL_XML_MAX_NAME_BYTES);
@@ -1839,6 +2037,7 @@ static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byt
     }
     if (is_valid)
     {
+        // Begin the tag with < and the validated element name
         is_valid = WriteToken(output, capacity, byteCount, STAG_OPEN);
     }
     if (is_valid)
@@ -1850,11 +2049,13 @@ static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byt
 
     for (attribute_index = 0; attribute_index < node->attributeCount; ++attribute_index)
     {
+        // Preserve any failure from the element name or previous output
         if (FALSE == is_valid)
         {
             break;
         }
 
+        // The list must contain every attribute included in the declared count
         is_valid = (NULL != current_attribute);
 
         if (is_valid)
@@ -1873,10 +2074,12 @@ static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byt
         }
         if (is_valid)
         {
+            // Values must be writable literally because this writer does not escape them
             is_valid = Utl_Xml_IsAttributeValue(current_attribute->value, current_attribute->valueByteCount);
         }
         if (is_valid)
         {
+            // Separate attributes with one space, then emit name="value"
             is_valid = WriteByte(output, capacity, byteCount, CHAR_SPACE);
         }
         if (is_valid)
@@ -1893,6 +2096,7 @@ static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byt
         }
         if (is_valid)
         {
+            // Empty values still receive both quotes; WriteBytes requires a nonempty span
             has_value_bytes = (0 < current_attribute->valueByteCount);
             if (has_value_bytes)
             {
@@ -1909,6 +2113,7 @@ static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byt
             current_attribute = current_attribute->next;
         }
 
+        // Stop on invalid attribute content or insufficient output space
         if(FALSE == is_valid)
         {
             break;
@@ -1917,10 +2122,12 @@ static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byt
 
     if (is_valid)
     {
+        // Reject extra linked attributes beyond the declared count
         is_valid = (NULL == current_attribute);
     }
     if (is_valid)
     {
+        // Leaves close here; elements with children get their closing tag from WriteElement
         if (NULL == node->firstChild)
         {
             is_valid = WriteToken(output, capacity, byteCount, EMPTY_ELEM_TAG_CLOSE);
@@ -1937,15 +2144,24 @@ static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byt
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
+ *  Writes the closing tag for an element whose children have been written:
+ *
+ * \code{.xml}
+ * </settings>
+ * \endcode
+ *
+ *  Uses the same name as the opening tag. WriteElement supplies the preceding
+ *  line feed and indentation; this function writes only the closing tag.
  */
 static bool_t WriteElementEnd(byte_t* output, uint64_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* node)
 {
     bool_t is_valid;
 
+    // Append the closing tag after the indentation already written by the caller
     is_valid = WriteToken(output, capacity, byteCount, ETAG_OPEN);
     if (is_valid)
     {
+        // Reuse the name validated when the opening tag was written
         is_valid = WriteBytes(output, capacity, byteCount, node->name, node->nameByteCount);
     }
     if (is_valid)
@@ -1959,7 +2175,24 @@ static bool_t WriteElementEnd(byte_t* output, uint64_t capacity, uint64_t* byteC
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
+ *  Writes the supplied element's entire subtree. For a panel containing a group
+ *  followed by a label, the output is:
+ *
+ * \code{.xml}
+ * <panel id="main">
+ *     <group id="controls">
+ *         <button id="start"/>
+ *         <button id="stop"/>
+ *     </group>
+ *     <label text="Ready"/>
+ * </panel>
+ * \endcode
+ *
+ *  Starting at panel, descends into group, writes the two sibling buttons, then
+ *  closes group before moving to its sibling label. After label, closes panel
+ *  and stops; siblings of panel are left to the caller.
+ *  Uses four spaces per nesting level. Leaf elements such as button and label
+ *  use empty-element tags. Utl_Xml_WriteDocument appends the final line feed.
  */
 static bool_t WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCount, const Utl_Xml_Node_t* root)
 {
@@ -1982,11 +2215,13 @@ static bool_t WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCoun
 
     for (node_index = 0; node_index < UTL_XML_DOCUMENT_MAX_NODES; ++node_index)
     {
+        // A NULL cursor marks completion of this element and all its descendants
         if (NULL == current_node)
         {
             break;
         }
 
+        // Start descendants on indented lines; the caller controls spacing before the root
         if (current_node != root)
         {
             is_valid = WriteByte(output, capacity, byteCount, CHAR_LF);
@@ -1998,13 +2233,16 @@ static bool_t WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCoun
 
         if (is_valid)
         {
+            // Leaves use empty-element tags and need no separate closing tag
             is_valid = WriteElementStart(output, capacity, byteCount, current_node);
         }
+        // Stop on invalid content or insufficient output space, preserving the failure
         if (FALSE == is_valid)
         {
             break;
         }
 
+        // Descend into children before visiting siblings, subject to the depth limit
         if (NULL != current_node->firstChild)
         {
             is_valid = (depth < UTL_XML_NODE_MAX_DEPTH);
@@ -2012,11 +2250,15 @@ static bool_t WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCoun
             {
                 break;
             }
+
             current_node = current_node->firstChild;
+
             ++depth;
+
             continue;
         }
 
+        // Finishing the last child completes its parent, which now needs a closing tag
         is_non_root         = (current_node != root);
         has_no_next_sibling = (NULL == current_node->nextSibling);
         should_close_parent = is_non_root && has_no_next_sibling;
@@ -2028,16 +2270,19 @@ static bool_t WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCoun
                 break;
             }
 
+            // Validate the parent link and depth before writing the ancestor's closing tag
             current_node = current_node->parent;
             has_current_node = (NULL != current_node);
             has_depth        = (0 < depth);
-            is_valid        = has_current_node && has_depth;
+
+            is_valid = has_current_node && has_depth;
             if (FALSE == is_valid)
             {
                 break;
             }
             --depth;
 
+            // Align the closing tag with this ancestor's opening tag
             is_valid = WriteByte(output, capacity, byteCount, CHAR_LF);
             if (is_valid)
             {
@@ -2052,6 +2297,7 @@ static bool_t WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCoun
                 break;
             }
 
+            // Keep closing ancestors while no sibling remains and the root is not reached
             is_non_root         = (current_node != root);
             has_no_next_sibling = (NULL == current_node->nextSibling);
             should_close_parent = is_non_root && has_no_next_sibling;
@@ -2059,10 +2305,12 @@ static bool_t WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCoun
 
         if (is_valid)
         {
+            // Reaching the ancestor limit must not leave a parent waiting to be closed
             is_valid = (FALSE == should_close_parent);
         }
         if (is_valid)
         {
+            // Finish at this subtree's root; its siblings belong to the caller's traversal
             if (current_node == root)
             {
                 current_node = NULL;
@@ -2080,6 +2328,7 @@ static bool_t WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCoun
 
     if (is_valid)
     {
+        // Reaching the node limit must not leave unfinished nodes or unclosed ancestors
         is_at_end        = (NULL == current_node);
         is_at_root_depth = (0 == depth);
         is_valid         = is_at_end && is_at_root_depth;
@@ -2176,13 +2425,15 @@ static bool_t WriteByte(byte_t* output, uint64_t capacity, uint64_t* byteCount, 
  */
 static bool_t WriteIndent(byte_t* output, uint64_t capacity, uint64_t* byteCount, uint32_t indentSpaceCount)
 {
-    uint32_t space_index;
     bool_t   is_valid;
+    uint32_t space_index;
 
     is_valid = TRUE;
+
     for (space_index = 0; space_index < indentSpaceCount; ++space_index)
     {
         is_valid = WriteByte(output, capacity, byteCount, CHAR_SPACE);
+
         if (FALSE == is_valid)
         {
             break;
@@ -2300,8 +2551,28 @@ void Utl_Xml_InitializeDocument(Utl_Xml_Document_t* document)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Validates the caller's attribute and appends it in source order. The writer copies values
- *  without references, so a value must not contain <, &, ", or whitespace other than spaces.
+ *  Appends an initialized attribute to an element, preserving insertion order.
+ *  For example, appending id="start" and then enabled="true" to a childless
+ *  button element produces this tag when the document is written:
+ *
+ * \code{.xml}
+ * <button id="start" enabled="true"/>
+ * \endcode
+ *
+ * \verbatim
+ * button.firstAttribute -> id -> enabled -> NULL  (next links)
+ * button.lastAttribute  -> enabled
+ * button.attributeCount = 2
+ * \endverbatim
+ *
+ *  The first append sets both list endpoints; later appends link the previous
+ *  last attribute to the new one. Each append increments attributeCount.
+ *  The attribute and its name/value bytes remain in caller-owned storage.
+ *
+ *  Assertions check the element type, attribute limit, name, value, and absence
+ *  of an existing attribute with the same name or identity. The writer copies
+ *  values literally, so they must contain valid XML characters and exclude
+ *  less-than signs, ampersands, double quotes, tabs, line feeds, and carriage returns.
  */
 void Utl_Xml_AppendAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribute)
 {
@@ -2309,6 +2580,7 @@ void Utl_Xml_AppendAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribut
     bool_t                     is_attribute_value;
     const Utl_Xml_Attribute_t* found_attribute;
 
+    // Require an element with room for an initialized, unlinked attribute
     LOGASSERT(NULL != node);
     LOGASSERT(NULL != attribute);
     LOGASSERT(NULL != attribute->name);
@@ -2317,24 +2589,30 @@ void Utl_Xml_AppendAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribut
     LOGASSERT(UTL_XML_NODE_ELEMENT == node->type);
     LOGASSERT(node->attributeCount < UTL_XML_NODE_MAX_ATTRIBUTES);
 
+    // Check the UTF-8 name before adding it to the element
     is_name = IsName(attribute->name, attribute->nameByteCount);
     LOGASSERT(is_name);
 
+    // Require a value that the writer can copy literally inside double quotes
     is_attribute_value = Utl_Xml_IsAttributeValue(attribute->value, attribute->valueByteCount);
     LOGASSERT(is_attribute_value);
 
+    // Reject duplicate names and reusing an attribute already linked to this element
     found_attribute = FindAttribute(node, attribute, attribute->name, attribute->nameByteCount);
     LOGASSERT(NULL == found_attribute);
 
     if (NULL != node->lastAttribute)
     {
+        // Extend the existing list in insertion order
         node->lastAttribute->next = attribute;
     }
     else
     {
+        // The new attribute is also the first attribute of an empty list
         node->firstAttribute = attribute;
     }
 
+    // Record the new tail and include it in the element's attribute count
     node->lastAttribute = attribute;
 
     node->attributeCount += 1;
@@ -2343,12 +2621,38 @@ void Utl_Xml_AppendAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribut
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Links an unlinked child at the end of the element's child list.
+ *  Appends an unlinked element to a parent's child list, preserving insertion
+ *  order. For example, appending a button and then a label to an empty panel
+ *  produces this subtree when the document is written:
+ *
+ * \code{.xml}
+ * <panel>
+ *     <button/>
+ *     <label/>
+ * </panel>
+ * \endcode
+ *
+ * \verbatim
+ * panel.firstChild -> button -> label -> NULL  (nextSibling links)
+ * panel.lastChild  -> label
+ * button.parent   -> panel
+ * label.parent    -> panel
+ * \endverbatim
+ *
+ *  The first append sets both child-list endpoints; later appends link the
+ *  previous last child to the new one. The new child's parent is set to parent,
+ *  while any attributes and descendants already belonging to the child remain
+ *  attached. All nodes remain in caller-owned storage.
+ *
+ *  Assertions require element nodes and an unlinked child. Searching the parent's
+ *  ancestor chain also rejects attaching the parent itself or one of its ancestors,
+ *  either of which would create a cycle.
  */
 void Utl_Xml_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child)
 {
     const Utl_Xml_Node_t* ancestor;
 
+    // Require two elements, with no parent or next sibling already set on the child
     LOGASSERT(NULL != parent);
     LOGASSERT(NULL != child);
     LOGASSERT(UTL_XML_NODE_ELEMENT == parent->type);
@@ -2356,18 +2660,22 @@ void Utl_Xml_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child)
     LOGASSERT(NULL == child->nextSibling);
     LOGASSERT(UTL_XML_NODE_ELEMENT == child->type);
 
+    // Reject the parent itself or any of its ancestors as the new child
     ancestor = FindAncestor(parent, child);
     LOGASSERT(NULL == ancestor);
 
     if (NULL != parent->lastChild)
     {
+        // Place the new child after the existing children
         parent->lastChild->nextSibling = child;
     }
     else
     {
+        // The new child is also the first child of an empty parent
         parent->firstChild = child;
     }
 
+    // Record the new tail and establish the child's link back to its parent
     parent->lastChild = child;
     child->parent     = parent;
 }
@@ -2375,12 +2683,35 @@ void Utl_Xml_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Links one unlinked node at the end of the top-level list.
+ *  Appends an unlinked node to the document's top-level list. For example,
+ *  appending an XML declaration and then a childless panel element to an empty
+ *  document produces this output when the document is written:
+ *
+ * \code{.xml}
+ * <?xml version="1.0"?>
+ * <panel/>
+ * \endcode
+ *
+ * \verbatim
+ * document.firstNode -> declaration -> panel -> NULL  (nextSibling links)
+ * document.lastNode  -> panel
+ * declaration.parent = NULL
+ * panel.parent       = NULL
+ * \endverbatim
+ *
+ *  The first append sets both list endpoints; later appends link the previous
+ *  last node to the new one. Top-level nodes keep a NULL parent, and all node
+ *  storage remains caller-owned. The element's existing subtree stays attached.
+ *
+ *  Assertions allow an optional declaration only as the first node and at most
+ *  one root element. Appending just the element to an empty document is also
+ *  valid; in that case, firstNode and lastNode both point to the element.
  */
 void Utl_Xml_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node)
 {
     const Utl_Xml_Node_t* found_node;
 
+    // Require an unlinked top-level node that is not already the document's tail
     LOGASSERT(NULL != document);
     LOGASSERT(NULL != node);
     LOGASSERT(NULL == node->parent);
@@ -2389,39 +2720,58 @@ void Utl_Xml_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node)
 
     if (UTL_XML_NODE_XML_DECLARATION == node->type)
     {
+        // A declaration may only be appended to an empty document
         LOGASSERT(NULL == document->firstNode);
     }
     else
     {
+        // The only other supported top-level node is a single root element
         LOGASSERT(UTL_XML_NODE_ELEMENT == node->type);
 
-        found_node = FindNode(document, UTL_XML_NODE_ELEMENT);
+        found_node = FindRootNode(document, UTL_XML_NODE_ELEMENT);
         LOGASSERT(NULL == found_node);
     }
 
     if (NULL != document->lastNode)
     {
+        // Link the root element after the existing declaration
         document->lastNode->nextSibling = node;
     }
     else
     {
+        // The new node is also the first node of an empty document
         document->firstNode = node;
     }
 
+    // Record the appended node as the document's final top-level node
     document->lastNode = node;
 }
 
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Dispatches top-level nodes; element descendants use the iterative element reader.
+ *  Accepts an optional XML declaration followed by one root element, for example:
+ *
+ * \code{.xml}
+ * <?xml version="1.0"?>
+ * <configuration name="example">
+ *     <settings>
+ *         <setting name="mode" value="normal"/>
+ *         <setting name="brightness" value="80"/>
+ *     </settings>
+ * </configuration>
+ * \endcode
+ *
+ *  Attribute values are double-quoted and contain no references or tab, LF, or CR.
+ *  Between tags, only XML whitespace is accepted.
+ *  Top-level nodes are dispatched individually; descendants are read iteratively.
  */
 uint64_t Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToReadDocumentFrom, uint64_t sizeOfDocumentBuffer, Utl_Xml_Node_t* nodes, uint32_t nodeCapacity, Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity)
 {
     XmlReader_t reader;
     uint64_t    bytes_read;
-    uint32_t    node_index;
     bool_t      is_valid;
+    uint32_t    node_index;
 
     LOGASSERT(NULL != document);
     LOGASSERT(NULL != bufferToReadDocumentFrom);
@@ -2440,28 +2790,40 @@ uint64_t Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToRead
     reader.attributes        = attributes;
     reader.attributeCapacity = attributeCapacity;
     reader.attributeCount    = 0;
-    reader.markupCount        = 0;
+    reader.markupCount       = 0;
     bytes_read               = 0;
 
     is_valid = ReadWhitespace(reader.bytes, reader.byteCount, &reader.position, FALSE);
 
-    for (node_index = 0; node_index < UTL_XML_DOCUMENT_MAX_ROOT_NODES; ++node_index)
+    if (is_valid)
     {
-        if ((FALSE == is_valid) || (reader.position == reader.byteCount))
+        for (node_index = 0; node_index < UTL_XML_DOCUMENT_MAX_ROOT_NODES; ++node_index)
         {
-            break;
-        }
+            // Stop when all input, including trailing whitespace, has been consumed
+            if (reader.position == reader.byteCount)
+            {
+                break;
+            }
 
-        is_valid = ReadRootNode(&reader);
+            is_valid = ReadRootNode(&reader);
+
+            // Stop on a parsing failure so a later read cannot overwrite the error
+            if (FALSE == is_valid)
+            {
+                break;
+            }
+        }
     }
 
     if (is_valid)
     {
+        // Reject unread input when the top-level node limit ends the loop
         is_valid = (reader.position == reader.byteCount);
     }
     if (is_valid)
     {
-        is_valid = (NULL != FindNode(document, UTL_XML_NODE_ELEMENT));
+        // Whitespace or an XML declaration alone does not form a complete document
+        is_valid = (NULL != FindRootNode(document, UTL_XML_NODE_ELEMENT));
     }
     if (is_valid)
     {
@@ -2474,7 +2836,22 @@ uint64_t Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToRead
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
+ *  Writes the supplied declaration and element tree in source order, for example:
+ *
+ * \code{.xml}
+ * <?xml version="1.0"?>
+ * <configuration name="example">
+ *     <settings>
+ *         <setting name="mode" value="normal"/>
+ *         <setting name="brightness" value="80"/>
+ *     </settings>
+ * </configuration>
+ * \endcode
+ *
+ *  Uses four spaces per nesting level and LF line endings, including a final LF.
+ *  Elements without children use empty-element tags; attribute values are copied
+ *  literally inside double quotes. The output is not zero-terminated.
+ *  Top-level nodes are dispatched individually; descendants are written iteratively.
  */
 uint64_t Utl_Xml_WriteDocument(const Utl_Xml_Document_t* document, byte_t* bufferToWriteDocumentIn, uint64_t sizeOfDocumentBuffer)
 {
@@ -2492,6 +2869,7 @@ uint64_t Utl_Xml_WriteDocument(const Utl_Xml_Document_t* document, byte_t* buffe
 
     for (node_index = 0; node_index < UTL_XML_DOCUMENT_MAX_ROOT_NODES; ++node_index)
     {
+        // Stop when every top-level node and its descendants have been written
         if (NULL == current_node)
         {
             break;
@@ -2501,9 +2879,11 @@ uint64_t Utl_Xml_WriteDocument(const Utl_Xml_Document_t* document, byte_t* buffe
 
         if (is_valid)
         {
+            // End each top-level node with a line feed, including the last one
             is_valid = WriteByte(bufferToWriteDocumentIn, sizeOfDocumentBuffer, &bytes_written, CHAR_LF);
         }
 
+        // Stop on invalid content or insufficient output space, preserving the failure
         if (FALSE == is_valid)
         {
             break;
@@ -2512,6 +2892,7 @@ uint64_t Utl_Xml_WriteDocument(const Utl_Xml_Document_t* document, byte_t* buffe
         current_node = current_node->nextSibling;
     }
 
+    // Report failure if writing failed or the top-level node limit left nodes unwritten
     if ((FALSE == is_valid) || (NULL != current_node))
     {
         bytes_written = 0;
