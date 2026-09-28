@@ -352,6 +352,110 @@ static void TestXmlDocumentFailures(void)
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  Checks declaration placement, element closure, shared storage limits, and input preservation.
+ */
+static void TestXmlReaderBoundaries(void)
+{
+    static const struct
+    {
+        const char_t* text;
+        uint32_t      nodeCapacity;
+        uint32_t      attributeCapacity;
+        bool_t        isValid;
+    } cases[] = {
+        {"<root/>", 1, 0, TRUE},
+        {" \t<root><child/><child/></root>\r\n", 3, 0, TRUE},
+        {"<?xml version=\"1.0\"?><root/>", 2, 0, TRUE},
+        {"<?xml\tversion=\"1.0\"?>\n<root></root>", 2, 0, TRUE},
+        {"<root></root >", 1, 0, TRUE},
+        {"<root a=\"1\"><child b=\"2\"/></root>", 2, 2, TRUE},
+        {"", 4, 2, FALSE},
+        {" \t\n", 4, 2, FALSE},
+        {"<?xml version=\"1.0\"?>", 4, 2, FALSE},
+        {" <?xml version=\"1.0\"?><root/>", 4, 2, FALSE},
+        {"<?xml version=\"1.1\"?><root/>", 4, 2, FALSE},
+        {"<?xmlversion=\"1.0\"?><root/>", 4, 2, FALSE},
+        {"<?xml version=\"1.0\"?><?xml version=\"1.0\"?><root/>", 4, 2, FALSE},
+        {"<root><?xml version=\"1.0\"?></root>", 4, 2, FALSE},
+        {"<root/><?xml version=\"1.0\"?>", 4, 2, FALSE},
+        {"<root/><second/>", 4, 2, FALSE},
+        {"</root>", 4, 2, FALSE},
+        {"<root><child/></wrong>", 4, 2, FALSE},
+        {"<root><child></root></child>", 4, 2, FALSE},
+        {"<root><child/>", 4, 2, FALSE},
+        {"<root/></root>", 4, 2, FALSE},
+        {"<root/>text<second/>", 4, 2, FALSE},
+        {"<root a=\"1\" a=\"2\"/><second/>", 4, 2, FALSE},
+        {"<root a=\"&\"/><second/>", 4, 2, FALSE},
+        {"<root/>", 0, 2, FALSE},
+        {"<?xml version=\"1.0\"?><root/>", 1, 2, FALSE},
+        {"<root><child/><child/></root>", 2, 2, FALSE},
+        {"<root a=\"1\"><child b=\"2\"/></root>", 2, 1, FALSE}
+    };
+    Utl_Xml_Document_t  document;
+    Utl_Xml_Node_t      nodes[4];
+    Utl_Xml_Attribute_t attributes[2];
+    byte_t             input[128];
+    uint32_t           case_index;
+    uint64_t           input_byte_count;
+    uint64_t           bytes_read;
+
+    for (case_index = 0; case_index < COUNT_OF(cases); ++case_index)
+    {
+        input_byte_count = (uint64_t)strlen(cases[case_index].text);
+        memcpy(input, cases[case_index].text, (size_t)input_byte_count);
+        input[input_byte_count] = 0xA5;
+        Utl_Xml_InitializeDocument(&document);
+
+        bytes_read = Utl_Xml_ReadDocument(&document, input, input_byte_count, nodes, cases[case_index].nodeCapacity, attributes, cases[case_index].attributeCapacity);
+
+        assert((cases[case_index].isValid ? input_byte_count : 0) == bytes_read);
+        assert(0 == memcmp(input, cases[case_index].text, (size_t)input_byte_count));
+        assert(0 == input[input_byte_count]);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The markup limit includes the declaration and both opening and closing element tags.
+ */
+static void TestXmlReaderMarkupLimit(void)
+{
+    static Utl_Xml_Node_t nodes[UTL_XML_DOCUMENT_MAX_NODES];
+    static byte_t input[UTL_XML_DOCUMENT_MAX_NODES * 4 + sizeof("<?xml version=\"1.0\"?><r></r>")];
+    static const char_t declaration[] = "<?xml version=\"1.0\"?>";
+    Utl_Xml_Document_t  document;
+    Utl_Xml_Attribute_t attributes[1];
+    uint32_t           child_index;
+    uint64_t           element_offset;
+    uint64_t           position;
+    uint64_t           bytes_read;
+
+    element_offset = sizeof(declaration) - 1;
+    memcpy(input, declaration, (size_t)element_offset);
+    memcpy(input + element_offset, "<r>", 3);
+    position = element_offset + 3;
+    for (child_index = 0; child_index < UTL_XML_DOCUMENT_MAX_NODES - 2; ++child_index)
+    {
+        memcpy(input + position, "<c/>", 4);
+        position += 4;
+    }
+    memcpy(input + position, "</r>", 4);
+    position += 4;
+
+    Utl_Xml_InitializeDocument(&document);
+    bytes_read = Utl_Xml_ReadDocument(&document, input + element_offset, position - element_offset, nodes, (uint32_t)COUNT_OF(nodes), attributes, 0);
+    assert(position - element_offset == bytes_read);
+
+    Utl_Xml_InitializeDocument(&document);
+    bytes_read = Utl_Xml_ReadDocument(&document, input, position, nodes, (uint32_t)COUNT_OF(nodes), attributes, 0);
+    assert(0 == bytes_read);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Checks numeric prefixes, signed bounds, and XML Schema decimal syntax.
  */
 static void TestNumberScanning(void)
@@ -434,6 +538,8 @@ int main(void)
     TestXmlSchemaLocationWrite();
     TestXmlDocumentRoundTrip();
     TestXmlDocumentFailures();
+    TestXmlReaderBoundaries();
+    TestXmlReaderMarkupLimit();
     RunArinc661Tests();
     return 0;
 }

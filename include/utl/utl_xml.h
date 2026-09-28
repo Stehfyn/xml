@@ -29,7 +29,8 @@
 #define UTL_XML_NODE_MAX_ATTRIBUTES (256)     ///< Maximum attributes on one element.
 #define UTL_XML_NODE_MAX_DEPTH      (65536)   ///< Maximum ancestor links checked when appending a child.
 
-#define UTL_XML_DOCUMENT_MAX_NODES (65536) ///< Maximum nodes visited in one document traversal.
+#define UTL_XML_DOCUMENT_MAX_ROOT_NODES (2)     ///< Maximum top-level nodes: an XML declaration and one document element.
+#define UTL_XML_DOCUMENT_MAX_NODES      (4096)  ///< Maximum element nodes visited by the writer or markup spans read by the reader.
 
 /* XML 1.0 sections 2.2 and 2.3, productions [2] Char and [3] S. */
 #define UTL_XML_CHAR_TAB   ('\t') ///< Horizontal tab.
