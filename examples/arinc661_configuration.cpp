@@ -3341,8 +3341,8 @@ static void DrawScenePane(Arinc661_Configuration_Document_t* editor)
                             {
                                 area_offset = ImVec2((float32_t)window->pixelArea.x, (float32_t)window->pixelArea.y);
                                 area_size   = ImVec2((float32_t)window->pixelArea.width, (float32_t)window->pixelArea.height);
-                                area_min    = (screen_min + (area_offset * scale));
-                                area_max    = (area_min + (area_size * scale));
+                                area_min    = ImVec2(screen_min.x + (area_offset.x * scale), screen_max.y - ((area_offset.y + area_size.y) * scale));
+                                area_max    = ImVec2(area_min.x + (area_size.x * scale), screen_max.y - (area_offset.y * scale));
 
                                 if (is_screen_body_hit)
                                 {
