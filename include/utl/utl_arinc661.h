@@ -371,7 +371,7 @@ bool_t Utl_Arinc661_ReadConfiguration(Utl_Arinc661_Configuration_t* configuratio
  * \param[in,out] workspace       Eight-byte-aligned temporary storage
  * \param[in]     workspaceSize   Number of temporary bytes
  *
- * \return     Number of bytes written, or zero when a value or supplied storage is invalid.
+ * \retval    uint64_t   Number of bytes written, or zero when a value or supplied storage is invalid.
  */
 uint64_t Utl_Arinc661_WriteConfiguration(const Utl_Arinc661_Configuration_t* configuration, byte_t* buffer, uint64_t capacity, void* workspace, uint64_t workspaceSize);
 
@@ -437,7 +437,7 @@ bool_t Utl_Arinc661_ReadDefinition(Utl_Arinc661_Definition_t* definition, byte_t
  * \param[in,out] workspace       Eight-byte-aligned temporary storage
  * \param[in]     workspaceSize   Number of temporary bytes
  *
- * \return     Number of bytes written, or zero when a value or supplied storage is invalid.
+ * \retval    uint64_t   Number of bytes written, or zero when a value or supplied storage is invalid.
  */
 uint64_t Utl_Arinc661_WriteDefinition(const Utl_Arinc661_Definition_t* definition, byte_t* buffer, uint64_t capacity, void* workspace, uint64_t workspaceSize);
 

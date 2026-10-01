@@ -272,7 +272,7 @@ void Utl_Xml_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node);
  * \param[out]    attributes                 Caller-owned attribute storage
  * \param[in]     attributeCapacity          Number of attributes in attributes
  *
- * \return        Number of bytes read, or zero on failure. The document may contain partial results on failure.
+ * \retval        uint64_t   Number of bytes read, or zero on failure. The document may contain partial results on failure.
  */
 uint64_t Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToReadDocumentFrom, uint64_t sizeOfDocumentBuffer, Utl_Xml_Node_t* nodes, uint32_t nodeCapacity, Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity);
 
@@ -307,7 +307,7 @@ uint64_t Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToRead
  * \param[out] bufferToWriteDocumentIn   Caller-provided byte storage
  * \param[in]  sizeOfDocumentBuffer      Number of bytes available in bufferToWriteDocumentIn
  *
- * \return     Number of bytes written, or zero on failure. The buffer may contain partial output on failure.
+ * \retval    uint64_t   Number of bytes written, or zero on failure. The buffer may contain partial output on failure.
  */
 uint64_t Utl_Xml_WriteDocument(const Utl_Xml_Document_t* document, byte_t* bufferToWriteDocumentIn, uint64_t sizeOfDocumentBuffer);
 

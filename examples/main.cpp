@@ -160,7 +160,8 @@ static void DrawFrame(WindowThreadState_t* window);
  * \param[in]     windowHandle   Win32 window handle
  * \param[in,out] windowData     Window rendering data
  *
- * \return TRUE when rendering setup succeeds; FALSE otherwise.
+ * \retval    TRUE    if rendering setup succeeds.
+ * \retval    FALSE   otherwise.
  */
 static bool_t CreateDeviceWGL(HWND windowHandle, WglWindowData_t* windowData);
 
@@ -226,7 +227,7 @@ static void HookRendererSwapBuffers(ImGuiViewport* viewport, void* data);
  * \param[in] wordParameter   Win32 message word parameter
  * \param[in] longParameter   Win32 message long parameter
  *
- * \return Win32 message result.
+ * \retval    LRESULT   Win32 message result.
  */
 static LRESULT WINAPI WindowProcedure(HWND windowHandle, UINT message, WPARAM wordParameter, LPARAM longParameter);
 
@@ -236,7 +237,8 @@ static LRESULT WINAPI WindowProcedure(HWND windowHandle, UINT message, WPARAM wo
  *
  * \param[in,out] parameter   WindowThreadState_t passed as an opaque pointer
  *
- * \return Thread exit code.
+ * \retval    0   if the window thread exits normally.
+ * \retval    1   if rendering setup fails.
  */
 static DWORD WINAPI WindowThread(LPVOID parameter);
 

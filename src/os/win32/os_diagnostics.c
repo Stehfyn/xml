@@ -47,7 +47,7 @@
  *
  * \param[in] pException   Non-NULL exception record supplied by Win32
  *
- * \return EXCEPTION_EXECUTE_HANDLER so the boundary terminates without crash UI.
+ * \retval    EXCEPTION_EXECUTE_HANDLER   so the boundary terminates without crash UI.
  */
 static LONG WINAPI ReportUnhandledException(EXCEPTION_POINTERS* pException);
 

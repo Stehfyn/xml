@@ -157,7 +157,8 @@ static bool_t HasElementName(const Utl_Xml_Node_t* node, const char_t* name);
  * \param[in] parent   Parent element
  * \param[in] name     Expected child name
  *
- * \return Matching child, or NULL when absent.
+ * \retval    non-NULL   Matching child.
+ * \retval    NULL       if the child is absent.
  */
 static Utl_Xml_Node_t* FindChild(Utl_Xml_Node_t* parent, const char_t* name);
 
@@ -168,7 +169,8 @@ static Utl_Xml_Node_t* FindChild(Utl_Xml_Node_t* parent, const char_t* name);
  * \param[in] node   Element to search
  * \param[in] name   Expected attribute name
  *
- * \return Matching attribute, or NULL when absent.
+ * \retval    non-NULL   Matching attribute.
+ * \retval    NULL       if the attribute is absent.
  */
 static const Utl_Xml_Attribute_t* FindAttribute(const Utl_Xml_Node_t* node, const char_t* name);
 
@@ -276,7 +278,8 @@ static bool_t ReadBoolean(const Utl_Xml_Node_t* node, const char_t* name, bool_t
  * \param[in,out] xml    Temporary XML storage
  * \param[in]     name   Element name
  *
- * \return Unlinked element in temporary storage, or NULL when storage is exhausted.
+ * \retval    non-NULL   Unlinked element in temporary storage.
+ * \retval    NULL       if storage is exhausted.
  */
 static Utl_Xml_Node_t* AppendElement(XmlWorkspace_t* xml, const char_t* name);
 
@@ -314,7 +317,8 @@ static bool_t WriteConfigurationSchema(XmlWorkspace_t* xml, Utl_Xml_Node_t* root
  * \param[in,out] xml     Temporary XML storage
  * \param[in]     value   Integer to format
  *
- * \return Stable temporary text, or NULL when storage is exhausted.
+ * \retval    non-NULL   Stable temporary text.
+ * \retval    NULL       if storage is exhausted.
  */
 static const char_t* FormatInteger(XmlWorkspace_t* xml, int64_t value);
 
@@ -325,7 +329,8 @@ static const char_t* FormatInteger(XmlWorkspace_t* xml, int64_t value);
  * \param[in,out] xml     Temporary XML storage
  * \param[in]     value   Decimal to format
  *
- * \return Stable temporary text, or NULL when storage is exhausted.
+ * \retval    non-NULL   Stable temporary text.
+ * \retval    NULL       if storage is exhausted.
  */
 static const char_t* FormatDecimal(XmlWorkspace_t* xml, float32_t value);
 
@@ -363,7 +368,8 @@ static bool_t AppendDecimalAttribute(XmlWorkspace_t* xml, Utl_Xml_Node_t* node, 
  *
  * \param[in] document   XML document
  *
- * \return First top-level element, or NULL when absent.
+ * \retval    non-NULL   First top-level element.
+ * \retval    NULL       if no top-level element is present.
  */
 static Utl_Xml_Node_t* FindDocumentElement(const Utl_Xml_Document_t* document);
 
@@ -466,7 +472,8 @@ static bool_t ReadExternalSource(Utl_Arinc661_Configuration_t* configuration, co
  *
  * \param[in] unit   Unit value
  *
- * \return Unit spelling, or NULL for an invalid value.
+ * \retval    non-NULL   Unit spelling.
+ * \retval    NULL       if the unit value is invalid.
  */
 static const char_t* UnitName(Utl_Arinc661_Unit_t unit);
 
@@ -558,7 +565,8 @@ static bool_t WriteExternalSource(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, c
  * \param[in] root      Root of the traversal
  * \param[in] current   Node just visited
  *
- * \return Next node in document order, or NULL after the subtree.
+ * \retval    non-NULL   Next node in document order.
+ * \retval    NULL       after the subtree.
  */
 static Utl_Xml_Node_t* NextSubtreeNode(Utl_Xml_Node_t* root, Utl_Xml_Node_t* current);
 

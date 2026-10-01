@@ -53,7 +53,8 @@
  * \param[in] filePath   File path
  * \param[in] mode       fopen mode
  *
- * \return Open file, or NULL on failure.
+ * \retval    non-NULL   Open file.
+ * \retval    NULL       if opening the file fails.
  */
 static FILE* OpenUtf8File(const char_t* filePath, const char_t* mode);
 

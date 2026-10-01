@@ -19,7 +19,7 @@
 /**
  * \brief Returns monotonic time in nanoseconds.
  *
- * \return Nanoseconds from an unspecified monotonic epoch.
+ * \retval    uint64_t   Nanoseconds from an unspecified monotonic epoch.
  */
 uint64_t Os_Time_GetNanoseconds(void);
 

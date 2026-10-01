@@ -296,7 +296,7 @@ static const char_t* const c_unitNames[] =
  *
  * \param[in] status   Editor status
  *
- * \return Status text.
+ * \retval    non-NULL   Status text.
  */
 static const char_t* EditorStatusToString(int32_t status);
 
@@ -446,7 +446,12 @@ static bool_t IsIdentifierUnique(const Arinc661_Configuration_Document_t* editor
  *
  * \param[in] editor   Document to check
  *
- * \return STATUS_NONE when all identifiers are unique, or the duplicate's status.
+ * \retval    STATUS_NONE                          if all identifiers are unique.
+ * \retval    STATUS_DUPLICATE_SCREEN_ID           if a screen identifier is duplicated.
+ * \retval    STATUS_DUPLICATE_LAYOUT_ID           if a layout identifier is duplicated.
+ * \retval    STATUS_DUPLICATE_WINDOW_ID           if a window identifier is duplicated.
+ * \retval    STATUS_DUPLICATE_APPLICATION_ID      if an application identifier is duplicated.
+ * \retval    STATUS_DUPLICATE_EXTERNAL_SOURCE_ID  if an external source identifier is duplicated.
  */
 static Status_t CheckIdentifierUniqueness(const Arinc661_Configuration_Document_t* editor);
 
@@ -456,7 +461,7 @@ static Status_t CheckIdentifierUniqueness(const Arinc661_Configuration_Document_
  *
  * \param[in]  editor   Editor state
  *
- * \return Largest screen identifier, or NO_IDENTIFIER if there are no screens.
+ * \retval    int64_t   Largest screen identifier, or NO_IDENTIFIER if there are no screens.
  */
 static int64_t GetMaxScreenIdentifier(const Arinc661_Configuration_Document_t* editor);
 
@@ -467,7 +472,7 @@ static int64_t GetMaxScreenIdentifier(const Arinc661_Configuration_Document_t* e
  * \param[in]  editor        Editor state
  * \param[in]  screenIndex   Owning screen index
  *
- * \return Largest layout identifier, or NO_IDENTIFIER if the screen has no layouts.
+ * \retval    int64_t   Largest layout identifier, or NO_IDENTIFIER if the screen has no layouts.
  */
 static int64_t GetMaxLayoutIdentifier(const Arinc661_Configuration_Document_t* editor, uint32_t screenIndex);
 
@@ -477,7 +482,7 @@ static int64_t GetMaxLayoutIdentifier(const Arinc661_Configuration_Document_t* e
  *
  * \param[in]  editor   Editor state
  *
- * \return Largest window identifier, or NO_IDENTIFIER if there are no windows.
+ * \retval    int64_t   Largest window identifier, or NO_IDENTIFIER if there are no windows.
  */
 static int64_t GetMaxWindowIdentifier(const Arinc661_Configuration_Document_t* editor);
 
@@ -487,7 +492,7 @@ static int64_t GetMaxWindowIdentifier(const Arinc661_Configuration_Document_t* e
  *
  * \param[in] editor   Editor state
  *
- * \return Largest application identifier, or NO_IDENTIFIER if there are none.
+ * \retval    int64_t   Largest application identifier, or NO_IDENTIFIER if there are none.
  */
 static int64_t GetMaxUserApplicationIdentifier(const Arinc661_Configuration_Document_t* editor);
 

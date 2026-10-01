@@ -41,7 +41,7 @@
  *
  * \param[in] size   Nonzero allocation size in bytes
  *
- * \return Suitably aligned non-NULL storage; allocation failure is fatal.
+ * \retval    non-NULL   Suitably aligned, zero-initialized storage; allocation failure is fatal.
  */
 void* Os_Calloc(size_t size);
 
