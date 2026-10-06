@@ -20,7 +20,7 @@ extern "C"
 {
 #include "os/os_assert.h"
 #include "os/os_file.h"
-#include "utl/utl_defines.h"
+#include "faceoe_utl/faceoe_utl_defines.h"
 }
 
 #include <inttypes.h>
@@ -160,7 +160,7 @@ extern "C"
 
 #define INTEGER_TEXT_BYTES       (32)
 #define LABEL_FORMAT_BYTES       (64)
-#define HIERARCHY_LABEL_BYTES    (UTL_ARINC661_MAX_NAME_BYTES + LABEL_FORMAT_BYTES)
+#define HIERARCHY_LABEL_BYTES    (FACEOE_DISPLAYMANAGEMENT_MAX_NAME_BYTES + LABEL_FORMAT_BYTES)
 #define DOCUMENT_TAB_LABEL_BYTES (ARINC661_CONFIGURATION_MAX_XML_NAME_BYTES + 16)
 #define SAVE_DIALOG_INPUT_WIDTH  (420.0f)
 
@@ -280,10 +280,10 @@ typedef struct FileMatchContext_s
  */
 static const char_t* const c_unitNames[] =
 {
-    UTL_ARINC661_XML_UNIT_INCH,
-    UTL_ARINC661_XML_UNIT_MM,
-    UTL_ARINC661_XML_UNIT_SCREEN,
-    UTL_ARINC661_XML_UNIT_PIXEL
+    FACEOE_DISPLAYMANAGEMENT_XML_UNIT_INCH,
+    FACEOE_DISPLAYMANAGEMENT_XML_UNIT_MM,
+    FACEOE_DISPLAYMANAGEMENT_XML_UNIT_SCREEN,
+    FACEOE_DISPLAYMANAGEMENT_XML_UNIT_PIXEL
 };
 
 /*=================================================================================================
@@ -689,7 +689,7 @@ static bool_t DrawBooleanField(const char_t* label, bool_t* value);
  * \retval        TRUE        if the value changed.
  * \retval        FALSE       if the value did not change.
  */
-static bool_t DrawUnitField(const char_t* label, Utl_Arinc661_Unit_t* unit);
+static bool_t DrawUnitField(const char_t* label, FACEOE_DisplayManagement_Unit_t* unit);
 
 /*************************************************************************************************/
 /**
@@ -1018,7 +1018,7 @@ static bool_t GetXmlFilePath(Arinc661_Configuration_Editor_t* editor, const char
  */
 static void UpdatePreviewMeasurements(Arinc661_Configuration_Document_t* editor)
 {
-    const Utl_Arinc661_Screen_t* screen;
+    const FACEOE_DisplayManagement_Screen_t* screen;
     uint32_t                     screen_index;
     bool_t                       has_screen_width;
     bool_t                       has_screen_height;
@@ -1131,7 +1131,7 @@ static void LoadConfigurationFile(Arinc661_Configuration_Editor_t* editor, const
             }
             else
             {
-                is_configuration = Utl_Arinc661_ReadConfiguration(&document->configuration, document->inputBuffer, (uint64_t)document_byte_count, document->workspace, sizeof(document->workspace));
+                is_configuration = FACEOE_DisplayManagement_ReadConfiguration(&document->configuration, document->inputBuffer, (uint64_t)document_byte_count, document->workspace, sizeof(document->workspace));
                 if (is_configuration)
                 {
                     identifier_status = CheckIdentifierUniqueness(document);
@@ -1226,7 +1226,7 @@ static void CreateDocument(Arinc661_Configuration_Editor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Keeps file output outside the in-memory utl_arinc661 module.
+ *  Keeps file output outside the in-memory arinc661_definition module.
  */
 static void UnloadConfigurationFile(Arinc661_Configuration_Document_t* editor)
 {
@@ -1245,7 +1245,7 @@ static void UnloadConfigurationFile(Arinc661_Configuration_Document_t* editor)
         }
         else
         {
-            output_byte_count = Utl_Arinc661_WriteConfiguration(&editor->configuration, editor->outputBuffer, sizeof(editor->outputBuffer), editor->workspace, sizeof(editor->workspace));
+            output_byte_count = FACEOE_DisplayManagement_WriteConfiguration(&editor->configuration, editor->outputBuffer, sizeof(editor->outputBuffer), editor->workspace, sizeof(editor->workspace));
             if (0 == output_byte_count)
             {
                 editor->status = STATUS_SERIALIZATION_FAILED;
@@ -1706,7 +1706,7 @@ static int64_t GetMaxUserApplicationIdentifier(const Arinc661_Configuration_Docu
  */
 static void AddScreen(Arinc661_Configuration_Document_t* editor)
 {
-    Utl_Arinc661_Screen_t* screen;
+    FACEOE_DisplayManagement_Screen_t* screen;
     int64_t                id;
     bool_t                 has_capacity;
     bool_t                 has_id;
@@ -1720,10 +1720,10 @@ static void AddScreen(Arinc661_Configuration_Document_t* editor)
         screen->id                        = id;
         screen->pixelSize.width           = DEFAULT_SCREEN_PIXEL_WIDTH;
         screen->pixelSize.height          = DEFAULT_SCREEN_PIXEL_HEIGHT;
-        screen->pixelSize.units           = UTL_ARINC661_UNIT_PIXEL;
+        screen->pixelSize.units           = FACEOE_DISPLAYMANAGEMENT_UNIT_PIXEL;
         screen->physicalDimensions.width  = DEFAULT_SCREEN_PHYSICAL_WIDTH;
         screen->physicalDimensions.height = DEFAULT_SCREEN_PHYSICAL_HEIGHT;
-        screen->physicalDimensions.units  = UTL_ARINC661_UNIT_INCH;
+        screen->physicalDimensions.units  = FACEOE_DISPLAYMANAGEMENT_UNIT_INCH;
         editor->selectedKind              = SELECTION_SCREEN;
         editor->selectedIndex             = editor->configuration.screenCount;
         editor->configuration.screenCount += 1;
@@ -1744,7 +1744,7 @@ static void AddScreen(Arinc661_Configuration_Document_t* editor)
  */
 static void AddLayout(Arinc661_Configuration_Document_t* editor, uint32_t screenIndex)
 {
-    Utl_Arinc661_Layout_t* layout;
+    FACEOE_DisplayManagement_Layout_t* layout;
     int64_t                id;
     bool_t                 has_capacity;
     bool_t                 has_id;
@@ -1776,9 +1776,9 @@ static void AddLayout(Arinc661_Configuration_Document_t* editor, uint32_t screen
  */
 static void AddWindow(Arinc661_Configuration_Document_t* editor, uint32_t layoutIndex)
 {
-    Utl_Arinc661_Window_t*       window;
-    const Utl_Arinc661_Layout_t* layout;
-    const Utl_Arinc661_Screen_t* screen;
+    FACEOE_DisplayManagement_Window_t*       window;
+    const FACEOE_DisplayManagement_Layout_t* layout;
+    const FACEOE_DisplayManagement_Screen_t* screen;
     int64_t                      id;
     bool_t                       has_capacity;
     bool_t                       has_id;
@@ -1798,8 +1798,8 @@ static void AddWindow(Arinc661_Configuration_Document_t* editor, uint32_t layout
         window->pixelArea.height       = screen->pixelSize.height;
         window->scalingFactor.xScale   = 20.0f;
         window->scalingFactor.yScale   = 20.0f;
-        window->scalingFactor.baseUnit = UTL_ARINC661_UNIT_SCREEN;
-        window->scalingFactor.perUnit  = UTL_ARINC661_UNIT_PIXEL;
+        window->scalingFactor.baseUnit = FACEOE_DISPLAYMANAGEMENT_UNIT_SCREEN;
+        window->scalingFactor.perUnit  = FACEOE_DISPLAYMANAGEMENT_UNIT_PIXEL;
         editor->selectedKind           = SELECTION_WINDOW;
         editor->selectedIndex          = editor->configuration.windowCount;
         editor->configuration.windowCount += 1;
@@ -1819,7 +1819,7 @@ static void AddWindow(Arinc661_Configuration_Document_t* editor, uint32_t layout
  */
 static void AddUserApplication(Arinc661_Configuration_Document_t* editor)
 {
-    Utl_Arinc661_UserApplication_t* application;
+    FACEOE_DisplayManagement_UserApplication_t* application;
     int64_t                          id;
     bool_t                           has_capacity;
     bool_t                           has_id;
@@ -2027,10 +2027,10 @@ static bool_t DrawRemoveButton(const char_t* label, float32_t rowHeight)
  */
 static void DrawHierarchy(Arinc661_Configuration_Document_t* editor)
 {
-    const Utl_Arinc661_Screen_t*          screen;
-    const Utl_Arinc661_Layout_t*          layout;
-    const Utl_Arinc661_Window_t*          window;
-    const Utl_Arinc661_UserApplication_t* application;
+    const FACEOE_DisplayManagement_Screen_t*          screen;
+    const FACEOE_DisplayManagement_Layout_t*          layout;
+    const FACEOE_DisplayManagement_Window_t*          window;
+    const FACEOE_DisplayManagement_UserApplication_t* application;
     ImGuiTreeNodeFlags                    flags;
     float32_t                             row_height;
     uint32_t                              screen_index;
@@ -2379,7 +2379,7 @@ static bool_t DrawBooleanField(const char_t* label, bool_t* value)
  * \par Details:
  *  Restricts the choice to the FACE Units enumeration.
  */
-static bool_t DrawUnitField(const char_t* label, Utl_Arinc661_Unit_t* unit)
+static bool_t DrawUnitField(const char_t* label, FACEOE_DisplayManagement_Unit_t* unit)
 {
     uint32_t unit_index;
     bool_t   is_selected;
@@ -2401,7 +2401,7 @@ static bool_t DrawUnitField(const char_t* label, Utl_Arinc661_Unit_t* unit)
             {
                 if (FALSE == is_selected)
                 {
-                    (*unit)     = (Utl_Arinc661_Unit_t)unit_index;
+                    (*unit)     = (FACEOE_DisplayManagement_Unit_t)unit_index;
                     has_changed = TRUE;
                 }
             }
@@ -2438,7 +2438,7 @@ static void MarkDocumentDirty(Arinc661_Configuration_Document_t* editor, bool_t 
  */
 static void DrawScreenInspector(Arinc661_Configuration_Document_t* editor)
 {
-    Utl_Arinc661_Screen_t* screen;
+    FACEOE_DisplayManagement_Screen_t* screen;
     bool_t                 has_width_changed;
     bool_t                 has_height_changed;
     bool_t                 has_pixel_size_changed;
@@ -2484,7 +2484,7 @@ static void DrawScreenInspector(Arinc661_Configuration_Document_t* editor)
  */
 static void DrawLayoutInspector(Arinc661_Configuration_Document_t* editor)
 {
-    Utl_Arinc661_Layout_t* layout;
+    FACEOE_DisplayManagement_Layout_t* layout;
 
     layout = &editor->layouts[editor->selectedIndex];
 
@@ -2503,7 +2503,7 @@ static void DrawLayoutInspector(Arinc661_Configuration_Document_t* editor)
  */
 static void DrawWindowInspector(Arinc661_Configuration_Document_t* editor)
 {
-    Utl_Arinc661_Window_t* window;
+    FACEOE_DisplayManagement_Window_t* window;
 
     window = &editor->windows[editor->selectedIndex];
 
@@ -2543,7 +2543,7 @@ static void DrawWindowInspector(Arinc661_Configuration_Document_t* editor)
  */
 static void DrawUserApplicationInspector(Arinc661_Configuration_Document_t* editor)
 {
-    Utl_Arinc661_UserApplication_t* application;
+    FACEOE_DisplayManagement_UserApplication_t* application;
 
     application = &editor->userApplications[editor->selectedIndex];
 
@@ -3194,9 +3194,9 @@ static void DrawInspectorPane(Arinc661_Configuration_Document_t* editor)
 static void DrawScenePane(Arinc661_Configuration_Document_t* editor)
 {
     const ImGuiStyle*            style;
-    const Utl_Arinc661_Screen_t* screen;
-    const Utl_Arinc661_Layout_t* layout;
-    const Utl_Arinc661_Window_t* window;
+    const FACEOE_DisplayManagement_Screen_t* screen;
+    const FACEOE_DisplayManagement_Layout_t* layout;
+    const FACEOE_DisplayManagement_Window_t* window;
     const char_t*                fmt;
     ImDrawList*                  draw_list;
     ImVec2                       canvas_min;
@@ -3217,7 +3217,7 @@ static void DrawScenePane(Arinc661_Configuration_Document_t* editor)
     ImVec2                       selected_window_max;
     ImVec2                       mouse_position;
     char_t                       screen_label[LABEL_FORMAT_BYTES];
-    char_t                       window_label[UTL_ARINC661_MAX_NAME_BYTES + LABEL_FORMAT_BYTES];
+    char_t                       window_label[FACEOE_DISPLAYMANAGEMENT_MAX_NAME_BYTES + LABEL_FORMAT_BYTES];
     float32_t                    label_height;
     float32_t                    unused_height;
     float32_t                    width_scale;

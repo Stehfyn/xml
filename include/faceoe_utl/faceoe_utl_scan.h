@@ -1,5 +1,5 @@
-#ifndef UTL_SCAN_H
-#define UTL_SCAN_H
+#ifndef FACEOE_UTL_SCAN_H
+#define FACEOE_UTL_SCAN_H
 
 /*=================================================================================================
 ** 1. References
@@ -22,7 +22,7 @@
 ** 3.1 Macros
 **===============================================================================================*/
 
-#define UTL_SCAN_MAX_FLOAT_BYTES (2047) ///< Maximum decimal prefix length accepted by Utl_Scan_Float.
+#define FACEOE_UTL_SCAN_MAX_FLOAT_BYTES (2047) ///< Maximum decimal prefix length accepted by FACEOE_Utl_Scan_Float.
 
 /*=================================================================================================
 ** 3.2 Types
@@ -60,7 +60,7 @@
  * \retval     -1             The prefix is missing, malformed, too long, or out of range.
  * \retval     1..INT32_MAX   Number of characters consumed.
  */
-int32_t Utl_Scan_Int64(const char_t* a, int64_t* v);
+int32_t FACEOE_Utl_Scan_Int64(const char_t* a, int64_t* v);
 
 /*************************************************************************************************/
 /**
@@ -74,7 +74,7 @@ int32_t Utl_Scan_Int64(const char_t* a, int64_t* v);
  *
  * \par Requirements:
  *  - 001 This function shall return the number of characters in the decimal prefix.
- *  - 002 This function shall reject non-finite results and prefixes longer than UTL_SCAN_MAX_FLOAT_BYTES.
+ *  - 002 This function shall reject non-finite results and prefixes longer than FACEOE_UTL_SCAN_MAX_FLOAT_BYTES.
  *  - 003 This function shall leave v unchanged on failure.
  *
  * \param[in]  a   Non-NULL text, readable through the first non-decimal character or NUL
@@ -83,6 +83,6 @@ int32_t Utl_Scan_Int64(const char_t* a, int64_t* v);
  * \retval     -1             The prefix is missing, malformed, too long, or out of range.
  * \retval     1..INT32_MAX   Number of characters consumed.
  */
-int32_t Utl_Scan_Float(const char_t* a, float64_t* v);
+int32_t FACEOE_Utl_Scan_Float(const char_t* a, float64_t* v);
 
-#endif /* UTL_SCAN_H */
+#endif /* FACEOE_UTL_SCAN_H */

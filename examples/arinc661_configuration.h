@@ -11,7 +11,7 @@
 
 extern "C"
 {
-#include "utl/utl_arinc661.h"
+#include "faceoe/faceoe_displaymanagement.h"
 }
 
 /*=================================================================================================
@@ -53,13 +53,13 @@ typedef struct Arinc661_Configuration_Document_s
     char_t                                 documentPath[ARINC661_CONFIGURATION_MAX_FILE_PATH_BYTES];         ///< Path of the loaded document.
     byte_t                                 inputBuffer[ARINC661_CONFIGURATION_MAX_DOCUMENT_BYTES + 1];       ///< Input file bytes.
     byte_t                                 outputBuffer[ARINC661_CONFIGURATION_MAX_DOCUMENT_BYTES];          ///< Built XML bytes.
-    uint64_t                               workspace[UTL_ARINC661_WORKSPACE_BYTES / sizeof(uint64_t)];       ///< XML conversion scratch space.
-    Utl_Arinc661_Screen_t                  screens[ARINC661_CONFIGURATION_MAX_SCREENS];                      ///< Screen values.
-    Utl_Arinc661_Layout_t                  layouts[ARINC661_CONFIGURATION_MAX_LAYOUTS];                      ///< Layout values.
-    Utl_Arinc661_Window_t                  windows[ARINC661_CONFIGURATION_MAX_WINDOWS];                      ///< Window values.
-    Utl_Arinc661_UserApplication_t         userApplications[ARINC661_CONFIGURATION_MAX_USER_APPLICATIONS];   ///< User application values.
-    Utl_Arinc661_ExternalSource_t          externalSources[ARINC661_CONFIGURATION_MAX_EXTERNAL_SOURCES];     ///< External source values.
-    Utl_Arinc661_Configuration_t           configuration;                                                    ///< Display management configuration values.
+    uint64_t                               workspace[FACEOE_DISPLAYMANAGEMENT_WORKSPACE_BYTES / sizeof(uint64_t)];       ///< XML conversion scratch space.
+    FACEOE_DisplayManagement_Screen_t                  screens[ARINC661_CONFIGURATION_MAX_SCREENS];                      ///< Screen values.
+    FACEOE_DisplayManagement_Layout_t                  layouts[ARINC661_CONFIGURATION_MAX_LAYOUTS];                      ///< Layout values.
+    FACEOE_DisplayManagement_Window_t                  windows[ARINC661_CONFIGURATION_MAX_WINDOWS];                      ///< Window values.
+    FACEOE_DisplayManagement_UserApplication_t         userApplications[ARINC661_CONFIGURATION_MAX_USER_APPLICATIONS];   ///< User application values.
+    FACEOE_DisplayManagement_ExternalSource_t          externalSources[ARINC661_CONFIGURATION_MAX_EXTERNAL_SOURCES];     ///< External source values.
+    FACEOE_DisplayManagement_Configuration_t           configuration;                                                    ///< Display management configuration values.
 } Arinc661_Configuration_Document_t;
 
 /*************************************************************************************************/

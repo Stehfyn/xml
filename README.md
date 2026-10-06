@@ -1,22 +1,24 @@
 # xml
 
-Minimal C17 `utl` static library and `utl_tests` executable.
-Public headers live in `include/utl`, implementations in `src/utl`, and tests in `tests`.
-`utl_xml.h` provides XML 1.0 Fifth Edition constants, attribute-value validation,
+Minimal C17 `faceoe_utl`, `arinc661`, and `faceoe` static libraries and a `unit_tests` executable.
+`arinc661/arinc661_definition.h` reads and writes ARINC 661 Definition Files in XML and binary form;
+`faceoe/faceoe_displaymanagement.h` reads and writes FACE display management configurations.
+Public headers live in `include/<library>`, implementations in `src/<library>`, and tests in `tests`.
+`faceoe_utl_xml.h` provides XML 1.0 Fifth Edition constants, attribute-value validation,
 and document construction, reading, and writing.
 
 XML character, whitespace, UTF-8 string, and name validation helpers are private
-to `utl_xml.c`. Names and values use counted UTF-8 byte spans, reject zero bytes,
+to `faceoe_utl_xml.c`. Names and values use counted UTF-8 byte spans, reject zero bytes,
 and enforce the documented byte limits. Name validation accepts colons, with
 namespace and schema rules left to their respective modules.
 
-`utl_xml` builds element content from caller-owned nodes and attributes,
+`faceoe_utl_xml` builds element content from caller-owned nodes and attributes,
 appends caller-owned top-level nodes in source order, and serializes escaped
 UTF-8 into caller-provided storage. The document supports comments, processing
 instructions, one root element, and optional XML declaration and DOCTYPE markup.
 Declaration and DOCTYPE suffixes are supplied by the caller.
 
-`utl_util` provides string helpers; the XML reader uses `Utl_StrStr` to locate markup.
+`faceoe_utl_util` provides string helpers; the XML reader uses `FACEOE_Utl_StrStr` to locate markup.
 
 To write a schema hint, append attributes named `xmlns:xsi` and
 `xsi:noNamespaceSchemaLocation` to the root element. Attributes appear in the
@@ -28,8 +30,8 @@ order appended. For example, an element with a child is written as:
 </configuration>
 ```
 
-The attribute values passed to `Utl_Xml_InitializeAttribute` are unquoted;
-`Utl_Xml_WriteDocument` writes the quotes. The XML module writes these names
+The attribute values passed to `FACEOE_Utl_Xml_InitializeAttribute` are unquoted;
+`FACEOE_Utl_Xml_WriteDocument` writes the quotes. The XML module writes these names
 as supplied and leaves namespace and schema validation to the caller.
 
 Requires CMake 3.25+ and a C17 compiler.

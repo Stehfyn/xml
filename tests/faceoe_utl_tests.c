@@ -1,6 +1,6 @@
-#include "utl/utl_defines.h"
-#include "utl/utl_scan.h"
-#include "utl/utl_xml.h"
+#include "faceoe_utl/faceoe_utl_defines.h"
+#include "faceoe_utl/faceoe_utl_scan.h"
+#include "faceoe_utl/faceoe_utl_xml.h"
 
 /* Keep assertions enabled in Release builds. */
 #ifdef NDEBUG
@@ -11,6 +11,7 @@
 #include <stdio.h>
 
 void RunArinc661Tests(void);
+void RunFACEOEDisplayManagementTests(void);
 
 /*************************************************************************************************/
 /**
@@ -19,15 +20,15 @@ void RunArinc661Tests(void);
  */
 static uint64_t WriteTestElement(const byte_t* name, uint32_t nameByteCount)
 {
-    Utl_Xml_Document_t document;
-    Utl_Xml_Node_t     root;
-    byte_t            output[UTL_XML_MAX_NAME_BYTES + sizeof("</>\n")];
+    FACEOE_Utl_Xml_Document_t document;
+    FACEOE_Utl_Xml_Node_t     root;
+    byte_t            output[FACEOE_UTL_XML_MAX_NAME_BYTES + sizeof("</>\n")];
 
-    Utl_Xml_InitializeDocument(&document);
-    Utl_Xml_InitializeNode(&root, UTL_XML_NODE_ELEMENT, name, nameByteCount);
-    Utl_Xml_AppendNode(&document, &root);
+    FACEOE_Utl_Xml_InitializeDocument(&document);
+    FACEOE_Utl_Xml_InitializeNode(&root, FACEOE_UTL_XML_NODE_ELEMENT, name, nameByteCount);
+    FACEOE_Utl_Xml_AppendNode(&document, &root);
 
-    return Utl_Xml_WriteDocument(&document, output, (uint64_t)sizeof(output));
+    return FACEOE_Utl_Xml_WriteDocument(&document, output, (uint64_t)sizeof(output));
 }
 
 /*************************************************************************************************/
@@ -49,18 +50,18 @@ static void TestXmlByteSpans(void)
     static const byte_t nonliteral_or_normalized[] = "<&\"\t\n\r";
     uint32_t            byte_index;
 
-    assert(TRUE == Utl_Xml_IsAttributeValue(empty, 0));
-    assert(TRUE == Utl_Xml_IsAttributeValue(valid_text, (uint32_t)(sizeof(valid_text) - 1)));
-    assert(TRUE == Utl_Xml_IsAttributeValue(unterminated, (uint32_t)sizeof(unterminated)));
-    assert(TRUE == Utl_Xml_IsAttributeValue(plain_attribute_value, (uint32_t)(sizeof(plain_attribute_value) - 1)));
-    assert(FALSE == Utl_Xml_IsAttributeValue(invalid_utf8, (uint32_t)(sizeof(invalid_utf8) - 1)));
-    assert(FALSE == Utl_Xml_IsAttributeValue(invalid_xml_char, (uint32_t)(sizeof(invalid_xml_char) - 1)));
-    assert(FALSE == Utl_Xml_IsAttributeValue(embedded_zero, (uint32_t)sizeof(embedded_zero)));
-    assert(FALSE == Utl_Xml_IsAttributeValue(valid_text, (uint32_t)sizeof(valid_text)));
+    assert(TRUE == FACEOE_Utl_Xml_IsAttributeValue(empty, 0));
+    assert(TRUE == FACEOE_Utl_Xml_IsAttributeValue(valid_text, (uint32_t)(sizeof(valid_text) - 1)));
+    assert(TRUE == FACEOE_Utl_Xml_IsAttributeValue(unterminated, (uint32_t)sizeof(unterminated)));
+    assert(TRUE == FACEOE_Utl_Xml_IsAttributeValue(plain_attribute_value, (uint32_t)(sizeof(plain_attribute_value) - 1)));
+    assert(FALSE == FACEOE_Utl_Xml_IsAttributeValue(invalid_utf8, (uint32_t)(sizeof(invalid_utf8) - 1)));
+    assert(FALSE == FACEOE_Utl_Xml_IsAttributeValue(invalid_xml_char, (uint32_t)(sizeof(invalid_xml_char) - 1)));
+    assert(FALSE == FACEOE_Utl_Xml_IsAttributeValue(embedded_zero, (uint32_t)sizeof(embedded_zero)));
+    assert(FALSE == FACEOE_Utl_Xml_IsAttributeValue(valid_text, (uint32_t)sizeof(valid_text)));
 
     for (byte_index = 0; byte_index < (uint32_t)(sizeof(nonliteral_or_normalized) - 1); ++byte_index)
     {
-        assert(FALSE == Utl_Xml_IsAttributeValue(&nonliteral_or_normalized[byte_index], 1));
+        assert(FALSE == FACEOE_Utl_Xml_IsAttributeValue(&nonliteral_or_normalized[byte_index], 1));
     }
 
     assert(0 < WriteTestElement(valid_name, (uint32_t)(sizeof(valid_name) - 1)));
@@ -78,12 +79,12 @@ static void TestXmlByteSpans(void)
  */
 static void TestXmlNodeInitialization(void)
 {
-    Utl_Xml_Node_t      root;
-    Utl_Xml_Node_t      child;
-    Utl_Xml_Node_t      sibling;
-    Utl_Xml_Attribute_t attribute;
-    Utl_Xml_Attribute_t utf8_attribute;
-    Utl_Xml_Attribute_t longer_attribute;
+    FACEOE_Utl_Xml_Node_t      root;
+    FACEOE_Utl_Xml_Node_t      child;
+    FACEOE_Utl_Xml_Node_t      sibling;
+    FACEOE_Utl_Xml_Attribute_t attribute;
+    FACEOE_Utl_Xml_Attribute_t utf8_attribute;
+    FACEOE_Utl_Xml_Attribute_t longer_attribute;
     const byte_t        name[] = "\xC3\xA9";
     const byte_t        child_name[] = "child";
     const byte_t        sibling_name[] = "sibling";
@@ -93,11 +94,11 @@ static void TestXmlNodeInitialization(void)
     const byte_t        utf8_value[] = "A\xE2\x82\xAC\xF0\x9F\x98\x80" "Z";
     const byte_t        longer_name[] = "id2";
 
-    Utl_Xml_InitializeNode(&root, UTL_XML_NODE_ELEMENT, name, (uint32_t)(sizeof(name) - 1));
-    Utl_Xml_InitializeNode(&child, UTL_XML_NODE_ELEMENT, child_name, (uint32_t)(sizeof(child_name) - 1));
-    Utl_Xml_InitializeNode(&sibling, UTL_XML_NODE_ELEMENT, sibling_name, (uint32_t)(sizeof(sibling_name) - 1));
+    FACEOE_Utl_Xml_InitializeNode(&root, FACEOE_UTL_XML_NODE_ELEMENT, name, (uint32_t)(sizeof(name) - 1));
+    FACEOE_Utl_Xml_InitializeNode(&child, FACEOE_UTL_XML_NODE_ELEMENT, child_name, (uint32_t)(sizeof(child_name) - 1));
+    FACEOE_Utl_Xml_InitializeNode(&sibling, FACEOE_UTL_XML_NODE_ELEMENT, sibling_name, (uint32_t)(sizeof(sibling_name) - 1));
 
-    assert(UTL_XML_NODE_ELEMENT == root.type);
+    assert(FACEOE_UTL_XML_NODE_ELEMENT == root.type);
     assert(name == root.name);
     assert((sizeof(name) - 1) == root.nameByteCount);
     assert(NULL == root.firstChild);
@@ -107,19 +108,19 @@ static void TestXmlNodeInitialization(void)
     assert(NULL == child.parent);
 
     attribute.next = &utf8_attribute;
-    Utl_Xml_InitializeAttribute(&attribute, attribute_name, (uint32_t)(sizeof(attribute_name) - 1), attribute_value, (uint32_t)(sizeof(attribute_value) - 1));
+    FACEOE_Utl_Xml_InitializeAttribute(&attribute, attribute_name, (uint32_t)(sizeof(attribute_name) - 1), attribute_value, (uint32_t)(sizeof(attribute_value) - 1));
     assert(attribute_name == attribute.name);
     assert((sizeof(attribute_name) - 1) == attribute.nameByteCount);
     assert(attribute_value == attribute.value);
     assert((sizeof(attribute_value) - 1) == attribute.valueByteCount);
     assert(NULL == attribute.next);
-    Utl_Xml_AppendAttribute(&root, &attribute);
-    Utl_Xml_InitializeAttribute(&utf8_attribute, utf8_name, (uint32_t)(sizeof(utf8_name) - 1), utf8_value, (uint32_t)(sizeof(utf8_value) - 1));
-    Utl_Xml_AppendAttribute(&root, &utf8_attribute);
-    Utl_Xml_InitializeAttribute(&longer_attribute, longer_name, (uint32_t)(sizeof(longer_name) - 1), attribute_value, (uint32_t)(sizeof(attribute_value) - 1));
-    Utl_Xml_AppendAttribute(&root, &longer_attribute);
-    Utl_Xml_AppendChild(&root, &child);
-    Utl_Xml_AppendChild(&root, &sibling);
+    FACEOE_Utl_Xml_AppendAttribute(&root, &attribute);
+    FACEOE_Utl_Xml_InitializeAttribute(&utf8_attribute, utf8_name, (uint32_t)(sizeof(utf8_name) - 1), utf8_value, (uint32_t)(sizeof(utf8_value) - 1));
+    FACEOE_Utl_Xml_AppendAttribute(&root, &utf8_attribute);
+    FACEOE_Utl_Xml_InitializeAttribute(&longer_attribute, longer_name, (uint32_t)(sizeof(longer_name) - 1), attribute_value, (uint32_t)(sizeof(attribute_value) - 1));
+    FACEOE_Utl_Xml_AppendAttribute(&root, &longer_attribute);
+    FACEOE_Utl_Xml_AppendChild(&root, &child);
+    FACEOE_Utl_Xml_AppendChild(&root, &sibling);
 
     assert(&attribute == root.firstAttribute);
     assert(&utf8_attribute == attribute.next);
@@ -141,10 +142,10 @@ static void TestXmlNodeInitialization(void)
  */
 static void TestDeferredNodeContentValidation(void)
 {
-    Utl_Xml_Node_t element;
+    FACEOE_Utl_Xml_Node_t element;
     const byte_t   name[] = "bad name";
 
-    Utl_Xml_InitializeNode(&element, UTL_XML_NODE_ELEMENT, name, (uint32_t)(sizeof(name) - 1));
+    FACEOE_Utl_Xml_InitializeNode(&element, FACEOE_UTL_XML_NODE_ELEMENT, name, (uint32_t)(sizeof(name) - 1));
 
     assert(name == element.name);
     assert((sizeof(name) - 1) == element.nameByteCount);
@@ -157,14 +158,14 @@ static void TestDeferredNodeContentValidation(void)
  */
 static void TestXmlDocumentWrite(void)
 {
-    Utl_Xml_Document_t  document;
-    Utl_Xml_Node_t      declaration_node;
-    Utl_Xml_Node_t      root;
-    Utl_Xml_Node_t      child;
-    Utl_Xml_Node_t      grandchild;
-    Utl_Xml_Node_t      sibling;
-    Utl_Xml_Attribute_t attribute;
-    Utl_Xml_Attribute_t empty_attribute;
+    FACEOE_Utl_Xml_Document_t  document;
+    FACEOE_Utl_Xml_Node_t      declaration_node;
+    FACEOE_Utl_Xml_Node_t      root;
+    FACEOE_Utl_Xml_Node_t      child;
+    FACEOE_Utl_Xml_Node_t      grandchild;
+    FACEOE_Utl_Xml_Node_t      sibling;
+    FACEOE_Utl_Xml_Attribute_t attribute;
+    FACEOE_Utl_Xml_Attribute_t empty_attribute;
     const byte_t        root_name[] = "root";
     const byte_t        child_name[] = "child";
     const byte_t        grandchild_name[] = "grandchild";
@@ -181,26 +182,26 @@ static void TestXmlDocumentWrite(void)
     uint64_t            bytes_written;
     int                 close_result;
 
-    Utl_Xml_InitializeDocument(&document);
+    FACEOE_Utl_Xml_InitializeDocument(&document);
     assert(NULL == document.firstNode);
     assert(NULL == document.lastNode);
 
-    Utl_Xml_InitializeNode(&declaration_node, UTL_XML_NODE_XML_DECLARATION, NULL, 0);
-    Utl_Xml_InitializeNode(&root, UTL_XML_NODE_ELEMENT, root_name, (uint32_t)(sizeof(root_name) - 1));
-    Utl_Xml_InitializeNode(&child, UTL_XML_NODE_ELEMENT, child_name, (uint32_t)(sizeof(child_name) - 1));
-    Utl_Xml_InitializeNode(&grandchild, UTL_XML_NODE_ELEMENT, grandchild_name, (uint32_t)(sizeof(grandchild_name) - 1));
-    Utl_Xml_InitializeNode(&sibling, UTL_XML_NODE_ELEMENT, sibling_name, (uint32_t)(sizeof(sibling_name) - 1));
+    FACEOE_Utl_Xml_InitializeNode(&declaration_node, FACEOE_UTL_XML_NODE_XML_DECLARATION, NULL, 0);
+    FACEOE_Utl_Xml_InitializeNode(&root, FACEOE_UTL_XML_NODE_ELEMENT, root_name, (uint32_t)(sizeof(root_name) - 1));
+    FACEOE_Utl_Xml_InitializeNode(&child, FACEOE_UTL_XML_NODE_ELEMENT, child_name, (uint32_t)(sizeof(child_name) - 1));
+    FACEOE_Utl_Xml_InitializeNode(&grandchild, FACEOE_UTL_XML_NODE_ELEMENT, grandchild_name, (uint32_t)(sizeof(grandchild_name) - 1));
+    FACEOE_Utl_Xml_InitializeNode(&sibling, FACEOE_UTL_XML_NODE_ELEMENT, sibling_name, (uint32_t)(sizeof(sibling_name) - 1));
 
-    Utl_Xml_InitializeAttribute(&attribute, attribute_name, (uint32_t)(sizeof(attribute_name) - 1), attribute_value, (uint32_t)(sizeof(attribute_value) - 1));
-    Utl_Xml_AppendAttribute(&root, &attribute);
-    Utl_Xml_InitializeAttribute(&empty_attribute, empty_name, (uint32_t)(sizeof(empty_name) - 1), empty_value, 0);
-    Utl_Xml_AppendAttribute(&root, &empty_attribute);
-    Utl_Xml_AppendChild(&root, &child);
-    Utl_Xml_AppendChild(&child, &grandchild);
-    Utl_Xml_AppendChild(&root, &sibling);
+    FACEOE_Utl_Xml_InitializeAttribute(&attribute, attribute_name, (uint32_t)(sizeof(attribute_name) - 1), attribute_value, (uint32_t)(sizeof(attribute_value) - 1));
+    FACEOE_Utl_Xml_AppendAttribute(&root, &attribute);
+    FACEOE_Utl_Xml_InitializeAttribute(&empty_attribute, empty_name, (uint32_t)(sizeof(empty_name) - 1), empty_value, 0);
+    FACEOE_Utl_Xml_AppendAttribute(&root, &empty_attribute);
+    FACEOE_Utl_Xml_AppendChild(&root, &child);
+    FACEOE_Utl_Xml_AppendChild(&child, &grandchild);
+    FACEOE_Utl_Xml_AppendChild(&root, &sibling);
 
-    Utl_Xml_AppendNode(&document, &declaration_node);
-    Utl_Xml_AppendNode(&document, &root);
+    FACEOE_Utl_Xml_AppendNode(&document, &declaration_node);
+    FACEOE_Utl_Xml_AppendNode(&document, &root);
 
     assert(&declaration_node == document.firstNode);
     assert(&root == declaration_node.nextSibling);
@@ -208,12 +209,12 @@ static void TestXmlDocumentWrite(void)
     assert(&root == document.lastNode);
 
     memset(output, 0xA5, sizeof(output));
-    byte_count = Utl_Xml_WriteDocument(&document, output, (uint64_t)sizeof(output));
+    byte_count = FACEOE_Utl_Xml_WriteDocument(&document, output, (uint64_t)sizeof(output));
     assert((sizeof(expected) - 1) == byte_count);
     assert(0 == memcmp(output, expected, byte_count));
     assert(0xA5 == output[byte_count]);
 
-    xml_file = fopen("utl_xml_document.xml", "wb");
+    xml_file = fopen("faceoe_utl_xml_document.xml", "wb");
     assert(NULL != xml_file);
     bytes_written = fwrite(output, 1, (size_t)byte_count, xml_file);
     assert(byte_count == bytes_written);
@@ -228,11 +229,11 @@ static void TestXmlDocumentWrite(void)
  */
 static void TestXmlSchemaLocationWrite(void)
 {
-    Utl_Xml_Document_t  document;
-    Utl_Xml_Node_t      configuration;
-    Utl_Xml_Node_t      setting;
-    Utl_Xml_Attribute_t namespace_attribute;
-    Utl_Xml_Attribute_t schema_attribute;
+    FACEOE_Utl_Xml_Document_t  document;
+    FACEOE_Utl_Xml_Node_t      configuration;
+    FACEOE_Utl_Xml_Node_t      setting;
+    FACEOE_Utl_Xml_Attribute_t namespace_attribute;
+    FACEOE_Utl_Xml_Attribute_t schema_attribute;
     const byte_t        configuration_name[] = "configuration";
     const byte_t        setting_name[] = "setting";
     const byte_t        namespace_name[] = "xmlns:xsi";
@@ -247,18 +248,18 @@ static void TestXmlSchemaLocationWrite(void)
     byte_t              output[sizeof(expected)];
     uint64_t            byte_count;
 
-    Utl_Xml_InitializeDocument(&document);
-    Utl_Xml_InitializeNode(&configuration, UTL_XML_NODE_ELEMENT, configuration_name, (uint32_t)(sizeof(configuration_name) - 1));
-    Utl_Xml_InitializeNode(&setting, UTL_XML_NODE_ELEMENT, setting_name, (uint32_t)(sizeof(setting_name) - 1));
-    Utl_Xml_InitializeAttribute(&namespace_attribute, namespace_name, (uint32_t)(sizeof(namespace_name) - 1), namespace_uri, (uint32_t)(sizeof(namespace_uri) - 1));
-    Utl_Xml_InitializeAttribute(&schema_attribute, schema_name, (uint32_t)(sizeof(schema_name) - 1), schema_location, (uint32_t)(sizeof(schema_location) - 1));
+    FACEOE_Utl_Xml_InitializeDocument(&document);
+    FACEOE_Utl_Xml_InitializeNode(&configuration, FACEOE_UTL_XML_NODE_ELEMENT, configuration_name, (uint32_t)(sizeof(configuration_name) - 1));
+    FACEOE_Utl_Xml_InitializeNode(&setting, FACEOE_UTL_XML_NODE_ELEMENT, setting_name, (uint32_t)(sizeof(setting_name) - 1));
+    FACEOE_Utl_Xml_InitializeAttribute(&namespace_attribute, namespace_name, (uint32_t)(sizeof(namespace_name) - 1), namespace_uri, (uint32_t)(sizeof(namespace_uri) - 1));
+    FACEOE_Utl_Xml_InitializeAttribute(&schema_attribute, schema_name, (uint32_t)(sizeof(schema_name) - 1), schema_location, (uint32_t)(sizeof(schema_location) - 1));
 
-    Utl_Xml_AppendAttribute(&configuration, &namespace_attribute);
-    Utl_Xml_AppendAttribute(&configuration, &schema_attribute);
-    Utl_Xml_AppendChild(&configuration, &setting);
-    Utl_Xml_AppendNode(&document, &configuration);
+    FACEOE_Utl_Xml_AppendAttribute(&configuration, &namespace_attribute);
+    FACEOE_Utl_Xml_AppendAttribute(&configuration, &schema_attribute);
+    FACEOE_Utl_Xml_AppendChild(&configuration, &setting);
+    FACEOE_Utl_Xml_AppendNode(&document, &configuration);
 
-    byte_count = Utl_Xml_WriteDocument(&document, output, (uint64_t)sizeof(output));
+    byte_count = FACEOE_Utl_Xml_WriteDocument(&document, output, (uint64_t)sizeof(output));
     assert((sizeof(expected) - 1) == byte_count);
     assert(0 == memcmp(output, expected, byte_count));
 }
@@ -284,19 +285,19 @@ static void TestXmlDocumentRoundTrip(void)
         "        </a661_widget>\n"
         "    </a661_layer>\n"
         "</a661_df>\n";
-    Utl_Xml_Document_t  document;
-    Utl_Xml_Node_t      nodes[8];
-    Utl_Xml_Attribute_t attributes[10];
+    FACEOE_Utl_Xml_Document_t  document;
+    FACEOE_Utl_Xml_Node_t      nodes[8];
+    FACEOE_Utl_Xml_Attribute_t attributes[10];
     byte_t              input[sizeof(text)];
     byte_t              output[sizeof(text)];
     uint64_t            byte_count;
 
     memcpy(input, text, sizeof(text));
-    Utl_Xml_InitializeDocument(&document);
-    byte_count = Utl_Xml_ReadDocument(&document, input, (uint64_t)(sizeof(text) - 1), nodes, (uint32_t)COUNT_OF(nodes), attributes, (uint32_t)COUNT_OF(attributes));
+    FACEOE_Utl_Xml_InitializeDocument(&document);
+    byte_count = FACEOE_Utl_Xml_ReadDocument(&document, input, (uint64_t)(sizeof(text) - 1), nodes, (uint32_t)COUNT_OF(nodes), attributes, (uint32_t)COUNT_OF(attributes));
     assert((sizeof(text) - 1) == byte_count);
 
-    byte_count = Utl_Xml_WriteDocument(&document, output, (uint64_t)sizeof(output));
+    byte_count = FACEOE_Utl_Xml_WriteDocument(&document, output, (uint64_t)sizeof(output));
     assert((sizeof(text) - 1) == byte_count);
     assert(0 == memcmp(output, text, byte_count));
 }
@@ -308,10 +309,10 @@ static void TestXmlDocumentRoundTrip(void)
  */
 static void TestXmlDocumentFailures(void)
 {
-    Utl_Xml_Document_t  document;
-    Utl_Xml_Node_t      root;
-    Utl_Xml_Node_t      nodes[2];
-    Utl_Xml_Attribute_t attributes[1];
+    FACEOE_Utl_Xml_Document_t  document;
+    FACEOE_Utl_Xml_Node_t      root;
+    FACEOE_Utl_Xml_Node_t      nodes[2];
+    FACEOE_Utl_Xml_Attribute_t attributes[1];
     byte_t              name[] = "root";
     byte_t              output[sizeof("<root/>\n")];
     byte_t              bad_end_tag[] = "<root><child/></wrong>";
@@ -319,33 +320,33 @@ static void TestXmlDocumentFailures(void)
     byte_t              trailing_text[] = "<root/>oops";
     uint64_t            byte_count;
 
-    Utl_Xml_InitializeDocument(&document);
-    Utl_Xml_InitializeNode(&root, UTL_XML_NODE_ELEMENT, name, (uint32_t)(sizeof(name) - 1));
-    Utl_Xml_AppendNode(&document, &root);
+    FACEOE_Utl_Xml_InitializeDocument(&document);
+    FACEOE_Utl_Xml_InitializeNode(&root, FACEOE_UTL_XML_NODE_ELEMENT, name, (uint32_t)(sizeof(name) - 1));
+    FACEOE_Utl_Xml_AppendNode(&document, &root);
 
     memset(output, 0xA5, sizeof(output));
-    byte_count = Utl_Xml_WriteDocument(&document, output, (uint64_t)(sizeof(output) - 2));
+    byte_count = FACEOE_Utl_Xml_WriteDocument(&document, output, (uint64_t)(sizeof(output) - 2));
     assert(0 == byte_count);
     assert(0xA5 == output[sizeof(output) - 2]);
 
-    byte_count = Utl_Xml_WriteDocument(&document, output, (uint64_t)(sizeof(output) - 1));
+    byte_count = FACEOE_Utl_Xml_WriteDocument(&document, output, (uint64_t)(sizeof(output) - 1));
     assert((sizeof(output) - 1) == byte_count);
     assert(0 == memcmp(output, "<root/>\n", (size_t)byte_count));
 
     name[0] = '1';
-    byte_count = Utl_Xml_WriteDocument(&document, output, (uint64_t)sizeof(output));
+    byte_count = FACEOE_Utl_Xml_WriteDocument(&document, output, (uint64_t)sizeof(output));
     assert(0 == byte_count);
 
-    Utl_Xml_InitializeDocument(&document);
-    byte_count = Utl_Xml_ReadDocument(&document, bad_end_tag, (uint64_t)(sizeof(bad_end_tag) - 1), nodes, (uint32_t)COUNT_OF(nodes), attributes, (uint32_t)COUNT_OF(attributes));
+    FACEOE_Utl_Xml_InitializeDocument(&document);
+    byte_count = FACEOE_Utl_Xml_ReadDocument(&document, bad_end_tag, (uint64_t)(sizeof(bad_end_tag) - 1), nodes, (uint32_t)COUNT_OF(nodes), attributes, (uint32_t)COUNT_OF(attributes));
     assert(0 == byte_count);
 
-    Utl_Xml_InitializeDocument(&document);
-    byte_count = Utl_Xml_ReadDocument(&document, too_many_nodes, (uint64_t)(sizeof(too_many_nodes) - 1), nodes, 1, attributes, (uint32_t)COUNT_OF(attributes));
+    FACEOE_Utl_Xml_InitializeDocument(&document);
+    byte_count = FACEOE_Utl_Xml_ReadDocument(&document, too_many_nodes, (uint64_t)(sizeof(too_many_nodes) - 1), nodes, 1, attributes, (uint32_t)COUNT_OF(attributes));
     assert(0 == byte_count);
 
-    Utl_Xml_InitializeDocument(&document);
-    byte_count = Utl_Xml_ReadDocument(&document, trailing_text, (uint64_t)(sizeof(trailing_text) - 1), nodes, (uint32_t)COUNT_OF(nodes), attributes, (uint32_t)COUNT_OF(attributes));
+    FACEOE_Utl_Xml_InitializeDocument(&document);
+    byte_count = FACEOE_Utl_Xml_ReadDocument(&document, trailing_text, (uint64_t)(sizeof(trailing_text) - 1), nodes, (uint32_t)COUNT_OF(nodes), attributes, (uint32_t)COUNT_OF(attributes));
     assert(0 == byte_count);
 }
 
@@ -392,9 +393,9 @@ static void TestXmlReaderBoundaries(void)
         {"<root><child/><child/></root>", 2, 2, FALSE},
         {"<root a=\"1\"><child b=\"2\"/></root>", 2, 1, FALSE}
     };
-    Utl_Xml_Document_t  document;
-    Utl_Xml_Node_t      nodes[4];
-    Utl_Xml_Attribute_t attributes[2];
+    FACEOE_Utl_Xml_Document_t  document;
+    FACEOE_Utl_Xml_Node_t      nodes[4];
+    FACEOE_Utl_Xml_Attribute_t attributes[2];
     byte_t             input[128];
     uint32_t           case_index;
     uint64_t           input_byte_count;
@@ -405,9 +406,9 @@ static void TestXmlReaderBoundaries(void)
         input_byte_count = (uint64_t)strlen(cases[case_index].text);
         memcpy(input, cases[case_index].text, (size_t)input_byte_count);
         input[input_byte_count] = 0xA5;
-        Utl_Xml_InitializeDocument(&document);
+        FACEOE_Utl_Xml_InitializeDocument(&document);
 
-        bytes_read = Utl_Xml_ReadDocument(&document, input, input_byte_count, nodes, cases[case_index].nodeCapacity, attributes, cases[case_index].attributeCapacity);
+        bytes_read = FACEOE_Utl_Xml_ReadDocument(&document, input, input_byte_count, nodes, cases[case_index].nodeCapacity, attributes, cases[case_index].attributeCapacity);
 
         assert((cases[case_index].isValid ? input_byte_count : 0) == bytes_read);
         assert(0 == memcmp(input, cases[case_index].text, (size_t)input_byte_count));
@@ -422,11 +423,11 @@ static void TestXmlReaderBoundaries(void)
  */
 static void TestXmlReaderMarkupLimit(void)
 {
-    static Utl_Xml_Node_t nodes[UTL_XML_DOCUMENT_MAX_NODES];
-    static byte_t input[UTL_XML_DOCUMENT_MAX_NODES * 4 + sizeof("<?xml version=\"1.0\"?><r></r>")];
+    static FACEOE_Utl_Xml_Node_t nodes[FACEOE_UTL_XML_DOCUMENT_MAX_NODES];
+    static byte_t input[FACEOE_UTL_XML_DOCUMENT_MAX_NODES * 4 + sizeof("<?xml version=\"1.0\"?><r></r>")];
     static const char_t declaration[] = "<?xml version=\"1.0\"?>";
-    Utl_Xml_Document_t  document;
-    Utl_Xml_Attribute_t attributes[1];
+    FACEOE_Utl_Xml_Document_t  document;
+    FACEOE_Utl_Xml_Attribute_t attributes[1];
     uint32_t           child_index;
     uint64_t           element_offset;
     uint64_t           position;
@@ -436,7 +437,7 @@ static void TestXmlReaderMarkupLimit(void)
     memcpy(input, declaration, (size_t)element_offset);
     memcpy(input + element_offset, "<r>", 3);
     position = element_offset + 3;
-    for (child_index = 0; child_index < UTL_XML_DOCUMENT_MAX_NODES - 2; ++child_index)
+    for (child_index = 0; child_index < FACEOE_UTL_XML_DOCUMENT_MAX_NODES - 2; ++child_index)
     {
         memcpy(input + position, "<c/>", 4);
         position += 4;
@@ -444,12 +445,12 @@ static void TestXmlReaderMarkupLimit(void)
     memcpy(input + position, "</r>", 4);
     position += 4;
 
-    Utl_Xml_InitializeDocument(&document);
-    bytes_read = Utl_Xml_ReadDocument(&document, input + element_offset, position - element_offset, nodes, (uint32_t)COUNT_OF(nodes), attributes, 0);
+    FACEOE_Utl_Xml_InitializeDocument(&document);
+    bytes_read = FACEOE_Utl_Xml_ReadDocument(&document, input + element_offset, position - element_offset, nodes, (uint32_t)COUNT_OF(nodes), attributes, 0);
     assert(position - element_offset == bytes_read);
 
-    Utl_Xml_InitializeDocument(&document);
-    bytes_read = Utl_Xml_ReadDocument(&document, input, position, nodes, (uint32_t)COUNT_OF(nodes), attributes, 0);
+    FACEOE_Utl_Xml_InitializeDocument(&document);
+    bytes_read = FACEOE_Utl_Xml_ReadDocument(&document, input, position, nodes, (uint32_t)COUNT_OF(nodes), attributes, 0);
     assert(0 == bytes_read);
 }
 
@@ -472,40 +473,40 @@ static void TestNumberScanning(void)
     int32_t      consumed;
 
     integer  = 0;
-    consumed = Utl_Scan_Int64(minimum, &integer);
+    consumed = FACEOE_Utl_Scan_Int64(minimum, &integer);
     assert((sizeof(minimum) - 1) == consumed);
     assert(INT64_MIN == integer);
 
-    consumed = Utl_Scan_Int64(maximum, &integer);
+    consumed = FACEOE_Utl_Scan_Int64(maximum, &integer);
     assert((sizeof(maximum) - 1) == consumed);
     assert(INT64_MAX == integer);
 
-    consumed = Utl_Scan_Int64(overflow, &integer);
+    consumed = FACEOE_Utl_Scan_Int64(overflow, &integer);
     assert(-1 == consumed);
     assert(INT64_MAX == integer);
 
-    consumed = Utl_Scan_Int64(non_ascii_digit, &integer);
+    consumed = FACEOE_Utl_Scan_Int64(non_ascii_digit, &integer);
     assert(-1 == consumed);
     assert(INT64_MAX == integer);
 
-    consumed = Utl_Scan_Int64("42tail", &integer);
+    consumed = FACEOE_Utl_Scan_Int64("42tail", &integer);
     assert(2 == consumed);
     assert(42 == integer);
 
-    consumed = Utl_Scan_Int64("+", &integer);
+    consumed = FACEOE_Utl_Scan_Int64("+", &integer);
     assert(-1 == consumed);
     assert(42 == integer);
 
     fraction = 0.0;
-    consumed = Utl_Scan_Float(decimal, &fraction);
+    consumed = FACEOE_Utl_Scan_Float(decimal, &fraction);
     assert((sizeof(decimal) - 1) == consumed);
     assert(-0.125 == fraction);
 
-    consumed = Utl_Scan_Float(exponent, &fraction);
+    consumed = FACEOE_Utl_Scan_Float(exponent, &fraction);
     assert(1 == consumed);
     assert(1.0 == fraction);
 
-    consumed = Utl_Scan_Float("2.5tail", &fraction);
+    consumed = FACEOE_Utl_Scan_Float("2.5tail", &fraction);
     assert(3 == consumed);
     assert(2.5 == fraction);
 
@@ -514,11 +515,11 @@ static void TestNumberScanning(void)
     memset(long_decimal + 2, '0', 200);
     long_decimal[202] = '1';
     long_decimal[203] = '\0';
-    consumed = Utl_Scan_Float(long_decimal, &fraction);
+    consumed = FACEOE_Utl_Scan_Float(long_decimal, &fraction);
     assert(203 == consumed);
     assert(0.0 < fraction);
 
-    consumed = Utl_Scan_Float(non_ascii_digit, &fraction);
+    consumed = FACEOE_Utl_Scan_Float(non_ascii_digit, &fraction);
     assert(-1 == consumed);
     assert(0.0 < fraction);
 }
@@ -541,5 +542,6 @@ int main(void)
     TestXmlReaderBoundaries();
     TestXmlReaderMarkupLimit();
     RunArinc661Tests();
+    RunFACEOEDisplayManagementTests();
     return 0;
 }

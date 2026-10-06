@@ -34,26 +34,38 @@ else()
 endif()
 target_include_directories(os PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
-add_library(utl STATIC
-    src/utl/utl_arinc661.c
-    src/utl/utl_scan.c
-    src/utl/utl_util.c
-    src/utl/utl_xml.c
-    include/utl/utl_arinc661.h
-    include/utl/utl_defines.h
-    include/utl/utl_scan.h
-    include/utl/utl_util.h
-    include/utl/utl_xml.h)
-target_link_libraries(utl PUBLIC os)
-target_include_directories(utl PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+add_library(faceoe_utl STATIC
+    src/faceoe_utl/faceoe_utl_scan.c
+    src/faceoe_utl/faceoe_utl_util.c
+    src/faceoe_utl/faceoe_utl_xml.c
+    include/faceoe_utl/faceoe_utl_defines.h
+    include/faceoe_utl/faceoe_utl_scan.h
+    include/faceoe_utl/faceoe_utl_util.h
+    include/faceoe_utl/faceoe_utl_xml.h)
+target_link_libraries(faceoe_utl PUBLIC os)
+target_include_directories(faceoe_utl PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
-add_executable(utl_tests
-    tests/utl_tests.c
-    tests/utl_arinc661_tests.c)
-target_link_libraries(utl_tests PRIVATE utl)
+add_library(arinc661 STATIC
+    src/arinc661/arinc661_definition.c
+    src/arinc661/arinc661_definition_binary.c
+    include/arinc661/arinc661_definition.h)
+target_link_libraries(arinc661 PUBLIC faceoe_utl)
+target_include_directories(arinc661 PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+
+add_library(faceoe STATIC
+    src/faceoe/faceoe_displaymanagement.c
+    include/faceoe/faceoe_displaymanagement.h)
+target_link_libraries(faceoe PUBLIC faceoe_utl)
+target_include_directories(faceoe PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+
+add_executable(unit_tests
+    tests/faceoe_utl_tests.c
+    tests/arinc661_definition_tests.c
+    tests/faceoe_displaymanagement_tests.c)
+target_link_libraries(unit_tests PRIVATE faceoe_utl arinc661 faceoe)
 
 add_executable(arinc661_example examples/arinc661_example.c)
-target_link_libraries(arinc661_example PRIVATE utl)
+target_link_libraries(arinc661_example PRIVATE arinc661 faceoe)
 set_target_properties(arinc661_example PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
 if(WIN32)
@@ -74,11 +86,11 @@ if(WIN32)
         examples/main.cpp
         examples/arinc661_configuration.cpp
         examples/arinc661_configuration.h)
-    target_link_libraries(arinc661_configuration PRIVATE utl imgui opengl32 gdi32 dwmapi)
+    target_link_libraries(arinc661_configuration PRIVATE faceoe imgui opengl32 gdi32 dwmapi)
     set_target_properties(arinc661_configuration PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 endif()
 
 enable_testing()
-add_test(NAME utl_tests COMMAND utl_tests)
-set_tests_properties(utl_tests PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests")
-set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT utl_tests)
+add_test(NAME unit_tests COMMAND unit_tests)
+set_tests_properties(unit_tests PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests")
+set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT unit_tests)

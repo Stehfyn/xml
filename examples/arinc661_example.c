@@ -11,8 +11,9 @@
 ** 2. INCLUDE FILES
 **===============================================================================================*/
 
-#include "utl/utl_defines.h"
-#include "utl/utl_arinc661.h"
+#include "faceoe_utl/faceoe_utl_defines.h"
+#include "faceoe/faceoe_displaymanagement.h"
+#include "arinc661/arinc661_definition.h"
 
 #include "os/os_assert.h"
 #include "os/os_file.h"
@@ -29,6 +30,7 @@
 
 #define CONFIGURATION_FILE_PATH ("examples/arinc661_configuration.xml")
 #define DEFINITION_FILE_PATH    ("examples/arinc661_definition.xml")
+#define DEFINITION_BINARY_PATH  ("examples/arinc661_definition.bin")
 #define DEFINITION_FILE_NAME    ("arinc661_definition.xml")
 #define XML_BUFFER_BYTES        (4096)
 
@@ -107,8 +109,8 @@ static const Arinc661Property_t c_arinc661Properties[] =
     {ARINC661_LABEL_MODEL,    XML_LITERAL("StyleSet"),        XML_LITERAL("0")},
     {ARINC661_LABEL_MODEL,    XML_LITERAL("MaxStringLength"), XML_LITERAL("32")},
     {ARINC661_LABEL_MODEL,    XML_LITERAL("MotionAllowed"),   XML_LITERAL("A661_TRUE")},
-    {ARINC661_LABEL_MODEL,    XML_LITERAL("Font"),            XML_LITERAL("t2")},
-    {ARINC661_LABEL_MODEL,    XML_LITERAL("ColorIndex"),      XML_LITERAL("red")},
+    {ARINC661_LABEL_MODEL,    XML_LITERAL("Font"),            XML_LITERAL("2")},
+    {ARINC661_LABEL_MODEL,    XML_LITERAL("ColorIndex"),      XML_LITERAL("1")},
     {ARINC661_LABEL_MODEL,    XML_LITERAL("Alignment"),       XML_LITERAL("A661_CENTER")},
     {ARINC661_LABEL_MODEL,    XML_LITERAL("LabelString"),     XML_LITERAL("SYSTEM READY")},
     {ARINC661_SECOND_LABEL_MODEL,    XML_LITERAL("WidgetIdent"),     XML_LITERAL("3")},
@@ -122,8 +124,8 @@ static const Arinc661Property_t c_arinc661Properties[] =
     {ARINC661_SECOND_LABEL_MODEL,    XML_LITERAL("StyleSet"),        XML_LITERAL("0")},
     {ARINC661_SECOND_LABEL_MODEL,    XML_LITERAL("MaxStringLength"), XML_LITERAL("32")},
     {ARINC661_SECOND_LABEL_MODEL,    XML_LITERAL("MotionAllowed"),   XML_LITERAL("A661_TRUE")},
-    {ARINC661_SECOND_LABEL_MODEL,    XML_LITERAL("Font"),            XML_LITERAL("t2")},
-    {ARINC661_SECOND_LABEL_MODEL,    XML_LITERAL("ColorIndex"),      XML_LITERAL("red")},
+    {ARINC661_SECOND_LABEL_MODEL,    XML_LITERAL("Font"),            XML_LITERAL("2")},
+    {ARINC661_SECOND_LABEL_MODEL,    XML_LITERAL("ColorIndex"),      XML_LITERAL("1")},
     {ARINC661_SECOND_LABEL_MODEL,    XML_LITERAL("Alignment"),       XML_LITERAL("A661_CENTER")},
     {ARINC661_SECOND_LABEL_MODEL,    XML_LITERAL("LabelString"),     XML_LITERAL("SECONDARY STATUS")}
 };
@@ -132,7 +134,7 @@ static const Arinc661Property_t c_arinc661Properties[] =
 /**
  * \brief Temporary XML conversion storage for the example.
  */
-static uint64_t c_workspace[UTL_ARINC661_WORKSPACE_BYTES / sizeof(uint64_t)];
+static uint64_t c_workspace[ARINC661_WORKSPACE_BYTES / sizeof(uint64_t)];
 
 /*=================================================================================================
 ** 4. PUBLIC FUNCTIONS
@@ -141,19 +143,20 @@ static uint64_t c_workspace[UTL_ARINC661_WORKSPACE_BYTES / sizeof(uint64_t)];
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Writes configuration and Definition File XML, then reads both files back.
+ *  Writes configuration and Definition File XML and the binary Definition File,
+ *  then reads the files back.
  */
 int main(void)
 {
-    Utl_Arinc661_Configuration_t   configuration;
-    Utl_Arinc661_Screen_t          screens[1];
-    Utl_Arinc661_Layout_t          layouts[1];
-    Utl_Arinc661_Window_t          windows[1];
-    Utl_Arinc661_UserApplication_t applications[1];
-    Utl_Arinc661_Definition_t      definition_file;
-    Utl_Arinc661_Layer_t           layers[1];
-    Utl_Arinc661_Widget_t          widgets[3];
-    Utl_Arinc661_Property_t        properties[COUNT_OF(c_arinc661Properties)];
+    FACEOE_DisplayManagement_Configuration_t   configuration;
+    FACEOE_DisplayManagement_Screen_t          screens[1];
+    FACEOE_DisplayManagement_Layout_t          layouts[1];
+    FACEOE_DisplayManagement_Window_t          windows[1];
+    FACEOE_DisplayManagement_UserApplication_t applications[1];
+    Arinc661_Definition_t      definition_file;
+    Arinc661_Layer_t           layers[1];
+    Arinc661_Widget_t          widgets[3];
+    Arinc661_Property_t        properties[COUNT_OF(c_arinc661Properties)];
     byte_t                         xml_buffer[XML_BUFFER_BYTES + 1];
     uint64_t                       byte_count;
     int32_t                        bytes_written;
@@ -189,10 +192,10 @@ int main(void)
     screens[0].id                        = 0;
     screens[0].pixelSize.width           = EXAMPLE_PIXEL_WIDTH;
     screens[0].pixelSize.height          = EXAMPLE_PIXEL_HEIGHT;
-    screens[0].pixelSize.units           = UTL_ARINC661_UNIT_PIXEL;
+    screens[0].pixelSize.units           = FACEOE_DISPLAYMANAGEMENT_UNIT_PIXEL;
     screens[0].physicalDimensions.width  = EXAMPLE_PHYSICAL_WIDTH;
     screens[0].physicalDimensions.height = EXAMPLE_PHYSICAL_HEIGHT;
-    screens[0].physicalDimensions.units  = UTL_ARINC661_UNIT_INCH;
+    screens[0].physicalDimensions.units  = FACEOE_DISPLAYMANAGEMENT_UNIT_INCH;
 
     layouts[0].id          = 0;
     layouts[0].screenIndex = 0;
@@ -206,8 +209,8 @@ int main(void)
     windows[0].pixelArea.height         = EXAMPLE_PIXEL_HEIGHT;
     windows[0].scalingFactor.xScale     = EXAMPLE_SCALE;
     windows[0].scalingFactor.yScale     = EXAMPLE_SCALE;
-    windows[0].scalingFactor.baseUnit   = UTL_ARINC661_UNIT_SCREEN;
-    windows[0].scalingFactor.perUnit    = UTL_ARINC661_UNIT_PIXEL;
+    windows[0].scalingFactor.baseUnit   = FACEOE_DISPLAYMANAGEMENT_UNIT_SCREEN;
+    windows[0].scalingFactor.perUnit    = FACEOE_DISPLAYMANAGEMENT_UNIT_PIXEL;
     windows[0].layoutIndex              = 0;
 
     applications[0].applicationId    = 1;
@@ -253,15 +256,15 @@ int main(void)
         owner_index = 0;
         if (ARINC661_DOCUMENT_MODEL == c_arinc661Properties[index].modelIndex)
         {
-            properties[index].owner = UTL_ARINC661_PROPERTY_DEFINITION;
+            properties[index].owner = ARINC661_PROPERTY_DEFINITION;
         }
         else if (ARINC661_LAYER_MODEL == c_arinc661Properties[index].modelIndex)
         {
-            properties[index].owner = UTL_ARINC661_PROPERTY_LAYER;
+            properties[index].owner = ARINC661_PROPERTY_LAYER;
         }
         else
         {
-            properties[index].owner = UTL_ARINC661_PROPERTY_WIDGET;
+            properties[index].owner = ARINC661_PROPERTY_WIDGET;
             owner_index = (uint32_t)c_arinc661Properties[index].modelIndex - (uint32_t)ARINC661_PANEL_MODEL;
         }
         properties[index].ownerIndex = owner_index;
@@ -271,22 +274,27 @@ int main(void)
         memcpy(properties[index].value, c_arinc661Properties[index].value, c_arinc661Properties[index].valueByteCount);
     }
 
-    byte_count = Utl_Arinc661_WriteConfiguration(&configuration, xml_buffer, XML_BUFFER_BYTES, c_workspace, sizeof(c_workspace));
+    byte_count = FACEOE_DisplayManagement_WriteConfiguration(&configuration, xml_buffer, XML_BUFFER_BYTES, c_workspace, sizeof(c_workspace));
     LOGASSERT(0 < byte_count);
     LOGASSERT(byte_count <= XML_BUFFER_BYTES);
     bytes_written = OS_File_WriteFile(CONFIGURATION_FILE_PATH, xml_buffer, (uint32_t)byte_count);
     LOGASSERT(byte_count == (uint64_t)bytes_written);
 
-    byte_count = Utl_Arinc661_WriteDefinition(&definition_file, xml_buffer, XML_BUFFER_BYTES, c_workspace, sizeof(c_workspace));
+    byte_count = Arinc661_WriteDefinition(&definition_file, xml_buffer, XML_BUFFER_BYTES, c_workspace, sizeof(c_workspace));
     LOGASSERT(0 < byte_count);
     LOGASSERT(byte_count <= XML_BUFFER_BYTES);
     bytes_written = OS_File_WriteFile(DEFINITION_FILE_PATH, xml_buffer, (uint32_t)byte_count);
     LOGASSERT(byte_count == (uint64_t)bytes_written);
 
+    byte_count = Arinc661_WriteDefinitionBinary(&definition_file, xml_buffer, XML_BUFFER_BYTES);
+    LOGASSERT(0 < byte_count);
+    bytes_written = OS_File_WriteFile(DEFINITION_BINARY_PATH, xml_buffer, (uint32_t)byte_count);
+    LOGASSERT(byte_count == (uint64_t)bytes_written);
+
     bytes_read = OS_File_ReadFile(CONFIGURATION_FILE_PATH, xml_buffer, sizeof(xml_buffer));
     LOGASSERT(0 < bytes_read);
     LOGASSERT(bytes_read <= XML_BUFFER_BYTES);
-    is_valid = Utl_Arinc661_ReadConfiguration(&configuration, xml_buffer, (uint64_t)bytes_read, c_workspace, sizeof(c_workspace));
+    is_valid = FACEOE_DisplayManagement_ReadConfiguration(&configuration, xml_buffer, (uint64_t)bytes_read, c_workspace, sizeof(c_workspace));
     LOGASSERT(is_valid);
     LOGASSERT(COUNT_OF(screens) == configuration.screenCount);
     LOGASSERT(COUNT_OF(layouts) == configuration.layoutCount);
@@ -297,11 +305,18 @@ int main(void)
     bytes_read = OS_File_ReadFile(DEFINITION_FILE_PATH, xml_buffer, sizeof(xml_buffer));
     LOGASSERT(0 < bytes_read);
     LOGASSERT(bytes_read <= XML_BUFFER_BYTES);
-    is_valid = Utl_Arinc661_ReadDefinition(&definition_file, xml_buffer, (uint64_t)bytes_read, c_workspace, sizeof(c_workspace));
+    is_valid = Arinc661_ReadDefinition(&definition_file, xml_buffer, (uint64_t)bytes_read, c_workspace, sizeof(c_workspace));
     LOGASSERT(is_valid);
     LOGASSERT(COUNT_OF(layers) == definition_file.layerCount);
     LOGASSERT(COUNT_OF(widgets) == definition_file.widgetCount);
     LOGASSERT(COUNT_OF(properties) == definition_file.propertyCount);
+
+    bytes_read = OS_File_ReadFile(DEFINITION_BINARY_PATH, xml_buffer, sizeof(xml_buffer));
+    LOGASSERT(0 < bytes_read);
+    is_valid = Arinc661_ReadDefinitionBinary(&definition_file, xml_buffer, (uint64_t)bytes_read);
+    LOGASSERT(is_valid);
+    LOGASSERT(COUNT_OF(layers) == definition_file.layerCount);
+    LOGASSERT(COUNT_OF(widgets) == definition_file.widgetCount);
 
     return 0;
 }

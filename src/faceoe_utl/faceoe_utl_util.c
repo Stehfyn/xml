@@ -1,7 +1,7 @@
-#include "utl/utl_util.h"
+#include "faceoe_utl/faceoe_utl_util.h"
 
 #include "os/os_assert.h"
-#include "utl/utl_defines.h"
+#include "faceoe_utl/faceoe_utl_defines.h"
 
 #include <stddef.h>
 #include <ctype.h>
@@ -11,7 +11,7 @@
  * \par Details:
  *  None
  */
-char_t* Utl_Strtok(char_t* str, const char_t* delems, char_t** intPos)
+char_t* FACEOE_Utl_Strtok(char_t* str, const char_t* delems, char_t** intPos)
 {
     uint64_t str_idx;
     uint64_t str_len;
@@ -71,7 +71,7 @@ char_t* Utl_Strtok(char_t* str, const char_t* delems, char_t** intPos)
  * \par Details:
  *  None
  */
-const char_t* Utl_StrStr(const char_t* str1, const char_t* str2, bool_t caseInsensitive)
+const char_t* FACEOE_Utl_StrStr(const char_t* str1, const char_t* str2, bool_t caseInsensitive)
 {
     uint64_t str1_base_index;
     uint64_t search_idx;
@@ -126,7 +126,7 @@ const char_t* Utl_StrStr(const char_t* str1, const char_t* str2, bool_t caseInse
  * \par Details:
  *  None
  */
-uint64_t Utl_StrSplit(const char_t* str, char_t* outStr, char_t delim, uint64_t dstSize)
+uint64_t FACEOE_Utl_StrSplit(const char_t* str, char_t* outStr, char_t delim, uint64_t dstSize)
 {
     const char_t* iterator;
     uint64_t      current_idx;
@@ -165,7 +165,7 @@ uint64_t Utl_StrSplit(const char_t* str, char_t* outStr, char_t delim, uint64_t 
  * \par Details:
  *  None
  */
-void Utl_StrTrim(char_t* str)
+void FACEOE_Utl_StrTrim(char_t* str)
 {
     char_t* str_trimmed_start;
     char_t* str_trimmed_end;

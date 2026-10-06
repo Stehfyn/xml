@@ -1,5 +1,5 @@
-#ifndef UTL_XML_H
-#define UTL_XML_H
+#ifndef FACEOE_UTL_XML_H
+#define FACEOE_UTL_XML_H
 
 /*=================================================================================================
 ** 1. References
@@ -23,14 +23,14 @@
 **===============================================================================================*/
 
 /* Arbitrarily chosen storage and traversal limits; these are not XML specification limits. */
-#define UTL_XML_MAX_NAME_BYTES          (1024UL)    ///< Maximum UTF-8 bytes in an element or attribute name, excluding a zero terminator
-#define UTL_XML_MAX_VALUE_BYTES         (1048576UL) ///< Maximum UTF-8 bytes in an attribute value, excluding quotes and a zero terminator
-#define UTL_XML_NODE_MAX_ATTRIBUTES     (256UL)     ///< Maximum attributes on one element.
-#define UTL_XML_NODE_MAX_DEPTH          (65536UL)   ///< Maximum ancestor links checked when appending a child.
-#define UTL_XML_DOCUMENT_MAX_NODES      (4096UL)    ///< Maximum element nodes visited by the writer or markup spans read by the reader.
+#define FACEOE_UTL_XML_MAX_NAME_BYTES          (1024UL)    ///< Maximum UTF-8 bytes in an element or attribute name, excluding a zero terminator
+#define FACEOE_UTL_XML_MAX_VALUE_BYTES         (1048576UL) ///< Maximum UTF-8 bytes in an attribute value, excluding quotes and a zero terminator
+#define FACEOE_UTL_XML_NODE_MAX_ATTRIBUTES     (256UL)     ///< Maximum attributes on one element.
+#define FACEOE_UTL_XML_NODE_MAX_DEPTH          (65536UL)   ///< Maximum ancestor links checked when appending a child.
+#define FACEOE_UTL_XML_DOCUMENT_MAX_NODES      (4096UL)    ///< Maximum element nodes visited by the writer or markup spans read by the reader.
 
 /* Nominally one document element, or two top-level nodes when an XML declaration provides version information. */
-#define UTL_XML_DOCUMENT_MAX_ROOT_NODES (2UL)       ///< Maximum top-level nodes: one document element plus an optional XML declaration
+#define FACEOE_UTL_XML_DOCUMENT_MAX_ROOT_NODES (2UL)       ///< Maximum top-level nodes: one document element plus an optional XML declaration
 
 /*=================================================================================================
 ** 3.2 Types
@@ -40,52 +40,52 @@
 /**
  * \brief XML 1.0 node type.
  */
-typedef enum Utl_Xml_NodeType_e
+typedef enum FACEOE_Utl_Xml_NodeType_e
 {
-    UTL_XML_NODE_XML_DECLARATION,
-    UTL_XML_NODE_ELEMENT
-} Utl_Xml_NodeType_t;
+    FACEOE_UTL_XML_NODE_XML_DECLARATION,
+    FACEOE_UTL_XML_NODE_ELEMENT
+} FACEOE_Utl_Xml_NodeType_t;
 
 /*************************************************************************************************/
 /**
  * \brief Caller-owned XML attribute for an element's forward list.
  */
-typedef struct Utl_Xml_Attribute_s
+typedef struct FACEOE_Utl_Xml_Attribute_s
 {
     const byte_t*               name;           ///< Pointer to UTF-8 XML name bytes
     uint32_t                    nameByteCount;  ///< Number of name bytes.
     const byte_t*               value;          ///< Pointer to UTF-8 XML value bytes
     uint32_t                    valueByteCount; ///< Number of value bytes.
-    struct Utl_Xml_Attribute_s* next;           ///< Next attribute in insertion order, or NULL.
-} Utl_Xml_Attribute_t;
+    struct FACEOE_Utl_Xml_Attribute_s* next;           ///< Next attribute in insertion order, or NULL.
+} FACEOE_Utl_Xml_Attribute_t;
 
 /*************************************************************************************************/
 /**
  * \brief Caller-owned XML node with pointers to strings and forward links for serialization.
  */
-typedef struct Utl_Xml_Node_s
+typedef struct FACEOE_Utl_Xml_Node_s
 {
-    Utl_Xml_NodeType_t     type;           ///< Kind of XML node.
+    FACEOE_Utl_Xml_NodeType_t     type;           ///< Kind of XML node.
     const byte_t*          name;           ///< Pointer to the element name; NULL for the XML declaration
     uint32_t               nameByteCount;  ///< Number of name bytes; zero when name is NULL.
-    struct Utl_Xml_Node_s* parent;         ///< Parent set when appended, or NULL.
-    struct Utl_Xml_Node_s* firstChild;     ///< First child of an element, or NULL.
-    struct Utl_Xml_Node_s* lastChild;      ///< Last child of an element, or NULL.
-    struct Utl_Xml_Node_s* nextSibling;    ///< Next node at the same level, or NULL.
-    Utl_Xml_Attribute_t*   firstAttribute; ///< First attribute of an element, or NULL.
-    Utl_Xml_Attribute_t*   lastAttribute;  ///< Last attribute of an element, or NULL.
+    struct FACEOE_Utl_Xml_Node_s* parent;         ///< Parent set when appended, or NULL.
+    struct FACEOE_Utl_Xml_Node_s* firstChild;     ///< First child of an element, or NULL.
+    struct FACEOE_Utl_Xml_Node_s* lastChild;      ///< Last child of an element, or NULL.
+    struct FACEOE_Utl_Xml_Node_s* nextSibling;    ///< Next node at the same level, or NULL.
+    FACEOE_Utl_Xml_Attribute_t*   firstAttribute; ///< First attribute of an element, or NULL.
+    FACEOE_Utl_Xml_Attribute_t*   lastAttribute;  ///< Last attribute of an element, or NULL.
     uint32_t               attributeCount; ///< Number of linked attributes.
-} Utl_Xml_Node_t;
+} FACEOE_Utl_Xml_Node_t;
 
 /*************************************************************************************************/
 /**
  * \brief Caller-owned XML 1.0 document built by appending top-level nodes in order.
  */
-typedef struct Utl_Xml_Document_s
+typedef struct FACEOE_Utl_Xml_Document_s
 {
-    Utl_Xml_Node_t* firstNode; ///< First top-level node, or NULL.
-    Utl_Xml_Node_t* lastNode;  ///< Last top-level node, or NULL.
-} Utl_Xml_Document_t;
+    FACEOE_Utl_Xml_Node_t* firstNode; ///< First top-level node, or NULL.
+    FACEOE_Utl_Xml_Node_t* lastNode;  ///< Last top-level node, or NULL.
+} FACEOE_Utl_Xml_Document_t;
 
 /*=================================================================================================
 ** 3.3 Constants
@@ -117,7 +117,7 @@ typedef struct Utl_Xml_Document_s
  * \par Requirements:
  *  - 001 This function shall accept an empty span and reject invalid UTF-8 or non-Char code points.
  *  - 002 This function shall return FALSE for nonliteral characters and for tab, LF, and CR.
- *  - 003 This function shall fail an assertion if utf8Text is NULL or byteCount exceeds UTL_XML_MAX_VALUE_BYTES.
+ *  - 003 This function shall fail an assertion if utf8Text is NULL or byteCount exceeds FACEOE_UTL_XML_MAX_VALUE_BYTES.
  *
  * \param[in] utf8Text    Non-NULL UTF-8 byte span
  * \param[in] byteCount   Number of bytes in the span
@@ -125,7 +125,7 @@ typedef struct Utl_Xml_Document_s
  * \retval    TRUE        if the span can be written directly as an attribute value.
  * \retval    FALSE       otherwise
  */
-bool_t Utl_Xml_IsAttributeValue(const byte_t* utf8Text, uint32_t byteCount);
+bool_t FACEOE_Utl_Xml_IsAttributeValue(const byte_t* utf8Text, uint32_t byteCount);
 
 /*************************************************************************************************/
 /**
@@ -145,7 +145,7 @@ bool_t Utl_Xml_IsAttributeValue(const byte_t* utf8Text, uint32_t byteCount);
  *
  * \retval     None
  */
-void Utl_Xml_InitializeAttribute(Utl_Xml_Attribute_t* attribute, const byte_t* name, uint32_t nameByteCount, const byte_t* value, uint32_t valueByteCount);
+void FACEOE_Utl_Xml_InitializeAttribute(FACEOE_Utl_Xml_Attribute_t* attribute, const byte_t* name, uint32_t nameByteCount, const byte_t* value, uint32_t valueByteCount);
 
 /*************************************************************************************************/
 /**
@@ -168,7 +168,7 @@ void Utl_Xml_InitializeAttribute(Utl_Xml_Attribute_t* attribute, const byte_t* n
  *
  * \retval     None
  */
-void Utl_Xml_InitializeNode(Utl_Xml_Node_t* node, Utl_Xml_NodeType_t type, const byte_t* name, uint32_t nameByteCount);
+void FACEOE_Utl_Xml_InitializeNode(FACEOE_Utl_Xml_Node_t* node, FACEOE_Utl_Xml_NodeType_t type, const byte_t* name, uint32_t nameByteCount);
 
 /*************************************************************************************************/
 /**
@@ -182,7 +182,7 @@ void Utl_Xml_InitializeNode(Utl_Xml_Node_t* node, Utl_Xml_NodeType_t type, const
  *
  * \retval     None
  */
-void Utl_Xml_InitializeDocument(Utl_Xml_Document_t* document);
+void FACEOE_Utl_Xml_InitializeDocument(FACEOE_Utl_Xml_Document_t* document);
 
 /*************************************************************************************************/
 /**
@@ -190,7 +190,7 @@ void Utl_Xml_InitializeDocument(Utl_Xml_Document_t* document);
  *
  * \par Requirements:
  *  - 001 This function shall require a valid XML name and an XML character value without <, &, ", or whitespace other than spaces.
- *  - 002 This function shall enforce UTL_XML_NODE_MAX_ATTRIBUTES and preserve the pointers to the name and value byte spans.
+ *  - 002 This function shall enforce FACEOE_UTL_XML_NODE_MAX_ATTRIBUTES and preserve the pointers to the name and value byte spans.
  *  - 003 This function shall fail an assertion for NULL arguments, a non-element node, a duplicate name, or an attribute already linked to the element.
  *
  * \param[in,out] node        Element receiving the attribute
@@ -198,7 +198,7 @@ void Utl_Xml_InitializeDocument(Utl_Xml_Document_t* document);
  *
  * \retval        None
  */
-void Utl_Xml_AppendAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribute);
+void FACEOE_Utl_Xml_AppendAttribute(FACEOE_Utl_Xml_Node_t* node, FACEOE_Utl_Xml_Attribute_t* attribute);
 
 /*************************************************************************************************/
 /**
@@ -206,7 +206,7 @@ void Utl_Xml_AppendAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribut
  *
  * \par Requirements:
  *  - 001 This function shall preserve the order in which children are appended.
- *  - 002 This function shall check at most UTL_XML_NODE_MAX_DEPTH ancestor links.
+ *  - 002 This function shall check at most FACEOE_UTL_XML_NODE_MAX_DEPTH ancestor links.
  *  - 003 This function shall fail an assertion for NULL arguments, a non-element parent or child, an attached child, or a cycle.
  *
  * \param[in,out] parent   Element receiving the child
@@ -214,7 +214,7 @@ void Utl_Xml_AppendAttribute(Utl_Xml_Node_t* node, Utl_Xml_Attribute_t* attribut
  *
  * \retval        None
  */
-void Utl_Xml_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child);
+void FACEOE_Utl_Xml_AppendChild(FACEOE_Utl_Xml_Node_t* parent, FACEOE_Utl_Xml_Node_t* child);
 
 /*************************************************************************************************/
 /**
@@ -238,11 +238,11 @@ void Utl_Xml_AppendChild(Utl_Xml_Node_t* parent, Utl_Xml_Node_t* child);
  *
  * \retval        None
  */
-void Utl_Xml_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node);
+void FACEOE_Utl_Xml_AppendNode(FACEOE_Utl_Xml_Document_t* document, FACEOE_Utl_Xml_Node_t* node);
 
 /*************************************************************************************************/
 /**
- * \brief Reads a UTF-8 element tree in the form Utl_Xml_WriteDocument writes into caller-owned nodes and attributes.
+ * \brief Reads a UTF-8 element tree in the form FACEOE_Utl_Xml_WriteDocument writes into caller-owned nodes and attributes.
  *
  * \par Details:
  *  XML 1.0 (Fifth Edition), productions [1] document, [23] XMLDecl, and [39] element:
@@ -255,7 +255,7 @@ void Utl_Xml_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node);
  *  no references and no whitespace other than spaces. Whitespace between tags is
  *  not stored, so writing the document reproduces the writer's formatting.
  *  The reader writes a zero terminator at bufferToReadDocumentFrom[sizeOfDocumentBuffer]
- *  and uses Utl_StrStr to find each <. Name and value pointers refer to bytes in the buffer.
+ *  and uses FACEOE_Utl_StrStr to find each <. Name and value pointers refer to bytes in the buffer.
  *  The caller keeps bufferToReadDocumentFrom, nodes, and attributes valid while the
  *  document is used.
  *
@@ -274,7 +274,7 @@ void Utl_Xml_AppendNode(Utl_Xml_Document_t* document, Utl_Xml_Node_t* node);
  *
  * \retval        uint64_t   Number of bytes read, or zero on failure. The document may contain partial results on failure.
  */
-uint64_t Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToReadDocumentFrom, uint64_t sizeOfDocumentBuffer, Utl_Xml_Node_t* nodes, uint32_t nodeCapacity, Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity);
+uint64_t FACEOE_Utl_Xml_ReadDocument(FACEOE_Utl_Xml_Document_t* document, byte_t* bufferToReadDocumentFrom, uint64_t sizeOfDocumentBuffer, FACEOE_Utl_Xml_Node_t* nodes, uint32_t nodeCapacity, FACEOE_Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity);
 
 /*************************************************************************************************/
 /**
@@ -309,6 +309,6 @@ uint64_t Utl_Xml_ReadDocument(Utl_Xml_Document_t* document, byte_t* bufferToRead
  *
  * \retval    uint64_t   Number of bytes written, or zero on failure. The buffer may contain partial output on failure.
  */
-uint64_t Utl_Xml_WriteDocument(const Utl_Xml_Document_t* document, byte_t* bufferToWriteDocumentIn, uint64_t sizeOfDocumentBuffer);
+uint64_t FACEOE_Utl_Xml_WriteDocument(const FACEOE_Utl_Xml_Document_t* document, byte_t* bufferToWriteDocumentIn, uint64_t sizeOfDocumentBuffer);
 
-#endif /* UTL_XML_H */
+#endif /* FACEOE_UTL_XML_H */

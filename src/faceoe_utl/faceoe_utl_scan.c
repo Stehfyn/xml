@@ -11,7 +11,7 @@
 ** 2. INCLUDE FILES
 **===============================================================================================*/
 
-#include "utl/utl_scan.h"
+#include "faceoe_utl/faceoe_utl_scan.h"
 
 #include "os/os_assert.h"
 
@@ -55,7 +55,7 @@
  * \par Details:
  *  Checks each digit against the remaining range before multiplying.
  */
-int32_t Utl_Scan_Int64(const char_t* a, int64_t* v)
+int32_t FACEOE_Utl_Scan_Int64(const char_t* a, int64_t* v)
 {
     uint64_t magnitude;
     uint64_t limit;
@@ -137,9 +137,9 @@ int32_t Utl_Scan_Int64(const char_t* a, int64_t* v)
  * \par Details:
  *  Validates the XML Schema decimal lexical form before using the C conversion.
  */
-int32_t Utl_Scan_Float(const char_t* a, float64_t* v)
+int32_t FACEOE_Utl_Scan_Float(const char_t* a, float64_t* v)
 {
-    char_t    number[UTL_SCAN_MAX_FLOAT_BYTES + 1];
+    char_t    number[FACEOE_UTL_SCAN_MAX_FLOAT_BYTES + 1];
     char_t*   end;
     uint32_t  byte_index;
     float64_t parsed_value;
@@ -175,7 +175,7 @@ int32_t Utl_Scan_Float(const char_t* a, float64_t* v)
         {
             break;
         }
-        if (UTL_SCAN_MAX_FLOAT_BYTES == byte_index)
+        if (FACEOE_UTL_SCAN_MAX_FLOAT_BYTES == byte_index)
         {
             is_valid = FALSE;
             break;

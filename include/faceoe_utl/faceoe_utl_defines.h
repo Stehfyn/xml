@@ -1,5 +1,5 @@
-#ifndef UTL_DEFINES_H
-#define UTL_DEFINES_H
+#ifndef FACEOE_UTL_DEFINES_H
+#define FACEOE_UTL_DEFINES_H
 
 /*=================================================================================================
 ** 1. References
@@ -39,4 +39,4 @@
 ** 3.5 Functions
 **===============================================================================================*/
 
-#endif /* UTL_DEFINES_H */
+#endif /* FACEOE_UTL_DEFINES_H */

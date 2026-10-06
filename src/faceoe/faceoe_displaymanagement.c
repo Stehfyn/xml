@@ -3,10 +3,6 @@
 **===============================================================================================*/
 
 /**
- * ARINC 661 Supplement 6, Cockpit Display System Interfaces to User Systems:
- * https://saemobilus.sae.org/standards/arinc661-6-cockpit-display-system-interfaces-user-systems
- * J661-hosted Supplement 6 strict XML Definition File schema (a661Strict.xsd):
- * https://j661.sourceforge.net/articles/articles/resources/a661Strict.xsd
  * FACE Technical Standard, Edition 3.1, Appendix H.3, DisplayManagement.xsd:
  * https://www.vdl.afrl.af.mil/programs/arsenl/files/FACE%20Technical%20Standard%20v3.1.pdf
  */
@@ -15,9 +11,9 @@
 ** 2. INCLUDE FILES
 **===============================================================================================*/
 
-#include "utl/utl_arinc661.h"
-#include "utl/utl_scan.h"
-#include "utl/utl_xml.h"
+#include "faceoe/faceoe_displaymanagement.h"
+#include "faceoe_utl/faceoe_utl_scan.h"
+#include "faceoe_utl/faceoe_utl_xml.h"
 
 #include "os/os_assert.h"
 
@@ -56,14 +52,7 @@
 #define XML_SCHEMA_INSTANCE_NAMESPACE ("http://www.w3.org/2001/XMLSchema-instance")
 #define DMC_DEFAULT_SCHEMA_LOCATION   ("H3.xsd")
 
-/* Supplement 6 a661Strict.xsd: dfType, layerType, widgetType, modelType, and propType. */
-#define DF_ELEMENT_ROOT     ("a661_df")
-#define DF_ELEMENT_LAYER    ("a661_layer")
-#define DF_ELEMENT_WIDGET   ("a661_widget")
-#define DF_ELEMENT_MODEL    ("model")
-#define DF_ELEMENT_PROPERTY ("prop")
-
-/* FACE Edition 3.1, Appendix H.3, and Supplement 6 a661Strict.xsd attribute names. */
+/* FACE Edition 3.1, Appendix H.3, attribute names. */
 #define XML_ATTRIBUTE_ID                 ("id")
 #define XML_ATTRIBUTE_NAME               ("name")
 #define XML_ATTRIBUTE_WIDTH              ("width")
@@ -82,9 +71,6 @@
 #define XML_ATTRIBUTE_WINDOW             ("window")
 #define XML_ATTRIBUTE_VISIBLE            ("visible")
 #define XML_ATTRIBUTE_TYPE               ("type")
-#define XML_ATTRIBUTE_VALUE              ("value")
-#define XML_ATTRIBUTE_LIBRARY_VERSION    ("library_version")
-#define XML_ATTRIBUTE_SUPPLEMENT_VERSION ("supp_version")
 
 /* FACE Edition 3.1, Appendix H.3, UserApplication mapSourceLayer and visible (xs:boolean). */
 #define XML_BOOLEAN_TRUE  ("true")
@@ -102,15 +88,14 @@
  */
 typedef struct XmlWorkspace_s
 {
-    Utl_Xml_Node_t*      nodes;          ///< Pointer to temporary XML node storage
-    Utl_Xml_Attribute_t* attributes;     ///< Pointer to temporary XML attribute storage
-    Utl_Xml_Node_t**     widgetNodes;    ///< Pointer to the mapping from widget indices to XML nodes
+    FACEOE_Utl_Xml_Node_t*      nodes;          ///< Pointer to temporary XML node storage
+    FACEOE_Utl_Xml_Attribute_t* attributes;     ///< Pointer to temporary XML attribute storage
     byte_t*              text;           ///< Pointer to formatted attribute value storage
     uint64_t             textCapacity;   ///< Available text bytes after the fixed workspace arrays
     uint64_t             textByteCount;  ///< Text bytes used, including each string's zero terminator
     uint32_t             nodeCount;      ///< XML node slots used while constructing output
     uint32_t             attributeCount; ///< XML attribute slots used while constructing output
-    Utl_Xml_Document_t   document;       ///< Temporary document with nodes in the workspace
+    FACEOE_Utl_Xml_Document_t   document;       ///< Temporary document with nodes in the workspace
 } XmlWorkspace_t;
 
 /*=================================================================================================
@@ -148,7 +133,7 @@ static bool_t InitializeXmlWorkspace(XmlWorkspace_t* xml, void* bytes, uint64_t 
  * \retval    TRUE        if the node is an element with the expected name.
  * \retval    FALSE       if the type or name differs.
  */
-static bool_t HasElementName(const Utl_Xml_Node_t* node, const char_t* name);
+static bool_t HasElementName(const FACEOE_Utl_Xml_Node_t* node, const char_t* name);
 
 /*************************************************************************************************/
 /**
@@ -160,7 +145,7 @@ static bool_t HasElementName(const Utl_Xml_Node_t* node, const char_t* name);
  * \retval    non-NULL   Matching child.
  * \retval    NULL       if the child is absent.
  */
-static Utl_Xml_Node_t* FindChild(Utl_Xml_Node_t* parent, const char_t* name);
+static FACEOE_Utl_Xml_Node_t* FindChild(FACEOE_Utl_Xml_Node_t* parent, const char_t* name);
 
 /*************************************************************************************************/
 /**
@@ -172,7 +157,7 @@ static Utl_Xml_Node_t* FindChild(Utl_Xml_Node_t* parent, const char_t* name);
  * \retval    non-NULL   Matching attribute.
  * \retval    NULL       if the attribute is absent.
  */
-static const Utl_Xml_Attribute_t* FindAttribute(const Utl_Xml_Node_t* node, const char_t* name);
+static const FACEOE_Utl_Xml_Attribute_t* FindAttribute(const FACEOE_Utl_Xml_Node_t* node, const char_t* name);
 
 /*************************************************************************************************/
 /**
@@ -184,7 +169,7 @@ static const Utl_Xml_Attribute_t* FindAttribute(const Utl_Xml_Node_t* node, cons
  * \retval    TRUE        if the value matches exactly.
  * \retval    FALSE       if the byte count or contents differ.
  */
-static bool_t HasAttributeValue(const Utl_Xml_Attribute_t* attribute, const char_t* value);
+static bool_t HasAttributeValue(const FACEOE_Utl_Xml_Attribute_t* attribute, const char_t* value);
 
 /*************************************************************************************************/
 /**
@@ -198,7 +183,7 @@ static bool_t HasAttributeValue(const Utl_Xml_Attribute_t* attribute, const char
  * \retval     TRUE        if the attribute is absent or fits the destination.
  * \retval     FALSE       if the attribute exceeds the destination.
  */
-static bool_t CopyAttribute(const Utl_Xml_Node_t* node, const char_t* name, char_t* destination, uint32_t capacity);
+static bool_t CopyAttribute(const FACEOE_Utl_Xml_Node_t* node, const char_t* name, char_t* destination, uint32_t capacity);
 
 /*************************************************************************************************/
 /**
@@ -210,7 +195,7 @@ static bool_t CopyAttribute(const Utl_Xml_Node_t* node, const char_t* name, char
  * \retval     TRUE            if the hint is absent or has the expected namespace and fits.
  * \retval     FALSE           if the namespace binding or location is invalid.
  */
-static bool_t ReadConfigurationSchema(const Utl_Xml_Node_t* root, Utl_Arinc661_Configuration_t* configuration);
+static bool_t ReadConfigurationSchema(const FACEOE_Utl_Xml_Node_t* root, FACEOE_DisplayManagement_Configuration_t* configuration);
 
 /*************************************************************************************************/
 /**
@@ -223,7 +208,7 @@ static bool_t ReadConfigurationSchema(const Utl_Xml_Node_t* root, Utl_Arinc661_C
  * \retval     TRUE        if the complete attribute is a signed 64-bit integer.
  * \retval     FALSE       if the attribute is absent, malformed, or out of range.
  */
-static bool_t ReadInteger(const Utl_Xml_Node_t* node, const char_t* name, int64_t* value);
+static bool_t ReadInteger(const FACEOE_Utl_Xml_Node_t* node, const char_t* name, int64_t* value);
 
 /*************************************************************************************************/
 /**
@@ -236,7 +221,7 @@ static bool_t ReadInteger(const Utl_Xml_Node_t* node, const char_t* name, int64_
  * \retval     TRUE        if the complete attribute is a finite number.
  * \retval     FALSE       if the attribute is absent, malformed, or out of range.
  */
-static bool_t ReadDecimal(const Utl_Xml_Node_t* node, const char_t* name, float32_t* value);
+static bool_t ReadDecimal(const FACEOE_Utl_Xml_Node_t* node, const char_t* name, float32_t* value);
 
 /*************************************************************************************************/
 /**
@@ -253,7 +238,7 @@ static bool_t ReadDecimal(const Utl_Xml_Node_t* node, const char_t* name, float3
  * \retval     TRUE        if the attribute is absent or names a FACE unit.
  * \retval     FALSE       if the attribute names an unsupported unit.
  */
-static bool_t ReadUnit(const Utl_Xml_Node_t* node, const char_t* name, Utl_Arinc661_Unit_t defaultUnit, Utl_Arinc661_Unit_t* unit);
+static bool_t ReadUnit(const FACEOE_Utl_Xml_Node_t* node, const char_t* name, FACEOE_DisplayManagement_Unit_t defaultUnit, FACEOE_DisplayManagement_Unit_t* unit);
 
 /*************************************************************************************************/
 /**
@@ -269,7 +254,7 @@ static bool_t ReadUnit(const Utl_Xml_Node_t* node, const char_t* name, Utl_Arinc
  * \retval     TRUE        if the attribute is absent or has XML Schema boolean syntax.
  * \retval     FALSE       if the attribute has another value.
  */
-static bool_t ReadBoolean(const Utl_Xml_Node_t* node, const char_t* name, bool_t* value);
+static bool_t ReadBoolean(const FACEOE_Utl_Xml_Node_t* node, const char_t* name, bool_t* value);
 
 /*************************************************************************************************/
 /**
@@ -281,7 +266,7 @@ static bool_t ReadBoolean(const Utl_Xml_Node_t* node, const char_t* name, bool_t
  * \retval    non-NULL   Unlinked element in temporary storage.
  * \retval    NULL       if storage is exhausted.
  */
-static Utl_Xml_Node_t* AppendElement(XmlWorkspace_t* xml, const char_t* name);
+static FACEOE_Utl_Xml_Node_t* AppendElement(XmlWorkspace_t* xml, const char_t* name);
 
 /*************************************************************************************************/
 /**
@@ -295,7 +280,7 @@ static Utl_Xml_Node_t* AppendElement(XmlWorkspace_t* xml, const char_t* name);
  * \retval        TRUE        if the attribute was appended.
  * \retval        FALSE       if storage is exhausted or the value cannot be written directly.
  */
-static bool_t AppendAttribute(XmlWorkspace_t* xml, Utl_Xml_Node_t* node, const char_t* name, const char_t* value);
+static bool_t AppendAttribute(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* node, const char_t* name, const char_t* value);
 
 /*************************************************************************************************/
 /**
@@ -308,7 +293,7 @@ static bool_t AppendAttribute(XmlWorkspace_t* xml, Utl_Xml_Node_t* node, const c
  * \retval        TRUE            if both root attributes were appended.
  * \retval        FALSE           if a value or workspace storage is invalid.
  */
-static bool_t WriteConfigurationSchema(XmlWorkspace_t* xml, Utl_Xml_Node_t* root, const Utl_Arinc661_Configuration_t* configuration);
+static bool_t WriteConfigurationSchema(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* root, const FACEOE_DisplayManagement_Configuration_t* configuration);
 
 /*************************************************************************************************/
 /**
@@ -346,7 +331,7 @@ static const char_t* FormatDecimal(XmlWorkspace_t* xml, float32_t value);
  * \retval        TRUE        if the attribute was appended.
  * \retval        FALSE       if temporary storage was exhausted.
  */
-static bool_t AppendIntegerAttribute(XmlWorkspace_t* xml, Utl_Xml_Node_t* node, const char_t* name, int64_t value);
+static bool_t AppendIntegerAttribute(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* node, const char_t* name, int64_t value);
 
 /*************************************************************************************************/
 /**
@@ -360,7 +345,7 @@ static bool_t AppendIntegerAttribute(XmlWorkspace_t* xml, Utl_Xml_Node_t* node, 
  * \retval        TRUE        if the attribute was appended.
  * \retval        FALSE       if temporary storage was exhausted or the value is not finite.
  */
-static bool_t AppendDecimalAttribute(XmlWorkspace_t* xml, Utl_Xml_Node_t* node, const char_t* name, float32_t value);
+static bool_t AppendDecimalAttribute(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* node, const char_t* name, float32_t value);
 
 /*************************************************************************************************/
 /**
@@ -371,7 +356,7 @@ static bool_t AppendDecimalAttribute(XmlWorkspace_t* xml, Utl_Xml_Node_t* node, 
  * \retval    non-NULL   First top-level element.
  * \retval    NULL       if no top-level element is present.
  */
-static Utl_Xml_Node_t* FindDocumentElement(const Utl_Xml_Document_t* document);
+static FACEOE_Utl_Xml_Node_t* FindDocumentElement(const FACEOE_Utl_Xml_Document_t* document);
 
 /*************************************************************************************************/
 /**
@@ -386,7 +371,7 @@ static Utl_Xml_Node_t* FindDocumentElement(const Utl_Xml_Document_t* document);
  * \retval     TRUE        if required values are valid.
  * \retval     FALSE       if a required value is absent or invalid.
  */
-static bool_t ReadSize(const Utl_Xml_Node_t* node, Utl_Arinc661_Size_t* size);
+static bool_t ReadSize(const FACEOE_Utl_Xml_Node_t* node, FACEOE_DisplayManagement_Size_t* size);
 
 /*************************************************************************************************/
 /**
@@ -401,7 +386,7 @@ static bool_t ReadSize(const Utl_Xml_Node_t* node, Utl_Arinc661_Size_t* size);
  * \retval     TRUE        if required values are valid.
  * \retval     FALSE       if a required value is absent or invalid.
  */
-static bool_t ReadRectangle(const Utl_Xml_Node_t* node, Utl_Arinc661_Rectangle_t* rectangle);
+static bool_t ReadRectangle(const FACEOE_Utl_Xml_Node_t* node, FACEOE_DisplayManagement_Rectangle_t* rectangle);
 
 /*************************************************************************************************/
 /**
@@ -416,7 +401,7 @@ static bool_t ReadRectangle(const Utl_Xml_Node_t* node, Utl_Arinc661_Rectangle_t
  * \retval     TRUE        if required values are valid.
  * \retval     FALSE       if a required value is absent or invalid.
  */
-static bool_t ReadScale(const Utl_Xml_Node_t* node, Utl_Arinc661_Scale_t* scale);
+static bool_t ReadScale(const FACEOE_Utl_Xml_Node_t* node, FACEOE_DisplayManagement_Scale_t* scale);
 
 /*************************************************************************************************/
 /**
@@ -431,7 +416,7 @@ static bool_t ReadScale(const Utl_Xml_Node_t* node, Utl_Arinc661_Scale_t* scale)
  * \retval        TRUE        if the supported screen data fits and is valid.
  * \retval        FALSE       if a value is invalid or storage is exhausted.
  */
-static bool_t ReadScreenHierarchy(Utl_Arinc661_Configuration_t* configuration, Utl_Xml_Node_t* element);
+static bool_t ReadScreenHierarchy(FACEOE_DisplayManagement_Configuration_t* configuration, FACEOE_Utl_Xml_Node_t* element);
 
 /*************************************************************************************************/
 /**
@@ -446,7 +431,7 @@ static bool_t ReadScreenHierarchy(Utl_Arinc661_Configuration_t* configuration, U
  * \retval        TRUE        if the application was read.
  * \retval        FALSE       if a required value is absent, malformed, or storage is exhausted.
  */
-static bool_t ReadUserApplication(Utl_Arinc661_Configuration_t* configuration, const Utl_Xml_Node_t* node);
+static bool_t ReadUserApplication(FACEOE_DisplayManagement_Configuration_t* configuration, const FACEOE_Utl_Xml_Node_t* node);
 
 /*************************************************************************************************/
 /**
@@ -461,7 +446,7 @@ static bool_t ReadUserApplication(Utl_Arinc661_Configuration_t* configuration, c
  * \retval        TRUE        if the external source was read.
  * \retval        FALSE       if a value is invalid or storage is exhausted.
  */
-static bool_t ReadExternalSource(Utl_Arinc661_Configuration_t* configuration, const Utl_Xml_Node_t* node);
+static bool_t ReadExternalSource(FACEOE_DisplayManagement_Configuration_t* configuration, const FACEOE_Utl_Xml_Node_t* node);
 
 /*************************************************************************************************/
 /**
@@ -475,7 +460,7 @@ static bool_t ReadExternalSource(Utl_Arinc661_Configuration_t* configuration, co
  * \retval    non-NULL   Unit spelling.
  * \retval    NULL       if the unit value is invalid.
  */
-static const char_t* UnitName(Utl_Arinc661_Unit_t unit);
+static const char_t* UnitName(FACEOE_DisplayManagement_Unit_t unit);
 
 /*************************************************************************************************/
 /**
@@ -492,7 +477,7 @@ static const char_t* UnitName(Utl_Arinc661_Unit_t unit);
  * \retval        TRUE        if the size element was appended.
  * \retval        FALSE       if a value is invalid or storage is exhausted.
  */
-static bool_t WriteSize(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const char_t* name, const Utl_Arinc661_Size_t* size);
+static bool_t WriteSize(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent, const char_t* name, const FACEOE_DisplayManagement_Size_t* size);
 
 /*************************************************************************************************/
 /**
@@ -508,7 +493,7 @@ static bool_t WriteSize(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const char_
  * \retval        TRUE        if the rectangle element was appended.
  * \retval        FALSE       if storage is exhausted.
  */
-static bool_t WriteRectangle(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const Utl_Arinc661_Rectangle_t* rectangle);
+static bool_t WriteRectangle(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent, const FACEOE_DisplayManagement_Rectangle_t* rectangle);
 
 /*************************************************************************************************/
 /**
@@ -524,7 +509,7 @@ static bool_t WriteRectangle(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const 
  * \retval        TRUE        if the scaling factor element was appended.
  * \retval        FALSE       if a value is invalid or storage is exhausted.
  */
-static bool_t WriteScale(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const Utl_Arinc661_Scale_t* scale);
+static bool_t WriteScale(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent, const FACEOE_DisplayManagement_Scale_t* scale);
 
 /*************************************************************************************************/
 /**
@@ -540,7 +525,7 @@ static bool_t WriteScale(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const Utl_
  * \retval        TRUE        if the user application was appended.
  * \retval        FALSE       if a value is invalid or storage is exhausted.
  */
-static bool_t WriteUserApplication(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const Utl_Arinc661_UserApplication_t* application);
+static bool_t WriteUserApplication(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent, const FACEOE_DisplayManagement_UserApplication_t* application);
 
 /*************************************************************************************************/
 /**
@@ -556,54 +541,7 @@ static bool_t WriteUserApplication(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, 
  * \retval        TRUE        if the external source was appended.
  * \retval        FALSE       if its identifier is out of range or storage is exhausted.
  */
-static bool_t WriteExternalSource(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const Utl_Arinc661_ExternalSource_t* source);
-
-/*************************************************************************************************/
-/**
- * \brief Advances within one XML subtree without recursion.
- *
- * \param[in] root      Root of the traversal
- * \param[in] current   Node just visited
- *
- * \retval    non-NULL   Next node in document order.
- * \retval    NULL       after the subtree.
- */
-static Utl_Xml_Node_t* NextSubtreeNode(Utl_Xml_Node_t* root, Utl_Xml_Node_t* current);
-
-/*************************************************************************************************/
-/**
- * \brief Reads direct prop children of one Definition File model.
- *
- * \par Details:
- *  Supplement 6 a661Strict.xsd, modelType/propType.
- *
- * \param[in,out] definition   Caller-owned Definition File data
- * \param[in]     model        XML model element
- * \param[in]     owner        Kind of entity containing the model
- * \param[in]     ownerIndex   Layer or widget index, or zero for the Definition File
- *
- * \retval        TRUE        if all properties fit the supplied storage.
- * \retval        FALSE       if property storage or string capacity was exceeded.
- */
-static bool_t ReadProperties(Utl_Arinc661_Definition_t* definition, Utl_Xml_Node_t* model, Utl_Arinc661_PropertyOwner_t owner, uint32_t ownerIndex);
-
-/*************************************************************************************************/
-/**
- * \brief Writes simple properties for one Definition File model.
- *
- * \par Details:
- *  Supplement 6 a661Strict.xsd, modelType/propType.
- *
- * \param[in,out] xml          Temporary XML tree and value storage
- * \param[in,out] parent       Element receiving its model child
- * \param[in]     definition   Definition File values
- * \param[in]     owner        Kind of property owner
- * \param[in]     ownerIndex   Layer or widget index, or zero for the Definition File
- *
- * \retval        TRUE        if the model and its properties were appended.
- * \retval        FALSE       if storage or a property value is invalid.
- */
-static bool_t WriteProperties(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const Utl_Arinc661_Definition_t* definition, Utl_Arinc661_PropertyOwner_t owner, uint32_t ownerIndex);
+static bool_t WriteExternalSource(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent, const FACEOE_DisplayManagement_ExternalSource_t* source);
 
 /*=================================================================================================
 ** 4. PRIVATE FUNCTIONS
@@ -616,8 +554,8 @@ static bool_t WriteProperties(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const
  *  text area. The layout is:
  *
  * \verbatim
- * bytes -> [ XML nodes ][ XML attributes ][ widget node pointers ][ text bytes ]
- *          xml.nodes    xml.attributes    xml.widgetNodes         xml.text
+ * bytes -> [ XML nodes ][ XML attributes ][ text bytes ]
+ *          xml.nodes    xml.attributes    xml.text
  * \endverbatim
  *
  *  The text area stores zero-terminated numeric attribute values for writers.
@@ -630,31 +568,28 @@ static bool_t InitializeXmlWorkspace(XmlWorkspace_t* xml, void* bytes, uint64_t 
 {
     uint64_t node_bytes;
     uint64_t attribute_bytes;
-    uint64_t widget_bytes;
     uint64_t reserved_bytes;
     bool_t   is_aligned;
     bool_t   has_capacity;
 
     // Reserve the fixed arrays before assigning the remaining bytes to text
-    node_bytes      = (uint64_t)UTL_ARINC661_XML_NODE_CAPACITY * sizeof(Utl_Xml_Node_t);
-    attribute_bytes = (uint64_t)UTL_ARINC661_XML_ATTRIBUTE_CAPACITY * sizeof(Utl_Xml_Attribute_t);
-    widget_bytes    = (uint64_t)UTL_ARINC661_XML_WIDGET_CAPACITY * sizeof(Utl_Xml_Node_t*);
-    reserved_bytes  = ((node_bytes + attribute_bytes) + widget_bytes);
+    node_bytes      = (uint64_t)FACEOE_DISPLAYMANAGEMENT_XML_NODE_CAPACITY * sizeof(FACEOE_Utl_Xml_Node_t);
+    attribute_bytes = (uint64_t)FACEOE_DISPLAYMANAGEMENT_XML_ATTRIBUTE_CAPACITY * sizeof(FACEOE_Utl_Xml_Attribute_t);
+    reserved_bytes  = (node_bytes + attribute_bytes);
     is_aligned      = (0 == ((uintptr_t)bytes % sizeof(uint64_t)));
     has_capacity    = (reserved_bytes < byteCount);
     if (is_aligned && has_capacity)
     {
         // Each region points into the supplied workspace; no separate allocation is made
-        xml->nodes          = (Utl_Xml_Node_t*)bytes;
-        xml->attributes     = (Utl_Xml_Attribute_t*)((byte_t*)bytes + node_bytes);
-        xml->widgetNodes    = (Utl_Xml_Node_t**)((byte_t*)bytes + (node_bytes + attribute_bytes));
+        xml->nodes          = (FACEOE_Utl_Xml_Node_t*)bytes;
+        xml->attributes     = (FACEOE_Utl_Xml_Attribute_t*)((byte_t*)bytes + node_bytes);
         xml->text           = (byte_t*)bytes + reserved_bytes;
         xml->textCapacity   = byteCount - reserved_bytes;
         // Reset usage and document links without clearing the entire workspace
         xml->textByteCount  = 0;
         xml->nodeCount      = 0;
         xml->attributeCount = 0;
-        Utl_Xml_InitializeDocument(&xml->document);
+        FACEOE_Utl_Xml_InitializeDocument(&xml->document);
     }
 
     return is_aligned && has_capacity;
@@ -674,7 +609,7 @@ static bool_t InitializeXmlWorkspace(XmlWorkspace_t* xml, void* bytes, uint64_t 
  *  non-element nodes, different lengths, and different byte contents return FALSE.
  *  The comparison is case-sensitive.
  */
-static bool_t HasElementName(const Utl_Xml_Node_t* node, const char_t* name)
+static bool_t HasElementName(const FACEOE_Utl_Xml_Node_t* node, const char_t* name)
 {
     uint32_t byte_count;
     bool_t   is_element;
@@ -686,7 +621,7 @@ static bool_t HasElementName(const Utl_Xml_Node_t* node, const char_t* name)
     is_element = (NULL != node);
     if (is_element)
     {
-        is_element = (UTL_XML_NODE_ELEMENT == node->type);
+        is_element = (FACEOE_UTL_XML_NODE_ELEMENT == node->type);
     }
     has_length = FALSE;
     has_name   = FALSE;
@@ -721,15 +656,15 @@ static bool_t HasElementName(const Utl_Xml_Node_t* node, const char_t* name)
  *  layout are not visited. The first matching child is returned; a completed
  *  unsuccessful search must reach the end of the sibling list within the bound.
  */
-static Utl_Xml_Node_t* FindChild(Utl_Xml_Node_t* parent, const char_t* name)
+static FACEOE_Utl_Xml_Node_t* FindChild(FACEOE_Utl_Xml_Node_t* parent, const char_t* name)
 {
-    Utl_Xml_Node_t* node;
-    Utl_Xml_Node_t* found_node;
+    FACEOE_Utl_Xml_Node_t* node;
+    FACEOE_Utl_Xml_Node_t* found_node;
     uint32_t        node_index;
 
     node       = parent->firstChild;
     found_node = NULL;
-    for (node_index = 0; node_index < UTL_ARINC661_XML_NODE_CAPACITY; ++node_index)
+    for (node_index = 0; node_index < FACEOE_DISPLAYMANAGEMENT_XML_NODE_CAPACITY; ++node_index)
     {
         // Stop at the end of the direct child list
         if (NULL == node)
@@ -767,10 +702,10 @@ static Utl_Xml_Node_t* FindChild(Utl_Xml_Node_t* parent, const char_t* name)
  *  The element's attributeCount bounds the walk; a missing match must leave the
  *  cursor at NULL. No attribute or string bytes are copied.
  */
-static const Utl_Xml_Attribute_t* FindAttribute(const Utl_Xml_Node_t* node, const char_t* name)
+static const FACEOE_Utl_Xml_Attribute_t* FindAttribute(const FACEOE_Utl_Xml_Node_t* node, const char_t* name)
 {
-    const Utl_Xml_Attribute_t* attribute;
-    const Utl_Xml_Attribute_t* found_attribute;
+    const FACEOE_Utl_Xml_Attribute_t* attribute;
+    const FACEOE_Utl_Xml_Attribute_t* found_attribute;
     uint32_t                   byte_count;
     uint32_t                   attribute_index;
     bool_t                     has_length;
@@ -821,7 +756,7 @@ static const Utl_Xml_Attribute_t* FindAttribute(const Utl_Xml_Node_t* node, cons
  *  The attribute's valueByteCount supplies its length, so its value does not need
  *  a zero terminator. Only the expected literal is measured with strlen.
  */
-static bool_t HasAttributeValue(const Utl_Xml_Attribute_t* attribute, const char_t* value)
+static bool_t HasAttributeValue(const FACEOE_Utl_Xml_Attribute_t* attribute, const char_t* value)
 {
     uint32_t byte_count;
     bool_t   has_length;
@@ -858,9 +793,9 @@ static bool_t HasAttributeValue(const Utl_Xml_Attribute_t* attribute, const char
  *  An absent attribute succeeds with an empty string. Capacity must include space
  *  for the terminator and be nonzero because destination[0] is always initialized.
  */
-static bool_t CopyAttribute(const Utl_Xml_Node_t* node, const char_t* name, char_t* destination, uint32_t capacity)
+static bool_t CopyAttribute(const FACEOE_Utl_Xml_Node_t* node, const char_t* name, char_t* destination, uint32_t capacity)
 {
-    const Utl_Xml_Attribute_t* attribute;
+    const FACEOE_Utl_Xml_Attribute_t* attribute;
     bool_t                     fits;
 
     attribute      = FindAttribute(node, name);
@@ -896,10 +831,10 @@ static bool_t CopyAttribute(const Utl_Xml_Node_t* node, const char_t* name, char
  *  which selects H3.xsd when the configuration is written. The hint is copied
  *  into caller-owned storage; no schema file is opened or validated.
  */
-static bool_t ReadConfigurationSchema(const Utl_Xml_Node_t* root, Utl_Arinc661_Configuration_t* configuration)
+static bool_t ReadConfigurationSchema(const FACEOE_Utl_Xml_Node_t* root, FACEOE_DisplayManagement_Configuration_t* configuration)
 {
-    const Utl_Xml_Attribute_t* location;
-    const Utl_Xml_Attribute_t* namespace_attribute;
+    const FACEOE_Utl_Xml_Attribute_t* location;
+    const FACEOE_Utl_Xml_Attribute_t* namespace_attribute;
     bool_t                    is_valid;
 
     configuration->schemaLocation[0] = '\0';
@@ -938,9 +873,9 @@ static bool_t ReadConfigurationSchema(const Utl_Xml_Node_t* root, Utl_Arinc661_C
  *  "-20px" returns FALSE; accepting only the numeric prefix would lose input.
  *  The output value changes only after the complete scan succeeds.
  */
-static bool_t ReadInteger(const Utl_Xml_Node_t* node, const char_t* name, int64_t* value)
+static bool_t ReadInteger(const FACEOE_Utl_Xml_Node_t* node, const char_t* name, int64_t* value)
 {
-    const Utl_Xml_Attribute_t* attribute;
+    const FACEOE_Utl_Xml_Attribute_t* attribute;
     int64_t                    parsed_value;
     int32_t                    consumed;
     bool_t                     is_valid;
@@ -950,7 +885,7 @@ static bool_t ReadInteger(const Utl_Xml_Node_t* node, const char_t* name, int64_
     is_valid  = (NULL != attribute);
     if (is_valid)
     {
-        consumed = Utl_Scan_Int64((const char_t*)attribute->value, &parsed_value);
+        consumed = FACEOE_Utl_Scan_Int64((const char_t*)attribute->value, &parsed_value);
         // Require a nonempty scan that consumes the complete attribute value
         is_valid = (0 < consumed) && ((uint32_t)consumed == attribute->valueByteCount);
         if (is_valid)
@@ -976,9 +911,9 @@ static bool_t ReadInteger(const Utl_Xml_Node_t* node, const char_t* name, int64_
  *  Missing, partially scanned, or out-of-range values return FALSE without
  *  changing the output.
  */
-static bool_t ReadDecimal(const Utl_Xml_Node_t* node, const char_t* name, float32_t* value)
+static bool_t ReadDecimal(const FACEOE_Utl_Xml_Node_t* node, const char_t* name, float32_t* value)
 {
-    const Utl_Xml_Attribute_t* attribute;
+    const FACEOE_Utl_Xml_Attribute_t* attribute;
     float64_t                  parsed_value;
     int32_t                    consumed;
     bool_t                     is_valid;
@@ -987,7 +922,7 @@ static bool_t ReadDecimal(const Utl_Xml_Node_t* node, const char_t* name, float3
     is_valid  = (NULL != attribute);
     if (is_valid)
     {
-        consumed = Utl_Scan_Float((const char_t*)attribute->value, &parsed_value);
+        consumed = FACEOE_Utl_Scan_Float((const char_t*)attribute->value, &parsed_value);
         // Reject values with an unconsumed suffix
         is_valid = (0 < consumed) && ((uint32_t)consumed == attribute->valueByteCount);
         if (is_valid)
@@ -1017,9 +952,9 @@ static bool_t ReadDecimal(const Utl_Xml_Node_t* node, const char_t* name, float3
  *  attribute succeeds with defaultUnit. An unrecognized spelling returns FALSE
  *  and leaves the output at defaultUnit; matching is case-sensitive.
  */
-static bool_t ReadUnit(const Utl_Xml_Node_t* node, const char_t* name, Utl_Arinc661_Unit_t defaultUnit, Utl_Arinc661_Unit_t* unit)
+static bool_t ReadUnit(const FACEOE_Utl_Xml_Node_t* node, const char_t* name, FACEOE_DisplayManagement_Unit_t defaultUnit, FACEOE_DisplayManagement_Unit_t* unit)
 {
-    const Utl_Xml_Attribute_t* attribute;
+    const FACEOE_Utl_Xml_Attribute_t* attribute;
     bool_t                     is_valid;
 
     attribute = FindAttribute(node, name);
@@ -1030,24 +965,24 @@ static bool_t ReadUnit(const Utl_Xml_Node_t* node, const char_t* name, Utl_Arinc
     {
         // A present attribute must match one of the four unit literals
         is_valid = FALSE;
-        if (HasAttributeValue(attribute, UTL_ARINC661_XML_UNIT_INCH))
+        if (HasAttributeValue(attribute, FACEOE_DISPLAYMANAGEMENT_XML_UNIT_INCH))
         {
-            (*unit) = UTL_ARINC661_UNIT_INCH;
+            (*unit) = FACEOE_DISPLAYMANAGEMENT_UNIT_INCH;
             is_valid = TRUE;
         }
-        else if (HasAttributeValue(attribute, UTL_ARINC661_XML_UNIT_MM))
+        else if (HasAttributeValue(attribute, FACEOE_DISPLAYMANAGEMENT_XML_UNIT_MM))
         {
-            (*unit) = UTL_ARINC661_UNIT_MM;
+            (*unit) = FACEOE_DISPLAYMANAGEMENT_UNIT_MM;
             is_valid = TRUE;
         }
-        else if (HasAttributeValue(attribute, UTL_ARINC661_XML_UNIT_SCREEN))
+        else if (HasAttributeValue(attribute, FACEOE_DISPLAYMANAGEMENT_XML_UNIT_SCREEN))
         {
-            (*unit) = UTL_ARINC661_UNIT_SCREEN;
+            (*unit) = FACEOE_DISPLAYMANAGEMENT_UNIT_SCREEN;
             is_valid = TRUE;
         }
-        else if (HasAttributeValue(attribute, UTL_ARINC661_XML_UNIT_PIXEL))
+        else if (HasAttributeValue(attribute, FACEOE_DISPLAYMANAGEMENT_XML_UNIT_PIXEL))
         {
-            (*unit) = UTL_ARINC661_UNIT_PIXEL;
+            (*unit) = FACEOE_DISPLAYMANAGEMENT_UNIT_PIXEL;
             is_valid = TRUE;
         }
     }
@@ -1071,9 +1006,9 @@ static bool_t ReadUnit(const Utl_Xml_Node_t* node, const char_t* name, Utl_Arinc
  *  For example, visible="1" enables visibility. The output is initialized to
  *  FALSE before looking up the attribute, so failure does not retain an old value.
  */
-static bool_t ReadBoolean(const Utl_Xml_Node_t* node, const char_t* name, bool_t* value)
+static bool_t ReadBoolean(const FACEOE_Utl_Xml_Node_t* node, const char_t* name, bool_t* value)
 {
-    const Utl_Xml_Attribute_t* attribute;
+    const FACEOE_Utl_Xml_Attribute_t* attribute;
     bool_t                     is_true;
     bool_t                     is_one;
     bool_t                     is_false;
@@ -1121,16 +1056,16 @@ static bool_t ReadBoolean(const Utl_Xml_Node_t* node, const char_t* name, bool_t
  *  The name pointer refers to the supplied literal; its bytes are not copied.
  *  Exhausted node storage returns NULL without increasing nodeCount.
  */
-static Utl_Xml_Node_t* AppendElement(XmlWorkspace_t* xml, const char_t* name)
+static FACEOE_Utl_Xml_Node_t* AppendElement(XmlWorkspace_t* xml, const char_t* name)
 {
-    Utl_Xml_Node_t* node;
+    FACEOE_Utl_Xml_Node_t* node;
 
     node = NULL;
     // Initialize a node only when a workspace slot is available
-    if (xml->nodeCount < UTL_ARINC661_XML_NODE_CAPACITY)
+    if (xml->nodeCount < FACEOE_DISPLAYMANAGEMENT_XML_NODE_CAPACITY)
     {
         node = &xml->nodes[xml->nodeCount];
-        Utl_Xml_InitializeNode(node, UTL_XML_NODE_ELEMENT, (const byte_t*)name, (uint32_t)strlen(name));
+        FACEOE_Utl_Xml_InitializeNode(node, FACEOE_UTL_XML_NODE_ELEMENT, (const byte_t*)name, (uint32_t)strlen(name));
         // Count the initialized node; linking it is the caller's responsibility
         xml->nodeCount += 1;
     }
@@ -1153,28 +1088,28 @@ static Utl_Xml_Node_t* AppendElement(XmlWorkspace_t* xml, const char_t* name)
  *  are not copied and must remain valid until serialization finishes. The caller
  *  supplies a valid, unique name and an element with room for the attribute.
  */
-static bool_t AppendAttribute(XmlWorkspace_t* xml, Utl_Xml_Node_t* node, const char_t* name, const char_t* value)
+static bool_t AppendAttribute(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* node, const char_t* name, const char_t* value)
 {
-    Utl_Xml_Attribute_t* attribute;
+    FACEOE_Utl_Xml_Attribute_t* attribute;
     uint32_t             byte_count;
     bool_t               has_storage;
     bool_t               has_value;
     bool_t               is_valid;
 
     // A formatter may return NULL, and the shared attribute array may be full
-    has_storage = (xml->attributeCount < UTL_ARINC661_XML_ATTRIBUTE_CAPACITY);
+    has_storage = (xml->attributeCount < FACEOE_DISPLAYMANAGEMENT_XML_ATTRIBUTE_CAPACITY);
     has_value   = (NULL != value);
     is_valid    = FALSE;
     if (has_storage && has_value)
     {
         byte_count = (uint32_t)strlen(value);
         // Validate literal value bytes before the XML append function asserts its preconditions
-        is_valid   = Utl_Xml_IsAttributeValue((const byte_t*)value, byte_count);
+        is_valid   = FACEOE_Utl_Xml_IsAttributeValue((const byte_t*)value, byte_count);
         if (is_valid)
         {
             attribute = &xml->attributes[xml->attributeCount];
-            Utl_Xml_InitializeAttribute(attribute, (const byte_t*)name, (uint32_t)strlen(name), (const byte_t*)value, byte_count);
-            Utl_Xml_AppendAttribute(node, attribute);
+            FACEOE_Utl_Xml_InitializeAttribute(attribute, (const byte_t*)name, (uint32_t)strlen(name), (const byte_t*)value, byte_count);
+            FACEOE_Utl_Xml_AppendAttribute(node, attribute);
             // Count the attribute only after it has been linked
             xml->attributeCount += 1;
         }
@@ -1198,7 +1133,7 @@ static bool_t AppendAttribute(XmlWorkspace_t* xml, Utl_Xml_Node_t* node, const c
  *  schema-location attribute. Failure leaves any already appended attributes
  *  in the temporary workspace and prevents document serialization.
  */
-static bool_t WriteConfigurationSchema(XmlWorkspace_t* xml, Utl_Xml_Node_t* root, const Utl_Arinc661_Configuration_t* configuration)
+static bool_t WriteConfigurationSchema(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* root, const FACEOE_DisplayManagement_Configuration_t* configuration)
 {
     const char_t* location;
     bool_t        is_valid;
@@ -1321,7 +1256,7 @@ static const char_t* FormatDecimal(XmlWorkspace_t* xml, float32_t value)
  *  Formatting or appending failure returns FALSE. Text already reserved by a
  *  successful formatter is not reclaimed if the subsequent append fails.
  */
-static bool_t AppendIntegerAttribute(XmlWorkspace_t* xml, Utl_Xml_Node_t* node, const char_t* name, int64_t value)
+static bool_t AppendIntegerAttribute(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* node, const char_t* name, int64_t value)
 {
     const char_t* text;
     bool_t        is_appended;
@@ -1343,7 +1278,7 @@ static bool_t AppendIntegerAttribute(XmlWorkspace_t* xml, Utl_Xml_Node_t* node, 
  *  Formatting or appending failure returns FALSE. A successful format may consume
  *  workspace text even if the attribute cannot subsequently be appended.
  */
-static bool_t AppendDecimalAttribute(XmlWorkspace_t* xml, Utl_Xml_Node_t* node, const char_t* name, float32_t value)
+static bool_t AppendDecimalAttribute(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* node, const char_t* name, float32_t value)
 {
     const char_t* text;
     bool_t        is_appended;
@@ -1370,15 +1305,15 @@ static bool_t AppendDecimalAttribute(XmlWorkspace_t* xml, Utl_Xml_Node_t* node, 
  *  document containing no element returns NULL. The root-node limit bounds this
  *  search independently of storage reserved for descendants.
  */
-static Utl_Xml_Node_t* FindDocumentElement(const Utl_Xml_Document_t* document)
+static FACEOE_Utl_Xml_Node_t* FindDocumentElement(const FACEOE_Utl_Xml_Document_t* document)
 {
-    Utl_Xml_Node_t* node;
-    Utl_Xml_Node_t* element;
+    FACEOE_Utl_Xml_Node_t* node;
+    FACEOE_Utl_Xml_Node_t* element;
     uint32_t        node_index;
 
     node    = document->firstNode;
     element = NULL;
-    for (node_index = 0; node_index < UTL_XML_DOCUMENT_MAX_ROOT_NODES; ++node_index)
+    for (node_index = 0; node_index < FACEOE_UTL_XML_DOCUMENT_MAX_ROOT_NODES; ++node_index)
     {
         // Stop at the end of the top-level list
         if (NULL == node)
@@ -1386,7 +1321,7 @@ static Utl_Xml_Node_t* FindDocumentElement(const Utl_Xml_Document_t* document)
             break;
         }
         // The declaration is skipped; the document element is the result
-        if (UTL_XML_NODE_ELEMENT == node->type)
+        if (FACEOE_UTL_XML_NODE_ELEMENT == node->type)
         {
             element = node;
             break;
@@ -1411,12 +1346,12 @@ static Utl_Xml_Node_t* FindDocumentElement(const Utl_Xml_Document_t* document)
  * <pixelSize width="1280" height="720" units="pixel"/>
  * \endcode
  *
- *  This stores width=1280, height=720, and units=UTL_ARINC661_UNIT_PIXEL.
+ *  This stores width=1280, height=720, and units=FACEOE_DISPLAYMANAGEMENT_UNIT_PIXEL.
  *  Width and height are required; units defaults to pixel when absent.
  *  A missing node or invalid attribute returns FALSE. Fields already read remain
  *  updated if a later field fails.
  */
-static bool_t ReadSize(const Utl_Xml_Node_t* node, Utl_Arinc661_Size_t* size)
+static bool_t ReadSize(const FACEOE_Utl_Xml_Node_t* node, FACEOE_DisplayManagement_Size_t* size)
 {
     bool_t is_valid;
 
@@ -1433,7 +1368,7 @@ static bool_t ReadSize(const Utl_Xml_Node_t* node, Utl_Arinc661_Size_t* size)
     if (is_valid)
     {
         // Use pixel units when the optional units attribute is absent
-        is_valid = ReadUnit(node, XML_ATTRIBUTE_UNITS, UTL_ARINC661_UNIT_PIXEL, &size->units);
+        is_valid = ReadUnit(node, XML_ATTRIBUTE_UNITS, FACEOE_DISPLAYMANAGEMENT_UNIT_PIXEL, &size->units);
     }
 
     return is_valid;
@@ -1452,7 +1387,7 @@ static bool_t ReadSize(const Utl_Xml_Node_t* node, Utl_Arinc661_Size_t* size)
  *  converts the values without imposing a positivity constraint. A missing node
  *  or invalid field returns FALSE; fields read before the failure remain updated.
  */
-static bool_t ReadRectangle(const Utl_Xml_Node_t* node, Utl_Arinc661_Rectangle_t* rectangle)
+static bool_t ReadRectangle(const FACEOE_Utl_Xml_Node_t* node, FACEOE_DisplayManagement_Rectangle_t* rectangle)
 {
     bool_t is_valid;
 
@@ -1491,7 +1426,7 @@ static bool_t ReadRectangle(const Utl_Xml_Node_t* node, Utl_Arinc661_Rectangle_t
  *  screen and perUnit to pixel. Explicit unit attributes override those defaults.
  *  Failure returns FALSE without undoing fields that were already read.
  */
-static bool_t ReadScale(const Utl_Xml_Node_t* node, Utl_Arinc661_Scale_t* scale)
+static bool_t ReadScale(const FACEOE_Utl_Xml_Node_t* node, FACEOE_DisplayManagement_Scale_t* scale)
 {
     bool_t is_valid;
 
@@ -1508,11 +1443,11 @@ static bool_t ReadScale(const Utl_Xml_Node_t* node, Utl_Arinc661_Scale_t* scale)
     if (is_valid)
     {
         // Apply the screen-to-pixel defaults when unit attributes are absent
-        is_valid = ReadUnit(node, XML_ATTRIBUTE_BASE_UNIT, UTL_ARINC661_UNIT_SCREEN, &scale->baseUnit);
+        is_valid = ReadUnit(node, XML_ATTRIBUTE_BASE_UNIT, FACEOE_DISPLAYMANAGEMENT_UNIT_SCREEN, &scale->baseUnit);
     }
     if (is_valid)
     {
-        is_valid = ReadUnit(node, XML_ATTRIBUTE_PER_UNIT, UTL_ARINC661_UNIT_PIXEL, &scale->perUnit);
+        is_valid = ReadUnit(node, XML_ATTRIBUTE_PER_UNIT, FACEOE_DISPLAYMANAGEMENT_UNIT_PIXEL, &scale->perUnit);
     }
 
     return is_valid;
@@ -1554,14 +1489,14 @@ static bool_t ReadScale(const Utl_Xml_Node_t* node, Utl_Arinc661_Scale_t* scale)
  *  Counts advance as entries are accepted. Failure may leave partial entries
  *  and counts; the public configuration reader clears the result counts.
  */
-static bool_t ReadScreenHierarchy(Utl_Arinc661_Configuration_t* configuration, Utl_Xml_Node_t* element)
+static bool_t ReadScreenHierarchy(FACEOE_DisplayManagement_Configuration_t* configuration, FACEOE_Utl_Xml_Node_t* element)
 {
-    Utl_Arinc661_Screen_t* screen;
-    Utl_Arinc661_Layout_t* layout;
-    Utl_Arinc661_Window_t* window;
-    Utl_Xml_Node_t*        layout_node;
-    Utl_Xml_Node_t*        window_node;
-    Utl_Xml_Node_t*        detail_node;
+    FACEOE_DisplayManagement_Screen_t* screen;
+    FACEOE_DisplayManagement_Layout_t* layout;
+    FACEOE_DisplayManagement_Window_t* window;
+    FACEOE_Utl_Xml_Node_t*        layout_node;
+    FACEOE_Utl_Xml_Node_t*        window_node;
+    FACEOE_Utl_Xml_Node_t*        detail_node;
     uint32_t               screen_index;
     uint32_t               layout_index;
     uint32_t               detail_index;
@@ -1598,7 +1533,7 @@ static bool_t ReadScreenHierarchy(Utl_Arinc661_Configuration_t* configuration, U
             // Publish the screen before collecting layouts that refer to its index
             configuration->screenCount += 1;
             layout_node = element->firstChild;
-            for (screen_index = 0; screen_index < UTL_ARINC661_XML_NODE_CAPACITY; ++screen_index)
+            for (screen_index = 0; screen_index < FACEOE_DISPLAYMANAGEMENT_XML_NODE_CAPACITY; ++screen_index)
             {
                 if (NULL == layout_node)
                 {
@@ -1623,7 +1558,7 @@ static bool_t ReadScreenHierarchy(Utl_Arinc661_Configuration_t* configuration, U
                     }
                     configuration->layoutCount += 1;
                     window_node = layout_node->firstChild;
-                    for (layout_index = 0; layout_index < UTL_ARINC661_XML_NODE_CAPACITY; ++layout_index)
+                    for (layout_index = 0; layout_index < FACEOE_DISPLAYMANAGEMENT_XML_NODE_CAPACITY; ++layout_index)
                     {
                         if (NULL == window_node)
                         {
@@ -1659,7 +1594,7 @@ static bool_t ReadScreenHierarchy(Utl_Arinc661_Configuration_t* configuration, U
                             {
                                 // Reject unsupported window children after reading the required details
                                 detail_node = window_node->firstChild;
-                                for (detail_index = 0; detail_index < UTL_ARINC661_XML_NODE_CAPACITY; ++detail_index)
+                                for (detail_index = 0; detail_index < FACEOE_DISPLAYMANAGEMENT_XML_NODE_CAPACITY; ++detail_index)
                                 {
                                     if (NULL == detail_node)
                                     {
@@ -1738,10 +1673,10 @@ static bool_t ReadScreenHierarchy(Utl_Arinc661_Configuration_t* configuration, U
  *  terminators. userApplicationCount advances only when every value fits and
  *  parses successfully; the unused slot may contain partial data on failure.
  */
-static bool_t ReadUserApplication(Utl_Arinc661_Configuration_t* configuration, const Utl_Xml_Node_t* node)
+static bool_t ReadUserApplication(FACEOE_DisplayManagement_Configuration_t* configuration, const FACEOE_Utl_Xml_Node_t* node)
 {
-    Utl_Arinc661_UserApplication_t* application;
-    const Utl_Xml_Attribute_t*      df_path;
+    FACEOE_DisplayManagement_UserApplication_t* application;
+    const FACEOE_Utl_Xml_Attribute_t*      df_path;
     bool_t                          is_valid;
 
     // Check caller-provided storage before initializing the next application
@@ -1801,9 +1736,9 @@ static bool_t ReadUserApplication(Utl_Arinc661_Configuration_t* configuration, c
  *  externalSourceCount advances only after all checks succeed; a failed read may
  *  have written part of the unused result slot.
  */
-static bool_t ReadExternalSource(Utl_Arinc661_Configuration_t* configuration, const Utl_Xml_Node_t* node)
+static bool_t ReadExternalSource(FACEOE_DisplayManagement_Configuration_t* configuration, const FACEOE_Utl_Xml_Node_t* node)
 {
-    Utl_Arinc661_ExternalSource_t* source;
+    FACEOE_DisplayManagement_ExternalSource_t* source;
     int64_t                        id;
     bool_t                         is_valid;
 
@@ -1853,36 +1788,36 @@ static bool_t ReadExternalSource(Utl_Arinc661_Configuration_t* configuration, co
  *  Maps a unit enum to the XML attribute literal used by the writers:
  *
  * \verbatim
- * UTL_ARINC661_UNIT_INCH    -> "inch"
- * UTL_ARINC661_UNIT_MM      -> "mm"
- * UTL_ARINC661_UNIT_SCREEN  -> "screen"
- * UTL_ARINC661_UNIT_PIXEL   -> "pixel"
+ * FACEOE_DISPLAYMANAGEMENT_UNIT_INCH    -> "inch"
+ * FACEOE_DISPLAYMANAGEMENT_UNIT_MM      -> "mm"
+ * FACEOE_DISPLAYMANAGEMENT_UNIT_SCREEN  -> "screen"
+ * FACEOE_DISPLAYMANAGEMENT_UNIT_PIXEL   -> "pixel"
  * \endverbatim
  *
  *  The returned pointer refers to a constant string. An unsupported enum value
  *  returns NULL, causing the subsequent attribute append to fail.
  */
-static const char_t* UnitName(Utl_Arinc661_Unit_t unit)
+static const char_t* UnitName(FACEOE_DisplayManagement_Unit_t unit)
 {
     const char_t* name;
 
     // Leave unsupported enum values unmapped
     name = NULL;
-    if (UTL_ARINC661_UNIT_INCH == unit)
+    if (FACEOE_DISPLAYMANAGEMENT_UNIT_INCH == unit)
     {
-        name = UTL_ARINC661_XML_UNIT_INCH;
+        name = FACEOE_DISPLAYMANAGEMENT_XML_UNIT_INCH;
     }
-    else if (UTL_ARINC661_UNIT_MM == unit)
+    else if (FACEOE_DISPLAYMANAGEMENT_UNIT_MM == unit)
     {
-        name = UTL_ARINC661_XML_UNIT_MM;
+        name = FACEOE_DISPLAYMANAGEMENT_XML_UNIT_MM;
     }
-    else if (UTL_ARINC661_UNIT_SCREEN == unit)
+    else if (FACEOE_DISPLAYMANAGEMENT_UNIT_SCREEN == unit)
     {
-        name = UTL_ARINC661_XML_UNIT_SCREEN;
+        name = FACEOE_DISPLAYMANAGEMENT_XML_UNIT_SCREEN;
     }
-    else if (UTL_ARINC661_UNIT_PIXEL == unit)
+    else if (FACEOE_DISPLAYMANAGEMENT_UNIT_PIXEL == unit)
     {
-        name = UTL_ARINC661_XML_UNIT_PIXEL;
+        name = FACEOE_DISPLAYMANAGEMENT_XML_UNIT_PIXEL;
     }
 
     return name;
@@ -1893,7 +1828,7 @@ static const char_t* UnitName(Utl_Arinc661_Unit_t unit)
  * \par Details:
  *  Creates and appends a size child using the supplied element name. For example,
  *  name="physicalDimensions", width=20, height=8, and
- *  units=UTL_ARINC661_UNIT_INCH produce:
+ *  units=FACEOE_DISPLAYMANAGEMENT_UNIT_INCH produce:
  *
  * \code{.xml}
  * <physicalDimensions width="20" height="8" units="inch"/>
@@ -1903,9 +1838,9 @@ static const char_t* UnitName(Utl_Arinc661_Unit_t unit)
  *  after both integer attributes and the unit are appended. Failure returns FALSE
  *  and may consume workspace entries without linking the child.
  */
-static bool_t WriteSize(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const char_t* name, const Utl_Arinc661_Size_t* size)
+static bool_t WriteSize(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent, const char_t* name, const FACEOE_DisplayManagement_Size_t* size)
 {
-    Utl_Xml_Node_t* node;
+    FACEOE_Utl_Xml_Node_t* node;
     const char_t*   unit_name;
     bool_t          is_valid;
 
@@ -1929,7 +1864,7 @@ static bool_t WriteSize(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const char_
     if (is_valid)
     {
         // Link the size child only after all attributes are complete
-        Utl_Xml_AppendChild(parent, node);
+        FACEOE_Utl_Xml_AppendChild(parent, node);
     }
 
     return is_valid;
@@ -1948,9 +1883,9 @@ static bool_t WriteSize(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const char_
  *  linked to parent only after all appends succeed. Failure returns FALSE;
  *  temporary workspace entries already used are not reclaimed.
  */
-static bool_t WriteRectangle(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const Utl_Arinc661_Rectangle_t* rectangle)
+static bool_t WriteRectangle(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent, const FACEOE_DisplayManagement_Rectangle_t* rectangle)
 {
-    Utl_Xml_Node_t* node;
+    FACEOE_Utl_Xml_Node_t* node;
     bool_t          is_valid;
 
     // Create the pixelArea node before formatting its four integer attributes
@@ -1975,7 +1910,7 @@ static bool_t WriteRectangle(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const 
     if (is_valid)
     {
         // Attach the rectangle only after every attribute is ready
-        Utl_Xml_AppendChild(parent, node);
+        FACEOE_Utl_Xml_AppendChild(parent, node);
     }
 
     return is_valid;
@@ -1995,9 +1930,9 @@ static bool_t WriteRectangle(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const 
  *  FALSE. The child is linked only on success; intermediate allocations remain
  *  in the temporary workspace if a later attribute fails.
  */
-static bool_t WriteScale(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const Utl_Arinc661_Scale_t* scale)
+static bool_t WriteScale(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent, const FACEOE_DisplayManagement_Scale_t* scale)
 {
-    Utl_Xml_Node_t* node;
+    FACEOE_Utl_Xml_Node_t* node;
     const char_t*   base_unit_name;
     const char_t*   per_unit_name;
     bool_t          is_valid;
@@ -2027,7 +1962,7 @@ static bool_t WriteScale(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const Utl_
     if (is_valid)
     {
         // Append the completed scalingFactor child
-        Utl_Xml_AppendChild(parent, node);
+        FACEOE_Utl_Xml_AppendChild(parent, node);
     }
 
     return is_valid;
@@ -2047,9 +1982,9 @@ static bool_t WriteScale(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const Utl_
  *  until serialization; numeric values use workspace text storage. The element
  *  is linked only after all attributes succeed.
  */
-static bool_t WriteUserApplication(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const Utl_Arinc661_UserApplication_t* application)
+static bool_t WriteUserApplication(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent, const FACEOE_DisplayManagement_UserApplication_t* application)
 {
-    Utl_Xml_Node_t* node;
+    FACEOE_Utl_Xml_Node_t* node;
     const char_t*   map_source_layer_text;
     const char_t*   visible_text;
     bool_t          is_valid;
@@ -2098,7 +2033,7 @@ static bool_t WriteUserApplication(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, 
     if (is_valid)
     {
         // Attach the application after all required and optional attributes succeed
-        Utl_Xml_AppendChild(parent, node);
+        FACEOE_Utl_Xml_AppendChild(parent, node);
     }
 
     return is_valid;
@@ -2122,9 +2057,9 @@ static bool_t WriteUserApplication(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, 
  *
  *  The node is linked to parent only after successful attribute construction.
  */
-static bool_t WriteExternalSource(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const Utl_Arinc661_ExternalSource_t* source)
+static bool_t WriteExternalSource(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent, const FACEOE_DisplayManagement_ExternalSource_t* source)
 {
-    Utl_Xml_Node_t* node;
+    FACEOE_Utl_Xml_Node_t* node;
     bool_t          is_valid;
 
     // Reject an out-of-range identifier before allocating an XML node
@@ -2156,208 +2091,7 @@ static bool_t WriteExternalSource(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, c
     if (is_valid)
     {
         // Link the completed source element
-        Utl_Xml_AppendChild(parent, node);
-    }
-
-    return is_valid;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Returns the next node in a depth-first walk confined to root. For example:
- *
- * \verbatim
- * layer (root)
- * +-- model
- * |   +-- prop
- * +-- widget
- *     +-- model
- *
- * Visit order: layer -> model -> prop -> widget -> model -> NULL
- * \endverbatim
- *
- *  Children are visited before siblings. When neither is available, parent links
- *  are followed until an ancestor has a next sibling or root is reached. The
- *  root's own sibling is never returned. The caller supplies a current node
- *  inside this subtree; ancestor traversal is bounded by UTL_XML_NODE_MAX_DEPTH.
- */
-static Utl_Xml_Node_t* NextSubtreeNode(Utl_Xml_Node_t* root, Utl_Xml_Node_t* current)
-{
-    Utl_Xml_Node_t* next_node;
-    Utl_Xml_Node_t* ancestor;
-    uint32_t        ancestor_index;
-
-    // Descend first so parents are visited before their descendants
-    next_node = current->firstChild;
-    ancestor  = current;
-    if (NULL == next_node)
-    {
-        for (ancestor_index = 0; ancestor_index < UTL_XML_NODE_MAX_DEPTH; ++ancestor_index)
-        {
-            // Keep traversal inside the selected subtree
-            if (root == ancestor)
-            {
-                break;
-            }
-            // After a branch ends, look for the next sibling at this level
-            next_node = ancestor->nextSibling;
-            if (NULL != next_node)
-            {
-                break;
-            }
-            // Climb until another branch is available or the subtree root is reached
-            ancestor = ancestor->parent;
-            LOGASSERT(NULL != ancestor);
-        }
-    }
-
-    return next_node;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Copies the direct prop children of a required model into the shared property
- *  array, for example:
- *
- * \code{.xml}
- * <model>
- *     <prop name="WidgetIdent" value="10"/>
- *     <prop name="Visible" value="A661_TRUE"/>
- * </model>
- * \endcode
- *
- *  With owner=UTL_ARINC661_PROPERTY_WIDGET and ownerIndex=2, both copied entries
- *  refer to widgets[2]. An empty model succeeds without adding entries. Missing
- *  name or value attributes become empty strings through CopyAttribute.
- *  A missing model, unexpected child, or exhausted result storage returns FALSE.
- *  Properties already counted remain until the public reader clears the counts.
- */
-static bool_t ReadProperties(Utl_Arinc661_Definition_t* definition, Utl_Xml_Node_t* model, Utl_Arinc661_PropertyOwner_t owner, uint32_t ownerIndex)
-{
-    Utl_Xml_Node_t*          property_node;
-    Utl_Arinc661_Property_t* property;
-    uint32_t                 node_index;
-    bool_t                   is_valid;
-
-    // Every supported owner needs a model, even when it has no properties
-    is_valid = (NULL != model);
-    if (is_valid)
-    {
-        property_node = model->firstChild;
-        for (node_index = 0; node_index < UTL_ARINC661_XML_NODE_CAPACITY; ++node_index)
-        {
-            if (NULL == property_node)
-            {
-                break;
-            }
-            if (HasElementName(property_node, DF_ELEMENT_PROPERTY))
-            {
-                // Reserve a result slot before copying this property's strings
-                is_valid = (definition->propertyCount < definition->propertyCapacity);
-                if (FALSE == is_valid)
-                {
-                    break;
-                }
-                property = &definition->properties[definition->propertyCount];
-                (void)memset(property, 0, sizeof((*property)));
-                // Record the owning model kind and its array index with each flat property
-                property->owner      = owner;
-                property->ownerIndex = ownerIndex;
-                is_valid             = CopyAttribute(property_node, XML_ATTRIBUTE_NAME, property->name, sizeof(property->name));
-                if (is_valid)
-                {
-                    is_valid = CopyAttribute(property_node, XML_ATTRIBUTE_VALUE, property->value, sizeof(property->value));
-                }
-                if (FALSE == is_valid)
-                {
-                    break;
-                }
-                // Publish the property only after both copied strings fit
-                definition->propertyCount += 1;
-            }
-            else
-            {
-                is_valid = FALSE;
-                break;
-            }
-            // Only direct children of this model belong to the requested owner
-            property_node = property_node->nextSibling;
-        }
-        if (is_valid)
-        {
-            LOGASSERT(NULL == property_node);
-        }
-    }
-
-    return is_valid;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Selects properties whose owner kind and ownerIndex both match the requested
- *  model. For example, the properties for one layer can produce:
- *
- * \code{.xml}
- * <model>
- *     <prop name="LayerId" value="1"/>
- *     <prop name="Width" value="10000"/>
- * </model>
- * \endcode
- *
- *  Matching entries retain their order in the flat property array. Properties
- *  belonging to other definitions, layers, or widgets are skipped. If none match,
- *  an empty model element is still appended. A partially built model is not
- *  linked to parent when an attribute or workspace allocation fails.
- */
-static bool_t WriteProperties(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const Utl_Arinc661_Definition_t* definition, Utl_Arinc661_PropertyOwner_t owner, uint32_t ownerIndex)
-{
-    Utl_Xml_Node_t*                model;
-    Utl_Xml_Node_t*                property_node;
-    const Utl_Arinc661_Property_t* property;
-    uint32_t                       property_index;
-    bool_t                         is_owner;
-    bool_t                         has_index;
-    bool_t                         is_valid;
-
-    // Always create the owner's model, including when no properties match
-    model    = AppendElement(xml, DF_ELEMENT_MODEL);
-    is_valid = (NULL != model);
-    if (is_valid)
-    {
-        for (property_index = 0; property_index < definition->propertyCount; ++property_index)
-        {
-            property  = &definition->properties[property_index];
-            // Both owner kind and array index must match this model
-            is_owner  = (owner == property->owner);
-            has_index = (ownerIndex == property->ownerIndex);
-            if (is_owner && has_index)
-            {
-                property_node = AppendElement(xml, DF_ELEMENT_PROPERTY);
-                is_valid      = (NULL != property_node);
-                if (is_valid)
-                {
-                    is_valid = AppendAttribute(xml, property_node, XML_ATTRIBUTE_NAME, property->name);
-                }
-                if (is_valid)
-                {
-                    is_valid = AppendAttribute(xml, property_node, XML_ATTRIBUTE_VALUE, property->value);
-                }
-                if (FALSE == is_valid)
-                {
-                    break;
-                }
-                // Preserve the order of matching properties
-                Utl_Xml_AppendChild(model, property_node);
-            }
-        }
-    }
-    if (is_valid)
-    {
-        // Attach the model only after all selected properties have been built
-        Utl_Xml_AppendChild(parent, model);
+        FACEOE_Utl_Xml_AppendChild(parent, node);
     }
 
     return is_valid;
@@ -2405,11 +2139,11 @@ static bool_t WriteProperties(XmlWorkspace_t* xml, Utl_Xml_Node_t* parent, const
  *  counts and hasMetaData are cleared; partially written array entries are not
  *  erased. The input needs the writable extra byte required by the XML reader.
  */
-bool_t Utl_Arinc661_ReadConfiguration(Utl_Arinc661_Configuration_t* configuration, byte_t* buffer, uint64_t byteCount, void* workspace, uint64_t workspaceSize)
+bool_t FACEOE_DisplayManagement_ReadConfiguration(FACEOE_DisplayManagement_Configuration_t* configuration, byte_t* buffer, uint64_t byteCount, void* workspace, uint64_t workspaceSize)
 {
     XmlWorkspace_t  xml;
-    Utl_Xml_Node_t* root;
-    Utl_Xml_Node_t* child_node;
+    FACEOE_Utl_Xml_Node_t* root;
+    FACEOE_Utl_Xml_Node_t* child_node;
     uint32_t        node_index;
     bool_t          has_workspace;
     bool_t          is_configuration;
@@ -2432,7 +2166,7 @@ bool_t Utl_Arinc661_ReadConfiguration(Utl_Arinc661_Configuration_t* configuratio
     if (has_workspace)
     {
         // Parse into temporary workspace nodes before interpreting configuration values
-        is_valid = (0 < Utl_Xml_ReadDocument(&xml.document, buffer, byteCount, xml.nodes, UTL_ARINC661_XML_NODE_CAPACITY, xml.attributes, UTL_ARINC661_XML_ATTRIBUTE_CAPACITY));
+        is_valid = (0 < FACEOE_Utl_Xml_ReadDocument(&xml.document, buffer, byteCount, xml.nodes, FACEOE_DISPLAYMANAGEMENT_XML_NODE_CAPACITY, xml.attributes, FACEOE_DISPLAYMANAGEMENT_XML_ATTRIBUTE_CAPACITY));
     }
     if (is_valid)
     {
@@ -2444,14 +2178,14 @@ bool_t Utl_Arinc661_ReadConfiguration(Utl_Arinc661_Configuration_t* configuratio
     if (is_valid)
     {
         // Preserve the optional declaration and copy the root's schema hint
-        configuration->hasXmlDeclaration = (UTL_XML_NODE_XML_DECLARATION == xml.document.firstNode->type);
+        configuration->hasXmlDeclaration = (FACEOE_UTL_XML_NODE_XML_DECLARATION == xml.document.firstNode->type);
         is_valid = ReadConfigurationSchema(root, configuration);
     }
     if (is_valid)
     {
         // Dispatch direct configuration children to their typed readers
         child_node = root->firstChild;
-        for (node_index = 0; node_index < UTL_ARINC661_XML_NODE_CAPACITY; ++node_index)
+        for (node_index = 0; node_index < FACEOE_DISPLAYMANAGEMENT_XML_NODE_CAPACITY; ++node_index)
         {
             if (NULL == child_node)
             {
@@ -2546,19 +2280,19 @@ bool_t Utl_Arinc661_ReadConfiguration(Utl_Arinc661_Configuration_t* configuratio
  *  LF, with no zero terminator. Zero indicates invalid supported values or
  *  insufficient storage; output may contain a prefix if final serialization fails.
  */
-uint64_t Utl_Arinc661_WriteConfiguration(const Utl_Arinc661_Configuration_t* configuration, byte_t* buffer, uint64_t capacity, void* workspace, uint64_t workspaceSize)
+uint64_t FACEOE_DisplayManagement_WriteConfiguration(const FACEOE_DisplayManagement_Configuration_t* configuration, byte_t* buffer, uint64_t capacity, void* workspace, uint64_t workspaceSize)
 {
     XmlWorkspace_t               xml;
-    Utl_Xml_Node_t*              declaration;
-    Utl_Xml_Node_t*              root;
-    Utl_Xml_Node_t*              screen_node;
-    Utl_Xml_Node_t*              layout_node;
-    Utl_Xml_Node_t*              window_node;
-    Utl_Xml_Node_t*              description_node;
-    Utl_Xml_Node_t*              metadata_node;
-    const Utl_Arinc661_Screen_t* screen;
-    const Utl_Arinc661_Layout_t* layout;
-    const Utl_Arinc661_Window_t* window;
+    FACEOE_Utl_Xml_Node_t*              declaration;
+    FACEOE_Utl_Xml_Node_t*              root;
+    FACEOE_Utl_Xml_Node_t*              screen_node;
+    FACEOE_Utl_Xml_Node_t*              layout_node;
+    FACEOE_Utl_Xml_Node_t*              window_node;
+    FACEOE_Utl_Xml_Node_t*              description_node;
+    FACEOE_Utl_Xml_Node_t*              metadata_node;
+    const FACEOE_DisplayManagement_Screen_t* screen;
+    const FACEOE_DisplayManagement_Layout_t* layout;
+    const FACEOE_DisplayManagement_Window_t* window;
     uint64_t                     byte_count;
     uint32_t                     screen_index;
     uint32_t                     layout_index;
@@ -2581,15 +2315,15 @@ uint64_t Utl_Arinc661_WriteConfiguration(const Utl_Arinc661_Configuration_t* con
         if (configuration->hasXmlDeclaration)
         {
             declaration = &xml.nodes[xml.nodeCount];
-            Utl_Xml_InitializeNode(declaration, UTL_XML_NODE_XML_DECLARATION, NULL, 0);
+            FACEOE_Utl_Xml_InitializeNode(declaration, FACEOE_UTL_XML_NODE_XML_DECLARATION, NULL, 0);
             xml.nodeCount += 1;
-            Utl_Xml_AppendNode(&xml.document, declaration);
+            FACEOE_Utl_Xml_AppendNode(&xml.document, declaration);
         }
         root     = AppendElement(&xml, DMC_ELEMENT_CONFIGURATION);
         is_valid = (NULL != root);
         if (is_valid)
         {
-            Utl_Xml_AppendNode(&xml.document, root);
+            FACEOE_Utl_Xml_AppendNode(&xml.document, root);
         }
     }
     if (is_valid)
@@ -2606,7 +2340,7 @@ uint64_t Utl_Arinc661_WriteConfiguration(const Utl_Arinc661_Configuration_t* con
             is_valid      = (NULL != metadata_node);
             if (is_valid)
             {
-                Utl_Xml_AppendChild(root, metadata_node);
+                FACEOE_Utl_Xml_AppendChild(root, metadata_node);
             }
         }
     }
@@ -2678,7 +2412,7 @@ uint64_t Utl_Arinc661_WriteConfiguration(const Utl_Arinc661_Configuration_t* con
                             }
                             if (is_valid)
                             {
-                                Utl_Xml_AppendChild(window_node, description_node);
+                                FACEOE_Utl_Xml_AppendChild(window_node, description_node);
                                 is_valid = WriteRectangle(&xml, window_node, &window->pixelArea);
                             }
                             if (is_valid)
@@ -2689,21 +2423,21 @@ uint64_t Utl_Arinc661_WriteConfiguration(const Utl_Arinc661_Configuration_t* con
                             {
                                 break;
                             }
-                            Utl_Xml_AppendChild(layout_node, window_node);
+                            FACEOE_Utl_Xml_AppendChild(layout_node, window_node);
                         }
                     }
                     if (FALSE == is_valid)
                     {
                         break;
                     }
-                    Utl_Xml_AppendChild(screen_node, layout_node);
+                    FACEOE_Utl_Xml_AppendChild(screen_node, layout_node);
                 }
             }
             if (FALSE == is_valid)
             {
                 break;
             }
-            Utl_Xml_AppendChild(root, screen_node);
+            FACEOE_Utl_Xml_AppendChild(root, screen_node);
         }
     }
     if (is_valid)
@@ -2733,423 +2467,9 @@ uint64_t Utl_Arinc661_WriteConfiguration(const Utl_Arinc661_Configuration_t* con
     if (is_valid)
     {
         // Serialize only after every requested entry has been built successfully
-        byte_count = Utl_Xml_WriteDocument(&xml.document, buffer, capacity);
+        byte_count = FACEOE_Utl_Xml_WriteDocument(&xml.document, buffer, capacity);
     }
 
     return byte_count;
 }
 
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Reads a Definition File into flat layer, widget, and property arrays. This
- *  supported example contains a nested widget:
- *
- * \code{.xml}
- * <a661_df name="Demo" library_version="0" supp_version="6">
- *     <model>
- *         <prop name="ApplicationId" value="1"/>
- *     </model>
- *     <a661_layer name="Main">
- *         <model/>
- *         <a661_widget name="Panel" type="A661_PANEL">
- *             <model/>
- *             <a661_widget name="Status" type="A661_LABEL">
- *                 <model/>
- *             </a661_widget>
- *         </a661_widget>
- *     </a661_layer>
- * </a661_df>
- * \endcode
- *
- * \verbatim
- * layers[0].name                = Main
- * widgets[0].layerIndex         = 0    parentWidgetIndex = UINT32_MAX
- * widgets[1].layerIndex         = 0    parentWidgetIndex = 0
- * properties[0].owner           = UTL_ARINC661_PROPERTY_DEFINITION
- * properties[0].ownerIndex      = 0
- * \endverbatim
- *
- *  Widgets are visited before their descendants. Temporary XML node pointers
- *  map a nested widget's parent to an earlier widget array entry. Each supported
- *  owner needs a model, including an empty one. Strings are copied into the
- *  result, so no input or workspace pointers remain there.
- *
- *  Input may include an XML declaration; it is not retained in the result.
- *
- *  Versions must fit uint32_t. Failure clears layerCount, widgetCount, and
- *  propertyCount; scalar fields and array entries may still contain partial data.
- */
-bool_t Utl_Arinc661_ReadDefinition(Utl_Arinc661_Definition_t* definition, byte_t* buffer, uint64_t byteCount, void* workspace, uint64_t workspaceSize)
-{
-    XmlWorkspace_t         xml;
-    Utl_Xml_Node_t*        root;
-    Utl_Xml_Node_t*        layer_node;
-    Utl_Xml_Node_t*        current_node;
-    Utl_Xml_Node_t*        model_node;
-    Utl_Arinc661_Layer_t*  layer;
-    Utl_Arinc661_Widget_t* widget;
-    int64_t                version;
-    uint32_t               layer_index;
-    uint32_t               node_index;
-    uint32_t               widget_index;
-    uint32_t               parent_index;
-    bool_t                 has_workspace;
-    bool_t                 is_model;
-    bool_t                 is_property;
-    bool_t                 is_valid;
-
-    LOGASSERT(NULL != definition);
-    LOGASSERT(NULL != buffer);
-    LOGASSERT(NULL != workspace);
-    // Reset result counts while retaining the supplied arrays and capacities
-    definition->layerCount    = 0;
-    definition->widgetCount   = 0;
-    definition->propertyCount = 0;
-    has_workspace            = InitializeXmlWorkspace(&xml, workspace, workspaceSize);
-    is_valid                 = has_workspace;
-    if (is_valid)
-    {
-        // Parse the source into the temporary XML workspace
-        is_valid = (0 < Utl_Xml_ReadDocument(&xml.document, buffer, byteCount, xml.nodes, UTL_ARINC661_XML_NODE_CAPACITY, xml.attributes, UTL_ARINC661_XML_ATTRIBUTE_CAPACITY));
-    }
-    if (is_valid)
-    {
-        // Require a Definition File root before reading its attributes
-        root     = FindDocumentElement(&xml.document);
-        is_valid = HasElementName(root, DF_ELEMENT_ROOT);
-    }
-    if (is_valid)
-    {
-        is_valid = CopyAttribute(root, XML_ATTRIBUTE_NAME, definition->name, sizeof(definition->name));
-    }
-    if (is_valid)
-    {
-        // Read and range-check the version values before storing them as uint32_t
-        is_valid = ReadInteger(root, XML_ATTRIBUTE_LIBRARY_VERSION, &version);
-        if (is_valid)
-        {
-            is_valid = (0 <= version);
-            if (is_valid)
-            {
-                is_valid = (UINT32_MAX >= version);
-            }
-            if (is_valid)
-            {
-                definition->libraryVersion = (uint32_t)version;
-            }
-        }
-    }
-    if (is_valid)
-    {
-        is_valid = ReadInteger(root, XML_ATTRIBUTE_SUPPLEMENT_VERSION, &version);
-        if (is_valid)
-        {
-            is_valid = (0 <= version);
-            if (is_valid)
-            {
-                is_valid = (UINT32_MAX >= version);
-            }
-            if (is_valid)
-            {
-                definition->supplementVersion = (uint32_t)version;
-            }
-        }
-    }
-    if (is_valid)
-    {
-        // Copy properties belonging to the Definition File itself
-        model_node = FindChild(root, DF_ELEMENT_MODEL);
-        is_valid   = ReadProperties(definition, model_node, UTL_ARINC661_PROPERTY_DEFINITION, 0);
-    }
-    if (is_valid)
-    {
-        // Process layers in source order and walk each layer's complete subtree
-        layer_node = root->firstChild;
-        for (layer_index = 0; layer_index < UTL_ARINC661_XML_NODE_CAPACITY; ++layer_index)
-        {
-            if (NULL == layer_node)
-            {
-                break;
-            }
-            if (HasElementName(layer_node, DF_ELEMENT_LAYER))
-            {
-                is_valid = (definition->layerCount < definition->layerCapacity);
-                if (FALSE == is_valid)
-                {
-                    break;
-                }
-                layer = &definition->layers[definition->layerCount];
-                (void)memset(layer, 0, sizeof((*layer)));
-                is_valid = CopyAttribute(layer_node, XML_ATTRIBUTE_NAME, layer->name, sizeof(layer->name));
-                if (is_valid)
-                {
-                    model_node = FindChild(layer_node, DF_ELEMENT_MODEL);
-                    is_valid   = ReadProperties(definition, model_node, UTL_ARINC661_PROPERTY_LAYER, definition->layerCount);
-                }
-                if (FALSE == is_valid)
-                {
-                    break;
-                }
-                definition->layerCount += 1;
-                current_node = layer_node->firstChild;
-                for (node_index = 0; node_index < UTL_ARINC661_XML_NODE_CAPACITY; ++node_index)
-                {
-                    if (NULL == current_node)
-                    {
-                        break;
-                    }
-                    if (HasElementName(current_node, DF_ELEMENT_WIDGET))
-                    {
-                        is_valid = (definition->widgetCount < definition->widgetCapacity);
-                        if (FALSE == is_valid)
-                        {
-                            break;
-                        }
-                        widget = &definition->widgets[definition->widgetCount];
-                        (void)memset(widget, 0, sizeof((*widget)));
-                        // Default to a direct layer child until a widget parent is found
-                        widget->layerIndex        = definition->layerCount - 1;
-                        widget->parentWidgetIndex = UINT32_MAX;
-                        if (current_node->parent != layer_node)
-                        {
-                            // Map the parent XML pointer to a widget already visited in this layer
-                            for (widget_index = 0; widget_index < definition->widgetCount; ++widget_index)
-                            {
-                                if (xml.widgetNodes[widget_index] == current_node->parent)
-                                {
-                                    widget->parentWidgetIndex = widget_index;
-                                    break;
-                                }
-                            }
-                            is_valid = (UINT32_MAX != widget->parentWidgetIndex);
-                        }
-                        if (is_valid)
-                        {
-                            is_valid = CopyAttribute(current_node, XML_ATTRIBUTE_NAME, widget->name, sizeof(widget->name));
-                        }
-                        if (is_valid)
-                        {
-                            is_valid = CopyAttribute(current_node, XML_ATTRIBUTE_TYPE, widget->type, sizeof(widget->type));
-                        }
-                        if (is_valid)
-                        {
-                            model_node = FindChild(current_node, DF_ELEMENT_MODEL);
-                            is_valid   = ReadProperties(definition, model_node, UTL_ARINC661_PROPERTY_WIDGET, definition->widgetCount);
-                        }
-                        if (FALSE == is_valid)
-                        {
-                            break;
-                        }
-                        // Remember the XML node so later descendants can identify this widget as parent
-                        xml.widgetNodes[definition->widgetCount] = current_node;
-                        definition->widgetCount += 1;
-                    }
-                    else
-                    {
-                        is_model    = HasElementName(current_node, DF_ELEMENT_MODEL);
-                        is_property = HasElementName(current_node, DF_ELEMENT_PROPERTY);
-                        is_valid    = is_model || is_property;
-                        if (FALSE == is_valid)
-                        {
-                            break;
-                        }
-                    }
-                    // Advance depth-first without recursively consuming C stack space
-                    current_node = NextSubtreeNode(layer_node, current_node);
-                }
-                if (FALSE == is_valid)
-                {
-                    break;
-                }
-                LOGASSERT(NULL == current_node);
-            }
-            else
-            {
-                is_valid = HasElementName(layer_node, DF_ELEMENT_MODEL);
-                if (FALSE == is_valid)
-                {
-                    break;
-                }
-            }
-            layer_node = layer_node->nextSibling;
-        }
-        if (is_valid)
-        {
-            LOGASSERT(NULL == layer_node);
-        }
-    }
-    if (FALSE == is_valid)
-    {
-        // Hide all partially read entries by clearing the published counts
-        definition->layerCount    = 0;
-        definition->widgetCount   = 0;
-        definition->propertyCount = 0;
-    }
-
-    return is_valid;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Rebuilds a Definition File tree from layer, widget, and property arrays.
- *  For example, a layer with two sibling widgets can produce:
- *
- * \code{.xml}
- * <a661_df name="Controls" library_version="0" supp_version="6">
- *     <model/>
- *     <a661_layer name="Main">
- *         <model/>
- *         <a661_widget name="Start" type="A661_PUSH_BUTTON">
- *             <model>
- *                 <prop name="WidgetIdent" value="10"/>
- *             </model>
- *         </a661_widget>
- *         <a661_widget name="Stop" type="A661_PUSH_BUTTON">
- *             <model/>
- *         </a661_widget>
- *     </a661_layer>
- * </a661_df>
- * \endcode
- *
- *  Output starts directly with the a661_df element, without an XML declaration.
- *
- *  layerIndex selects the owning layer. UINT32_MAX in parentWidgetIndex places a
- *  widget directly under that layer; otherwise it names an earlier widget in the
- *  same layer. The caller supplies valid array counts and these ownership links.
- *  Each owner receives a model, even when no properties match.
- *
- *  XML nodes, attributes, and formatted numbers use the temporary workspace;
- *  text fields point to the supplied records until writing finishes. The result
- *  includes a final LF and no zero terminator. Zero indicates construction or
- *  serialization failure; serialization may already have written an output prefix.
- */
-uint64_t Utl_Arinc661_WriteDefinition(const Utl_Arinc661_Definition_t* definition, byte_t* buffer, uint64_t capacity, void* workspace, uint64_t workspaceSize)
-{
-    XmlWorkspace_t               xml;
-    Utl_Xml_Node_t*              root;
-    Utl_Xml_Node_t*              layer_node;
-    Utl_Xml_Node_t*              widget_node;
-    Utl_Xml_Node_t*              parent_node;
-    const Utl_Arinc661_Layer_t*  layer;
-    const Utl_Arinc661_Widget_t* widget;
-    uint64_t                     byte_count;
-    uint32_t                     layer_index;
-    uint32_t                     widget_index;
-    bool_t                       has_workspace;
-    bool_t                       has_parent;
-    bool_t                       is_valid;
-
-    LOGASSERT(NULL != definition);
-    LOGASSERT(NULL != buffer);
-    LOGASSERT(NULL != workspace);
-    // Keep zero as the failure result until the complete document is written
-    byte_count    = 0;
-    has_workspace = InitializeXmlWorkspace(&xml, workspace, workspaceSize);
-    is_valid      = has_workspace;
-    if (is_valid)
-    {
-        // Start the Definition File with its document element
-        root     = AppendElement(&xml, DF_ELEMENT_ROOT);
-        is_valid = (NULL != root);
-    }
-    if (is_valid)
-    {
-        is_valid = AppendAttribute(&xml, root, XML_ATTRIBUTE_NAME, definition->name);
-    }
-    if (is_valid)
-    {
-        is_valid = AppendIntegerAttribute(&xml, root, XML_ATTRIBUTE_LIBRARY_VERSION, definition->libraryVersion);
-    }
-    if (is_valid)
-    {
-        is_valid = AppendIntegerAttribute(&xml, root, XML_ATTRIBUTE_SUPPLEMENT_VERSION, definition->supplementVersion);
-    }
-    if (is_valid)
-    {
-        // The root model precedes every layer
-        is_valid = WriteProperties(&xml, root, definition, UTL_ARINC661_PROPERTY_DEFINITION, 0);
-    }
-    if (is_valid)
-    {
-        // Build layers in array order, each with its own model and widgets
-        for (layer_index = 0; layer_index < definition->layerCount; ++layer_index)
-        {
-            layer      = &definition->layers[layer_index];
-            layer_node = AppendElement(&xml, DF_ELEMENT_LAYER);
-            is_valid   = (NULL != layer_node);
-            if (is_valid)
-            {
-                is_valid = AppendAttribute(&xml, layer_node, XML_ATTRIBUTE_NAME, layer->name);
-            }
-            if (is_valid)
-            {
-                is_valid = WriteProperties(&xml, layer_node, definition, UTL_ARINC661_PROPERTY_LAYER, layer_index);
-            }
-            if (FALSE == is_valid)
-            {
-                break;
-            }
-            for (widget_index = 0; widget_index < definition->widgetCount; ++widget_index)
-            {
-                widget = &definition->widgets[widget_index];
-                // Select widgets belonging to this layer while preserving their array order
-                if (layer_index == widget->layerIndex)
-                {
-                    widget_node = AppendElement(&xml, DF_ELEMENT_WIDGET);
-                    is_valid    = (NULL != widget_node);
-                    if (is_valid)
-                    {
-                        is_valid = AppendAttribute(&xml, widget_node, XML_ATTRIBUTE_NAME, widget->name);
-                    }
-                    if (is_valid)
-                    {
-                        is_valid = AppendAttribute(&xml, widget_node, XML_ATTRIBUTE_TYPE, widget->type);
-                    }
-                    if (is_valid)
-                    {
-                        is_valid = WriteProperties(&xml, widget_node, definition, UTL_ARINC661_PROPERTY_WIDGET, widget_index);
-                    }
-                    if (FALSE == is_valid)
-                    {
-                        break;
-                    }
-                    // A sentinel parent index places the widget directly under its layer
-                    parent_node = layer_node;
-                    if (UINT32_MAX != widget->parentWidgetIndex)
-                    {
-                        // A nested parent must have been built before the current widget
-                        has_parent = (widget->parentWidgetIndex < widget_index);
-                        is_valid   = has_parent;
-                        if (is_valid)
-                        {
-                            parent_node = xml.widgetNodes[widget->parentWidgetIndex];
-                            is_valid    = (NULL != parent_node);
-                        }
-                    }
-                    if (FALSE == is_valid)
-                    {
-                        break;
-                    }
-                    Utl_Xml_AppendChild(parent_node, widget_node);
-                    // Record the built node for subsequent children to use as their parent
-                    xml.widgetNodes[widget_index] = widget_node;
-                }
-            }
-            if (FALSE == is_valid)
-            {
-                break;
-            }
-            Utl_Xml_AppendChild(root, layer_node);
-        }
-    }
-    if (is_valid)
-    {
-        // Append the completed root and serialize the temporary document
-        Utl_Xml_AppendNode(&xml.document, root);
-        byte_count = Utl_Xml_WriteDocument(&xml.document, buffer, capacity);
-    }
-
-    return byte_count;
-}
