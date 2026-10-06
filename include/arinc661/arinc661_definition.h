@@ -143,7 +143,8 @@ typedef enum Arinc661_ParameterKind_e
     ARINC661_PARAMETER_STRING,      ///< Text
     ARINC661_PARAMETER_BYTES,       ///< Fixed byte count as hexadecimal digits
     ARINC661_PARAMETER_SIZED_BYTES, ///< StaticParamBuffer entry as hexadecimal digits
-    ARINC661_PARAMETER_REGION       ///< Excluded region structure as hexadecimal digits
+    ARINC661_PARAMETER_REGION,      ///< Excluded region structure as hexadecimal digits
+    ARINC661_PARAMETER_LAYER_REQUEST ///< EventHandler LayerReqResult entry as hexadecimal digits
 } Arinc661_ParameterKind_t;
 
 /*************************************************************************************************/

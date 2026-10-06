@@ -181,6 +181,8 @@ extern "C"
 #define SCENE_WIDGET_BORDER_COLOR     (IM_COL32(97, 221, 245, 255))
 #define SCENE_TEXT_COLOR              (IM_COL32(240, 248, 255, 255))
 #define SCENE_SELECTION_OVERLAY_COLOR (IM_COL32(255, 255, 255, 40))
+#define INVALID_VALUE_COLOR           (IM_COL32(255, 96, 96, 255))
+#define INVALID_VALUE_TOOLTIP         ("This value cannot be written to the binary Definition File.")
 
 /*=================================================================================================
 ** 3.2 Types
@@ -304,6 +306,12 @@ static const char_t* const c_charsetNames[] =
     "A661_UTF8",
     "A661_GBK"
 };
+
+/*************************************************************************************************/
+/**
+ * \brief Digits of a hexadecimal property value; one array, so digit pointers can be subtracted.
+ */
+static const char_t c_hexDigits[] = "0123456789ABCDEF";
 
 /*************************************************************************************************/
 /**
@@ -501,7 +509,24 @@ static void DefaultParameterValue(const Arinc661_Parameter_t* parameter, char_t*
 
 /*************************************************************************************************/
 /**
- * \brief Makes a widget's properties match its type's Creation Structure: properties that name * no parameter are dropped (WidgetIdent is kept on widgets), every missing single * parameter is added with its default, and every array is sized to its count.
+ * \brief Counts uppercase hexadecimal digits; a value with any other character, or an odd * count, is not a byte string.
+ *
+ * \param value   See definition
+ */
+static uint32_t HexByteCount(const char_t* value);
+
+/*************************************************************************************************/
+/**
+ * \brief Applies the same acceptance rules as the binary writer: an integer parameter takes a * decimal number in its range or a section 4.6 constant name whose value fits; a decimal * parameter takes a number within its range; byte parameters take hexadecimal digits of * the right length; strings take anything.
+ *
+ * \param parameter   See definition
+ * \param value       See definition
+ */
+static bool_t IsParameterValueValid(const Arinc661_Parameter_t* parameter, const char_t* value);
+
+/*************************************************************************************************/
+/**
+ * \brief Makes a widget's properties match its type's Creation Structure: properties that name * no parameter are dropped (WidgetIdent is kept on widgets), every missing single * parameter is added with its default, a kept value that no longer fits its parameter * kind is reseeded, and every array is sized to its count.
  *
  * \param document      See definition
  * \param widgetIndex   See definition
@@ -1560,7 +1585,7 @@ static void DefaultParameterValue(const Arinc661_Parameter_t* parameter, char_t*
     {
         value[0] = '\0';
     }
-    else if (ARINC661_PARAMETER_REGION == parameter->kind)
+    else if ((ARINC661_PARAMETER_REGION == parameter->kind) || (ARINC661_PARAMETER_LAYER_REQUEST == parameter->kind))
     {
         ImStrncpy(value, "00000000", capacity);
     }
@@ -1582,9 +1607,143 @@ static void DefaultParameterValue(const Arinc661_Parameter_t* parameter, char_t*
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  Counts uppercase hexadecimal digits; a value with any other character, or an odd
+ *  count, is not a byte string.
+ */
+static uint32_t HexByteCount(const char_t* value)
+{
+    size_t   length;
+    size_t   index;
+    uint32_t byte_count;
+
+    length     = ImStrlen(value);
+    byte_count = (uint32_t)(length / 2U);
+    if (0 != (length % 2U))
+    {
+        byte_count = INVALID_HIERARCHY_INDEX;
+    }
+    for (index = 0; (INVALID_HIERARCHY_INDEX != byte_count) && (index < length); ++index)
+    {
+        if (NULL == strchr(c_hexDigits, value[index]))
+        {
+            byte_count = INVALID_HIERARCHY_INDEX;
+        }
+    }
+
+    return byte_count;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Applies the same acceptance rules as the binary writer: an integer parameter takes a
+ *  decimal number in its range or a section 4.6 constant name whose value fits; a decimal
+ *  parameter takes a number within its range; byte parameters take hexadecimal digits of
+ *  the right length; strings take anything.
+ */
+static bool_t IsParameterValueValid(const Arinc661_Parameter_t* parameter, const char_t* value)
+{
+    float64_t real_value;
+    int64_t   integer_value;
+    int64_t   minimum;
+    int64_t   maximum;
+    int32_t   consumed;
+    uint32_t  constant_index;
+    uint32_t  byte_count;
+    bool_t    is_valid;
+
+    is_valid = TRUE;
+    if ((ARINC661_PARAMETER_UCHAR == parameter->kind) || (ARINC661_PARAMETER_USHORT == parameter->kind) || (ARINC661_PARAMETER_LONG == parameter->kind) || (ARINC661_PARAMETER_ULONG == parameter->kind))
+    {
+        minimum = 0;
+        maximum = UINT32_MAX;
+        if (ARINC661_PARAMETER_UCHAR == parameter->kind)
+        {
+            maximum = UINT8_MAX;
+        }
+        else if (ARINC661_PARAMETER_USHORT == parameter->kind)
+        {
+            maximum = UINT16_MAX;
+        }
+        else if (ARINC661_PARAMETER_LONG == parameter->kind)
+        {
+            minimum = INT32_MIN;
+            maximum = INT32_MAX;
+        }
+        consumed = FACEOE_Utl_Scan_Int64(value, &integer_value);
+        is_valid = !!((0 < consumed) && ('\0' == value[consumed]));
+        if (FALSE == is_valid)
+        {
+            for (constant_index = 0; constant_index < Arinc661_ConstantCount(); ++constant_index)
+            {
+                if (0 == strcmp(value, Arinc661_ConstantName(constant_index)))
+                {
+                    integer_value = Arinc661_ConstantValue(constant_index);
+                    is_valid      = TRUE;
+                    break;
+                }
+            }
+        }
+        if (is_valid)
+        {
+            is_valid = !!((minimum <= integer_value) && (integer_value <= maximum));
+        }
+    }
+    else if ((ARINC661_PARAMETER_FLOAT == parameter->kind) || (ARINC661_PARAMETER_FR180 == parameter->kind) || (ARINC661_PARAMETER_FR32768 == parameter->kind))
+    {
+        consumed = FACEOE_Utl_Scan_Float(value, &real_value);
+        is_valid = !!((0 < consumed) && ('\0' == value[consumed]));
+        if (is_valid && (ARINC661_PARAMETER_FR180 == parameter->kind))
+        {
+            is_valid = !!((-180.0 <= real_value) && (real_value <= 180.0));
+        }
+        else if (is_valid && (ARINC661_PARAMETER_FR32768 == parameter->kind))
+        {
+            is_valid = !!((-32768.0 <= real_value) && (real_value <= 32768.0));
+        }
+    }
+    else if (ARINC661_PARAMETER_BYTES == parameter->kind)
+    {
+        is_valid = (parameter->byteCount == HexByteCount(value));
+    }
+    else if (ARINC661_PARAMETER_SIZED_BYTES == parameter->kind)
+    {
+        byte_count = HexByteCount(value);
+        is_valid   = !!((INVALID_HIERARCHY_INDEX != byte_count) && (byte_count <= UINT16_MAX));
+    }
+    else if (ARINC661_PARAMETER_REGION == parameter->kind)
+    {
+        // Table 8.6.7-3: the second byte selects a structure of 4, 20, 28, or 24 bytes
+        byte_count = HexByteCount(value);
+        is_valid   = !!((INVALID_HIERARCHY_INDEX != byte_count) && (4 <= byte_count) && ('0' == value[2]));
+        if (is_valid)
+        {
+            is_valid = !!((('0' == value[3]) && (4 == byte_count)) || (('1' == value[3]) && (20 == byte_count)) || (('2' == value[3]) && (28 == byte_count)) || (('3' == value[3]) && (24 == byte_count)));
+        }
+    }
+    else if (ARINC661_PARAMETER_LAYER_REQUEST == parameter->kind)
+    {
+        // Table 3.9.17-6: the third and fourth bytes hold the size of the request that follows
+        byte_count = HexByteCount(value);
+        is_valid   = !!((INVALID_HIERARCHY_INDEX != byte_count) && (4 <= byte_count));
+        if (is_valid)
+        {
+            integer_value = ((int64_t)(strchr(c_hexDigits, value[4]) - c_hexDigits) << 12) | ((int64_t)(strchr(c_hexDigits, value[5]) - c_hexDigits) << 8) |
+                            ((int64_t)(strchr(c_hexDigits, value[6]) - c_hexDigits) << 4) | (int64_t)(strchr(c_hexDigits, value[7]) - c_hexDigits);
+            is_valid      = !!((byte_count == (4 + integer_value)) && (0 == (integer_value % 4)));
+        }
+    }
+
+    return is_valid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Makes a widget's properties match its type's Creation Structure: properties that name
  *  no parameter are dropped (WidgetIdent is kept on widgets), every missing single
- *  parameter is added with its default, and every array is sized to its count.
+ *  parameter is added with its default, a kept value that no longer fits its parameter
+ *  kind is reseeded, and every array is sized to its count.
  */
 static bool_t ConformParameters(Arinc661_Definition_Document_t* document, uint32_t widgetIndex)
 {
@@ -1629,13 +1788,24 @@ static bool_t ConformParameters(Arinc661_Definition_Document_t* document, uint32
         for (parameter_index = 0; parameter_index < parameter_count; ++parameter_index)
         {
             (void)Arinc661_Parameter(widget->type, widget->isExtension, parameter_index, &parameter);
-            if ((0 == parameter.elementsPerEntry) && (INVALID_HIERARCHY_INDEX == FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, widgetIndex, parameter.name)))
+            if (0 != parameter.elementsPerEntry)
+            {
+                continue;
+            }
+            property_index = FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, widgetIndex, parameter.name);
+            if (INVALID_HIERARCHY_INDEX == property_index)
             {
                 DefaultParameterValue(&parameter, value, sizeof(value));
                 has_changed = !!(AppendProperty(document, ARINC661_PROPERTY_WIDGET, widgetIndex, parameter.name, value) || has_changed);
             }
+            else if (FALSE == IsParameterValueValid(&parameter, document->properties[property_index].value))
+            {
+                // Reseed a value kept from another type whose kind it no longer fits
+                DefaultParameterValue(&parameter, document->properties[property_index].value, sizeof(document->properties[property_index].value));
+                has_changed = TRUE;
+            }
         }
-        // Arrays must hold exactly what their count parameters promise
+        // Size every array to what its count parameter promises
         for (parameter_index = 0; parameter_index < parameter_count; ++parameter_index)
         {
             (void)Arinc661_Parameter(widget->type, widget->isExtension, parameter_index, &parameter);
@@ -2473,6 +2643,7 @@ static bool_t DrawParameterRow(Arinc661_Definition_Document_t* document, Arinc66
     char_t*  value;
     uint32_t property_index;
     bool_t   has_changed;
+    bool_t   is_invalid;
 
     property_index = FindOwnedPropertyAt(document, owner, ownerIndex, propertyName, occurrence);
     value          = scratch;
@@ -2486,7 +2657,18 @@ static bool_t DrawParameterRow(Arinc661_Definition_Document_t* document, Arinc66
     ImGui::TextUnformatted(label);
     ImGui::TableSetColumnIndex(1);
     ImGui::PushID(label);
+    // Show a value the binary writer would reject in the error color
+    is_invalid = !!((INVALID_HIERARCHY_INDEX != property_index) && (FALSE == IsParameterValueValid(parameter, value)));
+    if (is_invalid)
+    {
+        ImGui::PushStyleColor(ImGuiCol_Text, INVALID_VALUE_COLOR);
+    }
     has_changed = DrawParameterValue(parameter, value, ARINC661_MAX_PROPERTY_BYTES);
+    if (is_invalid)
+    {
+        ImGui::PopStyleColor();
+        ImGui::SetItemTooltip("%s", INVALID_VALUE_TOOLTIP);
+    }
     ImGui::PopID();
     if (has_changed && (INVALID_HIERARCHY_INDEX == property_index))
     {
@@ -2796,7 +2978,7 @@ static void DrawWidgetInspector(Arinc661_Definition_Document_t* document)
         }
         if (DrawTypeField(TYPE_LABEL, widget->type, sizeof(widget->type), widget->isExtension))
         {
-            // A new type keeps shared parameters and reseeds the rest
+            // Keep the parameters the new type shares and reseed the rest
             (void)ConformParameters(document, document->selectedIndex);
             MarkDocumentDirty(document, TRUE);
         }
@@ -3439,7 +3621,7 @@ static void ResolveWidgetArea(const Arinc661_Definition_Document_t* document, ui
         {
             break;
         }
-        // Containers without a position, such as connectors, contribute no offset
+        // Add no offset for containers without a position, such as connectors
         if (GetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, ancestor_index, PROPERTY_POS_X, &position_x) &&
             GetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, ancestor_index, PROPERTY_POS_Y, &position_y))
         {

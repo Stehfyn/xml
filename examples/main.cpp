@@ -8,11 +8,8 @@
 ** 2. INCLUDE FILES
 **===============================================================================================*/
 
-#if defined(ARINC661_DEFINITION_EDITOR)
-#include "arinc661_definition_editor.h"
-#else
 #include "arinc661_configuration.h"
-#endif
+#include "arinc661_definition_editor.h"
 #include "imgui.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_win32.h"
@@ -46,16 +43,15 @@ extern "C"
 ** 3.1 Macros
 **===============================================================================================*/
 
-/* One host for both editors; the Definition File editor is selected at build time. */
-#if defined(ARINC661_DEFINITION_EDITOR)
-#define EDITOR_TYPE       Arinc661_Definition_Editor_t
-#define EDITOR_INITIALIZE Arinc661_Definition_Initialize
-#define EDITOR_DRAW       Arinc661_Definition_DrawEditor
-#else
-#define EDITOR_TYPE       Arinc661_Configuration_Editor_t
-#define EDITOR_INITIALIZE Arinc661_Configuration_Initialize
-#define EDITOR_DRAW       Arinc661_Configuration_DrawEditor
-#endif
+/* Main menu bar that switches between the two editors; each keeps its own documents. */
+#define EDITOR_MENU_LABEL              ("Editor")
+#define CONFIGURATION_EDITOR_LABEL     ("Configuration")
+#define CONFIGURATION_EDITOR_SHORTCUT  ("Ctrl+1")
+#define DEFINITION_EDITOR_LABEL        ("Definition File")
+#define DEFINITION_EDITOR_SHORTCUT     ("Ctrl+2")
+#define CONFIGURATION_EDITOR_KEY_CHORD (ImGuiMod_Ctrl | ImGuiKey_1)
+#define DEFINITION_EDITOR_KEY_CHORD    (ImGuiMod_Ctrl | ImGuiKey_2)
+#define EDITOR_SHORTCUT_FLAGS          (ImGuiInputFlags_RouteGlobal | ImGuiInputFlags_RouteOverActive)
 
 #define ASSERT(expression) LOGASSERT(expression)
 #define MOVE_SIZE_TIMER_ID (1U)
@@ -92,7 +88,10 @@ typedef struct WindowThreadState_s
     HANDLE                 readyEvent;          ///< Signals when rendering setup is complete.
     HANDLE                 presentStoppedEvent; ///< Signals when the presenter releases its device context.
     HGLRC                  presentContext;      ///< OpenGL context used by the presenter thread.
-    EDITOR_TYPE*                     editor;              ///< Editor rendered by the window thread.
+    Arinc661_Configuration_Editor_t* configurationEditor; ///< FACE display management configuration editor.
+    Arinc661_Definition_Editor_t*    definitionEditor;    ///< ARINC 661 Definition File editor.
+    bool_t                           isDefinitionActive;  ///< TRUE while the Definition File editor is shown.
+    bool_t                           hasEditors;          ///< TRUE once both editors exist.
     float32_t              mainScale;           ///< Initial display scale.
     SRWLOCK                presentLock;         ///< Protects geometry, drawing, and buffer swaps.
     CONDITION_VARIABLE     presentCondition;    ///< Wakes the window thread after geometry is acknowledged.
@@ -322,13 +321,66 @@ static void EndFrame(WindowThreadState_t* window)
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  Draws the main menu bar that selects an editor, then the selected editor below it. The
+ *  menu bar shrinks the viewport work area, so each editor still fills the rest of the window.
+ *  Both editors keep their documents while hidden.
+ */
+static void DrawEditors(WindowThreadState_t* window)
+{
+    if (ImGui::BeginMainMenuBar())
+    {
+        if (ImGui::BeginMenu(EDITOR_MENU_LABEL))
+        {
+            if (ImGui::MenuItem(CONFIGURATION_EDITOR_LABEL, CONFIGURATION_EDITOR_SHORTCUT, FALSE == window->isDefinitionActive))
+            {
+                window->isDefinitionActive = FALSE;
+            }
+            if (ImGui::MenuItem(DEFINITION_EDITOR_LABEL, DEFINITION_EDITOR_SHORTCUT, TRUE == window->isDefinitionActive))
+            {
+                window->isDefinitionActive = TRUE;
+            }
+            ImGui::EndMenu();
+        }
+        // Keep the switch visible as two checked items in the bar itself
+        ImGui::Separator();
+        if (ImGui::MenuItem(CONFIGURATION_EDITOR_LABEL, NULL, FALSE == window->isDefinitionActive))
+        {
+            window->isDefinitionActive = FALSE;
+        }
+        if (ImGui::MenuItem(DEFINITION_EDITOR_LABEL, NULL, TRUE == window->isDefinitionActive))
+        {
+            window->isDefinitionActive = TRUE;
+        }
+        ImGui::EndMainMenuBar();
+    }
+    if (ImGui::Shortcut(CONFIGURATION_EDITOR_KEY_CHORD, EDITOR_SHORTCUT_FLAGS))
+    {
+        window->isDefinitionActive = FALSE;
+    }
+    if (ImGui::Shortcut(DEFINITION_EDITOR_KEY_CHORD, EDITOR_SHORTCUT_FLAGS))
+    {
+        window->isDefinitionActive = TRUE;
+    }
+    if (window->isDefinitionActive)
+    {
+        Arinc661_Definition_DrawEditor(window->definitionEditor);
+    }
+    else
+    {
+        Arinc661_Configuration_DrawEditor(window->configurationEditor);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Draws one ImGui frame while the presenter is excluded from the back buffer.
  */
 static void DrawFrame(WindowThreadState_t* window)
 {
     AcquireSRWLockExclusive(&window->presentLock);
     BeginFrame();
-    EDITOR_DRAW(window->editor);
+    DrawEditors(window);
     EndFrame(window);
     ReleaseSRWLockExclusive(&window->presentLock);
     LOGASSERT(S_OK == ::DwmFlush());
@@ -586,11 +638,11 @@ static LRESULT WINAPI WindowProcedure(HWND windowHandle, UINT message, WPARAM wo
     {
         if (MOVE_SIZE_TIMER_ID == wordParameter)
         {
-            if ((NULL != window->editor) && (FALSE == window->isDone.load()))
+            if (window->hasEditors && (FALSE == window->isDone.load()))
             {
                 AcquireSRWLockExclusive(&window->presentLock);
                 BeginFrame();
-                EDITOR_DRAW(window->editor);
+                DrawEditors(window);
                 EndFrame(window);
                 ReleaseSRWLockExclusive(&window->presentLock);
                 LOGASSERT(S_OK == ::DwmFlush());
@@ -631,11 +683,13 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
     ImGuiStyle*                style;
     ImGuiPlatformIO*           platform_io;
     WglSwapIntervalFunction_t  swap_interval;
-    EDITOR_TYPE*                         configuration_editor;
     MSG                        message;
 
     window = (WindowThreadState_t*)parameter;
-    window->editor = NULL;
+    window->configurationEditor = NULL;
+    window->definitionEditor    = NULL;
+    window->isDefinitionActive  = FALSE;
+    window->hasEditors          = FALSE;
     memset(&window_class, 0, sizeof(window_class));
     window_class.cbSize        = sizeof(window_class);
     window_class.style         = CS_OWNDC;
@@ -712,9 +766,11 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
         platform_io->Platform_RenderWindow  = HookPlatformRenderWindow;
     }
 
-    configuration_editor = (EDITOR_TYPE*)OS_CALLOC(sizeof(EDITOR_TYPE));
-    EDITOR_INITIALIZE(configuration_editor);
-    window->editor = configuration_editor;
+    window->configurationEditor = (Arinc661_Configuration_Editor_t*)OS_CALLOC(sizeof(Arinc661_Configuration_Editor_t));
+    Arinc661_Configuration_Initialize(window->configurationEditor);
+    window->definitionEditor = (Arinc661_Definition_Editor_t*)OS_CALLOC(sizeof(Arinc661_Definition_Editor_t));
+    Arinc661_Definition_Initialize(window->definitionEditor);
+    window->hasEditors = TRUE;
     window->isInitialized = TRUE;
     LOGASSERT(FALSE != ::SetEvent(window->readyEvent));
 

@@ -578,6 +578,76 @@ static void TestDefinitionBinaryBlocks(void)
 /**
  * \brief Checks the Creation Structure schema exposed for editors.
  */
+/*************************************************************************************************/
+/**
+ * \brief Checks that floats and fr() angles keep A661 precision through the binary form with the shortest text.
+ */
+static void TestDefinitionBinaryPrecision(void)
+{
+    /* Table 3.5.4-2 Slider holds floats; Table 3.3.20-2 Label holds a fr(180) angle */
+    byte_t input[] = "<a661_df name=\"example\" library_version=\"0\" supp_version=\"7\"><model/><a661_layer name=\"Primary\"><model/>"
+                     "<a661_widget name=\"Slide\" type=\"A661_SLIDER\"><model><prop name=\"WidgetIdent\" value=\"1\"/><prop name=\"MinValue\" value=\"0.1\"/><prop name=\"MaxValue\" value=\"123456.7\"/><prop name=\"Value\" value=\"100\"/></model></a661_widget>"
+                     "<a661_widget name=\"Text\" type=\"A661_LABEL\"><model><prop name=\"WidgetIdent\" value=\"2\"/><prop name=\"RotationAngle\" value=\"0.0000001\"/></model></a661_widget></a661_layer></a661_df>";
+    byte_t output[512];
+    Arinc661_Layer_t layers[1];
+    Arinc661_Widget_t widgets[2];
+    Arinc661_Property_t properties[64];
+    Arinc661_Definition_t definition;
+    uint64_t byte_count;
+    uint32_t index;
+    uint32_t found;
+    bool_t is_valid;
+
+    memset(&definition, 0, sizeof(definition));
+    definition.layers = layers;
+    definition.widgets = widgets;
+    definition.properties = properties;
+    definition.layerCapacity = 1;
+    definition.widgetCapacity = 2;
+    definition.propertyCapacity = 64;
+    is_valid = Arinc661_ReadDefinition(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
+    assert(is_valid);
+    byte_count = Arinc661_WriteDefinitionBinary(&definition, output, sizeof(output));
+    assert(0 < byte_count);
+    is_valid = Arinc661_ReadDefinitionBinary(&definition, output, byte_count);
+    assert(is_valid);
+
+    /* Floats come back as the shortest decimal that is the same IEEE 754 single; 123456.7 is exactly 123456.703125 */
+    found = 0;
+    for (index = 0; index < definition.propertyCount; ++index)
+    {
+        if ((ARINC661_PROPERTY_WIDGET == properties[index].owner) && (0 == properties[index].ownerIndex))
+        {
+            if (0 == strcmp("MinValue", properties[index].name))
+            {
+                assert(0 == strcmp("0.1", properties[index].value));
+                found += 1;
+            }
+            else if (0 == strcmp("MaxValue", properties[index].name))
+            {
+                assert(0 == strcmp("123456.7", properties[index].value));
+                found += 1;
+            }
+            else if (0 == strcmp("Value", properties[index].name))
+            {
+                assert(0 == strcmp("100", properties[index].value));
+                found += 1;
+            }
+        }
+        /* One fr(180) LSB is 8.38e-8 degrees; the shortest text that encodes to one LSB is 0.0000001 */
+        else if ((ARINC661_PROPERTY_WIDGET == properties[index].owner) && (1 == properties[index].ownerIndex) && (0 == strcmp("RotationAngle", properties[index].name)))
+        {
+            assert(0 == strcmp("0.0000001", properties[index].value));
+            found += 1;
+        }
+    }
+    assert(4 == found);
+}
+
+/*************************************************************************************************/
+/**
+ * \brief Checks the Creation Structure schema exposed for editors.
+ */
 static void TestDefinitionSchema(void)
 {
     Arinc661_Parameter_t parameter;
@@ -585,7 +655,7 @@ static void TestDefinitionSchema(void)
     uint32_t             type_index;
     uint32_t             found;
 
-    assert(92 == Arinc661_TypeCount(FALSE));
+    assert(100 == Arinc661_TypeCount(FALSE));
     assert(20 == Arinc661_TypeCount(TRUE));
     found = 0;
     for (type_index = 0; type_index < Arinc661_TypeCount(FALSE); ++type_index)
@@ -659,5 +729,6 @@ void RunArinc661Tests(void)
     TestDefinitionArrayProperties();
     TestDefinitionBinaryExtensions();
     TestDefinitionBinaryBlocks();
+    TestDefinitionBinaryPrecision();
     TestDefinitionSchema();
 }

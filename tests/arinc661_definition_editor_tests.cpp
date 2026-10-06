@@ -154,6 +154,13 @@ int main(void)
             if (0 == Arinc661_WriteDefinitionBinary(&document->definition, document->outputBuffer, sizeof(document->outputBuffer)))
             {
                 fprintf(stderr, "seed write failed for %s\n", document->widgets[0].type);
+                for (parameter_index = 0; parameter_index < document->definition.propertyCount; ++parameter_index)
+                {
+                    if ((ARINC661_PROPERTY_WIDGET == document->properties[parameter_index].owner) && (0 == document->properties[parameter_index].ownerIndex))
+                    {
+                        fprintf(stderr, "  %s = %s\n", document->properties[parameter_index].name, document->properties[parameter_index].value);
+                    }
+                }
                 assert(FALSE);
             }
             /* Growing every array to two entries still writes */

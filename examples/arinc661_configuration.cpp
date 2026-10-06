@@ -157,6 +157,10 @@ extern "C"
 #define MAP_SOURCE_LAYER_LABEL ("Map Source Layer")
 #define VISIBLE_LABEL          ("Visible")
 #define SELECT_ITEM_PROMPT     ("Select a screen, layout, window, or user application.")
+#define NO_WINDOW_LABEL        ("(none)")
+#define NO_DEFINITION_LABEL    ("(none)")
+#define WINDOW_CHOICE_FORMAT   ("Window %" PRId64 " (%s)")
+#define CHOICE_LABEL_BYTES     (FACEOE_DISPLAYMANAGEMENT_MAX_NAME_BYTES + LABEL_FORMAT_BYTES)
 
 #define INTEGER_TEXT_BYTES       (32)
 #define LABEL_FORMAT_BYTES       (64)
@@ -693,6 +697,33 @@ static bool_t DrawUnitField(const char_t* label, FACEOE_DisplayManagement_Unit_t
 
 /*************************************************************************************************/
 /**
+ * \brief Draws a combo of the document's windows for a user application's window reference.
+ *
+ * \param[in]     editor   Document holding the windows
+ * \param[in]     label    Row label
+ * \param[in,out] value    Window identifier
+ *
+ * \retval        TRUE     if the value changed.
+ * \retval        FALSE    otherwise.
+ */
+static bool_t DrawWindowChoiceField(const Arinc661_Configuration_Document_t* editor, const char_t* label, int64_t* value);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws a combo of the known Definition Files for a user application's dFPath.
+ *
+ * \param[in]     editor     Editor holding the Definition File names
+ * \param[in]     label      Row label
+ * \param[in,out] value      Path text
+ * \param[in]     capacity   Path capacity
+ *
+ * \retval        TRUE       if the value changed.
+ * \retval        FALSE      otherwise.
+ */
+static bool_t DrawDefinitionChoiceField(const Arinc661_Configuration_Editor_t* editor, const char_t* label, char_t* value, uint32_t capacity);
+
+/*************************************************************************************************/
+/**
  * \brief Records an inspector edit as an unsaved document change.
  *
  * \param[in,out] editor       Editor state
@@ -740,7 +771,7 @@ static void DrawWindowInspector(Arinc661_Configuration_Document_t* editor);
  *
  * \retval        None
  */
-static void DrawUserApplicationInspector(Arinc661_Configuration_Document_t* editor);
+static void DrawUserApplicationInspector(Arinc661_Configuration_Editor_t* editor, Arinc661_Configuration_Document_t* document);
 
 /*************************************************************************************************/
 /**
@@ -843,7 +874,7 @@ static void DrawHierarchyPane(Arinc661_Configuration_Document_t* editor);
  *
  * \retval        None
  */
-static void DrawInspectorPane(Arinc661_Configuration_Document_t* editor);
+static void DrawInspectorPane(Arinc661_Configuration_Editor_t* editor, Arinc661_Configuration_Document_t* document);
 
 /*************************************************************************************************/
 /**
@@ -1415,6 +1446,104 @@ static void FindMatchingFile(const char_t* fileName, void* context)
     {
         match_context->isFound = TRUE;
     }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Lists every window of the document by identifier and name; FACE H.3.1 requires a user
+ *  application's window to name one of them. A reference to no known window shows as none.
+ */
+static bool_t DrawWindowChoiceField(const Arinc661_Configuration_Document_t* editor, const char_t* label, int64_t* value)
+{
+    const FACEOE_DisplayManagement_Window_t* window;
+    char_t                                   choice[CHOICE_LABEL_BYTES];
+    const char_t*                            preview;
+    uint32_t                                 window_index;
+    bool_t                                   has_changed;
+
+    has_changed = FALSE;
+    preview     = NO_WINDOW_LABEL;
+    for (window_index = 0; window_index < editor->configuration.windowCount; ++window_index)
+    {
+        if ((*value) == editor->windows[window_index].id)
+        {
+            ImFormatString(choice, sizeof(choice), WINDOW_CHOICE_FORMAT, editor->windows[window_index].id, editor->windows[window_index].name);
+            preview = choice;
+            break;
+        }
+    }
+    ImGui::TableNextRow();
+    ImGui::TableSetColumnIndex(0);
+    ImGui::TextUnformatted(label);
+    ImGui::TableSetColumnIndex(1);
+    ImGui::PushID(label);
+    ImGui::SetNextItemWidth(-1.0f);
+    if (ImGui::BeginCombo(PROPERTY_INPUT_ID, preview))
+    {
+        for (window_index = 0; window_index < editor->configuration.windowCount; ++window_index)
+        {
+            window = &editor->windows[window_index];
+            ImGui::PushID(window);
+            ImFormatString(choice, sizeof(choice), WINDOW_CHOICE_FORMAT, window->id, window->name);
+            if (ImGui::Selectable(choice, (*value) == window->id))
+            {
+                (*value)    = window->id;
+                has_changed = TRUE;
+            }
+            ImGui::PopID();
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::PopID();
+
+    return has_changed;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Offers the Definition Files found in the folder, which the host validated as ARINC 661
+ *  Definition Files, plus none. A path outside the list is shown as typed.
+ */
+static bool_t DrawDefinitionChoiceField(const Arinc661_Configuration_Editor_t* editor, const char_t* label, char_t* value, uint32_t capacity)
+{
+    const char_t* preview;
+    uint32_t      file_index;
+    bool_t        has_changed;
+
+    has_changed = FALSE;
+    preview     = value;
+    if ('\0' == value[0])
+    {
+        preview = NO_DEFINITION_LABEL;
+    }
+    ImGui::TableNextRow();
+    ImGui::TableSetColumnIndex(0);
+    ImGui::TextUnformatted(label);
+    ImGui::TableSetColumnIndex(1);
+    ImGui::PushID(label);
+    ImGui::SetNextItemWidth(-1.0f);
+    if (ImGui::BeginCombo(PROPERTY_INPUT_ID, preview))
+    {
+        if (ImGui::Selectable(NO_DEFINITION_LABEL, '\0' == value[0]))
+        {
+            value[0]    = '\0';
+            has_changed = TRUE;
+        }
+        for (file_index = 0; file_index < editor->definitionFileCount; ++file_index)
+        {
+            if (ImGui::Selectable(editor->definitionFiles[file_index], 0 == strcmp(value, editor->definitionFiles[file_index])))
+            {
+                ImStrncpy(value, editor->definitionFiles[file_index], capacity);
+                has_changed = TRUE;
+            }
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::PopID();
+
+    return has_changed;
 }
 
 /*************************************************************************************************/
@@ -2541,21 +2670,22 @@ static void DrawWindowInspector(Arinc661_Configuration_Document_t* editor)
  * \par Details:
  *  User application attributes are edited in their stored order.
  */
-static void DrawUserApplicationInspector(Arinc661_Configuration_Document_t* editor)
+static void DrawUserApplicationInspector(Arinc661_Configuration_Editor_t* editor, Arinc661_Configuration_Document_t* document)
 {
     FACEOE_DisplayManagement_UserApplication_t* application;
 
-    application = &editor->userApplications[editor->selectedIndex];
+    application = &document->userApplications[document->selectedIndex];
 
     ImGui::TextUnformatted(USER_APPLICATION_SECTION_LABEL);
     if (BeginPropertyTable(USER_APPLICATION_TABLE_ID))
     {
-        MarkDocumentDirty(editor, DrawIdentifierField(editor, SELECTION_USER_APPLICATION, 0, editor->selectedIndex, &application->applicationId));
-        MarkDocumentDirty(editor, DrawIntegerField(WINDOW_ID_LABEL, &application->window));
-        MarkDocumentDirty(editor, DrawTextField(DF_PATH_LABEL, application->dFPath, sizeof(application->dFPath)));
-        MarkDocumentDirty(editor, DrawTextField(STYLE_FILE_PATH_LABEL, application->styleFilePath, sizeof(application->styleFilePath)));
-        MarkDocumentDirty(editor, DrawBooleanField(MAP_SOURCE_LAYER_LABEL, &application->mapSourceLayer));
-        MarkDocumentDirty(editor, DrawBooleanField(VISIBLE_LABEL, &application->visible));
+        MarkDocumentDirty(document, DrawIdentifierField(document, SELECTION_USER_APPLICATION, 0, document->selectedIndex, &application->applicationId));
+        // Offer only windows of this document and Definition Files of the folder
+        MarkDocumentDirty(document, DrawWindowChoiceField(document, WINDOW_ID_LABEL, &application->window));
+        MarkDocumentDirty(document, DrawDefinitionChoiceField(editor, DF_PATH_LABEL, application->dFPath, sizeof(application->dFPath)));
+        MarkDocumentDirty(document, DrawTextField(STYLE_FILE_PATH_LABEL, application->styleFilePath, sizeof(application->styleFilePath)));
+        MarkDocumentDirty(document, DrawBooleanField(MAP_SOURCE_LAYER_LABEL, &application->mapSourceLayer));
+        MarkDocumentDirty(document, DrawBooleanField(VISIBLE_LABEL, &application->visible));
         ImGui::EndTable();
     }
 }
@@ -3152,30 +3282,30 @@ static void DrawHierarchyPane(Arinc661_Configuration_Document_t* editor)
  * \par Details:
  *  Shows the selected item's typed fields in the right child pane.
  */
-static void DrawInspectorPane(Arinc661_Configuration_Document_t* editor)
+static void DrawInspectorPane(Arinc661_Configuration_Editor_t* editor, Arinc661_Configuration_Document_t* document)
 {
     if (ImGui::BeginChild(INSPECTOR_PANE_NAME, ImVec2(0.0f, 0.0f), PANE_FLAGS))
     {
         ImGui::TextUnformatted(INSPECTOR_PANE_NAME);
         ImGui::Separator();
 
-        if (editor->isLoaded)
+        if (document->isLoaded)
         {
-            if (SELECTION_SCREEN == editor->selectedKind)
+            if (SELECTION_SCREEN == document->selectedKind)
             {
-                DrawScreenInspector(editor);
+                DrawScreenInspector(document);
             }
-            else if (SELECTION_LAYOUT == editor->selectedKind)
+            else if (SELECTION_LAYOUT == document->selectedKind)
             {
-                DrawLayoutInspector(editor);
+                DrawLayoutInspector(document);
             }
-            else if (SELECTION_WINDOW == editor->selectedKind)
+            else if (SELECTION_WINDOW == document->selectedKind)
             {
-                DrawWindowInspector(editor);
+                DrawWindowInspector(document);
             }
-            else if (SELECTION_USER_APPLICATION == editor->selectedKind)
+            else if (SELECTION_USER_APPLICATION == document->selectedKind)
             {
-                DrawUserApplicationInspector(editor);
+                DrawUserApplicationInspector(editor, document);
             }
             else
             {
@@ -3565,7 +3695,7 @@ static void DrawPanes(Arinc661_Configuration_Editor_t* editor)
         ImGui::TableSetColumnIndex(HIERARCHY_PANE_COLUMN_IDX);
         DrawHierarchyPane(document);
         ImGui::TableSetColumnIndex(INSPECTOR_PANE_COLUMN);
-        DrawInspectorPane(document);
+        DrawInspectorPane(editor, document);
         ImGui::TableSetColumnIndex(SCENE_PANE_COLUMN_IDX);
         DrawScenePane(document);
         ImGui::EndTable();
@@ -3596,6 +3726,8 @@ void Arinc661_Configuration_Initialize(Arinc661_Configuration_Editor_t* editor)
     ImStrncpy(editor->folderPath, DEFAULT_FOLDER_PATH, sizeof(editor->folderPath));
     (void)memset(editor->saveFolderPath, 0, sizeof(editor->saveFolderPath));
     (void)memset(editor->saveFileName, 0, sizeof(editor->saveFileName));
+    editor->definitionFileCount = 0;
+    (void)memset(editor->definitionFiles, 0, sizeof(editor->definitionFiles));
     for (document_index = 0; document_index < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS; ++document_index)
     {
         document = &editor->documents[document_index];
@@ -3670,4 +3802,244 @@ void Arinc661_Configuration_DrawEditor(Arinc661_Configuration_Editor_t* editor)
         DrawStatusBar(editor);
     }
     ImGui::End();
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Replaces the folder; the next file list shows that folder's XML files.
+ */
+void Arinc661_Configuration_SetFolderPath(Arinc661_Configuration_Editor_t* editor, const char_t* folderPath)
+{
+    ImStrncpy(editor->folderPath, folderPath, sizeof(editor->folderPath));
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Same as selecting the file in the file list.
+ */
+void Arinc661_Configuration_LoadFile(Arinc661_Configuration_Editor_t* editor, const char_t* fileName)
+{
+    LoadConfigurationFile(editor, fileName);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Same as the File menu's New.
+ */
+void Arinc661_Configuration_CreateDocument(Arinc661_Configuration_Editor_t* editor)
+{
+    CreateDocument(editor);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Same as the File menu's Save; nothing happens without an active document.
+ */
+void Arinc661_Configuration_SaveActiveDocument(Arinc661_Configuration_Editor_t* editor)
+{
+    if (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex)
+    {
+        editor->isSaveAllPending = FALSE;
+        SaveDocument(editor, editor->activeDocumentIndex);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Same as the File menu's Save All.
+ */
+void Arinc661_Configuration_SaveAllDocuments(Arinc661_Configuration_Editor_t* editor)
+{
+    SaveAllDocuments(editor);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  A changed document is closed through the prompt drawn by the document tabs.
+ */
+void Arinc661_Configuration_CloseActiveDocument(Arinc661_Configuration_Editor_t* editor)
+{
+    if (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex)
+    {
+        if (editor->documents[editor->activeDocumentIndex].isDirty)
+        {
+            editor->pendingCloseDocumentIndex = editor->activeDocumentIndex;
+        }
+        else
+        {
+            CloseDocument(editor, editor->activeDocumentIndex);
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Scans the document slots once for all three answers.
+ */
+bool_t Arinc661_Configuration_HasActiveDocument(const Arinc661_Configuration_Editor_t* editor, bool_t* isDirty, bool_t* hasFree)
+{
+    uint32_t document_index;
+    bool_t   is_dirty;
+    bool_t   has_free;
+
+    is_dirty = FALSE;
+    has_free = FALSE;
+    for (document_index = 0; document_index < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS; ++document_index)
+    {
+        if (editor->documents[document_index].isLoaded)
+        {
+            is_dirty = !!(is_dirty || editor->documents[document_index].isDirty);
+        }
+        else
+        {
+            has_free = TRUE;
+        }
+    }
+    if (NULL != isDirty)
+    {
+        (*isDirty) = is_dirty;
+    }
+    if (NULL != hasFree)
+    {
+        (*hasFree) = has_free;
+    }
+
+    return (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Draws into the current window.
+ */
+void Arinc661_Configuration_DrawDocumentTabs(Arinc661_Configuration_Editor_t* editor)
+{
+    DrawDocumentTabs(editor);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Draws nothing without an active document.
+ */
+void Arinc661_Configuration_DrawHierarchy(Arinc661_Configuration_Editor_t* editor)
+{
+    if (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex)
+    {
+        DrawHierarchy(&editor->documents[editor->activeDocumentIndex]);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Uses the first slot, which is never loaded, when no document is active.
+ */
+void Arinc661_Configuration_DrawScene(Arinc661_Configuration_Editor_t* editor)
+{
+    Arinc661_Configuration_Document_t* document;
+
+    document = &editor->documents[0];
+    if (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex)
+    {
+        document = &editor->documents[editor->activeDocumentIndex];
+    }
+    ImGui::PushID(document);
+    DrawScenePane(document);
+    ImGui::PopID();
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Uses the first slot, which is never loaded, when no document is active.
+ */
+void Arinc661_Configuration_DrawInspector(Arinc661_Configuration_Editor_t* editor)
+{
+    Arinc661_Configuration_Document_t* document;
+
+    document = &editor->documents[0];
+    if (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex)
+    {
+        document = &editor->documents[editor->activeDocumentIndex];
+    }
+    ImGui::PushID(document);
+    DrawInspectorPane(editor, document);
+    ImGui::PopID();
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The close prompt belongs to the document tabs; only the save-as dialog is drawn here.
+ */
+void Arinc661_Configuration_DrawDialogs(Arinc661_Configuration_Editor_t* editor)
+{
+    DrawSaveAsDialog(editor);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The editor message wins over the active document's message.
+ */
+const char_t* Arinc661_Configuration_StatusText(const Arinc661_Configuration_Editor_t* editor)
+{
+    const char_t* status_text;
+
+    status_text = EditorStatusToString(editor->status);
+    if ((INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex) && ('\0' == status_text[0]))
+    {
+        status_text = EditorStatusToString(editor->documents[editor->activeDocumentIndex].status);
+    }
+
+    return status_text;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Measures the first slot, which is never loaded, when no document is active.
+ */
+void Arinc661_Configuration_MeasurePanes(const Arinc661_Configuration_Editor_t* editor, float32_t* hierarchyWidth, float32_t* inspectorWidth)
+{
+    const Arinc661_Configuration_Document_t* document;
+
+    document = &editor->documents[0];
+    if (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex)
+    {
+        document = &editor->documents[editor->activeDocumentIndex];
+    }
+    MeasurePaneWidths(document, hierarchyWidth, inspectorWidth);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Empties the dFPath choices; the host adds the current folder's Definition Files again.
+ */
+void Arinc661_Configuration_ClearDefinitionFiles(Arinc661_Configuration_Editor_t* editor)
+{
+    editor->definitionFileCount = 0;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Names beyond the capacity are dropped.
+ */
+void Arinc661_Configuration_AddDefinitionFile(Arinc661_Configuration_Editor_t* editor, const char_t* fileName)
+{
+    if (editor->definitionFileCount < ARINC661_CONFIGURATION_MAX_DEFINITION_FILES)
+    {
+        ImStrncpy(editor->definitionFiles[editor->definitionFileCount], fileName, sizeof(editor->definitionFiles[0]));
+        editor->definitionFileCount += 1;
+    }
 }

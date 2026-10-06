@@ -64,10 +64,11 @@
 #define BINARY_COMMAND_BYTES        (10U) ///< Command code, CommandSize, WidgetType, WidgetIdent, and ParentIdent
 #define BINARY_EXTEND_BYTES         (6U)  ///< Command code, CommandSize, and ExtensionType
 #define BINARY_WORD_BYTES           (4U)  ///< Blocks and commands are aligned to 32 bits
-#define BINARY_MAX_FIELDS           (32U) ///< Largest Creation Structure parameter count in the tables
+#define BINARY_MAX_FIELDS           (40U) ///< Largest Creation Structure parameter count in the tables
 
 /* ARINC 661 Part 1-7, Tables 8.6.7-4 through 8.6.7-7: excluded region structure sizes by ExcludedRegionType. */
 #define BINARY_REGION_HEADER_BYTES    (4U)  ///< ExcludedItemIndex, ExcludedRegionType, and unused pad
+#define BINARY_REQUEST_HEADER_BYTES   (4U)  ///< LayerIdent, unused pad, and CommandSize of a LayerReqResult entry
 #define BINARY_REGION_NOT_USED_BYTES  (4U)  ///< A661_NOT_USED (0)
 #define BINARY_REGION_RECTANGLE_BYTES (20U) ///< A661_EXCLUDED_RECTANGLE (1)
 #define BINARY_REGION_TRIANGLE_BYTES  (28U) ///< A661_EXCLUDED_TRIANGLE (2)
@@ -81,8 +82,8 @@
 
 #define BINARY_INTEGER_TEXT_BYTES (32U)           ///< Integer formatting buffer bytes, including the zero terminator
 #define BINARY_FR_FULL_SCALE      (2147483648.0)  ///< Two raised to the number of fr() bits minus one
-#define BINARY_FR_PRECISION       (10)            ///< Fractional digits that resolve one 32-bit fr(180) LSB
-#define BINARY_FLOAT_PRECISION    (54)            ///< Fractional digits that retain very small float32_t values
+#define BINARY_FR_PRECISION       (10)            ///< Most fractional digits tried when formatting a fr() value; one fr(180) LSB is 8.4e-8
+#define BINARY_FLOAT_PRECISION    (60)            ///< Most fractional digits tried when formatting a float; the smallest subnormal needs 45
 
 /*=================================================================================================
 ** 3.2 Types
@@ -106,7 +107,8 @@ typedef enum BinaryFieldType_e
     BINARY_FIELD_BYTES,       ///< Fixed number of bytes with no numeric type, given as hexadecimal digits
     BINARY_FIELD_ALIGN,       ///< Zero bytes up to the next 32-bit boundary
     BINARY_FIELD_SIZED_BYTES, ///< Table 8.6.5-3 StaticParamBuffer: byte count, pad, bytes, and alignment, given as hexadecimal digits
-    BINARY_FIELD_REGION       ///< Tables 8.6.7-4 to 8.6.7-7 excluded region structure, sized by its type byte, given as hexadecimal digits
+    BINARY_FIELD_REGION,      ///< Tables 8.6.7-4 to 8.6.7-7 excluded region structure, sized by its type byte, given as hexadecimal digits
+    BINARY_FIELD_LAYER_REQUEST ///< Table 3.9.17-6 LayerReqResult: LayerIdent, pad, CommandSize, and the request, given as hexadecimal digits
 } BinaryFieldType_t;
 
 /*************************************************************************************************/
@@ -484,6 +486,41 @@ static const BinaryField_t c_binaryFields[] =
     {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
     {("FormatString"),                  BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
     {("LegendString"),                  BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
+    /* A661_EDIT_BOX_NUMERIC_BCD: Table 3.6.1-5, EditBoxNumericBCD Creation Structure */
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
+    {("LegendAreaSizeX"),               BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
+    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
+    {("Value"),                         BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL,       0U},
+    {("MinValue"),                      BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL,       0U},
+    {("MaxValue"),                      BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL,       0U},
+    {("MinFieldsValues"),               BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL,       0U},
+    {("MaxFieldsValues"),               BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL,       0U},
+    {("TicsCoarse"),                    BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL,       0U},
+    {("TicsFine"),                      BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL,       0U},
+    {("NumberOfFields"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
+    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
+    {("LegendPosition"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
+    {("LegendRemoved"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
+    {("MaxFormatStringLength"),         BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
+    {("MaxLegendStringLength"),         BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
+    {("PositiveStringLength"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
+    {("NegativeStringLength"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
+    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
+    {("ReportAllChanges"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
+    {("NumericKeyFlag"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
+    {("CyclicFlag"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
+    {("SizeOfFields"),                  BINARY_FIELD_UCHAR,        1U, 16U, 1U, NULL,       0U},
+    {(NULL),                            BINARY_FIELD_ALIGN,        0U,  0U, 0U, NULL,       0U},
+    {("FormatString"),                  BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
+    {("LegendString"),                  BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
+    {("PositiveString"),                BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
+    {("NegativeString"),                BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
     /* A661_EDIT_BOX_TEXT: Table 3.3.11-2, EditBoxText Creation Structure */
     {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
     {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
@@ -500,6 +537,16 @@ static const BinaryField_t c_binaryFields[] =
     {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values8,  3U},
     {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
     {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
+    /* A661_EVENT_HANDLER: Table 3.9.17-3, EventHandler Creation Structure */
+    {("EnableHandler"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
+    {("TriggerLayerIdent"),             BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
+    {("TriggerWidgetIdent"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
+    {("TriggerEvent"),                  BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
+    {("NumWidgetParamResults"),         BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
+    {("NumLayerReqResults"),            BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
+    {("WidgetParamResultArray"),        BINARY_FIELD_BYTES,       20U,  5U, 1U, NULL,       0U},
+    {("LayerReqResultArray"),           BINARY_FIELD_LAYER_REQUEST,  0U,  6U, 1U, NULL,       0U},
     /* A661_EXTERNAL_SOURCE: Table 3.4.2-2, ExternalSource Creation Structure */
     {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
     {("MotionAllowed"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
@@ -515,11 +562,37 @@ static const BinaryField_t c_binaryFields[] =
     {("SourceDY"),                      BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
     {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
     {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
+    /* A661_FOCUS_IN: Table 3.6.4.2-2, FocusIn Creation Structure */
+    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
+    /* A661_FOCUS_LINK: Table 3.6.4.1-2, FocusLink Creation Structure */
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
+    {(NULL),                            BINARY_FIELD_PAD,          4U,  0U, 0U, NULL,       0U},
+    {("NextLayerConnectorRef"),         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
+    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
+    /* A661_FOCUS_OUT: Table 3.6.4.3-2, FocusOut Creation Structure */
+    {("NextFocusInAppId"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
+    {("NextFocusInLayerId"),            BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
+    {("NextFocusInId"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
     /* A661_FRAMING_REFRESH_CONTAINER: Table 3.9.18-2, FramingRefreshContainer Creation Structure */
     {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
     {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
     {("CachingEnabled"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
     {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL,       0U},
+    /* A661_GESTURE_AREA: Table 3.9.6-4, GestureArea Creation Structure */
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
+    {("ReportMode"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
+    {("AllowOutside"),                  BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
+    {("NumberOfEvents"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
+    {("EventIdArray"),                  BINARY_FIELD_UCHAR,        1U, 10U, 1U, NULL,       0U},
     /* A661_GP_ARC_CIRCLE: Table 3.3.13-2, GpArcCircle Creation Structure */
     {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
     {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
@@ -662,6 +735,16 @@ static const BinaryField_t c_binaryFields[] =
     {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
     {("MaxBufferSize"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
     {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
+    /* A661_KEYBOARD_AREA: Table 3.9.2-2, KeyboardArea Creation Structure */
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
+    {("NumberOfKeys"),                  BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
+    {("MaxNumberOfKeys"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
+    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL,       0U},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
+    {("KeyArray"),                      BINARY_FIELD_USHORT,       2U,  1U, 1U, NULL,       0U},
     /* A661_LABEL: Table 3.3.20-2, Label Creation Structure */
     {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
     {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
@@ -1085,6 +1168,13 @@ static const BinaryField_t c_binaryFields[] =
     {("VerticalScroll"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values11, 5U},
     {("FlagReportFramePos"),            BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
     {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
+    /* A661_SCROLL_WHEEL_AREA: Table 3.9.3-2, ScrollWheelArea Creation Structure */
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
     /* A661_SELECTION_LIST_BUTTON: Table 3.5.7-2, SelectionListButton Creation Structure */
     {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
     {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
@@ -1417,74 +1507,82 @@ static const BinaryWidget_t c_binaryWidgets[] =
     {("A661_EDIT_BOX_MASKED"),                0xA0A0U,  184U, 16U},
     {("A661_EDIT_BOX_MULTI_LINE"),            0xA0B0U,  200U, 15U},
     {("A661_EDIT_BOX_NUMERIC"),               0xA0C0U,  215U, 27U},
-    {("A661_EDIT_BOX_TEXT"),                  0xA0D0U,  242U, 15U},
-    {("A661_EXTERNAL_SOURCE"),                0xA188U,  257U, 14U},
-    {("A661_FRAMING_REFRESH_CONTAINER"),      0xA380U,  271U,  4U},
-    {("A661_GP_ARC_CIRCLE"),                  0xA0F0U,  275U, 13U},
-    {("A661_GP_ARC_ELLIPSE"),                 0xA100U,  288U, 14U},
-    {("A661_GP_CROWN"),                       0xA110U,  302U, 14U},
-    {("A661_GP_LINE"),                        0xA120U,  316U,  9U},
-    {("A661_GP_LINE_POLAR"),                  0xA130U,  325U,  9U},
-    {("A661_GP_POLYLINE"),                    0xA138U,  334U, 10U},
-    {("A661_GP_RECTANGLE"),                   0xA140U,  344U, 12U},
-    {("A661_GP_TRIANGLE"),                    0xA150U,  356U, 14U},
-    {("A661_GP_TRIANGLE_FAN"),                0xA151U,  370U, 11U},
-    {("A661_GP_TRIANGLE_STRIP"),              0xA152U,  381U, 11U},
-    {("A661_INK_AREA"),                       0xA502U,  392U, 14U},
-    {("A661_LABEL"),                          0xA160U,  406U, 14U},
-    {("A661_LABEL_COMPLEX"),                  0xA170U,  420U, 12U},
-    {("A661_MAPHORZ"),                        0xA1B0U,  432U, 12U},
-    {("A661_MAPHORZ_CONTAINER"),              0xA1B8U,  444U,  2U},
-    {("A661_MAPHORZ_ITEMLIST"),               0xA180U,  446U,  5U},
-    {("A661_MAPHORZ_PANEL"),                  0xA189U,  451U,  2U},
-    {("A661_MAPHORZ_SOURCE"),                 0xA1A0U,  453U,  5U},
-    {("A661_MAPHORZ_VERTEXBUFFER"),           0xA1A9U,  458U,  5U},
-    {("A661_MAPVERT"),                        0xA1B2U,  463U, 12U},
-    {("A661_MAPVERT_CONTAINER"),              0xA1B5U,  475U,  2U},
-    {("A661_MAPVERT_ITEMLIST"),               0xA1B3U,  477U,  5U},
-    {("A661_MAPVERT_PANEL"),                  0xA1B6U,  482U,  2U},
-    {("A661_MAPVERT_SOURCE"),                 0xA1B4U,  484U,  6U},
-    {("A661_MAP_BOUNDARY"),                   0xA1BAU,  490U,  7U},
-    {("A661_MAP_EXTERNAL_SOURCE"),            0xA224U,  497U,  8U},
-    {("A661_MAP_GRID"),                       0xA178U,  505U,  8U},
-    {("A661_MASK_CONTAINER"),                 0xA1C0U,  513U,  7U},
-    {("A661_MENU_BAR"),                       0xA1D0U,  520U,  8U},
-    {("A661_MULTI_STATE_BUTTON"),             0xA348U,  528U, 16U},
-    {("A661_MUTUALLY_EXCLUSIVE_CONTAINER"),   0xA400U,  544U,  6U},
-    {("A661_NO_SERVICE_MONITOR"),             0xA4F0U,  550U,  2U},
-    {("A661_NUMERIC_READOUT"),                0xA406U,  552U, 18U},
-    {("A661_PAGING_CONTAINER"),               0xA408U,  570U, 14U},
-    {("A661_PANEL"),                          0xA1F0U,  584U,  9U},
-    {("A661_PICTURE"),                        0xA200U,  593U,  8U},
-    {("A661_PICTURE_ANIMATED"),               0xA210U,  601U, 13U},
-    {("A661_PICTURE_PUSH_BUTTON"),            0xA240U,  614U, 15U},
-    {("A661_PICTURE_TOGGLE_BUTTON"),          0xA250U,  629U, 19U},
-    {("A661_POP_UP_MENU"),                    0xA270U,  648U, 12U},
-    {("A661_POP_UP_MENU_BUTTON"),             0xA280U,  660U, 27U},
-    {("A661_POP_UP_PANEL"),                   0xA290U,  687U,  8U},
-    {("A661_POP_UP_PANEL_BUTTON"),            0xA4E0U,  695U, 19U},
-    {("A661_PROXY_BUTTON"),                   0xA420U,  714U,  4U},
-    {("A661_PUSH_BUTTON"),                    0xA2A0U,  718U, 12U},
-    {("A661_RADIO_BOX"),                      0xA2B0U,  730U,  2U},
-    {("A661_ROTATION_CONTAINER"),             0xA2D0U,  732U,  5U},
-    {("A661_SCALE_CONTAINER"),                0xA2F2U,  737U,  6U},
-    {("A661_SCROLL_LIST"),                    0xA2F0U,  743U, 21U},
-    {("A661_SCROLL_PANEL"),                   0xA300U,  764U, 26U},
-    {("A661_SELECTION_LIST_BUTTON"),          0xA370U,  790U, 22U},
-    {("A661_SHUFFLE_TO_FIT_CONTAINER"),       0xA4B0U,  812U, 12U},
-    {("A661_SIZE_TO_FIT_CONTAINER"),          0xA4A0U,  824U, 10U},
-    {("A661_SLIDER"),                         0xA440U,  834U, 19U},
-    {("A661_SYMBOL"),                         0xA310U,  853U,  9U},
-    {("A661_SYMBOL_ANIMATED"),                0xA450U,  862U, 15U},
-    {("A661_SYMBOL_PUSH_BUTTON"),             0xA4C0U,  877U, 15U},
-    {("A661_SYMBOL_TOGGLE_BUTTON"),           0xA4D0U,  892U, 19U},
-    {("A661_TABBED_PANEL"),                   0xA320U,  911U, 12U},
-    {("A661_TABBED_PANEL_GROUP"),             0xA330U,  923U, 11U},
-    {("A661_TOGGLE_BUTTON"),                  0xA340U,  934U, 16U},
-    {("A661_TOUCH_AREA"),                     0xA500U,  950U, 12U},
-    {("A661_TRANSLATION_CONTAINER"),          0xA360U,  962U,  4U},
-    {("A661_TREE"),                           0xA222U,  966U, 23U},
-    {("A661_WATCHDOG_CONTAINER"),             0xA460U,  989U,  9U}
+    {("A661_EDIT_BOX_NUMERIC_BCD"),           0xA0C2U,  242U, 34U},
+    {("A661_EDIT_BOX_TEXT"),                  0xA0D0U,  276U, 15U},
+    {("A661_EVENT_HANDLER"),                  0xA600U,  291U,  9U},
+    {("A661_EXTERNAL_SOURCE"),                0xA188U,  300U, 14U},
+    {("A661_FOCUS_IN"),                       0xA498U,  314U,  1U},
+    {("A661_FOCUS_LINK"),                     0xA490U,  315U,  4U},
+    {("A661_FOCUS_OUT"),                      0xA499U,  319U,  4U},
+    {("A661_FRAMING_REFRESH_CONTAINER"),      0xA380U,  323U,  4U},
+    {("A661_GESTURE_AREA"),                   0xA501U,  327U, 13U},
+    {("A661_GP_ARC_CIRCLE"),                  0xA0F0U,  340U, 13U},
+    {("A661_GP_ARC_ELLIPSE"),                 0xA100U,  353U, 14U},
+    {("A661_GP_CROWN"),                       0xA110U,  367U, 14U},
+    {("A661_GP_LINE"),                        0xA120U,  381U,  9U},
+    {("A661_GP_LINE_POLAR"),                  0xA130U,  390U,  9U},
+    {("A661_GP_POLYLINE"),                    0xA138U,  399U, 10U},
+    {("A661_GP_RECTANGLE"),                   0xA140U,  409U, 12U},
+    {("A661_GP_TRIANGLE"),                    0xA150U,  421U, 14U},
+    {("A661_GP_TRIANGLE_FAN"),                0xA151U,  435U, 11U},
+    {("A661_GP_TRIANGLE_STRIP"),              0xA152U,  446U, 11U},
+    {("A661_INK_AREA"),                       0xA502U,  457U, 14U},
+    {("A661_KEYBOARD_AREA"),                  0xA1E1U,  471U,  9U},
+    {("A661_LABEL"),                          0xA160U,  480U, 14U},
+    {("A661_LABEL_COMPLEX"),                  0xA170U,  494U, 12U},
+    {("A661_MAPHORZ"),                        0xA1B0U,  506U, 12U},
+    {("A661_MAPHORZ_CONTAINER"),              0xA1B8U,  518U,  2U},
+    {("A661_MAPHORZ_ITEMLIST"),               0xA180U,  520U,  5U},
+    {("A661_MAPHORZ_PANEL"),                  0xA189U,  525U,  2U},
+    {("A661_MAPHORZ_SOURCE"),                 0xA1A0U,  527U,  5U},
+    {("A661_MAPHORZ_VERTEXBUFFER"),           0xA1A9U,  532U,  5U},
+    {("A661_MAPVERT"),                        0xA1B2U,  537U, 12U},
+    {("A661_MAPVERT_CONTAINER"),              0xA1B5U,  549U,  2U},
+    {("A661_MAPVERT_ITEMLIST"),               0xA1B3U,  551U,  5U},
+    {("A661_MAPVERT_PANEL"),                  0xA1B6U,  556U,  2U},
+    {("A661_MAPVERT_SOURCE"),                 0xA1B4U,  558U,  6U},
+    {("A661_MAP_BOUNDARY"),                   0xA1BAU,  564U,  7U},
+    {("A661_MAP_EXTERNAL_SOURCE"),            0xA224U,  571U,  8U},
+    {("A661_MAP_GRID"),                       0xA178U,  579U,  8U},
+    {("A661_MASK_CONTAINER"),                 0xA1C0U,  587U,  7U},
+    {("A661_MENU_BAR"),                       0xA1D0U,  594U,  8U},
+    {("A661_MULTI_STATE_BUTTON"),             0xA348U,  602U, 16U},
+    {("A661_MUTUALLY_EXCLUSIVE_CONTAINER"),   0xA400U,  618U,  6U},
+    {("A661_NO_SERVICE_MONITOR"),             0xA4F0U,  624U,  2U},
+    {("A661_NUMERIC_READOUT"),                0xA406U,  626U, 18U},
+    {("A661_PAGING_CONTAINER"),               0xA408U,  644U, 14U},
+    {("A661_PANEL"),                          0xA1F0U,  658U,  9U},
+    {("A661_PICTURE"),                        0xA200U,  667U,  8U},
+    {("A661_PICTURE_ANIMATED"),               0xA210U,  675U, 13U},
+    {("A661_PICTURE_PUSH_BUTTON"),            0xA240U,  688U, 15U},
+    {("A661_PICTURE_TOGGLE_BUTTON"),          0xA250U,  703U, 19U},
+    {("A661_POP_UP_MENU"),                    0xA270U,  722U, 12U},
+    {("A661_POP_UP_MENU_BUTTON"),             0xA280U,  734U, 27U},
+    {("A661_POP_UP_PANEL"),                   0xA290U,  761U,  8U},
+    {("A661_POP_UP_PANEL_BUTTON"),            0xA4E0U,  769U, 19U},
+    {("A661_PROXY_BUTTON"),                   0xA420U,  788U,  4U},
+    {("A661_PUSH_BUTTON"),                    0xA2A0U,  792U, 12U},
+    {("A661_RADIO_BOX"),                      0xA2B0U,  804U,  2U},
+    {("A661_ROTATION_CONTAINER"),             0xA2D0U,  806U,  5U},
+    {("A661_SCALE_CONTAINER"),                0xA2F2U,  811U,  6U},
+    {("A661_SCROLL_LIST"),                    0xA2F0U,  817U, 21U},
+    {("A661_SCROLL_PANEL"),                   0xA300U,  838U, 26U},
+    {("A661_SCROLL_WHEEL_AREA"),              0xA1E2U,  864U,  6U},
+    {("A661_SELECTION_LIST_BUTTON"),          0xA370U,  870U, 22U},
+    {("A661_SHUFFLE_TO_FIT_CONTAINER"),       0xA4B0U,  892U, 12U},
+    {("A661_SIZE_TO_FIT_CONTAINER"),          0xA4A0U,  904U, 10U},
+    {("A661_SLIDER"),                         0xA440U,  914U, 19U},
+    {("A661_SYMBOL"),                         0xA310U,  933U,  9U},
+    {("A661_SYMBOL_ANIMATED"),                0xA450U,  942U, 15U},
+    {("A661_SYMBOL_PUSH_BUTTON"),             0xA4C0U,  957U, 15U},
+    {("A661_SYMBOL_TOGGLE_BUTTON"),           0xA4D0U,  972U, 19U},
+    {("A661_TABBED_PANEL"),                   0xA320U,  991U, 12U},
+    {("A661_TABBED_PANEL_GROUP"),             0xA330U, 1003U, 11U},
+    {("A661_TOGGLE_BUTTON"),                  0xA340U, 1014U, 16U},
+    {("A661_TOUCH_AREA"),                     0xA500U, 1030U, 12U},
+    {("A661_TRANSLATION_CONTAINER"),          0xA360U, 1042U,  4U},
+    {("A661_TREE"),                           0xA222U, 1046U, 23U},
+    {("A661_WATCHDOG_CONTAINER"),             0xA460U, 1069U,  9U}
 };
 
 /*************************************************************************************************/
@@ -1493,26 +1591,26 @@ static const BinaryWidget_t c_binaryWidgets[] =
  */
 static const BinaryWidget_t c_binaryExtensions[] =
 {
-    {("A661_DIRECTIONAL_TABBING_EXTENSION"),        0x8003U,  998U,  3U},
-    {("A661_CURSOR_EVENTS_EXTENSION"),              0x8002U, 1001U,  2U},
-    {("A661_LEGEND_ALIGN_EXTENSION"),               0x8004U, 1003U,  2U},
-    {("A661_CHILD_INDEX_EXTENSION"),                0x8001U, 1005U,  1U},
-    {("A661_INITIAL_FOCUS_EXTENSION"),              0x8006U, 1006U,  2U},
-    {("A661_FOCUS_STOP_EXTENSION"),                 0x8007U, 1008U,  2U},
-    {("A661_CURSOR_SHAPE_EXTENSION"),               0x8008U, 1010U,  2U},
-    {("A661_PICTURE_EXTENSION"),                    0x8009U, 1012U,  5U},
-    {("A661_SYMBOL_EXTENSION"),                     0x800AU, 1017U,  5U},
-    {("A661_TICS_ARRAY_EXTENSION"),                 0x800BU, 1022U,  7U},
-    {("A661_STYLE_SET_EXTENSION"),                  0x800CU, 1029U,  3U},
-    {("A661_STATIC_PARAM_BUFFER_EXTENSION"),        0x800DU, 1032U,  2U},
-    {("A661_MULTI_SELECTION_EXTENSION"),            0x800FU, 1034U,  1U},
-    {("A661_EXCLUDED_REGIONS_EXTENSION"),           0x800EU, 1035U,  5U},
-    {("A661_BOUNDARY_CHECK_EXTENSION"),             0x8010U, 1040U,  2U},
-    {("A661_REORDER_EXTENSION"),                    0x8011U, 1042U,  1U},
-    {("A661_WORD_WRAP_EXTENSION"),                  0x8012U, 1043U,  2U},
-    {("A661_CURSOR_ENTRY_EVENTS_EXTENSION"),        0x8013U, 1045U,  2U},
-    {("A661_MAPHORZ_COORD_SYSTEM_EVENT_EXTENSION"), 0x8014U, 1047U,  4U},
-    {("A661_MAPVERT_COORD_SYSTEM_EVENT_EXTENSION"), 0x8015U, 1051U,  4U}
+    {("A661_DIRECTIONAL_TABBING_EXTENSION"),        0x8003U, 1078U,  3U},
+    {("A661_CURSOR_EVENTS_EXTENSION"),              0x8002U, 1081U,  2U},
+    {("A661_LEGEND_ALIGN_EXTENSION"),               0x8004U, 1083U,  2U},
+    {("A661_CHILD_INDEX_EXTENSION"),                0x8001U, 1085U,  1U},
+    {("A661_INITIAL_FOCUS_EXTENSION"),              0x8006U, 1086U,  2U},
+    {("A661_FOCUS_STOP_EXTENSION"),                 0x8007U, 1088U,  2U},
+    {("A661_CURSOR_SHAPE_EXTENSION"),               0x8008U, 1090U,  2U},
+    {("A661_PICTURE_EXTENSION"),                    0x8009U, 1092U,  5U},
+    {("A661_SYMBOL_EXTENSION"),                     0x800AU, 1097U,  5U},
+    {("A661_TICS_ARRAY_EXTENSION"),                 0x800BU, 1102U,  7U},
+    {("A661_STYLE_SET_EXTENSION"),                  0x800CU, 1109U,  3U},
+    {("A661_STATIC_PARAM_BUFFER_EXTENSION"),        0x800DU, 1112U,  2U},
+    {("A661_MULTI_SELECTION_EXTENSION"),            0x800FU, 1114U,  1U},
+    {("A661_EXCLUDED_REGIONS_EXTENSION"),           0x800EU, 1115U,  5U},
+    {("A661_BOUNDARY_CHECK_EXTENSION"),             0x8010U, 1120U,  2U},
+    {("A661_REORDER_EXTENSION"),                    0x8011U, 1122U,  1U},
+    {("A661_WORD_WRAP_EXTENSION"),                  0x8012U, 1123U,  2U},
+    {("A661_CURSOR_ENTRY_EVENTS_EXTENSION"),        0x8013U, 1125U,  2U},
+    {("A661_MAPHORZ_COORD_SYSTEM_EVENT_EXTENSION"), 0x8014U, 1127U,  4U},
+    {("A661_MAPVERT_COORD_SYSTEM_EVENT_EXTENSION"), 0x8015U, 1131U,  4U}
 };
 
 /*************************************************************************************************/
@@ -2188,6 +2286,42 @@ static uint32_t FormatReal(char_t* text, uint32_t capacity, float64_t value, int
 
 /*************************************************************************************************/
 /**
+ * \brief Converts a value within a fr() range to its signed 32-bit LSB count.
+ *
+ * \param[in] value   Value between -range and range
+ * \param[in] range   Half the full fr() range, 180 or 32768
+ *
+ * \retval    int64_t   LSB count, rounded half away from zero and clamped to int32_t.
+ */
+static int64_t EncodeFraction(float64_t value, float64_t range);
+
+/*************************************************************************************************/
+/**
+ * \brief Formats an IEEE 754 single with the fewest fractional digits that read back as the same value.
+ *
+ * \param[out] text       Zero-terminated result
+ * \param[in]  capacity   Result capacity in bytes
+ * \param[in]  value      Finite value to format
+ *
+ * \retval     uint32_t   Number of text bytes, excluding the zero terminator.
+ */
+static uint32_t FormatFloat32(char_t* text, uint32_t capacity, float32_t value);
+
+/*************************************************************************************************/
+/**
+ * \brief Formats a fr() LSB count with the fewest fractional digits that encode back to the same count.
+ *
+ * \param[out] text       Zero-terminated result
+ * \param[in]  capacity   Result capacity in bytes
+ * \param[in]  lsbCount   Signed 32-bit LSB count
+ * \param[in]  range      Half the full fr() range, 180 or 32768
+ *
+ * \retval     uint32_t   Number of text bytes, excluding the zero terminator.
+ */
+static uint32_t FormatFraction(char_t* text, uint32_t capacity, int64_t lsbCount, float64_t range);
+
+/*************************************************************************************************/
+/**
  * \brief Appends a property with a counted value to the result.
  *
  * \param[in,out] definition       Caller-owned Definition File data
@@ -2500,7 +2634,7 @@ static const Arinc661_Property_t* FindProperty(const Arinc661_Definition_t* defi
     uint32_t                   property_index;
     uint32_t                   match_count;
 
-    // ponytail: linear scan per lookup; index properties by owner if large files become slow
+    // ponytail: accept a linear scan per lookup; index properties by owner if large files become slow
     property    = NULL;
     match_count = 0;
     for (property_index = 0; property_index < definition->propertyCount; ++property_index)
@@ -2611,6 +2745,7 @@ static uint32_t RegionByteCount(uint32_t regionType)
  * bytes                        two hexadecimal digits per byte, such as "1B4200"
  * sized bytes                  hexadecimal digits; written as byte count, pad, bytes, and alignment
  * region                       hexadecimal digits of a complete excluded region structure
+ * layer request                hexadecimal digits of a complete LayerReqResult entry
  * UnusedPad                    zero bytes
  * alignment                    zero bytes up to the next 32-bit boundary
  * \endverbatim
@@ -2631,6 +2766,7 @@ static bool_t WriteField(const BinaryField_t* field, const Arinc661_Property_t* 
     uint64_t      byte_count;
     uint64_t      byte_index;
     uint32_t      encoded_value;
+    uint32_t      request_size;
     int32_t       consumed;
     bool_t        is_valid;
 
@@ -2662,7 +2798,7 @@ static bool_t WriteField(const BinaryField_t* field, const Arinc661_Property_t* 
     }
     else if (BINARY_FIELD_SIZED_BYTES == field->type)
     {
-        // Table 8.6.5-3: ParamBufferSize, unused pad, the bytes, then 32-bit alignment
+        // Write ParamBufferSize, the unused pad, the bytes, then 32-bit alignment (Table 8.6.5-3)
         byte_count = strlen(text) / 2U;
         is_valid   = (UINT16_MAX >= byte_count);
         if (is_valid)
@@ -2676,7 +2812,7 @@ static bool_t WriteField(const BinaryField_t* field, const Arinc661_Property_t* 
     }
     else if (BINARY_FIELD_REGION == field->type)
     {
-        // The second byte of the structure selects its size; both digits of that byte must be valid
+        // Read the structure size from its second byte, requiring both digits of that byte to be valid
         byte_count = 0;
         is_valid   = ((BINARY_REGION_HEADER_BYTES * 2U) <= strlen(text));
         if (is_valid)
@@ -2695,6 +2831,26 @@ static bool_t WriteField(const BinaryField_t* field, const Arinc661_Property_t* 
         }
         (*offset) += byte_count;
     }
+    else if (BINARY_FIELD_LAYER_REQUEST == field->type)
+    {
+        // Require the CommandSize in the third and fourth bytes to match the request that follows (Table 3.9.17-6)
+        byte_count = strlen(text) / 2U;
+        is_valid   = (BINARY_REQUEST_HEADER_BYTES <= byte_count);
+        if (is_valid)
+        {
+            is_valid = PutHexBytes(text, byte_count, buffer, capacity, (*offset));
+        }
+        if (is_valid)
+        {
+            request_size = 0;
+            for (byte_index = 4; byte_index < 8; ++byte_index)
+            {
+                request_size = (request_size << 4) | (uint32_t)(strchr(c_binaryHexDigits, text[byte_index]) - c_binaryHexDigits);
+            }
+            is_valid = (byte_count == (BINARY_REQUEST_HEADER_BYTES + request_size)) && (0 == (request_size % BINARY_WORD_BYTES));
+        }
+        (*offset) += byte_count;
+    }
     else if (BINARY_FIELD_STRING == field->type)
     {
         byte_count = strlen(text);
@@ -2702,7 +2858,7 @@ static bool_t WriteField(const BinaryField_t* field, const Arinc661_Property_t* 
         {
             PutUnsigned(buffer, capacity, (*offset) + byte_index, (byte_t)text[byte_index], 1);
         }
-        // Each string keeps its terminator; the command is padded after its last parameter
+        // Keep each string's terminator; pad the command after its last parameter
         PutUnsigned(buffer, capacity, (*offset) + byte_count, 0, 1);
         (*offset) += (byte_count + 1);
     }
@@ -2735,25 +2891,7 @@ static bool_t WriteField(const BinaryField_t* field, const Arinc661_Property_t* 
                 is_valid = (real_value <= range) && (real_value >= -range);
                 if (is_valid)
                 {
-                    // Scale to LSBs and round half away from zero
-                    real_value = (real_value * BINARY_FR_FULL_SCALE) / range;
-                    if (0.0 <= real_value)
-                    {
-                        real_value += 0.5;
-                    }
-                    else
-                    {
-                        real_value -= 0.5;
-                    }
-                    if (real_value > (float64_t)INT32_MAX)
-                    {
-                        real_value = (float64_t)INT32_MAX;
-                    }
-                    if (real_value < (float64_t)INT32_MIN)
-                    {
-                        real_value = (float64_t)INT32_MIN;
-                    }
-                    encoded_value = (uint32_t)(int64_t)real_value;
+                    encoded_value = (uint32_t)EncodeFraction(real_value, range);
                 }
             }
         }
@@ -2777,7 +2915,7 @@ static bool_t WriteField(const BinaryField_t* field, const Arinc661_Property_t* 
             is_valid = ScanInteger(property, minimum, maximum, &integer_value);
             if (is_valid)
             {
-                // Two's complement truncation keeps the 32-bit pattern of a negative long
+                // Keep the 32-bit pattern of a negative long through two's complement truncation
                 encoded_value = (uint32_t)integer_value;
             }
         }
@@ -2872,7 +3010,7 @@ static bool_t WriteCommand(const Arinc661_Definition_t* definition, uint32_t wid
     }
     if (is_valid && widget->isExtension)
     {
-        // Section 8.1: an extension block follows the widget instance it extends
+        // Require the extension to follow the widget instance it extends (section 8.1)
         is_valid = (lastWidgetIndex == widget->parentWidgetIndex);
     }
     if (is_valid && (FALSE == widget->isExtension))
@@ -2885,7 +3023,7 @@ static bool_t WriteCommand(const Arinc661_Definition_t* definition, uint32_t wid
         is_valid = ScanInteger(property, 0, UINT16_MAX, &widget_ident);
         if (is_valid && (UINT32_MAX != widget->parentWidgetIndex))
         {
-            // A nested parent must precede the current widget in the same layer and be a widget itself
+            // Require the nested parent to precede the current widget in the same layer and to be a widget itself
             is_valid = (widget->parentWidgetIndex < widgetIndex);
             if (is_valid)
             {
@@ -2924,7 +3062,7 @@ static bool_t WriteCommand(const Arinc661_Definition_t* definition, uint32_t wid
             }
             else
             {
-                // Every counted element needs its own property; surplus ones fail the ownership check below
+                // Require a property for every counted element; let surplus ones fail the ownership check below
                 element_count = field->repeat * values[field->countField];
                 for (element_index = 0; element_index < element_count; ++element_index)
                 {
@@ -2949,7 +3087,7 @@ static bool_t WriteCommand(const Arinc661_Definition_t* definition, uint32_t wid
     }
     if (is_valid)
     {
-        // Every property of this entry must have been placed in the command
+        // Require every property of this entry to have been placed in the command
         owned_count = 0;
         for (property_index = 0; property_index < definition->propertyCount; ++property_index)
         {
@@ -2994,21 +3132,112 @@ static uint32_t FormatReal(char_t* text, uint32_t capacity, float64_t value, int
 
     byte_count = snprintf(text, capacity, "%.*f", precision, value);
     LOGASSERT((0 < byte_count) && ((uint32_t)byte_count < capacity));
-    for (byte_index = 0; byte_index < capacity; ++byte_index)
+    if (NULL != strchr(text, '.'))
     {
-        if ('0' != text[byte_count - 1])
+        // Strip fractional zeros only; an integer such as 100 keeps its zeros
+        for (byte_index = 0; byte_index < capacity; ++byte_index)
         {
-            break;
+            if ('0' != text[byte_count - 1])
+            {
+                break;
+            }
+            byte_count -= 1;
         }
-        byte_count -= 1;
-    }
-    if ('.' == text[byte_count - 1])
-    {
-        byte_count -= 1;
+        if ('.' == text[byte_count - 1])
+        {
+            byte_count -= 1;
+        }
     }
     text[byte_count] = '\0';
 
     return (uint32_t)byte_count;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Scales to LSBs, rounds half away from zero, and clamps so that the full positive range,
+ *  which is one LSB past representable, becomes INT32_MAX.
+ */
+static int64_t EncodeFraction(float64_t value, float64_t range)
+{
+    float64_t scaled;
+
+    scaled = (value * BINARY_FR_FULL_SCALE) / range;
+    if (0.0 <= scaled)
+    {
+        scaled += 0.5;
+    }
+    else
+    {
+        scaled -= 0.5;
+    }
+    if (scaled > (float64_t)INT32_MAX)
+    {
+        scaled = (float64_t)INT32_MAX;
+    }
+    if (scaled < (float64_t)INT32_MIN)
+    {
+        scaled = (float64_t)INT32_MIN;
+    }
+
+    return (int64_t)scaled;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Tries each fractional digit count from zero up and keeps the first text that scans back
+ *  to the identical single, so 0.1f becomes "0.1" rather than its 54-digit expansion while
+ *  every bit of the value survives the round trip. The scanner reads xs:decimal, so no
+ *  exponent form is produced.
+ */
+static uint32_t FormatFloat32(char_t* text, uint32_t capacity, float32_t value)
+{
+    float64_t parsed_value;
+    uint32_t  byte_count;
+    int32_t   consumed;
+    int       precision;
+
+    byte_count = 0;
+    for (precision = 0; precision <= BINARY_FLOAT_PRECISION; ++precision)
+    {
+        byte_count = FormatReal(text, capacity, value, precision);
+        consumed   = FACEOE_Utl_Scan_Float(text, &parsed_value);
+        if ((0 < consumed) && ((float32_t)parsed_value == value))
+        {
+            break;
+        }
+    }
+
+    return byte_count;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The exact value is lsbCount times range over 2^31; the text keeps only the digits
+ *  needed for EncodeFraction to return lsbCount again, at most BINARY_FR_PRECISION.
+ */
+static uint32_t FormatFraction(char_t* text, uint32_t capacity, int64_t lsbCount, float64_t range)
+{
+    float64_t parsed_value;
+    uint32_t  byte_count;
+    int32_t   consumed;
+    int       precision;
+
+    byte_count = 0;
+    for (precision = 0; precision <= BINARY_FR_PRECISION; ++precision)
+    {
+        byte_count = FormatReal(text, capacity, ((float64_t)lsbCount * range) / BINARY_FR_FULL_SCALE, precision);
+        consumed   = FACEOE_Utl_Scan_Float(text, &parsed_value);
+        if ((0 < consumed) && (EncodeFraction(parsed_value, range) == lsbCount))
+        {
+            break;
+        }
+    }
+
+    return byte_count;
 }
 
 /*************************************************************************************************/
@@ -3090,7 +3319,9 @@ static bool_t AddHexProperty(Arinc661_Definition_t* definition, const char_t* na
  * \par Details:
  *  Converts one parameter to property text, the inverse of WriteField. Integers
  *  become decimal numbers; constant names such as A661_TRUE are not restored
- *  because the same number has different names for different parameters. A
+ *  because the same number has different names for different parameters.
+ *  Floats and fr() angles use the fewest decimal digits that reproduce the
+ *  stored bits exactly. A
  *  string extends to its zero terminator, which must lie inside the command.
  *  Bytes without a numeric type, sized buffers, and excluded regions become
  *  uppercase hexadecimal digits. Unused pads and alignment bytes are skipped
@@ -3107,7 +3338,7 @@ static bool_t ReadField(Arinc661_Definition_t* definition, const BinaryField_t* 
     uint32_t  widget_index;
     bool_t    is_valid;
 
-    // The widget being read has not been counted yet, so its index is the current count
+    // Use the current count as the index of the widget being read, which is not counted yet
     widget_index = definition->widgetCount;
     LOGASSERT((*offset) <= endOffset);
     remaining = endOffset - (*offset);
@@ -3157,6 +3388,20 @@ static bool_t ReadField(Arinc661_Definition_t* definition, const BinaryField_t* 
             (*offset) += byte_count;
         }
     }
+    else if (BINARY_FIELD_LAYER_REQUEST == field->type)
+    {
+        is_valid = (BINARY_REQUEST_HEADER_BYTES <= remaining);
+        if (is_valid)
+        {
+            byte_count = BINARY_REQUEST_HEADER_BYTES + GetUnsigned(buffer, (*offset) + 2U, 2);
+            is_valid   = (byte_count <= remaining) && (0 == (byte_count % BINARY_WORD_BYTES));
+        }
+        if (is_valid)
+        {
+            is_valid = AddHexProperty(definition, field->name, &buffer[(*offset)], byte_count);
+            (*offset) += byte_count;
+        }
+    }
     else if (BINARY_FIELD_STRING == field->type)
     {
         // Locate the terminator without leaving the command
@@ -3183,11 +3428,11 @@ static bool_t ReadField(Arinc661_Definition_t* definition, const BinaryField_t* 
             if (BINARY_FIELD_FLOAT == field->type)
             {
                 (void)memcpy(&float_value, &encoded_value, sizeof(float_value));
-                // Infinities and NaN have no decimal property text
+                // Reject infinities and NaN, which have no decimal property text
                 is_valid = (float_value <= FLT_MAX) && (float_value >= -FLT_MAX);
                 if (is_valid)
                 {
-                    byte_count = FormatReal(text, sizeof(text), float_value, BINARY_FLOAT_PRECISION);
+                    byte_count = FormatFloat32(text, sizeof(text), float_value);
                     is_valid   = AddProperty(definition, ARINC661_PROPERTY_WIDGET, widget_index, field->name, text, byte_count);
                 }
             }
@@ -3198,7 +3443,7 @@ static bool_t ReadField(Arinc661_Definition_t* definition, const BinaryField_t* 
                 {
                     range = 180.0;
                 }
-                byte_count = FormatReal(text, sizeof(text), ((float64_t)ToSigned32(encoded_value) * range) / BINARY_FR_FULL_SCALE, BINARY_FR_PRECISION);
+                byte_count = FormatFraction(text, sizeof(text), ToSigned32(encoded_value), range);
                 is_valid   = AddProperty(definition, ARINC661_PROPERTY_WIDGET, widget_index, field->name, text, byte_count);
             }
             else if (BINARY_FIELD_LONG == field->type)
@@ -3286,7 +3531,7 @@ static bool_t ReadCommand(Arinc661_Definition_t* definition, const byte_t* buffe
         cursor                    = commandOffset + BINARY_EXTEND_BYTES;
         if (is_extension)
         {
-            // An extension needs a widget to extend in this layer block
+            // Require a widget to extend in this layer block
             widget->parentWidgetIndex = (*lastWidgetIndex);
             is_valid                  = (UINT32_MAX != (*lastWidgetIndex));
         }
@@ -3330,7 +3575,7 @@ static bool_t ReadCommand(Arinc661_Definition_t* definition, const byte_t* buffe
                 // Keep small integers so later arrays can find their entry counts
                 values[field_index] = GetUnsigned(buffer, cursor, field->byteCount);
             }
-            // A count larger than the command holds fails in ReadField at the command end
+            // Let a count larger than the command holds fail in ReadField at the command end
             for (element_index = 0; element_index < element_count; ++element_index)
             {
                 is_valid = ReadField(definition, field, buffer, end_offset, &cursor);
@@ -3347,7 +3592,7 @@ static bool_t ReadCommand(Arinc661_Definition_t* definition, const byte_t* buffe
     }
     if (is_valid)
     {
-        // Only alignment padding may follow the last parameter
+        // Allow only alignment padding after the last parameter
         is_valid = ((end_offset - cursor) < BINARY_WORD_BYTES);
     }
     if (is_valid)
@@ -3428,7 +3673,7 @@ static bool_t ReadLayer(Arinc661_Definition_t* definition, const byte_t* buffer,
         definition->layerCount += 1;
         first_command_offset = (*offset) + BINARY_LAYER_HEADER_BYTES;
         cursor               = first_command_offset;
-        // Each command occupies at least two words, which bounds the walk
+        // Bound the walk by the two-word minimum command size
         for (command_index = 0; command_index < byteCount; ++command_index)
         {
             if (cursor >= end_offset)
@@ -3501,7 +3746,7 @@ static bool_t MeasurePictureBlock(const byte_t* buffer, uint64_t byteCount, uint
             is_valid = (BINARY_PIX_FMT_RGBA_8 <= color_format) && (BINARY_PIX_FMT_COLOR_INDEXED_8 >= color_format);
             if (is_valid)
             {
-                // Color table entries use their own format and are padded as a whole
+                // Measure color table entries in their own format and pad them as a whole
                 cursor += ((uint64_t)color_count * (BINARY_WORD_BYTES >> (color_format - BINARY_PIX_FMT_RGBA_8)) + (BINARY_WORD_BYTES - 1U)) & ~(uint64_t)(BINARY_WORD_BYTES - 1U);
             }
         }
@@ -3523,7 +3768,7 @@ static bool_t MeasurePictureBlock(const byte_t* buffer, uint64_t byteCount, uint
     }
     if (is_valid && (BINARY_END_PICTURE_BLOCK != buffer[cursor]))
     {
-        // Table 7-1 reserved word before the end code
+        // Skip the Table 7-1 reserved word before the end code
         cursor  += BINARY_WORD_BYTES;
         is_valid = (cursor <= byteCount) && (BINARY_BLOCK_END_BYTES <= (byteCount - cursor)) && (BINARY_END_PICTURE_BLOCK == buffer[cursor]);
     }
@@ -3649,7 +3894,7 @@ bool_t Arinc661_ReadDefinitionBinary(Arinc661_Definition_t* definition, const by
     }
     if (is_valid)
     {
-        // Each block occupies at least one word, which bounds the walk
+        // Bound the walk by the one-word minimum block size
         for (block_index = 0; block_index < byteCount; ++block_index)
         {
             is_valid = (offset <= byteCount) && (BINARY_BLOCK_END_BYTES <= (byteCount - offset));
@@ -3669,7 +3914,7 @@ bool_t Arinc661_ReadDefinitionBinary(Arinc661_Definition_t* definition, const by
             }
             else if (BINARY_BEGIN_CHARSET_BLOCK == block_code)
             {
-                // Table 4.5.3.2-6: code, pad, encoding, end code, pad; one block per file
+                // Read the block as code, pad, encoding, end code, pad (Table 4.5.3.2-6) and allow one per file
                 is_valid = (BINARY_CHARSET_BLOCK_BYTES <= (byteCount - offset)) && (BINARY_END_CHARSET_BLOCK == buffer[offset + 4U]) && (0 == definition->charsetEncoding);
                 if (is_valid)
                 {
@@ -3767,7 +4012,7 @@ uint64_t Arinc661_WriteDefinitionBinary(const Arinc661_Definition_t* definition,
         PutUnsigned(buffer, capacity, 2, definition->libraryVersion, 1);
         PutUnsigned(buffer, capacity, 3, definition->supplementVersion, 1);
         PutUnsigned(buffer, capacity, 4, (uint32_t)application_id, 2);
-        // No OEM free data is written
+        // Write no OEM free data
         PutUnsigned(buffer, capacity, 6, 0, 2);
         if (0 != definition->charsetEncoding)
         {
@@ -3775,7 +4020,7 @@ uint64_t Arinc661_WriteDefinitionBinary(const Arinc661_Definition_t* definition,
             PutUnsigned(buffer, capacity, offset + 4U, BINARY_END_CHARSET_BLOCK << 24, 4);
             offset += BINARY_CHARSET_BLOCK_BYTES;
         }
-        // Symbol, picture, and animation law blocks precede the layers (Table 4.5.3.2-1)
+        // Write symbol, picture, and animation law blocks before the layers (Table 4.5.3.2-1)
         for (byte_index = 0; byte_index < definition->blockByteCount; ++byte_index)
         {
             PutUnsigned(buffer, capacity, offset + byte_index, definition->blocks[byte_index], 1);
@@ -3820,7 +4065,7 @@ uint64_t Arinc661_WriteDefinitionBinary(const Arinc661_Definition_t* definition,
             {
                 PutUnsigned(buffer, capacity, offset, (uint32_t)BINARY_END_LAYER_BLOCK << 24, BINARY_BLOCK_END_BYTES);
                 offset   += BINARY_BLOCK_END_BYTES;
-                // Block Size counts the block header and the end code
+                // Count the block header and the end code in Block Size
                 is_valid  = ((offset - layer_offset) <= UINT32_MAX);
             }
             if (FALSE == is_valid)
@@ -3967,6 +4212,7 @@ bool_t Arinc661_Parameter(const char_t* typeName, bool_t isExtension, uint32_t p
                     case BINARY_FIELD_BYTES:       parameter->kind = ARINC661_PARAMETER_BYTES; break;
                     case BINARY_FIELD_SIZED_BYTES: parameter->kind = ARINC661_PARAMETER_SIZED_BYTES; break;
                     case BINARY_FIELD_REGION:      parameter->kind = ARINC661_PARAMETER_REGION; break;
+                    case BINARY_FIELD_LAYER_REQUEST: parameter->kind = ARINC661_PARAMETER_LAYER_REQUEST; break;
                     case BINARY_FIELD_PAD:
                     case BINARY_FIELD_ALIGN:
                     default:                       LOGFATAL("Named parameter with a pad type!");

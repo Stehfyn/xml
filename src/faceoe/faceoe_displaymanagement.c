@@ -30,7 +30,8 @@
 **===============================================================================================*/
 
 #define XML_INTEGER_TEXT_BYTES (32UL)    ///< Integer formatting buffer bytes, including the zero terminator
-#define XML_DECIMAL_TEXT_BYTES (96UL)    ///< Fixed-point formatting buffer bytes, including the zero terminator
+#define XML_DECIMAL_TEXT_BYTES (112UL)   ///< Fixed-point formatting buffer bytes, including the zero terminator
+#define XML_DECIMAL_MAX_PRECISION (60) ///< Most fractional digits tried; the smallest float32_t subnormal needs 45
 
 /* FACE Edition 3.1, Appendix H.3, DisplayManagement.xsd: configuration and child elements. */
 #define DMC_ELEMENT_CONFIGURATION       ("configuration")
@@ -1193,27 +1194,31 @@ static const char_t* FormatInteger(XmlWorkspace_t* xml, int64_t value)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Formats a finite float32_t without an exponent, then removes unused fractional
- *  zeros and a trailing decimal point:
+ *  Formats a finite float32_t without an exponent using the fewest fractional
+ *  digits that scan back to the identical single, so the xs:decimal text is
+ *  both short and exact:
  *
  * \verbatim
- * value       Initial formatted text         Stored text
- * 1.25        1.25000... (54 fraction digits)  1.25
- * 2.0         2.00000... (54 fraction digits)  2
+ * value       Stored text
+ * 1.25        1.25
+ * 2.0         2
+ * 0.1f        0.1
  * \endverbatim
  *
- *  Fifty-four fractional digits retain very small float32_t values. The returned
- *  pointer refers to the workspace, and textByteCount includes the terminating
- *  zero. A nonfinite value or insufficient formatting space returns NULL without
- *  advancing textByteCount.
+ *  The returned pointer refers to the workspace, and textByteCount includes the
+ *  terminating zero. A nonfinite value or insufficient formatting space returns
+ *  NULL without advancing textByteCount.
  */
 static const char_t* FormatDecimal(XmlWorkspace_t* xml, float32_t value)
 {
-    char_t*  text;
-    int      byte_count;
-    uint32_t byte_index;
-    bool_t   is_finite;
-    bool_t   has_capacity;
+    char_t*   text;
+    float64_t parsed_value;
+    int       byte_count;
+    int       precision;
+    int32_t   consumed;
+    uint32_t  byte_index;
+    bool_t    is_finite;
+    bool_t    has_capacity;
 
     text         = NULL;
     // Reject nonfinite values and reserve space for the full fixed-point representation
@@ -1222,24 +1227,36 @@ static const char_t* FormatDecimal(XmlWorkspace_t* xml, float32_t value)
     if (is_finite && has_capacity)
     {
         text       = (char_t*)&xml->text[xml->textByteCount];
-        byte_count = snprintf(text, XML_DECIMAL_TEXT_BYTES, "%.54f", value);
-        LOGASSERT((0 < byte_count) && ((uint32_t)byte_count < XML_DECIMAL_TEXT_BYTES));
-        // Bound the backward scan and stop at the first nonzero fractional byte
-        for (byte_index = 0; byte_index < XML_DECIMAL_TEXT_BYTES; ++byte_index)
+        byte_count = 0;
+        // Keep the fewest fractional digits that scan back to the identical single
+        for (precision = 0; precision <= XML_DECIMAL_MAX_PRECISION; ++precision)
         {
-            if ('0' != text[byte_count - 1])
+            byte_count = snprintf(text, XML_DECIMAL_TEXT_BYTES, "%.*f", precision, value);
+            LOGASSERT((0 < byte_count) && ((uint32_t)byte_count < XML_DECIMAL_TEXT_BYTES));
+            if (NULL != strchr(text, '.'))
+            {
+                // Strip fractional zeros only; an integral value keeps its digits
+                for (byte_index = 0; byte_index < XML_DECIMAL_TEXT_BYTES; ++byte_index)
+                {
+                    if ('0' != text[byte_count - 1])
+                    {
+                        break;
+                    }
+                    byte_count -= 1;
+                }
+                if ('.' == text[byte_count - 1])
+                {
+                    byte_count -= 1;
+                }
+                text[byte_count] = '\0';
+            }
+            consumed = FACEOE_Utl_Scan_Float(text, &parsed_value);
+            if ((0 < consumed) && ((float32_t)parsed_value == value))
             {
                 break;
             }
-            byte_count -= 1;
         }
-        // An integral value does not need the now-empty fractional separator
-        if ('.' == text[byte_count - 1])
-        {
-            byte_count -= 1;
-        }
-        // Terminate the shortened text and retain only the bytes actually used
-        text[byte_count] = '\0';
+        // Retain only the bytes actually used, with the terminator
         xml->textByteCount += ((uint64_t)byte_count + 1);
     }
 
