@@ -88,6 +88,19 @@ if(WIN32)
         examples/arinc661_configuration.h)
     target_link_libraries(arinc661_configuration PRIVATE faceoe imgui opengl32 gdi32 dwmapi)
     set_target_properties(arinc661_configuration PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+
+    add_executable(arinc661_definition
+        examples/main.cpp
+        examples/arinc661_definition_editor.cpp
+        examples/arinc661_definition_editor.h)
+    target_compile_definitions(arinc661_definition PRIVATE ARINC661_DEFINITION_EDITOR)
+    target_link_libraries(arinc661_definition PRIVATE arinc661 imgui opengl32 gdi32 dwmapi)
+    set_target_properties(arinc661_definition PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+
+    add_executable(arinc661_definition_editor_tests tests/arinc661_definition_editor_tests.cpp)
+    target_include_directories(arinc661_definition_editor_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/examples")
+    target_link_libraries(arinc661_definition_editor_tests PRIVATE arinc661 imgui)
+    add_test(NAME arinc661_definition_editor_tests COMMAND arinc661_definition_editor_tests)
 endif()
 
 enable_testing()

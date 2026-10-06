@@ -16,6 +16,7 @@
 #include "arinc661/arinc661_definition.h"
 
 #include "os/os_assert.h"
+#include "os/os_diagnostics.h"
 #include "os/os_file.h"
 
 #include <string.h>
@@ -165,6 +166,8 @@ int main(void)
     uint32_t                       owner_index;
     bool_t                         is_valid;
 
+    // Route assertion and runtime failures to stderr instead of dialog boxes
+    Os_Diagnostics_Initialize();
     memset(&configuration, 0, sizeof(configuration));
     memset(screens, 0, sizeof(screens));
     memset(layouts, 0, sizeof(layouts));

@@ -97,6 +97,7 @@ typedef struct Arinc661_Widget_s
     char_t   type[ARINC661_MAX_NAME_BYTES]; ///< Zero-terminated required widget type
     uint32_t layerIndex;                        ///< Array index of the owning layer
     uint32_t parentWidgetIndex;                 ///< Earlier parent widget array index, or UINT32_MAX for a direct layer child
+    bool_t   isExtension;                       ///< TRUE for an a661_extension of parentWidgetIndex (Part 1-7, section 8); type names the extension
 } Arinc661_Widget_t;
 
 /*************************************************************************************************/
@@ -120,7 +121,45 @@ typedef struct Arinc661_Definition_s
     uint32_t                 layerCount;                        ///< Layers in use
     uint32_t                 widgetCount;                       ///< Widgets in use
     uint32_t                 propertyCount;                     ///< Properties in use
+    uint32_t                 charsetEncoding;                   ///< A661_Charset_Encoding value (Part 1-7, Table 4.6-13), or zero when no charset-encoding is given
+    byte_t*                  blocks;                            ///< Pointer to the caller's storage for binary symbol, picture, and animation law blocks, kept byte for byte
+    uint64_t                 blockCapacity;                     ///< Block storage bytes
+    uint64_t                 blockByteCount;                    ///< Block storage bytes in use
 } Arinc661_Definition_t;
+
+/*************************************************************************************************/
+/**
+ * \brief Binary encoding of a Creation Structure parameter (Part 1-7, section 3.3 data types).
+ */
+typedef enum Arinc661_ParameterKind_e
+{
+    ARINC661_PARAMETER_UCHAR,       ///< Unsigned 8-bit integer; decimal or constant name
+    ARINC661_PARAMETER_USHORT,      ///< Unsigned 16-bit integer; decimal or constant name
+    ARINC661_PARAMETER_LONG,        ///< Signed 32-bit integer
+    ARINC661_PARAMETER_ULONG,       ///< Unsigned 32-bit integer
+    ARINC661_PARAMETER_FLOAT,       ///< IEEE 754 single precision decimal
+    ARINC661_PARAMETER_FR180,       ///< Angle in degrees, -180 to 180
+    ARINC661_PARAMETER_FR32768,     ///< Fraction of 32768
+    ARINC661_PARAMETER_STRING,      ///< Text
+    ARINC661_PARAMETER_BYTES,       ///< Fixed byte count as hexadecimal digits
+    ARINC661_PARAMETER_SIZED_BYTES, ///< StaticParamBuffer entry as hexadecimal digits
+    ARINC661_PARAMETER_REGION       ///< Excluded region structure as hexadecimal digits
+} Arinc661_ParameterKind_t;
+
+/*************************************************************************************************/
+/**
+ * \brief One named parameter of a widget or extension Creation Structure.
+ */
+typedef struct Arinc661_Parameter_s
+{
+    const char_t*            name;             ///< Property name
+    Arinc661_ParameterKind_t kind;             ///< Binary encoding
+    uint32_t                 byteCount;        ///< Bytes of an ARINC661_PARAMETER_BYTES value
+    uint32_t                 elementsPerEntry; ///< Array elements per counted entry; zero for a single value
+    const char_t*            countName;        ///< Name of the parameter holding an array's entry count, or NULL
+    const char_t* const*     values;           ///< Constant names the Creation Structure table lists for the value, or NULL
+    uint32_t                 valueCount;       ///< Number of listed constant names
+} Arinc661_Parameter_t;
 
 /*=================================================================================================
 ** 3.3 Constants
@@ -148,7 +187,11 @@ typedef struct Arinc661_Definition_s
  *  6.2.4). Each array value becomes one property named after the array, in
  *  document order: an xyentry yields x then y, and a structentry yields its
  *  field values with the field names dropped. Other property forms, such as
- *  structprop and datablock, are rejected.
+ *  structprop and datablock, are rejected. An a661_extension inside a widget
+ *  (section 8) becomes a widget array entry flagged isExtension. A top-level
+ *  charset-encoding element (section 6.2.1) sets charsetEncoding from its name;
+ *  symbol, picture, and animation law definitions are not read, and
+ *  blockByteCount is cleared.
  *  Strings are copied into the result arrays; the result retains no pointers
  *  into the input buffer or temporary workspace.
  *  Input may include an XML declaration; it is not retained in the result.
@@ -185,6 +228,9 @@ bool_t Arinc661_ReadDefinition(Arinc661_Definition_t* definition, byte_t* buffer
  *  This writer supports layers, nested widgets, and prop elements. Properties
  *  of one model that share a name are an array and are written as one arrayprop
  *  with an entry child per value; a lone property is always written as a prop.
+ *  An entry flagged isExtension is written as an a661_extension inside its parent
+ *  widget. A nonzero charsetEncoding writes a charset-encoding element. Binary
+ *  blocks have no XML form here and are not written.
  *  The result is XML in the caller's output buffer.
  *  Storage arrays and their string fields must remain valid until writing finishes.
  *  Output starts with the a661_df element, without an XML declaration.
@@ -213,27 +259,34 @@ uint64_t Arinc661_WriteDefinition(const Arinc661_Definition_t* definition, byte_
  *
  * \par Details:
  *  Reads the binary Definition File form of ARINC 661 Part 1, Supplement 7,
- *  section 4.5.3.2: header, layer blocks of A661_CMD_CREATE commands, and footer.
- *  Each Creation Structure parameter becomes a property named as in the widget's
- *  Creation Structure table, with a decimal value; constant names such as
- *  A661_TRUE are not restored. AppliIdent, LayerIdent, and ContextNumber become
- *  the ApplicationId, LayerId, and ContextNumber properties. The binary form
- *  carries no names, so the Definition File, layer, and widget names are empty.
- *  String bytes are copied unchanged, whatever the character set encoding.
+ *  section 4.5.3.2: header, optional charset encoding block, symbol, picture,
+ *  and animation law blocks, layer blocks of A661_CMD_CREATE and A661_CMD_EXTEND
+ *  commands, and footer.
+ *  Each Creation Structure parameter becomes a property named as in the widget
+ *  or extension Creation Structure table (sections 3 and 8), with a decimal
+ *  value; constant names such as A661_TRUE are not restored. AppliIdent,
+ *  LayerIdent, and ContextNumber become the ApplicationId, LayerId, and
+ *  ContextNumber properties. An A661_CMD_EXTEND command becomes a widget array
+ *  entry flagged isExtension whose parent is the widget it follows (section 8.1).
+ *  The charset encoding block sets charsetEncoding; symbol, picture, and
+ *  animation law blocks are copied unchanged into blocks, so the file can be
+ *  written back byte for byte. The binary form carries no names, so the
+ *  Definition File, layer, and widget names are empty. String bytes are copied
+ *  unchanged, whatever the character set encoding.
  *  Each array element becomes its own property, all sharing the array's name,
  *  in element order; arrays of pairs, such as Vertices and BufferStructure,
  *  alternate the two members. Parameters with no numeric type, such as
- *  DefaultStyleText, become two uppercase hexadecimal digits per byte.
- *  A661_SELECTOR, which has no WidgetType code in section 4.6, and charset
- *  encoding, symbol, picture, animation law, and A661_CMD_EXTEND content are
- *  not supported.
+ *  DefaultStyleText, StaticParamBuffer entries, and excluded region structures,
+ *  become two uppercase hexadecimal digits per byte.
+ *  A661_SELECTOR cannot be read because Table 4.6-7 assigns it no WidgetType code.
  *  The result retains no pointers into the input buffer.
  *
  * \par Requirements:
- *  - 001 This function shall read Definition File, layer, widget, and Creation Structure values into caller-owned storage.
- *  - 002 This function shall clear all result counts when the input is malformed or unsupported, or a result array is too small.
- *  - 003 This function shall not read outside the supplied input bytes.
- *  - 004 This function shall fail an assertion if definition or buffer is NULL.
+ *  - 001 This function shall read Definition File, charset encoding, layer, widget, extension, and Creation Structure values into caller-owned storage.
+ *  - 002 This function shall retain symbol, picture, and animation law blocks unchanged in caller-owned storage.
+ *  - 003 This function shall clear all result counts when the input is malformed or a result array is too small.
+ *  - 004 This function shall not read outside the supplied input bytes.
+ *  - 005 This function shall fail an assertion if definition or buffer is NULL, or blocks is NULL with a nonzero blockCapacity.
  *
  * \param[in,out] definition   Definition File with storage pointers and capacities initialized
  * \param[in]     buffer       Input binary bytes
@@ -261,11 +314,15 @@ bool_t Arinc661_ReadDefinitionBinary(Arinc661_Definition_t* definition, const by
  *  their number must match the widget's count parameter, such as
  *  NumberOfEntries. Arrays of pairs, such as Vertices and BufferStructure,
  *  take two properties per entry. Parameters with no numeric type, such as
- *  DefaultStyleText, take two hexadecimal digits per byte.
- *  A661_SELECTOR, which has no WidgetType code in section 4.6, is not supported.
+ *  DefaultStyleText, StaticParamBuffer entries, and excluded region structures,
+ *  take two hexadecimal digits per byte. An entry flagged isExtension is written
+ *  as an A661_CMD_EXTEND command and must directly follow, in array order, the
+ *  widget named by its parentWidgetIndex. A nonzero charsetEncoding writes the
+ *  charset encoding block, and blocks are written unchanged before the layers.
+ *  A661_SELECTOR cannot be written because Table 4.6-7 assigns it no WidgetType code.
  *
  * \par Requirements:
- *  - 001 This function shall write the header, one layer block per layer with its widgets in array order, and the footer.
+ *  - 001 This function shall write the header, the charset encoding block when set, the retained blocks, one layer block per layer with its widgets and extensions in array order, and the footer.
  *  - 002 This function shall return the number of bytes written.
  *  - 003 This function shall return zero when a widget type is unsupported, a widget property names no Creation Structure parameter, a value does not fit its parameter, or an array does not match its count.
  *  - 004 This function shall return zero without writing past capacity when the output does not fit.
@@ -278,5 +335,86 @@ bool_t Arinc661_ReadDefinitionBinary(Arinc661_Definition_t* definition, const by
  * \retval    uint64_t   Number of bytes written, or zero when a value is unsupported or the capacity is insufficient.
  */
 uint64_t Arinc661_WriteDefinitionBinary(const Arinc661_Definition_t* definition, byte_t* buffer, uint64_t capacity);
+
+/*************************************************************************************************/
+/**
+ * \brief Counts the widget types or extension types known to the binary reader and writer.
+ *
+ * \param[in] isExtension   TRUE for extension types (Table 4.6-12), FALSE for widget types (Table 4.6-7)
+ *
+ * \retval    uint32_t      Number of types.
+ */
+uint32_t Arinc661_TypeCount(bool_t isExtension);
+
+/*************************************************************************************************/
+/**
+ * \brief Returns the name of a widget or extension type.
+ *
+ * \param[in] isExtension   TRUE for extension types, FALSE for widget types
+ * \param[in] typeIndex     Index below Arinc661_TypeCount
+ *
+ * \retval    const char_t*   Zero-terminated type name, such as A661_PANEL.
+ */
+const char_t* Arinc661_TypeName(bool_t isExtension, uint32_t typeIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Looks up a widget or extension type by name and counts its named Creation Structure parameters.
+ *
+ * \param[in]  typeName         Zero-terminated type name
+ * \param[in]  isExtension      TRUE for extension types, FALSE for widget types
+ * \param[out] parameterCount   Number of named parameters, excluding unused pads
+ *
+ * \retval     TRUE             if the type is known.
+ * \retval     FALSE            otherwise.
+ */
+bool_t Arinc661_FindType(const char_t* typeName, bool_t isExtension, uint32_t* parameterCount);
+
+/*************************************************************************************************/
+/**
+ * \brief Describes one named Creation Structure parameter of a type.
+ *
+ * \par Details:
+ *  Parameters follow Creation Structure order; WidgetType, WidgetIdent, ParentIdent, and
+ *  ExtensionType are not included. The listed constant names come from the Value/Range
+ *  column of the Creation Structure table.
+ *
+ * \param[in]  typeName         Zero-terminated type name
+ * \param[in]  isExtension      TRUE for extension types, FALSE for widget types
+ * \param[in]  parameterIndex   Index below the count from Arinc661_FindType
+ * \param[out] parameter        Parameter description; its pointers stay valid for the program lifetime
+ *
+ * \retval     TRUE             if the type and parameter exist.
+ * \retval     FALSE            otherwise.
+ */
+bool_t Arinc661_Parameter(const char_t* typeName, bool_t isExtension, uint32_t parameterIndex, Arinc661_Parameter_t* parameter);
+
+/*************************************************************************************************/
+/**
+ * \brief Counts the section 4.6 constant names accepted as property values.
+ *
+ * \retval    uint32_t   Number of constants.
+ */
+uint32_t Arinc661_ConstantCount(void);
+
+/*************************************************************************************************/
+/**
+ * \brief Returns a constant name.
+ *
+ * \param[in] constantIndex   Index below Arinc661_ConstantCount
+ *
+ * \retval    const char_t*   Zero-terminated constant name, such as A661_TRUE.
+ */
+const char_t* Arinc661_ConstantName(uint32_t constantIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Returns the value the binary form stores for a constant.
+ *
+ * \param[in] constantIndex   Index below Arinc661_ConstantCount
+ *
+ * \retval    uint32_t        Constant value.
+ */
+uint32_t Arinc661_ConstantValue(uint32_t constantIndex);
 
 #endif /* ARINC661_DEFINITION_H */

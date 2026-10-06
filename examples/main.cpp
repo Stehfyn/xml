@@ -8,7 +8,11 @@
 ** 2. INCLUDE FILES
 **===============================================================================================*/
 
+#if defined(ARINC661_DEFINITION_EDITOR)
+#include "arinc661_definition_editor.h"
+#else
 #include "arinc661_configuration.h"
+#endif
 #include "imgui.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_win32.h"
@@ -16,6 +20,7 @@
 extern "C"
 {
 #include "os/os_assert.h"
+#include "os/os_diagnostics.h"
 #include "os/os_malloc.h"
 }
 
@@ -40,6 +45,17 @@ extern "C"
 **
 ** 3.1 Macros
 **===============================================================================================*/
+
+/* One host for both editors; the Definition File editor is selected at build time. */
+#if defined(ARINC661_DEFINITION_EDITOR)
+#define EDITOR_TYPE       Arinc661_Definition_Editor_t
+#define EDITOR_INITIALIZE Arinc661_Definition_Initialize
+#define EDITOR_DRAW       Arinc661_Definition_DrawEditor
+#else
+#define EDITOR_TYPE       Arinc661_Configuration_Editor_t
+#define EDITOR_INITIALIZE Arinc661_Configuration_Initialize
+#define EDITOR_DRAW       Arinc661_Configuration_DrawEditor
+#endif
 
 #define ASSERT(expression) LOGASSERT(expression)
 #define MOVE_SIZE_TIMER_ID (1U)
@@ -76,7 +92,7 @@ typedef struct WindowThreadState_s
     HANDLE                 readyEvent;          ///< Signals when rendering setup is complete.
     HANDLE                 presentStoppedEvent; ///< Signals when the presenter releases its device context.
     HGLRC                  presentContext;      ///< OpenGL context used by the presenter thread.
-    Arinc661_Configuration_Editor_t* editor;              ///< Editor rendered by the window thread.
+    EDITOR_TYPE*                     editor;              ///< Editor rendered by the window thread.
     float32_t              mainScale;           ///< Initial display scale.
     SRWLOCK                presentLock;         ///< Protects geometry, drawing, and buffer swaps.
     CONDITION_VARIABLE     presentCondition;    ///< Wakes the window thread after geometry is acknowledged.
@@ -312,7 +328,7 @@ static void DrawFrame(WindowThreadState_t* window)
 {
     AcquireSRWLockExclusive(&window->presentLock);
     BeginFrame();
-    Arinc661_Configuration_DrawEditor(window->editor);
+    EDITOR_DRAW(window->editor);
     EndFrame(window);
     ReleaseSRWLockExclusive(&window->presentLock);
     LOGASSERT(S_OK == ::DwmFlush());
@@ -574,7 +590,7 @@ static LRESULT WINAPI WindowProcedure(HWND windowHandle, UINT message, WPARAM wo
             {
                 AcquireSRWLockExclusive(&window->presentLock);
                 BeginFrame();
-                Arinc661_Configuration_DrawEditor(window->editor);
+                EDITOR_DRAW(window->editor);
                 EndFrame(window);
                 ReleaseSRWLockExclusive(&window->presentLock);
                 LOGASSERT(S_OK == ::DwmFlush());
@@ -615,7 +631,7 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
     ImGuiStyle*                style;
     ImGuiPlatformIO*           platform_io;
     WglSwapIntervalFunction_t  swap_interval;
-    Arinc661_Configuration_Editor_t*     configuration_editor;
+    EDITOR_TYPE*                         configuration_editor;
     MSG                        message;
 
     window = (WindowThreadState_t*)parameter;
@@ -696,8 +712,8 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
         platform_io->Platform_RenderWindow  = HookPlatformRenderWindow;
     }
 
-    configuration_editor = (Arinc661_Configuration_Editor_t*)OS_CALLOC(sizeof(Arinc661_Configuration_Editor_t));
-    Arinc661_Configuration_Initialize(configuration_editor);
+    configuration_editor = (EDITOR_TYPE*)OS_CALLOC(sizeof(EDITOR_TYPE));
+    EDITOR_INITIALIZE(configuration_editor);
     window->editor = configuration_editor;
     window->isInitialized = TRUE;
     LOGASSERT(FALSE != ::SetEvent(window->readyEvent));
@@ -759,6 +775,8 @@ int main(void)
     HDC                                  present_device_context;
     D3DKMT_WAITFORVERTICALBLANKEVENT      vbe;
 
+    // Route assertion and runtime failures to stderr instead of dialog boxes
+    Os_Diagnostics_Initialize();
     ImGui_ImplWin32_EnableDpiAwareness();
     main_scale = ImGui_ImplWin32_GetDpiScaleForMonitor(::MonitorFromPoint(POINT{0, 0}, MONITOR_DEFAULTTOPRIMARY));
 

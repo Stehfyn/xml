@@ -2,6 +2,8 @@
 #include "faceoe_utl/faceoe_utl_scan.h"
 #include "faceoe_utl/faceoe_utl_xml.h"
 
+#include "os/os_diagnostics.h"
+
 /* Keep assertions enabled in Release builds. */
 #ifdef NDEBUG
 #undef NDEBUG
@@ -531,6 +533,8 @@ static void TestNumberScanning(void)
  */
 int main(void)
 {
+    // Route assertion and runtime failures to stderr instead of dialog boxes
+    Os_Diagnostics_Initialize();
     TestNumberScanning();
     TestXmlByteSpans();
     TestXmlNodeInitialization();

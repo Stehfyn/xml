@@ -46,6 +46,10 @@
 #define DF_ELEMENT_STRUCT_ENTRY   ("structentry")
 #define DF_ELEMENT_FIELD          ("field")
 
+/* ARINC 661 Part 1-7, sections 6.2.1 and 8: charset encoding and widget extension elements. */
+#define DF_ELEMENT_CHARSET_ENCODING ("charset-encoding")
+#define DF_ELEMENT_EXTENSION        ("a661_extension")
+
 /* Supplement 6 a661Strict.xsd attribute names. */
 #define XML_ATTRIBUTE_NAME               ("name")
 #define XML_ATTRIBUTE_X                  ("x")
@@ -76,6 +80,16 @@ typedef struct XmlWorkspace_s
     FACEOE_Utl_Xml_Document_t   document;       ///< Temporary document with nodes in the workspace
 } XmlWorkspace_t;
 
+/*************************************************************************************************/
+/**
+ * \brief Charset encoding name and its A661_Charset_Encoding value.
+ */
+typedef struct CharsetEncoding_s
+{
+    const char_t* name;  ///< Name attribute of the charset-encoding element
+    uint32_t      value; ///< Value in Part 1-7, Table 4.6-13
+} CharsetEncoding_t;
+
 /*=================================================================================================
 ** 3.3 External global variables
 **===============================================================================================*/
@@ -83,6 +97,17 @@ typedef struct XmlWorkspace_s
 /*=================================================================================================
 ** 3.4 Static global variables
 **===============================================================================================*/
+
+/*************************************************************************************************/
+/**
+ * \brief Charset encodings of Part 1-7, Table 4.6-13.
+ */
+static const CharsetEncoding_t c_charsetEncodings[] =
+{
+    {"A661_ASCII_EXTENDED", 1U},
+    {"A661_UTF8",           2U},
+    {"A661_GBK",            3U}
+};
 
 /*=================================================================================================
 ** 3.5 Static function prototypes
@@ -1108,6 +1133,7 @@ static bool_t WriteProperties(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent
     FACEOE_Utl_Xml_Node_t*                property_node;
     FACEOE_Utl_Xml_Node_t*                entry_node;
     const Arinc661_Property_t* property;
+    const char_t*                  element_name;
     uint32_t                       property_index;
     uint32_t                       entry_index;
     uint32_t                       element_index;
@@ -1127,11 +1153,16 @@ static bool_t WriteProperties(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent
             // Both owner kind and array index must match this model
             is_owner  = (owner == property->owner);
             has_index = (ownerIndex == property->ownerIndex);
-            // ponytail: the same-name scans make this quadratic in a model's property count
+            // ponytail: accept the quadratic same-name scan; index properties by owner if models grow large
             if (is_owner && has_index && (FindSameNameProperty(definition, property_index, 0) == property_index))
             {
                 is_array      = (UINT32_MAX != FindSameNameProperty(definition, property_index, property_index + 1));
-                property_node = AppendElement(xml, is_array ? DF_ELEMENT_ARRAY_PROPERTY : DF_ELEMENT_PROPERTY);
+                element_name  = DF_ELEMENT_PROPERTY;
+                if (is_array)
+                {
+                    element_name = DF_ELEMENT_ARRAY_PROPERTY;
+                }
+                property_node = AppendElement(xml, element_name);
                 is_valid      = (NULL != property_node);
                 if (is_valid)
                 {
@@ -1143,7 +1174,7 @@ static bool_t WriteProperties(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent
                 }
                 if (is_valid && is_array)
                 {
-                    // Every later property with this name becomes an entry, in array order
+                    // Turn every later property with this name into an entry, in array order
                     entry_index = property_index;
                     for (element_index = 0; element_index < definition->propertyCount; ++element_index)
                     {
@@ -1237,23 +1268,28 @@ bool_t Arinc661_ReadDefinition(Arinc661_Definition_t* definition, byte_t* buffer
     FACEOE_Utl_Xml_Node_t*        model_node;
     Arinc661_Layer_t*  layer;
     Arinc661_Widget_t* widget;
+    char_t                 charset_name[ARINC661_MAX_NAME_BYTES];
     int64_t                version;
     uint32_t               layer_index;
     uint32_t               node_index;
     uint32_t               widget_index;
     uint32_t               parent_index;
+    uint32_t               charset_index;
     bool_t                 has_workspace;
+    bool_t                 is_extension;
     bool_t                 is_valid;
 
     LOGASSERT(NULL != definition);
     LOGASSERT(NULL != buffer);
     LOGASSERT(NULL != workspace);
-    // Reset result counts while retaining the supplied arrays and capacities
-    definition->layerCount    = 0;
-    definition->widgetCount   = 0;
-    definition->propertyCount = 0;
-    has_workspace            = InitializeXmlWorkspace(&xml, workspace, workspaceSize);
-    is_valid                 = has_workspace;
+    // Reset result counts while retaining the supplied arrays and capacities; XML carries no binary blocks
+    definition->layerCount      = 0;
+    definition->widgetCount     = 0;
+    definition->propertyCount   = 0;
+    definition->blockByteCount  = 0;
+    definition->charsetEncoding = 0;
+    has_workspace               = InitializeXmlWorkspace(&xml, workspace, workspaceSize);
+    is_valid                    = has_workspace;
     if (is_valid)
     {
         // Parse the source into the temporary XML workspace
@@ -1345,7 +1381,8 @@ bool_t Arinc661_ReadDefinition(Arinc661_Definition_t* definition, byte_t* buffer
                     {
                         break;
                     }
-                    if (HasElementName(current_node, DF_ELEMENT_WIDGET))
+                    is_extension = HasElementName(current_node, DF_ELEMENT_EXTENSION);
+                    if (is_extension || HasElementName(current_node, DF_ELEMENT_WIDGET))
                     {
                         is_valid = (definition->widgetCount < definition->widgetCapacity);
                         if (FALSE == is_valid)
@@ -1357,7 +1394,10 @@ bool_t Arinc661_ReadDefinition(Arinc661_Definition_t* definition, byte_t* buffer
                         // Default to a direct layer child until a widget parent is found
                         widget->layerIndex        = definition->layerCount - 1;
                         widget->parentWidgetIndex = UINT32_MAX;
-                        if (current_node->parent != layer_node)
+                        widget->isExtension       = is_extension;
+                        // Require a widget parent for an extension, never a layer or another extension
+                        is_valid = (FALSE == is_extension) || (current_node->parent != layer_node);
+                        if (is_valid && (current_node->parent != layer_node))
                         {
                             // Map the parent XML pointer to a widget already visited in this layer
                             for (widget_index = 0; widget_index < definition->widgetCount; ++widget_index)
@@ -1369,6 +1409,10 @@ bool_t Arinc661_ReadDefinition(Arinc661_Definition_t* definition, byte_t* buffer
                                 }
                             }
                             is_valid = (UINT32_MAX != widget->parentWidgetIndex);
+                            if (is_valid)
+                            {
+                                is_valid = (FALSE == definition->widgets[widget->parentWidgetIndex].isExtension);
+                            }
                         }
                         if (is_valid)
                         {
@@ -1407,6 +1451,31 @@ bool_t Arinc661_ReadDefinition(Arinc661_Definition_t* definition, byte_t* buffer
                     break;
                 }
                 LOGASSERT(NULL == current_node);
+            }
+            else if (HasElementName(layer_node, DF_ELEMENT_CHARSET_ENCODING))
+            {
+                // Select the Table 4.6-13 encoding by name (section 6.2.1) and allow one per file
+                is_valid = (0 == definition->charsetEncoding);
+                if (is_valid)
+                {
+                    is_valid = CopyAttribute(layer_node, XML_ATTRIBUTE_NAME, charset_name, sizeof(charset_name));
+                }
+                if (is_valid)
+                {
+                    for (charset_index = 0; charset_index < (sizeof(c_charsetEncodings) / sizeof(c_charsetEncodings[0])); ++charset_index)
+                    {
+                        if (0 == strcmp(charset_name, c_charsetEncodings[charset_index].name))
+                        {
+                            definition->charsetEncoding = c_charsetEncodings[charset_index].value;
+                            break;
+                        }
+                    }
+                    is_valid = (0 != definition->charsetEncoding);
+                }
+                if (FALSE == is_valid)
+                {
+                    break;
+                }
             }
             else
             {
@@ -1476,11 +1545,14 @@ uint64_t Arinc661_WriteDefinition(const Arinc661_Definition_t* definition, byte_
     FACEOE_Utl_Xml_Node_t*              layer_node;
     FACEOE_Utl_Xml_Node_t*              widget_node;
     FACEOE_Utl_Xml_Node_t*              parent_node;
+    FACEOE_Utl_Xml_Node_t*              charset_node;
     const Arinc661_Layer_t*  layer;
     const Arinc661_Widget_t* widget;
+    const char_t*                element_name;
     uint64_t                     byte_count;
     uint32_t                     layer_index;
     uint32_t                     widget_index;
+    uint32_t                     charset_index;
     bool_t                       has_workspace;
     bool_t                       has_parent;
     bool_t                       is_valid;
@@ -1509,6 +1581,28 @@ uint64_t Arinc661_WriteDefinition(const Arinc661_Definition_t* definition, byte_
     if (is_valid)
     {
         is_valid = AppendIntegerAttribute(&xml, root, XML_ATTRIBUTE_SUPPLEMENT_VERSION, definition->supplementVersion);
+    }
+    if (is_valid && (0 != definition->charsetEncoding))
+    {
+        // Place the charset-encoding element before the model and layers (section 6.2.1)
+        charset_node = AppendElement(&xml, DF_ELEMENT_CHARSET_ENCODING);
+        is_valid     = (NULL != charset_node);
+        if (is_valid)
+        {
+            is_valid = FALSE;
+            for (charset_index = 0; charset_index < (sizeof(c_charsetEncodings) / sizeof(c_charsetEncodings[0])); ++charset_index)
+            {
+                if (definition->charsetEncoding == c_charsetEncodings[charset_index].value)
+                {
+                    is_valid = AppendAttribute(&xml, charset_node, XML_ATTRIBUTE_NAME, c_charsetEncodings[charset_index].name);
+                    break;
+                }
+            }
+        }
+        if (is_valid)
+        {
+            FACEOE_Utl_Xml_AppendChild(root, charset_node);
+        }
     }
     if (is_valid)
     {
@@ -1541,10 +1635,21 @@ uint64_t Arinc661_WriteDefinition(const Arinc661_Definition_t* definition, byte_
                 // Select widgets belonging to this layer while preserving their array order
                 if (layer_index == widget->layerIndex)
                 {
-                    widget_node = AppendElement(&xml, DF_ELEMENT_WIDGET);
-                    is_valid    = (NULL != widget_node);
-                    if (is_valid)
+                    element_name = DF_ELEMENT_WIDGET;
+                    if (widget->isExtension)
                     {
+                        element_name = DF_ELEMENT_EXTENSION;
+                    }
+                    widget_node = AppendElement(&xml, element_name);
+                    is_valid    = (NULL != widget_node);
+                    if (is_valid && widget->isExtension)
+                    {
+                        // Require a parent widget for an extension
+                        is_valid = (UINT32_MAX != widget->parentWidgetIndex);
+                    }
+                    if (is_valid && (FALSE == widget->isExtension))
+                    {
+                        // Omit the name attribute from a661_extension, which carries only its type (Table 6.2.3-3)
                         is_valid = AppendAttribute(&xml, widget_node, XML_ATTRIBUTE_NAME, widget->name);
                     }
                     if (is_valid)

@@ -377,6 +377,275 @@ static void TestDefinitionArrayProperties(void)
 
 /*************************************************************************************************/
 /**
+ * \brief Checks widget extensions (Part 1-7, section 8) in XML, binary, and round trip.
+ */
+static void TestDefinitionBinaryExtensions(void)
+{
+    byte_t input[] = "<a661_df name=\"example\" library_version=\"0\" supp_version=\"7\"><model/><a661_layer name=\"Primary\"><model/>"
+                     "<a661_widget name=\"Button\" type=\"A661_PUSH_BUTTON\"><model><prop name=\"WidgetIdent\" value=\"1\"/><prop name=\"LabelString\" value=\"OK\"/></model>"
+                     "<a661_extension type=\"A661_LEGEND_ALIGN_EXTENSION\"><model><prop name=\"LegendAlignment\" value=\"A661_CENTER\"/></model></a661_extension>"
+                     "<a661_extension type=\"A661_DIRECTIONAL_TABBING_EXTENSION\"><model><prop name=\"NumDirections\" value=\"2\"/><arrayprop name=\"TabDirectionWidgetIdArray\"><entry value=\"2\"/><entry value=\"5\"/></arrayprop></model></a661_extension>"
+                     "<a661_extension type=\"A661_TICS_ARRAY_EXTENSION\"><model><prop name=\"MaxNumberOfTicsCoarse\" value=\"4\"/><prop name=\"NumberOfTicsCoarse\" value=\"1\"/><prop name=\"MaxNumberOfTicsFine\" value=\"4\"/><prop name=\"NumberOfTicsFine\" value=\"2\"/>"
+                     "<arrayprop name=\"TicsCoarseArray\"><xyentry x=\"1\" y=\"2\"/></arrayprop><arrayprop name=\"TicsFineArray\"><xyentry x=\"0.5\" y=\"1\"/><xyentry x=\"1.5\" y=\"2\"/></arrayprop></model></a661_extension>"
+                     "<a661_extension type=\"A661_EXCLUDED_REGIONS_EXTENSION\"><model><prop name=\"MaxNumberOfRegions\" value=\"2\"/><arrayprop name=\"EffectivityArray\"><entry value=\"1\"/><entry value=\"0\"/></arrayprop>"
+                     "<arrayprop name=\"ExcludedRegionsList\"><entry value=\"0001000000000000000000000000006400000064\"/><entry value=\"01000000\"/></arrayprop></model></a661_extension>"
+                     "<a661_extension type=\"A661_STATIC_PARAM_BUFFER_EXTENSION\"><model><prop name=\"NumberOfBuffers\" value=\"2\"/><arrayprop name=\"BufferArray\"><entry value=\"0A0B0C\"/><entry value=\"\"/></arrayprop></model></a661_extension>"
+                     "</a661_widget></a661_layer></a661_df>";
+    /* Tables 8.5.3-2 and 8.5.1-2: ExtensionType, parameters, 32-bit padding */
+    static const byte_t expected_legend[]  = {0xCA, 0x05, 0x00, 0x08, 0x80, 0x04, 0x15, 0x00};
+    static const byte_t expected_tabbing[] = {0xCA, 0x05, 0x00, 0x0C, 0x80, 0x03, 0x02, 0x00, 0x00, 0x02, 0x00, 0x05};
+    /* Table 8.6.3-2: pad, four counts, one coarse pair, two fine pairs as IEEE 754 */
+    static const byte_t expected_tics[] =
+    {
+        0xCA, 0x05, 0x00, 0x28, 0x80, 0x0B, 0x00, 0x00, 0x00, 0x04, 0x00, 0x01, 0x00, 0x04, 0x00, 0x02,
+        0x3F, 0x80, 0x00, 0x00, 0x40, 0x00, 0x00, 0x00,
+        0x3F, 0x00, 0x00, 0x00, 0x3F, 0x80, 0x00, 0x00, 0x3F, 0xC0, 0x00, 0x00, 0x40, 0x00, 0x00, 0x00
+    };
+    /* Table 8.6.7-2: count, pad, effectivity bytes, alignment, a rectangle and an unused region */
+    static const byte_t expected_regions[] =
+    {
+        0xCA, 0x05, 0x00, 0x24, 0x80, 0x0E, 0x02, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x64, 0x00, 0x00, 0x00, 0x64,
+        0x01, 0x00, 0x00, 0x00
+    };
+    /* Tables 8.6.5-2 and 8.6.5-3: count, then each buffer as size, pad, bytes, alignment */
+    static const byte_t expected_buffers[] =
+    {
+        0xCA, 0x05, 0x00, 0x14, 0x80, 0x0D, 0x00, 0x02,
+        0x00, 0x03, 0x00, 0x00, 0x0A, 0x0B, 0x0C, 0x00,
+        0x00, 0x00, 0x00, 0x00
+    };
+    byte_t output[4096];
+    byte_t copy[512];
+    Arinc661_Layer_t layers[1];
+    Arinc661_Widget_t widgets[8];
+    Arinc661_Property_t properties[64];
+    Arinc661_Definition_t definition;
+    uint64_t byte_count;
+    uint64_t offset;
+    bool_t is_valid;
+
+    memset(&definition, 0, sizeof(definition));
+    definition.layers = layers;
+    definition.widgets = widgets;
+    definition.properties = properties;
+    definition.layerCapacity = 1;
+    definition.widgetCapacity = 8;
+    definition.propertyCapacity = 64;
+    is_valid = Arinc661_ReadDefinition(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
+    assert(is_valid);
+    assert(6 == definition.widgetCount);
+    assert(FALSE == widgets[0].isExtension);
+    assert(TRUE == widgets[1].isExtension);
+    assert(0 == widgets[1].parentWidgetIndex);
+    assert(0 == strcmp("A661_LEGEND_ALIGN_EXTENSION", widgets[1].type));
+
+    /* Header 8, layer header 8, push button command 40 (10 + 2 + 16 + 6 + 2 + "OK" + pad), then the extensions */
+    byte_count = Arinc661_WriteDefinitionBinary(&definition, output, sizeof(output));
+    offset = 8 + 8 + 40;
+    assert((offset + 8 + 12 + 40 + 36 + 20 + 4 + 4) == byte_count);
+    assert(0 == memcmp(&output[offset], expected_legend, sizeof(expected_legend)));
+    offset += sizeof(expected_legend);
+    assert(0 == memcmp(&output[offset], expected_tabbing, sizeof(expected_tabbing)));
+    offset += sizeof(expected_tabbing);
+    assert(0 == memcmp(&output[offset], expected_tics, sizeof(expected_tics)));
+    offset += sizeof(expected_tics);
+    assert(0 == memcmp(&output[offset], expected_regions, sizeof(expected_regions)));
+    offset += sizeof(expected_regions);
+    assert(0 == memcmp(&output[offset], expected_buffers, sizeof(expected_buffers)));
+
+    is_valid = Arinc661_ReadDefinitionBinary(&definition, output, byte_count);
+    assert(is_valid);
+    assert(6 == definition.widgetCount);
+    assert(TRUE == widgets[5].isExtension);
+    assert(0 == widgets[5].parentWidgetIndex);
+    assert(0 == strcmp("A661_STATIC_PARAM_BUFFER_EXTENSION", widgets[5].type));
+    assert(0 == strcmp("ExcludedRegionsList", properties[definition.propertyCount - 5].name));
+    assert(0 == strcmp("0001000000000000000000000000006400000064", properties[definition.propertyCount - 5].value));
+    assert(0 == strcmp("BufferArray", properties[definition.propertyCount - 1].name));
+    assert(0 == strcmp("", properties[definition.propertyCount - 1].value));
+    assert(0 == strcmp("TicsFineArray", properties[definition.propertyCount - 9].name));
+    assert(0 == strcmp("2", properties[definition.propertyCount - 9].value));
+    assert(0 == Arinc661_WriteDefinitionBinary(&definition, copy, 0));
+    assert(byte_count == Arinc661_WriteDefinitionBinary(&definition, copy, sizeof(copy)));
+    assert(0 == memcmp(copy, output, byte_count));
+
+    /* The XML form writes the extensions back as a661_extension elements */
+    byte_count = Arinc661_WriteDefinition(&definition, output, sizeof(output) - 1, c_workspace, sizeof(c_workspace));
+    assert(0 < byte_count);
+    output[byte_count] = '\0';
+    assert(NULL != strstr((const char_t*)output, "<a661_extension type=\"A661_LEGEND_ALIGN_EXTENSION\">"));
+
+    /* An extension before any widget, a region of unknown type, and an extension on an extension are rejected */
+    widgets[1].parentWidgetIndex = UINT32_MAX;
+    assert(0 == Arinc661_WriteDefinitionBinary(&definition, copy, sizeof(copy)));
+    widgets[1].parentWidgetIndex = 0;
+    strcpy(properties[definition.propertyCount - 4].value, "0004000000000000");
+    assert(0 == Arinc661_WriteDefinitionBinary(&definition, copy, sizeof(copy)));
+    strcpy(properties[definition.propertyCount - 4].value, "01000000");
+    widgets[2].parentWidgetIndex = 1;
+    assert(0 == Arinc661_WriteDefinitionBinary(&definition, copy, sizeof(copy)));
+    widgets[2].parentWidgetIndex = 0;
+    assert(byte_count != Arinc661_WriteDefinitionBinary(&definition, copy, sizeof(copy)));
+    memcpy(strstr((char_t*)input, "<a661_widget name=\"Button\""), "<a661_extensio", sizeof("<a661_extensio") - 1);
+    assert(FALSE == Arinc661_ReadDefinition(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace)));
+}
+
+/*************************************************************************************************/
+/**
+ * \brief Checks the charset encoding block and byte-for-byte retention of symbol, picture, and animation law blocks.
+ */
+static void TestDefinitionBinaryBlocks(void)
+{
+    static const byte_t expected[] =
+    {
+        0xA6, 0x61, 0x00, 0x07, 0x00, 0x01, 0x00, 0x00,
+        /* Table 4.5.3.2-6 charset encoding block: A661_UTF8 */
+        0xC8, 0x00, 0x00, 0x02, 0xC9, 0x00, 0x00, 0x00,
+        /* Table 4.5.3.2-5 symbol block, 16 bytes, content not interpreted */
+        0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0xCA, 0x04, 0x00, 0x04, 0xF8, 0x00, 0x00, 0x00,
+        /* Table 7-1 picture block: indexed pixels, one 1x1 picture, two-entry luminance-alpha color table, no reserved word */
+        0xBB, 0xC2, 0x01, 0x02, 0xC1, 0x00, 0x00, 0x00, 0x10, 0xFF, 0x20, 0xFF,
+        0xBC, 0x00, 0x00, 0x05, 0x00, 0x01, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0xBD, 0x00, 0x00, 0x00,
+        0xBE, 0x00, 0x00, 0x00,
+        /* Table 7-1 picture block: RGBA, one 2x1 picture, no color table, reserved word before the end */
+        0xBB, 0xC0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0xBC, 0x00, 0x00, 0x06, 0x00, 0x02, 0x00, 0x01, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0xBD, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0xBE, 0x00, 0x00, 0x00,
+        /* Table 9.2-1 animation law block, 12 bytes */
+        0xCA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0C, 0xCB, 0x00, 0x00, 0x00,
+        0xA0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0C, 0xC0, 0x00, 0x00, 0x00,
+        0xE0, 0x00, 0x00, 0x00
+    };
+    byte_t output[1024];
+    byte_t blocks[128];
+    Arinc661_Layer_t layers[1];
+    Arinc661_Property_t properties[8];
+    Arinc661_Definition_t definition;
+    uint64_t byte_count;
+    uint32_t index;
+    bool_t is_valid;
+
+    memset(&definition, 0, sizeof(definition));
+    definition.layers = layers;
+    definition.properties = properties;
+    definition.blocks = blocks;
+    definition.layerCapacity = 1;
+    definition.propertyCapacity = 8;
+    definition.blockCapacity = sizeof(blocks);
+    is_valid = Arinc661_ReadDefinitionBinary(&definition, expected, sizeof(expected));
+    assert(is_valid);
+    assert(2 == definition.charsetEncoding);
+    assert(1 == definition.layerCount);
+    assert((16 + 32 + 36 + 12) == definition.blockByteCount);
+    assert(0 == memcmp(blocks, &expected[16], definition.blockByteCount));
+
+    byte_count = Arinc661_WriteDefinitionBinary(&definition, output, sizeof(output));
+    assert(sizeof(expected) == byte_count);
+    assert(0 == memcmp(output, expected, sizeof(expected)));
+
+    /* The XML form carries the charset encoding and drops the binary-only blocks */
+    byte_count = Arinc661_WriteDefinition(&definition, output, sizeof(output) - 1, c_workspace, sizeof(c_workspace));
+    assert(0 < byte_count);
+    output[byte_count] = '\0';
+    assert(NULL != strstr((const char_t*)output, "<charset-encoding name=\"A661_UTF8\"/>"));
+    is_valid = Arinc661_ReadDefinition(&definition, output, byte_count, c_workspace, sizeof(c_workspace));
+    assert(is_valid);
+    assert(2 == definition.charsetEncoding);
+    assert(0 == definition.blockByteCount);
+
+    /* Every truncation is rejected without reading past the input */
+    for (index = 0; index < sizeof(expected); ++index)
+    {
+        memcpy(output, expected, index);
+        assert(FALSE == Arinc661_ReadDefinitionBinary(&definition, output, index));
+        assert(0 == definition.blockByteCount);
+    }
+
+    /* Too little block storage, an unknown pixel format, and a second charset block are rejected */
+    definition.blockCapacity = 95;
+    assert(FALSE == Arinc661_ReadDefinitionBinary(&definition, expected, sizeof(expected)));
+    definition.blockCapacity = sizeof(blocks);
+    memcpy(output, expected, sizeof(expected));
+    output[33] = 0xC9;
+    assert(FALSE == Arinc661_ReadDefinitionBinary(&definition, output, sizeof(expected)));
+    memcpy(output, expected, sizeof(expected));
+    memcpy(&output[16], &expected[8], 8);
+    assert(FALSE == Arinc661_ReadDefinitionBinary(&definition, output, sizeof(expected)));
+}
+
+/*************************************************************************************************/
+/**
+ * \brief Checks the Creation Structure schema exposed for editors.
+ */
+static void TestDefinitionSchema(void)
+{
+    Arinc661_Parameter_t parameter;
+    uint32_t             parameter_count;
+    uint32_t             type_index;
+    uint32_t             found;
+
+    assert(92 == Arinc661_TypeCount(FALSE));
+    assert(20 == Arinc661_TypeCount(TRUE));
+    found = 0;
+    for (type_index = 0; type_index < Arinc661_TypeCount(FALSE); ++type_index)
+    {
+        assert(Arinc661_FindType(Arinc661_TypeName(FALSE, type_index), FALSE, &parameter_count));
+        if (0 == strcmp("A661_LABEL", Arinc661_TypeName(FALSE, type_index)))
+        {
+            found += 1;
+        }
+    }
+    assert(1 == found);
+    assert(FALSE == Arinc661_FindType("A661_SELECTOR", FALSE, &parameter_count));
+    assert(FALSE == Arinc661_FindType("A661_LABEL", TRUE, &parameter_count));
+
+    /* Table 3.3.20-2: fourteen named parameters, Alignment listing nine constants */
+    assert(Arinc661_FindType("A661_LABEL", FALSE, &parameter_count));
+    assert(14 == parameter_count);
+    assert(Arinc661_Parameter("A661_LABEL", FALSE, 12, &parameter));
+    assert(0 == strcmp("Alignment", parameter.name));
+    assert(ARINC661_PARAMETER_UCHAR == parameter.kind);
+    assert(9 == parameter.valueCount);
+    assert(0 == strcmp("A661_BOTTOM_CENTER", parameter.values[0]));
+    assert(Arinc661_Parameter("A661_LABEL", FALSE, 13, &parameter));
+    assert(ARINC661_PARAMETER_STRING == parameter.kind);
+    assert(0 == parameter.elementsPerEntry);
+    assert(FALSE == Arinc661_Parameter("A661_LABEL", FALSE, 14, &parameter));
+
+    /* Table 3.3.27-2: Panel keeps its pad out of the count; Enable lists three constants */
+    assert(Arinc661_FindType("A661_PANEL", FALSE, &parameter_count));
+    assert(8 == parameter_count);
+    assert(Arinc661_Parameter("A661_PANEL", FALSE, 0, &parameter));
+    assert(0 == strcmp("Enable", parameter.name));
+    assert(3 == parameter.valueCount);
+
+    /* Table 8.6.3-2: each tics array names its own count; Table 8.7.1-2 has no named parameter */
+    assert(Arinc661_FindType("A661_TICS_ARRAY_EXTENSION", TRUE, &parameter_count));
+    assert(6 == parameter_count);
+    assert(Arinc661_Parameter("A661_TICS_ARRAY_EXTENSION", TRUE, 5, &parameter));
+    assert(0 == strcmp("TicsFineArray", parameter.name));
+    assert(2 == parameter.elementsPerEntry);
+    assert(0 == strcmp("NumberOfTicsFine", parameter.countName));
+    assert(ARINC661_PARAMETER_FLOAT == parameter.kind);
+    assert(Arinc661_FindType("A661_REORDER_EXTENSION", TRUE, &parameter_count));
+    assert(0 == parameter_count);
+
+    assert(0 < Arinc661_ConstantCount());
+    found = 0;
+    for (type_index = 0; type_index < Arinc661_ConstantCount(); ++type_index)
+    {
+        if (0 == strcmp("A661_TRUE", Arinc661_ConstantName(type_index)))
+        {
+            assert(1 == Arinc661_ConstantValue(type_index));
+            found += 1;
+        }
+    }
+    assert(1 == found);
+}
+
+/*************************************************************************************************/
+/**
  * \par Details:
  *  Runs the ARINC 661 checks as part of the unit test executable.
  */
@@ -388,4 +657,7 @@ void RunArinc661Tests(void)
     TestDefinitionBinaryLabelComplex();
     TestDefinitionBinaryArrays();
     TestDefinitionArrayProperties();
+    TestDefinitionBinaryExtensions();
+    TestDefinitionBinaryBlocks();
+    TestDefinitionSchema();
 }
