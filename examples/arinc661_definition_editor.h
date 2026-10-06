@@ -108,4 +108,163 @@ void Arinc661_Definition_Initialize(Arinc661_Definition_Editor_t* editor);
  */
 void Arinc661_Definition_DrawEditor(Arinc661_Definition_Editor_t* editor);
 
+/*************************************************************************************************/
+/**
+ * \brief Sets the folder the file list and new documents use.
+ *
+ * \param[in,out] editor       Editor state
+ * \param[in]     folderPath   Zero-terminated folder path
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_SetFolderPath(Arinc661_Definition_Editor_t* editor, const char_t* folderPath);
+
+/*************************************************************************************************/
+/**
+ * \brief Opens a Definition File from the folder, or selects it if it is already open.
+ *
+ * \param[in,out] editor     Editor state
+ * \param[in]     fileName   Filename inside the folder
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_LoadFile(Arinc661_Definition_Editor_t* editor, const char_t* fileName);
+
+/*************************************************************************************************/
+/**
+ * \brief Starts a new untitled Definition File.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_CreateDocument(Arinc661_Definition_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Saves the active document, asking for a filename when it is untitled.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_SaveActiveDocument(Arinc661_Definition_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Saves every changed document.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_SaveAllDocuments(Arinc661_Definition_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Closes the active document, asking first when it has unsaved changes.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_CloseActiveDocument(Arinc661_Definition_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Reports whether a document is active, whether any is changed, and whether a slot is free.
+ *
+ * \param[in]  editor    Editor state
+ * \param[out] isDirty   TRUE when any open document has unsaved changes; may be NULL
+ * \param[out] hasFree   TRUE when another document can be opened; may be NULL
+ *
+ * \retval     TRUE      if a document is active.
+ * \retval     FALSE     otherwise.
+ */
+bool_t Arinc661_Definition_HasActiveDocument(const Arinc661_Definition_Editor_t* editor, bool_t* isDirty, bool_t* hasFree);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws the document tab bar, including the unsaved-changes prompt.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_DrawDocumentTabs(Arinc661_Definition_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws the active document's hierarchy tree into the current window.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_DrawHierarchy(Arinc661_Definition_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws the active document's scene as a child pane.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_DrawScene(Arinc661_Definition_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws the active document's inspector as a child pane.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_DrawInspector(Arinc661_Definition_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws the save-as dialog when a filename is pending.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_DrawDialogs(Arinc661_Definition_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Returns the latest status message, or an empty string.
+ *
+ * \param[in] editor   Editor state
+ *
+ * \retval    const char_t*   Zero-terminated status text.
+ */
+const char_t* Arinc661_Definition_StatusText(const Arinc661_Definition_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Measures the hierarchy and inspector widths the active document needs.
+ *
+ * \param[in]  editor           Editor state
+ * \param[out] hierarchyWidth   Minimum hierarchy width
+ * \param[out] inspectorWidth   Inspector width
+ *
+ * \retval     None
+ */
+void Arinc661_Definition_MeasurePanes(const Arinc661_Definition_Editor_t* editor, float32_t* hierarchyWidth, float32_t* inspectorWidth);
+
+/*************************************************************************************************/
+/**
+ * \brief Tells whether a file holds an ARINC 661 Definition File, in XML or binary form.
+ *
+ * \param[in] bytes       First bytes of the file
+ * \param[in] byteCount   Number of bytes available
+ *
+ * \retval    TRUE        if the bytes start a binary Definition File or an a661_df document.
+ * \retval    FALSE       otherwise.
+ */
+bool_t Arinc661_Definition_IsDefinitionFile(const byte_t* bytes, uint64_t byteCount);
+
 #endif /* ARINC661_DEFINITION_EDITOR_H */

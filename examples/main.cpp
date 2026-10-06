@@ -11,6 +11,7 @@
 #include "arinc661_configuration.h"
 #include "arinc661_definition_editor.h"
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_win32.h"
 
@@ -18,6 +19,7 @@ extern "C"
 {
 #include "os/os_assert.h"
 #include "os/os_diagnostics.h"
+#include "os/os_file.h"
 #include "os/os_malloc.h"
 }
 
@@ -43,15 +45,55 @@ extern "C"
 ** 3.1 Macros
 **===============================================================================================*/
 
-/* Main menu bar that switches between the two editors; each keeps its own documents. */
-#define EDITOR_MENU_LABEL              ("Editor")
-#define CONFIGURATION_EDITOR_LABEL     ("Configuration")
-#define CONFIGURATION_EDITOR_SHORTCUT  ("Ctrl+1")
-#define DEFINITION_EDITOR_LABEL        ("Definition File")
-#define DEFINITION_EDITOR_SHORTCUT     ("Ctrl+2")
-#define CONFIGURATION_EDITOR_KEY_CHORD (ImGuiMod_Ctrl | ImGuiKey_1)
-#define DEFINITION_EDITOR_KEY_CHORD    (ImGuiMod_Ctrl | ImGuiKey_2)
-#define EDITOR_SHORTCUT_FLAGS          (ImGuiInputFlags_RouteGlobal | ImGuiInputFlags_RouteOverActive)
+/* One page: shared folder and file list, one hierarchy holding both document kinds, one scene, one inspector. */
+#define PAGE_WINDOW_NAME            ("ARINC 661")
+#define PAGE_WINDOW_FLAGS           (ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDocking)
+#define FILE_MENU_LABEL             ("File")
+#define NEW_CONFIGURATION_LABEL     ("New Configuration")
+#define NEW_CONFIGURATION_SHORTCUT  ("Ctrl+N")
+#define NEW_DEFINITION_LABEL        ("New Definition File")
+#define NEW_DEFINITION_SHORTCUT     ("Ctrl+Shift+N")
+#define SAVE_LABEL                  ("Save")
+#define SAVE_SHORTCUT_LABEL         ("Ctrl+S")
+#define SAVE_ALL_LABEL              ("Save All")
+#define SAVE_ALL_SHORTCUT_LABEL     ("Ctrl+Shift+S")
+#define CLOSE_LABEL                 ("Close")
+#define CLOSE_SHORTCUT_LABEL        ("Ctrl+W")
+#define REFRESH_LABEL               ("Refresh")
+#define FILE_CONTROLS_HEADER        ("Files")
+#define FOLDER_PATH_LABEL           ("Folder")
+#define FOLDER_INPUT_ID             ("##pageFolderPath")
+#define FILE_LIST_ID                ("##pageFiles")
+#define FILE_LIST_ROWS              (4)
+#define CONFIGURATION_FILE_FORMAT   ("[Configuration]    %s")
+#define DEFINITION_FILE_FORMAT      ("[Definition File]  %s")
+#define NO_FILES_LABEL              ("No configuration or Definition Files in this folder.")
+#define FOLDER_UNREADABLE_LABEL     ("Folder could not be read.")
+#define HIERARCHY_PANE_NAME         ("Hierarchy")
+#define CONFIGURATION_SECTION_LABEL ("Configuration")
+#define DEFINITION_SECTION_LABEL    ("Definition Files")
+#define CONFIGURATION_SECTION_ID    ("##configurationSection")
+#define DEFINITION_SECTION_ID       ("##definitionSection")
+#define PANE_TABLE_ID               ("PagePanes")
+#define PANE_TABLE_FLAGS            (ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_NoPadOuterX | ImGuiTableFlags_NoPadInnerX | ImGuiTableFlags_NoHostExtendY)
+#define PANE_FLAGS                  (ImGuiChildFlags_AlwaysUseWindowPadding)
+#define READY_LABEL                 ("Ready")
+#define SHORTCUT_FLAGS              (ImGuiInputFlags_RouteGlobal | ImGuiInputFlags_RouteOverActive)
+#define NEW_CONFIGURATION_CHORD     (ImGuiMod_Ctrl | ImGuiKey_N)
+#define NEW_DEFINITION_CHORD        (ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_N)
+#define SAVE_CHORD                  (ImGuiMod_Ctrl | ImGuiKey_S)
+#define SAVE_ALL_CHORD              (ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_S)
+#define CLOSE_CHORD                 (ImGuiMod_Ctrl | ImGuiKey_W)
+#define DEFAULT_FOLDER_PATH         ("C:\\dev\\xml\\examples")
+#define MAX_FOLDER_PATH_BYTES       (512)
+#define MAX_FILE_NAME_BYTES         (260)
+#define MAX_FILE_PATH_BYTES         (MAX_FOLDER_PATH_BYTES + MAX_FILE_NAME_BYTES + 1)
+#define MAX_PAGE_FILES              (256)
+#define FILE_HEAD_BYTES             (4096)
+#define XML_EXTENSION               (".xml")
+#define BINARY_EXTENSION            (".bin")
+#define CONFIGURATION_ROOT_ELEMENT  ("<configuration")
+#define FILE_SCAN_INTERVAL_SECONDS  (2.0)
 
 #define ASSERT(expression) LOGASSERT(expression)
 #define MOVE_SIZE_TIMER_ID (1U)
@@ -90,8 +132,14 @@ typedef struct WindowThreadState_s
     HGLRC                  presentContext;      ///< OpenGL context used by the presenter thread.
     Arinc661_Configuration_Editor_t* configurationEditor; ///< FACE display management configuration editor.
     Arinc661_Definition_Editor_t*    definitionEditor;    ///< ARINC 661 Definition File editor.
-    bool_t                           isDefinitionActive;  ///< TRUE while the Definition File editor is shown.
+    bool_t                           isDefinitionActive;  ///< TRUE while the Definition File section has the focus.
     bool_t                           hasEditors;          ///< TRUE once both editors exist.
+    bool_t                           isFolderReadable;    ///< TRUE when the last scan could read the folder.
+    float64_t                        lastScanTime;        ///< ImGui time of the last folder scan.
+    uint32_t                         fileCount;           ///< Entries found by the last folder scan.
+    char_t                           folderPath[MAX_FOLDER_PATH_BYTES];                ///< Folder shared by both editors.
+    char_t                           fileNames[MAX_PAGE_FILES][MAX_FILE_NAME_BYTES];  ///< Names found by the last folder scan.
+    bool_t                           fileIsDefinition[MAX_PAGE_FILES];                  ///< TRUE for a Definition File, FALSE for a configuration.
     float32_t              mainScale;           ///< Initial display scale.
     SRWLOCK                presentLock;         ///< Protects geometry, drawing, and buffer swaps.
     CONDITION_VARIABLE     presentCondition;    ///< Wakes the window thread after geometry is acknowledged.
@@ -321,54 +369,413 @@ static void EndFrame(WindowThreadState_t* window)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Draws the main menu bar that selects an editor, then the selected editor below it. The
- *  menu bar shrinks the viewport work area, so each editor still fills the rest of the window.
- *  Both editors keep their documents while hidden.
+ *  Classifies one file of the folder by its content: a binary or XML Definition File, or a
+ *  FACE display management configuration. Other files are ignored. Definition Files are also
+ *  offered to the configuration editor for user application dFPath choices.
  */
-static void DrawEditors(WindowThreadState_t* window)
+static void ClassifyFolderFile(const char_t* fileName, void* context)
 {
+    WindowThreadState_t* window;
+    byte_t               head[FILE_HEAD_BYTES];
+    char_t               file_path[MAX_FILE_PATH_BYTES];
+    const char_t*        text;
+    int32_t              byte_count;
+    size_t               name_length;
+    size_t               index;
+    bool_t               has_known_extension;
+    bool_t               is_definition;
+    bool_t               is_configuration;
+
+    window              = (WindowThreadState_t*)context;
+    name_length         = strlen(fileName);
+    has_known_extension = FALSE;
+    if ((strlen(XML_EXTENSION) < name_length) && (0 == _stricmp(fileName + name_length - strlen(XML_EXTENSION), XML_EXTENSION)))
+    {
+        has_known_extension = TRUE;
+    }
+    if ((strlen(BINARY_EXTENSION) < name_length) && (0 == _stricmp(fileName + name_length - strlen(BINARY_EXTENSION), BINARY_EXTENSION)))
+    {
+        has_known_extension = TRUE;
+    }
+    if ((FALSE == has_known_extension) || (window->fileCount >= MAX_PAGE_FILES) || (name_length >= MAX_FILE_NAME_BYTES) || ((strlen(window->folderPath) + 1 + name_length) >= MAX_FILE_PATH_BYTES))
+    {
+        return;
+    }
+    (void)snprintf(file_path, sizeof(file_path), "%s/%s", window->folderPath, fileName);
+    byte_count = OS_File_ReadFile(file_path, head, sizeof(head));
+    if (0 >= byte_count)
+    {
+        return;
+    }
+    is_definition    = Arinc661_Definition_IsDefinitionFile(head, (uint64_t)byte_count);
+    is_configuration = FALSE;
+    if (FALSE == is_definition)
+    {
+        // Find the document element and require the FACE configuration root
+        text  = (const char_t*)head;
+        index = 0;
+        while (index < (size_t)byte_count)
+        {
+            if ('<' != text[index])
+            {
+                index += 1;
+                continue;
+            }
+            if (((index + 1) < (size_t)byte_count) && (('?' == text[index + 1]) || ('!' == text[index + 1])))
+            {
+                while ((index < (size_t)byte_count) && ('>' != text[index]))
+                {
+                    index += 1;
+                }
+                continue;
+            }
+            break;
+        }
+        is_configuration = !!(((index + strlen(CONFIGURATION_ROOT_ELEMENT)) < (size_t)byte_count) && (0 == memcmp(&text[index], CONFIGURATION_ROOT_ELEMENT, strlen(CONFIGURATION_ROOT_ELEMENT))));
+    }
+    if (is_definition || is_configuration)
+    {
+        strncpy_s(window->fileNames[window->fileCount], sizeof(window->fileNames[0]), fileName, _TRUNCATE);
+        window->fileIsDefinition[window->fileCount] = is_definition;
+        window->fileCount += 1;
+        if (is_definition)
+        {
+            Arinc661_Configuration_AddDefinitionFile(window->configurationEditor, fileName);
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Rescans the shared folder, which refreshes the file list and the Definition File choices
+ *  of the configuration editor. Both editors load and save relative to this folder.
+ */
+static void ScanFolder(WindowThreadState_t* window)
+{
+    window->fileCount    = 0;
+    window->lastScanTime = ImGui::GetTime();
+    Arinc661_Configuration_ClearDefinitionFiles(window->configurationEditor);
+    Arinc661_Configuration_SetFolderPath(window->configurationEditor, window->folderPath);
+    Arinc661_Definition_SetFolderPath(window->definitionEditor, window->folderPath);
+    window->isFolderReadable = FALSE;
+    if ('\0' != window->folderPath[0])
+    {
+        window->isFolderReadable = OS_File_EnumerateFiles(window->folderPath, ClassifyFolderFile, window);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Draws the File menu, whose Save and Close act on whichever section was used last, and the
+ *  matching keyboard shortcuts.
+ */
+static void DrawPageMenu(WindowThreadState_t* window)
+{
+    bool_t has_active;
+    bool_t is_dirty;
+    bool_t has_free_configuration;
+    bool_t has_free_definition;
+    bool_t has_dirty_configuration;
+    bool_t has_dirty_definition;
+    bool_t has_active_configuration;
+    bool_t has_active_definition;
+
+    has_active_configuration = Arinc661_Configuration_HasActiveDocument(window->configurationEditor, &has_dirty_configuration, &has_free_configuration);
+    has_active_definition    = Arinc661_Definition_HasActiveDocument(window->definitionEditor, &has_dirty_definition, &has_free_definition);
+    has_active = has_active_configuration;
+    is_dirty   = !!(has_dirty_configuration || has_dirty_definition);
+    if (window->isDefinitionActive)
+    {
+        has_active = has_active_definition;
+    }
     if (ImGui::BeginMainMenuBar())
     {
-        if (ImGui::BeginMenu(EDITOR_MENU_LABEL))
+        if (ImGui::BeginMenu(FILE_MENU_LABEL))
         {
-            if (ImGui::MenuItem(CONFIGURATION_EDITOR_LABEL, CONFIGURATION_EDITOR_SHORTCUT, FALSE == window->isDefinitionActive))
+            if (ImGui::MenuItem(NEW_CONFIGURATION_LABEL, NEW_CONFIGURATION_SHORTCUT, false, has_free_configuration))
             {
+                Arinc661_Configuration_CreateDocument(window->configurationEditor);
                 window->isDefinitionActive = FALSE;
             }
-            if (ImGui::MenuItem(DEFINITION_EDITOR_LABEL, DEFINITION_EDITOR_SHORTCUT, TRUE == window->isDefinitionActive))
+            if (ImGui::MenuItem(NEW_DEFINITION_LABEL, NEW_DEFINITION_SHORTCUT, false, has_free_definition))
             {
+                Arinc661_Definition_CreateDocument(window->definitionEditor);
                 window->isDefinitionActive = TRUE;
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem(SAVE_LABEL, SAVE_SHORTCUT_LABEL, false, has_active))
+            {
+                if (window->isDefinitionActive)
+                {
+                    Arinc661_Definition_SaveActiveDocument(window->definitionEditor);
+                }
+                else
+                {
+                    Arinc661_Configuration_SaveActiveDocument(window->configurationEditor);
+                }
+            }
+            if (ImGui::MenuItem(SAVE_ALL_LABEL, SAVE_ALL_SHORTCUT_LABEL, false, is_dirty))
+            {
+                Arinc661_Configuration_SaveAllDocuments(window->configurationEditor);
+                Arinc661_Definition_SaveAllDocuments(window->definitionEditor);
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem(CLOSE_LABEL, CLOSE_SHORTCUT_LABEL, false, has_active))
+            {
+                if (window->isDefinitionActive)
+                {
+                    Arinc661_Definition_CloseActiveDocument(window->definitionEditor);
+                }
+                else
+                {
+                    Arinc661_Configuration_CloseActiveDocument(window->configurationEditor);
+                }
             }
             ImGui::EndMenu();
         }
-        // Keep the switch visible as two checked items in the bar itself
-        ImGui::Separator();
-        if (ImGui::MenuItem(CONFIGURATION_EDITOR_LABEL, NULL, FALSE == window->isDefinitionActive))
-        {
-            window->isDefinitionActive = FALSE;
-        }
-        if (ImGui::MenuItem(DEFINITION_EDITOR_LABEL, NULL, TRUE == window->isDefinitionActive))
-        {
-            window->isDefinitionActive = TRUE;
-        }
         ImGui::EndMainMenuBar();
     }
-    if (ImGui::Shortcut(CONFIGURATION_EDITOR_KEY_CHORD, EDITOR_SHORTCUT_FLAGS))
+    if (ImGui::Shortcut(NEW_CONFIGURATION_CHORD, SHORTCUT_FLAGS) && has_free_configuration)
     {
+        Arinc661_Configuration_CreateDocument(window->configurationEditor);
         window->isDefinitionActive = FALSE;
     }
-    if (ImGui::Shortcut(DEFINITION_EDITOR_KEY_CHORD, EDITOR_SHORTCUT_FLAGS))
+    if (ImGui::Shortcut(NEW_DEFINITION_CHORD, SHORTCUT_FLAGS) && has_free_definition)
     {
+        Arinc661_Definition_CreateDocument(window->definitionEditor);
         window->isDefinitionActive = TRUE;
     }
-    if (window->isDefinitionActive)
+    if (ImGui::Shortcut(SAVE_CHORD, SHORTCUT_FLAGS) && has_active)
     {
-        Arinc661_Definition_DrawEditor(window->definitionEditor);
+        if (window->isDefinitionActive)
+        {
+            Arinc661_Definition_SaveActiveDocument(window->definitionEditor);
+        }
+        else
+        {
+            Arinc661_Configuration_SaveActiveDocument(window->configurationEditor);
+        }
     }
-    else
+    if (ImGui::Shortcut(SAVE_ALL_CHORD, SHORTCUT_FLAGS) && is_dirty)
     {
-        Arinc661_Configuration_DrawEditor(window->configurationEditor);
+        Arinc661_Configuration_SaveAllDocuments(window->configurationEditor);
+        Arinc661_Definition_SaveAllDocuments(window->definitionEditor);
     }
+    if (ImGui::Shortcut(CLOSE_CHORD, SHORTCUT_FLAGS) && has_active)
+    {
+        if (window->isDefinitionActive)
+        {
+            Arinc661_Definition_CloseActiveDocument(window->definitionEditor);
+        }
+        else
+        {
+            Arinc661_Configuration_CloseActiveDocument(window->configurationEditor);
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Draws the shared folder path and one list of every configuration and Definition File in
+ *  it, each tagged with its kind. Selecting a file opens it in the matching section and
+ *  gives that section the focus. The folder is rescanned on edit, on Refresh, and every few
+ *  seconds so saved files appear.
+ */
+static void DrawPageFiles(WindowThreadState_t* window)
+{
+    char_t    label[MAX_FILE_NAME_BYTES + 32];
+    ImVec2    list_size;
+    uint32_t  file_index;
+    bool_t    should_scan;
+
+    should_scan = FALSE;
+    if (ImGui::CollapsingHeader(FILE_CONTROLS_HEADER, ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(FOLDER_PATH_LABEL);
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(-(ImGui::CalcTextSize(REFRESH_LABEL).x + (ImGui::GetStyle().FramePadding.x * 2.0f) + ImGui::GetStyle().ItemSpacing.x));
+        if (ImGui::InputText(FOLDER_INPUT_ID, window->folderPath, sizeof(window->folderPath)))
+        {
+            should_scan = TRUE;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(REFRESH_LABEL))
+        {
+            should_scan = TRUE;
+        }
+        if (should_scan || ((ImGui::GetTime() - window->lastScanTime) > FILE_SCAN_INTERVAL_SECONDS))
+        {
+            ScanFolder(window);
+        }
+        list_size = ImVec2(-1.0f, ImGui::GetTextLineHeightWithSpacing() * FILE_LIST_ROWS);
+        if (ImGui::BeginListBox(FILE_LIST_ID, list_size))
+        {
+            if (FALSE == window->isFolderReadable)
+            {
+                ImGui::TextDisabled("%s", FOLDER_UNREADABLE_LABEL);
+            }
+            else if (0 == window->fileCount)
+            {
+                ImGui::TextDisabled("%s", NO_FILES_LABEL);
+            }
+            for (file_index = 0; file_index < window->fileCount; ++file_index)
+            {
+                if (window->fileIsDefinition[file_index])
+                {
+                    (void)snprintf(label, sizeof(label), DEFINITION_FILE_FORMAT, window->fileNames[file_index]);
+                }
+                else
+                {
+                    (void)snprintf(label, sizeof(label), CONFIGURATION_FILE_FORMAT, window->fileNames[file_index]);
+                }
+                ImGui::PushID((int)file_index);
+                if (ImGui::Selectable(label))
+                {
+                    if (window->fileIsDefinition[file_index])
+                    {
+                        Arinc661_Definition_LoadFile(window->definitionEditor, window->fileNames[file_index]);
+                        window->isDefinitionActive = TRUE;
+                    }
+                    else
+                    {
+                        Arinc661_Configuration_LoadFile(window->configurationEditor, window->fileNames[file_index]);
+                        window->isDefinitionActive = FALSE;
+                    }
+                }
+                ImGui::PopID();
+            }
+            ImGui::EndListBox();
+        }
+    }
+    ImGui::Separator();
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  One hierarchy pane holds both document kinds as two sections, each with its document tabs
+ *  and tree. A click anywhere inside a section makes it the focused section, whose scene and
+ *  inspector fill the other two panes.
+ */
+static void DrawPageHierarchy(WindowThreadState_t* window)
+{
+    if (ImGui::BeginChild(HIERARCHY_PANE_NAME, ImVec2(0.0f, 0.0f), PANE_FLAGS))
+    {
+        ImGui::TextUnformatted(HIERARCHY_PANE_NAME);
+        ImGui::Separator();
+        if (ImGui::CollapsingHeader(CONFIGURATION_SECTION_LABEL, ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            ImGui::PushID(CONFIGURATION_SECTION_ID);
+            ImGui::BeginGroup();
+            Arinc661_Configuration_DrawDocumentTabs(window->configurationEditor);
+            Arinc661_Configuration_DrawHierarchy(window->configurationEditor);
+            ImGui::EndGroup();
+            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem | ImGuiHoveredFlags_AllowWhenOverlapped))
+            {
+                window->isDefinitionActive = FALSE;
+            }
+            ImGui::PopID();
+        }
+        if (ImGui::CollapsingHeader(DEFINITION_SECTION_LABEL, ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            ImGui::PushID(DEFINITION_SECTION_ID);
+            ImGui::BeginGroup();
+            Arinc661_Definition_DrawDocumentTabs(window->definitionEditor);
+            Arinc661_Definition_DrawHierarchy(window->definitionEditor);
+            ImGui::EndGroup();
+            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem | ImGuiHoveredFlags_AllowWhenOverlapped))
+            {
+                window->isDefinitionActive = TRUE;
+            }
+            ImGui::PopID();
+        }
+    }
+    ImGui::EndChild();
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Draws the single page: the File menu, the shared file list, then the hierarchy, the scene
+ *  of the focused section, and its inspector side by side, with dialogs and a status line.
+ */
+static void DrawEditors(WindowThreadState_t* window)
+{
+    const ImGuiViewport* viewport;
+    const char_t*        status_text;
+    ImVec2               table_size;
+    float32_t            configuration_hierarchy_width;
+    float32_t            configuration_inspector_width;
+    float32_t            definition_hierarchy_width;
+    float32_t            definition_inspector_width;
+    float32_t            hierarchy_width;
+    float32_t            inspector_width;
+    float32_t            status_bar_height;
+
+    DrawPageMenu(window);
+    viewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(viewport->WorkPos);
+    ImGui::SetNextWindowSize(viewport->WorkSize);
+    ImGui::SetNextWindowViewport(viewport->ID);
+    if (ImGui::Begin(PAGE_WINDOW_NAME, NULL, PAGE_WINDOW_FLAGS))
+    {
+        DrawPageFiles(window);
+        Arinc661_Configuration_MeasurePanes(window->configurationEditor, &configuration_hierarchy_width, &configuration_inspector_width);
+        Arinc661_Definition_MeasurePanes(window->definitionEditor, &definition_hierarchy_width, &definition_inspector_width);
+        hierarchy_width   = ImMax(configuration_hierarchy_width, definition_hierarchy_width);
+        inspector_width   = ImMax(configuration_inspector_width, definition_inspector_width);
+        status_bar_height = (ImGui::GetFrameHeightWithSpacing() + ImGui::GetStyle().ItemSpacing.y);
+        table_size        = ImGui::GetContentRegionAvail();
+        table_size.y      = ImMax(ImGui::GetTextLineHeight(), (table_size.y - status_bar_height));
+        if (ImGui::BeginTable(PANE_TABLE_ID, 3, PANE_TABLE_FLAGS, table_size))
+        {
+            ImGui::TableSetupColumn(HIERARCHY_PANE_NAME, ImGuiTableColumnFlags_WidthFixed, hierarchy_width);
+            ImGui::TableSetupColumn("Scene", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("Inspector", ImGuiTableColumnFlags_WidthFixed, inspector_width);
+            ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.0f, 0.0f));
+            ImGui::TableNextRow();
+            ImGui::PopStyleVar();
+            ImGui::TableSetColumnIndex(0);
+            DrawPageHierarchy(window);
+            ImGui::TableSetColumnIndex(1);
+            if (window->isDefinitionActive)
+            {
+                Arinc661_Definition_DrawScene(window->definitionEditor);
+            }
+            else
+            {
+                Arinc661_Configuration_DrawScene(window->configurationEditor);
+            }
+            ImGui::TableSetColumnIndex(2);
+            if (window->isDefinitionActive)
+            {
+                Arinc661_Definition_DrawInspector(window->definitionEditor);
+            }
+            else
+            {
+                Arinc661_Configuration_DrawInspector(window->configurationEditor);
+            }
+            ImGui::EndTable();
+        }
+        Arinc661_Configuration_DrawDialogs(window->configurationEditor);
+        Arinc661_Definition_DrawDialogs(window->definitionEditor);
+        status_text = Arinc661_Configuration_StatusText(window->configurationEditor);
+        if (window->isDefinitionActive)
+        {
+            status_text = Arinc661_Definition_StatusText(window->definitionEditor);
+        }
+        if ('\0' == status_text[0])
+        {
+            status_text = READY_LABEL;
+        }
+        ImGui::Separator();
+        ImGui::TextUnformatted(status_text);
+    }
+    ImGui::End();
 }
 
 /*************************************************************************************************/
@@ -690,6 +1097,10 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
     window->definitionEditor    = NULL;
     window->isDefinitionActive  = FALSE;
     window->hasEditors          = FALSE;
+    window->isFolderReadable    = FALSE;
+    window->lastScanTime        = -FILE_SCAN_INTERVAL_SECONDS;
+    window->fileCount           = 0;
+    strncpy_s(window->folderPath, sizeof(window->folderPath), DEFAULT_FOLDER_PATH, _TRUNCATE);
     memset(&window_class, 0, sizeof(window_class));
     window_class.cbSize        = sizeof(window_class);
     window_class.style         = CS_OWNDC;
@@ -770,6 +1181,7 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
     Arinc661_Configuration_Initialize(window->configurationEditor);
     window->definitionEditor = (Arinc661_Definition_Editor_t*)OS_CALLOC(sizeof(Arinc661_Definition_Editor_t));
     Arinc661_Definition_Initialize(window->definitionEditor);
+    ScanFolder(window);
     window->hasEditors = TRUE;
     window->isInitialized = TRUE;
     LOGASSERT(FALSE != ::SetEvent(window->readyEvent));

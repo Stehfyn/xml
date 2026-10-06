@@ -3,9 +3,11 @@
 Minimal C17 `faceoe_utl`, `arinc661`, and `faceoe` static libraries and a `unit_tests` executable.
 `arinc661/arinc661_definition.h` reads and writes ARINC 661 Definition Files in XML and binary form;
 `faceoe/faceoe_displaymanagement.h` reads and writes FACE display management configurations.
-On Windows, `arinc661_configuration` and `arinc661_definition` are ImGui editors for the two file kinds; the
-Definition File editor offers every widget and extension type of ARINC 661 Part 1-7 with typed Creation
-Structure parameters, and loads and saves both the XML and the binary form.
+On Windows, `arinc661_editor` is one ImGui page for both file kinds: a shared folder and file list, one
+hierarchy holding configuration and Definition File documents, and the scene and inspector of the section in
+use. The Definition File side offers every widget and extension type of ARINC 661 Part 1-7 with typed Creation
+Structure parameters and loads and saves both the XML and the binary form; a user application's window and
+Definition File are chosen from the document's windows and the folder's valid Definition Files.
 Public headers live in `include/<library>`, implementations in `src/<library>`, and tests in `tests`.
 `faceoe_utl_xml.h` provides XML 1.0 Fifth Edition constants, attribute-value validation,
 and document construction, reading, and writing.

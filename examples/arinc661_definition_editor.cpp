@@ -169,6 +169,7 @@ extern "C"
 #define SAVE_DIALOG_INPUT_WIDTH  (420.0f)
 #define BINARY_MAGIC_HIGH        (0xA6)
 #define BINARY_MAGIC_LOW         (0x61)
+#define DEFINITION_ROOT_ELEMENT  ("<a661_df")
 
 #define HIERARCHY_BRANCH_FLAGS (ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_AllowOverlap)
 #define HIERARCHY_LEAF_FLAGS   (ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_AllowOverlap)
@@ -4008,4 +4009,268 @@ void Arinc661_Definition_DrawEditor(Arinc661_Definition_Editor_t* editor)
         DrawStatusBar(editor);
     }
     ImGui::End();
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Replaces the folder; the next file list shows that folder's Definition Files.
+ */
+void Arinc661_Definition_SetFolderPath(Arinc661_Definition_Editor_t* editor, const char_t* folderPath)
+{
+    ImStrncpy(editor->folderPath, folderPath, sizeof(editor->folderPath));
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Same as selecting the file in the file list.
+ */
+void Arinc661_Definition_LoadFile(Arinc661_Definition_Editor_t* editor, const char_t* fileName)
+{
+    LoadDefinitionFile(editor, fileName);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Same as the File menu's New.
+ */
+void Arinc661_Definition_CreateDocument(Arinc661_Definition_Editor_t* editor)
+{
+    CreateDocument(editor);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Same as the File menu's Save; nothing happens without an active document.
+ */
+void Arinc661_Definition_SaveActiveDocument(Arinc661_Definition_Editor_t* editor)
+{
+    if (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex)
+    {
+        editor->isSaveAllPending = FALSE;
+        SaveDocument(editor, editor->activeDocumentIndex);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Same as the File menu's Save All.
+ */
+void Arinc661_Definition_SaveAllDocuments(Arinc661_Definition_Editor_t* editor)
+{
+    SaveAllDocuments(editor);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  A changed document is closed through the prompt drawn by the document tabs.
+ */
+void Arinc661_Definition_CloseActiveDocument(Arinc661_Definition_Editor_t* editor)
+{
+    if (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex)
+    {
+        if (editor->documents[editor->activeDocumentIndex].isDirty)
+        {
+            editor->pendingCloseDocumentIndex = editor->activeDocumentIndex;
+        }
+        else
+        {
+            CloseDocument(editor, editor->activeDocumentIndex);
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Scans the document slots once for all three answers.
+ */
+bool_t Arinc661_Definition_HasActiveDocument(const Arinc661_Definition_Editor_t* editor, bool_t* isDirty, bool_t* hasFree)
+{
+    uint32_t document_index;
+    bool_t   is_dirty;
+    bool_t   has_free;
+
+    is_dirty = FALSE;
+    has_free = FALSE;
+    for (document_index = 0; document_index < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS; ++document_index)
+    {
+        if (editor->documents[document_index].isLoaded)
+        {
+            is_dirty = !!(is_dirty || editor->documents[document_index].isDirty);
+        }
+        else
+        {
+            has_free = TRUE;
+        }
+    }
+    if (NULL != isDirty)
+    {
+        (*isDirty) = is_dirty;
+    }
+    if (NULL != hasFree)
+    {
+        (*hasFree) = has_free;
+    }
+
+    return (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Draws into the current window.
+ */
+void Arinc661_Definition_DrawDocumentTabs(Arinc661_Definition_Editor_t* editor)
+{
+    DrawDocumentTabs(editor);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Draws nothing without an active document.
+ */
+void Arinc661_Definition_DrawHierarchy(Arinc661_Definition_Editor_t* editor)
+{
+    if (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex)
+    {
+        DrawHierarchy(&editor->documents[editor->activeDocumentIndex]);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Uses the first slot, which is never loaded, when no document is active.
+ */
+void Arinc661_Definition_DrawScene(Arinc661_Definition_Editor_t* editor)
+{
+    Arinc661_Definition_Document_t* document;
+
+    document = &editor->documents[0];
+    if (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex)
+    {
+        document = &editor->documents[editor->activeDocumentIndex];
+    }
+    ImGui::PushID(document);
+    DrawScenePane(document);
+    ImGui::PopID();
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Uses the first slot, which is never loaded, when no document is active.
+ */
+void Arinc661_Definition_DrawInspector(Arinc661_Definition_Editor_t* editor)
+{
+    Arinc661_Definition_Document_t* document;
+
+    document = &editor->documents[0];
+    if (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex)
+    {
+        document = &editor->documents[editor->activeDocumentIndex];
+    }
+    ImGui::PushID(document);
+    DrawInspectorPane(document);
+    ImGui::PopID();
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The close prompt belongs to the document tabs; only the save-as dialog is drawn here.
+ */
+void Arinc661_Definition_DrawDialogs(Arinc661_Definition_Editor_t* editor)
+{
+    DrawSaveAsDialog(editor);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The editor message wins over the active document's message.
+ */
+const char_t* Arinc661_Definition_StatusText(const Arinc661_Definition_Editor_t* editor)
+{
+    const char_t* status_text;
+
+    status_text = EditorStatusToString(editor->status);
+    if ((INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex) && ('\0' == status_text[0]))
+    {
+        status_text = EditorStatusToString(editor->documents[editor->activeDocumentIndex].status);
+    }
+
+    return status_text;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Measures the first slot, which is never loaded, when no document is active.
+ */
+void Arinc661_Definition_MeasurePanes(const Arinc661_Definition_Editor_t* editor, float32_t* hierarchyWidth, float32_t* inspectorWidth)
+{
+    const Arinc661_Definition_Document_t* document;
+
+    document = &editor->documents[0];
+    if (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex)
+    {
+        document = &editor->documents[editor->activeDocumentIndex];
+    }
+    MeasurePaneWidths(document, hierarchyWidth, inspectorWidth);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  A binary Definition File starts with A661_DF_MAGIC_NUMBER; an XML one has a661_df as its
+ *  document element, which is found after any declaration, comments, and whitespace.
+ */
+bool_t Arinc661_Definition_IsDefinitionFile(const byte_t* bytes, uint64_t byteCount)
+{
+    const char_t* text;
+    const char_t* element;
+    uint64_t      index;
+    bool_t        is_definition;
+
+    is_definition = !!((1 < byteCount) && (BINARY_MAGIC_HIGH == bytes[0]) && (BINARY_MAGIC_LOW == bytes[1]));
+    if (FALSE == is_definition)
+    {
+        text  = (const char_t*)bytes;
+        index = 0;
+        // Skip the declaration, comments, and processing instructions to the first element
+        while (index < byteCount)
+        {
+            if ('<' != text[index])
+            {
+                index += 1;
+                continue;
+            }
+            if (((index + 1) < byteCount) && (('?' == text[index + 1]) || ('!' == text[index + 1])))
+            {
+                while ((index < byteCount) && ('>' != text[index]))
+                {
+                    index += 1;
+                }
+                continue;
+            }
+            break;
+        }
+        element       = DEFINITION_ROOT_ELEMENT;
+        is_definition = !!(((index + ImStrlen(element)) < byteCount) && (0 == memcmp(&text[index], element, ImStrlen(element))));
+        if (is_definition)
+        {
+            // Require a complete element name
+            is_definition = !!((' ' == text[index + ImStrlen(element)]) || ('>' == text[index + ImStrlen(element)]) || ('/' == text[index + ImStrlen(element)]) || ('\n' == text[index + ImStrlen(element)]) || ('\r' == text[index + ImStrlen(element)]) || ('\t' == text[index + ImStrlen(element)]));
+        }
+    }
+
+    return is_definition;
 }
