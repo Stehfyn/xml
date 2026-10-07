@@ -62,6 +62,10 @@
 #define DWMWA_IMMERSIVE_DARK_MODE_OLD (19)
 #define BUILD_DARK_MODE           (17763) /* Windows 10 1809: dark title bar (attribute 19) and DarkMode_Explorer */
 #define BUILD_DARK_MODE_ATTRIBUTE (19041) /* Windows 10 2004: the documented attribute 20 */
+#define BUILD_DARK_MODE_APP_MODE  (18362) /* Windows 10 1903: uxtheme 135 takes the PreferredAppMode enum */
+#define UXTHEME_ORDINAL_APP_MODE  (135)
+#define UXTHEME_ORDINAL_FLUSH_MENUS (136)
+#define APP_MODE_FORCE_DARK       (2)
 #define THEME_DARK_CONTROLS       L"DarkMode_Explorer"
 #define THEMES_KEY                L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize"
 #define THEMES_LIGHT_VALUE        L"AppsUseLightTheme"
@@ -278,6 +282,7 @@ static uint32_t ReadBuildNumber(void);
  * \retval FALSE   otherwise.
  */
 static bool_t ReadsDarkTheme(void);
+static void ApplyDarkMenus(void);
 
 /*************************************************************************************************/
 /**
@@ -657,6 +662,45 @@ static bool_t ReadsDarkTheme(void)
     }
 
     return is_dark;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The system menu and other popup menus follow an undocumented per-process preference in
+ *  uxtheme: ordinal 135 is AllowDarkModeForApp(BOOL) on 1809 and SetPreferredAppMode(enum) from
+ *  1903, where ForceDark is 2; ordinal 136, FlushMenuThemes, applies it. Must run before the
+ *  frame is created. Missing exports leave the menus light.
+ */
+static void ApplyDarkMenus(void)
+{
+    typedef int(WINAPI * SetPreferredAppMode_t)(int);
+    typedef void(WINAPI * FlushMenuThemes_t)(void);
+    HMODULE                uxtheme;
+    SetPreferredAppMode_t  set_mode;
+    FlushMenuThemes_t      flush;
+    int                    mode;
+
+    uxtheme = LoadLibraryExW(L"uxtheme.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+    if (NULL == uxtheme)
+    {
+        return;
+    }
+    set_mode = (SetPreferredAppMode_t)(void*)GetProcAddress(uxtheme, MAKEINTRESOURCEA(UXTHEME_ORDINAL_APP_MODE));
+    flush    = (FlushMenuThemes_t)(void*)GetProcAddress(uxtheme, MAKEINTRESOURCEA(UXTHEME_ORDINAL_FLUSH_MENUS));
+    if ((NULL != set_mode) && (NULL != flush))
+    {
+        if (BUILD_DARK_MODE_APP_MODE <= s_setup.build)
+        {
+            mode = APP_MODE_FORCE_DARK;
+        }
+        else
+        {
+            mode = TRUE;
+        }
+        (void)set_mode(mode);
+        flush();
+    }
 }
 
 /*************************************************************************************************/
@@ -2403,6 +2447,10 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE previousInstance, PWSTR comman
     else if ((NULL != wcsstr(GetCommandLineW(), THEME_DARK_SWITCH)) && (BUILD_DARK_MODE <= s_setup.build))
     {
         s_setup.isDark = TRUE;
+    }
+    if (s_setup.isDark)
+    {
+        ApplyDarkMenus();
     }
     s_setup.isElevated = IsElevated();
     is_elevated_run    = ParseElevatedArguments(GetCommandLineW());
