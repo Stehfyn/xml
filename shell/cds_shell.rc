@@ -1,9 +1,11 @@
-// Overlay badges of the CDS Editor shell extension: index 0 Definition File, index 1 configuration.
+// Icons of the CDS Editor shell extension, by index: 0 the product icon Explorer shows for the
+// DLL, 1 the Definition File badge, 2 the configuration badge.
 #include <windows.h>
 #include "../examples/arinc661_version.h"
 
-1 ICON "cds_overlay_definition.ico"
-2 ICON "cds_overlay_configuration.ico"
+1 ICON "../examples/cds_editor.ico"
+2 ICON "cds_overlay_definition.ico"
+3 ICON "cds_overlay_configuration.ico"
 
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION    ARINC661_EDITOR_VERSION_MAJOR,ARINC661_EDITOR_VERSION_MINOR,ARINC661_EDITOR_VERSION_PATCH,ARINC661_EDITOR_VERSION_BUILD

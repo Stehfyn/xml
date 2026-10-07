@@ -27,9 +27,10 @@
 #define ARINC661_SHELL_INSTALL_DIR_VALUE                L"InstallDir"
 #define ARINC661_SHELL_EDITOR_EXECUTABLE                L"cds-editor.exe"
 
-/** Icon resource indices inside the DLL: the overlay badges. */
-#define ARINC661_SHELL_ICON_DEFINITION                  (0)
-#define ARINC661_SHELL_ICON_CONFIGURATION               (1)
+/** Icon resource indices inside the DLL: the product icon Explorer shows, then the overlay badges. */
+#define ARINC661_SHELL_ICON_PRODUCT                     (0)
+#define ARINC661_SHELL_ICON_DEFINITION                  (1)
+#define ARINC661_SHELL_ICON_CONFIGURATION               (2)
 
 /*=================================================================================================
 ** 3.2 Types

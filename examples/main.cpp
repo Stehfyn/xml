@@ -367,6 +367,7 @@ extern "C"
 #define ABOUT_OPTION                ("--about")
 #define CHECK_UPDATES_OPTION        ("--check-updates")
 #define FRAMES_OPTION               ("--frames")
+#define LAYOUT_OPTION               ("--layout")
 #define SCREENSHOT_DEFAULT_FRAMES   (12)
 #define BMP_HEADER_BYTES            (54)
 #define NEW_CONFIGURATION_CHORD     (ImGuiMod_Ctrl | ImGuiKey_N)
@@ -564,6 +565,7 @@ static bool_t        g_startsPlaying;         ///< TRUE to enter play mode after
 static bool_t        g_showsAbout;            ///< TRUE to open the About box after opening.
 static bool_t        g_checksUpdates;         ///< TRUE to run a manual update check after opening.
 static bool_t        g_focusDefinition;       ///< TRUE to focus the Definition File section at start.
+static int32_t       g_layoutPreset = -1;     ///< Layout preset rebuilt at start, or -1 to keep the saved one.
 static uint32_t      g_captureFrame;          ///< Frame on which the screenshot is taken.
 static uint32_t      g_frameCount;            ///< Frames rendered so far.
 
@@ -1369,6 +1371,11 @@ static void ParseOptions(int argc, char** argv)
         else if (0 == strcmp(argv[index], FOCUS_DEFINITION_OPTION))
         {
             g_focusDefinition = TRUE;
+        }
+        else if ((0 == strcmp(argv[index], LAYOUT_OPTION)) && ((index + 1) < argc))
+        {
+            index += 1;
+            g_layoutPreset = atoi(argv[index]);
         }
         else if ('-' != argv[index][0])
         {
@@ -5078,6 +5085,11 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
         }
     }
     window->isDefinitionActive = g_focusDefinition;
+    if ((0 <= g_layoutPreset) && (g_layoutPreset < (int32_t)COUNT_OF(c_layoutNames)))
+    {
+        window->layoutPreset = (LayoutPreset_t)g_layoutPreset;
+        window->resetsLayout = TRUE;
+    }
     if (NULL != g_openPath)
     {
         (void)OpenPath(window, g_openPath);

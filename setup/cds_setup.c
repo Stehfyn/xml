@@ -30,6 +30,7 @@
 #include <shlobj.h>
 #include <shlwapi.h>
 #include <uxtheme.h>
+#include <vssym32.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,6 +45,7 @@
 
 #define UPGRADE_CODE              L"{01ADB398-6743-45F5-B841-75BDF9612E7B}"
 #define EDITOR_EXECUTABLE         L"cds-editor.exe"
+#define SHELL_LIBRARY             L"cds-shell.dll"
 #define DEFAULT_FOLDER_SUFFIX     L"\\CDS Editor"
 #define PACKAGE_FILE_FORMAT       L"%scds-editor-setup-%lu.msi"
 #define ELEVATED_SWITCH           L"/elevated"
@@ -95,6 +97,7 @@
 #define WM_APP_PROGRESS           (WM_APP + 1)
 #define WM_APP_ACTION             (WM_APP + 2)
 #define WM_APP_DONE               (WM_APP + 3)
+#define WM_APP_HIDE_CUES          (WM_APP + 4)
 #define PROGRESS_RANGE            (1000)
 #define MAX_FILE_ROWS             (64)
 #define MAX_TEXT                  (512)
@@ -218,6 +221,7 @@ typedef struct Setup_s
     uint32_t  fileCount;                   ///< Rows that are files
     uint64_t  totalBytes;                  ///< Bytes of the files
     HICON     icon;                        ///< Product icon, drawn into the banner and the side panel
+    HIMAGELIST treeImages;                 ///< Icons of the file tree, at the frame's DPI
     HBRUSH    pageBrush;                   ///< Page background in dark mode
     HBRUSH    wellBrush;                   ///< Edit and list background in dark mode
     HFONT     headlineFont;                ///< Large page headline
@@ -489,6 +493,7 @@ static HTREEITEM AddTreeNode(HWND tree, HTREEITEM parent, const wchar_t* text, i
  * \retval    int        Image index, or -1.
  */
 static int ShellIconIndex(const wchar_t* name, bool_t isFolder);
+static int ProductIconIndex(void);
 
 /*************************************************************************************************/
 /**
@@ -1042,6 +1047,13 @@ static INT_PTR CALLBACK FrameProcedure(HWND window, UINT message, WPARAM wordPar
         }
         free(action);
         return TRUE;
+    case WM_THEMECHANGED:
+        // FlushMenuThemes sends this, and the default handling shows the keyboard cues again; hide them once it is done
+        (void)PostMessageW(window, WM_APP_HIDE_CUES, 0, 0);
+        return FALSE;
+    case WM_APP_HIDE_CUES:
+        SendMessageW(window, WM_CHANGEUISTATE, MAKEWPARAM(UIS_SET, UISF_HIDEFOCUS | UISF_HIDEACCEL), 0);
+        return TRUE;
     case WM_APP_DONE:
         s_setup.isDone = TRUE;
         if (NULL != s_setup.thread)
@@ -1560,12 +1572,14 @@ static void ThemePage(HWND page)
         }
         else if ((0 == wcscmp(class_name, L"Edit")) || (0 == wcscmp(class_name, WC_LISTVIEWW)) || (0 == wcscmp(class_name, WC_TREEVIEWW)))
         {
-            // The system frame is light whatever the theme; drop it and paint a dark one
+            // The system frame is light whatever the theme; drop it and paint a dark one. The
+            // theme goes on first so the frame change repaints the scroll bars dark
+            (void)SetWindowTheme(child, THEME_DARK_CONTROLS, NULL);
             extended = GetWindowLongPtrW(child, GWL_EXSTYLE);
             SetWindowLongPtrW(child, GWL_STYLE, style & ~(LONG_PTR)WS_BORDER);
             SetWindowLongPtrW(child, GWL_EXSTYLE, extended & ~(LONG_PTR)(WS_EX_CLIENTEDGE | WS_EX_STATICEDGE));
             SetWindowPos(child, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
-            (void)SetWindowTheme(child, THEME_DARK_CONTROLS, NULL);
+            RedrawWindow(child, NULL, NULL, RDW_FRAME | RDW_INVALIDATE | RDW_ERASE);
             if (0 == wcscmp(class_name, WC_TREEVIEWW))
             {
                 (void)TreeView_SetBkColor(child, COLOR_DARK_WELL);
@@ -1679,6 +1693,8 @@ static LRESULT PaintCheckBoxLabel(const NMCUSTOMDRAW* draw)
     UINT    state;
     int     length;
     int     box;
+    HTHEME  theme;
+    SIZE    part;
 
     if (CDDS_PREPAINT == draw->dwDrawStage)
     {
@@ -1688,7 +1704,15 @@ static LRESULT PaintCheckBoxLabel(const NMCUSTOMDRAW* draw)
     {
         return CDRF_DODEFAULT;
     }
-    box        = GetSystemMetricsForDpi(SM_CXMENUCHECK, s_setup.dpi) + MulDiv(CHECK_BOX_GAP, (int)s_setup.dpi, 96);
+    // The label starts where the control's own paint put it: the themed box part plus the gap
+    part.cx = GetSystemMetricsForDpi(SM_CXMENUCHECK, s_setup.dpi);
+    theme   = OpenThemeData(draw->hdr.hwndFrom, L"Button");
+    if (NULL != theme)
+    {
+        (void)GetThemePartSize(theme, draw->hdc, BP_CHECKBOX, CBS_UNCHECKEDNORMAL, NULL, TS_DRAW, &part);
+        (void)CloseThemeData(theme);
+    }
+    box        = part.cx + MulDiv(CHECK_BOX_GAP, (int)s_setup.dpi, 96);
     area       = draw->rc;
     area.left += box;
     FillRect(draw->hdc, &area, s_setup.pageBrush);
@@ -2026,14 +2050,12 @@ static void DrawImage(const DRAWITEMSTRUCT* item)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The system image list supplies the shell's own icons; it is shared, so the tree must not
- *  destroy it. Every node starts expanded.
+ *  The tree gets its own image list, filled from the shell's icon for each name; the editor and
+ *  its shortcuts show the product icon, which is not installed yet. Every node starts expanded.
  */
 static void FillFileTree(HWND page)
 {
     HWND         tree;
-    SHFILEINFOW  info;
-    HIMAGELIST   images;
     HTREEITEM    examples;
     HTREEITEM    start_menu;
     HTREEITEM    desktop;
@@ -2044,44 +2066,59 @@ static void FillFileTree(HWND page)
     uint32_t     index;
     int          folder_icon;
     int          registry_icon;
+    int          product_icon;
+    int          icon;
+    int          icon_size;
 
-    tree   = GetDlgItem(page, IDC_FILE_LIST);
-    images = (HIMAGELIST)SHGetFileInfoW(L"folder", FILE_ATTRIBUTE_DIRECTORY, &info, sizeof(info), SHGFI_USEFILEATTRIBUTES | SHGFI_SYSICONINDEX | SHGFI_SMALLICON);
-    if (NULL != images)
+    tree = GetDlgItem(page, IDC_FILE_LIST);
+    (void)TreeView_DeleteAllItems(tree);
+    (void)TreeView_SetImageList(tree, NULL, TVSIL_NORMAL);
+    if (NULL != s_setup.treeImages)
     {
-        (void)TreeView_SetImageList(tree, images, TVSIL_NORMAL);
+        (void)ImageList_Destroy(s_setup.treeImages);
     }
+    icon_size          = GetSystemMetricsForDpi(SM_CXSMICON, s_setup.dpi);
+    s_setup.treeImages = ImageList_Create(icon_size, icon_size, ILC_COLOR32 | ILC_MASK, 16, 8);
+    (void)TreeView_SetImageList(tree, s_setup.treeImages, TVSIL_NORMAL);
     folder_icon   = ShellIconIndex(L"folder", TRUE);
     registry_icon = ShellIconIndex(L"entries.reg", FALSE);
-    (void)TreeView_DeleteAllItems(tree);
+    product_icon  = ProductIconIndex();
     s_setup.folderItem = AddTreeNode(tree, TVI_ROOT, s_setup.folder, folder_icon);
     examples           = NULL;
     for (index = 0; index < s_setup.rowCount; ++index)
     {
         (void)swprintf_s(text, COUNT_OF(text), TREE_FILE_FORMAT, s_setup.rows[index].name, s_setup.rows[index].size);
+        if ((0 == _wcsicmp(s_setup.rows[index].name, EDITOR_EXECUTABLE)) || (0 == _wcsicmp(s_setup.rows[index].name, SHELL_LIBRARY)))
+        {
+            icon = product_icon;
+        }
+        else
+        {
+            icon = ShellIconIndex(s_setup.rows[index].name, FALSE);
+        }
         if (0 == wcscmp(s_setup.rows[index].where, WHERE_EXAMPLES))
         {
             if (NULL == examples)
             {
                 examples = AddTreeNode(tree, s_setup.folderItem, TREE_EXAMPLES_NAME, folder_icon);
             }
-            (void)AddTreeNode(tree, examples, text, ShellIconIndex(s_setup.rows[index].name, FALSE));
+            (void)AddTreeNode(tree, examples, text, icon);
         }
         else
         {
-            (void)AddTreeNode(tree, s_setup.folderItem, text, ShellIconIndex(s_setup.rows[index].name, FALSE));
+            (void)AddTreeNode(tree, s_setup.folderItem, text, icon);
         }
     }
     if (0 != (s_setup.options & OPTION_STARTMENU))
     {
         start_menu = AddTreeNode(tree, TVI_ROOT, WHERE_STARTMENU, folder_icon);
-        (void)AddTreeNode(tree, start_menu, TREE_SHORTCUT_NAME, ShellIconIndex(L"shortcut.lnk", FALSE));
+        (void)AddTreeNode(tree, start_menu, TREE_SHORTCUT_NAME, product_icon);
         (void)TreeView_Expand(tree, start_menu, TVE_EXPAND);
     }
     if (0 != (s_setup.options & OPTION_DESKTOP))
     {
         desktop = AddTreeNode(tree, TVI_ROOT, WHERE_DESKTOP, folder_icon);
-        (void)AddTreeNode(tree, desktop, TREE_SHORTCUT_NAME, ShellIconIndex(L"shortcut.lnk", FALSE));
+        (void)AddTreeNode(tree, desktop, TREE_SHORTCUT_NAME, product_icon);
         (void)TreeView_Expand(tree, desktop, TVE_EXPAND);
     }
     if (0 != (s_setup.options & (OPTION_OPENWITH | OPTION_SHELL)))
@@ -2131,12 +2168,14 @@ static HTREEITEM AddTreeNode(HWND tree, HTREEITEM parent, const wchar_t* text, i
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Attributes stand in for the file, which need not exist.
+ *  Attributes stand in for the file, which need not exist. The icon is copied into the tree's
+ *  image list, which scales it to the tree's size.
  */
 static int ShellIconIndex(const wchar_t* name, bool_t isFolder)
 {
     SHFILEINFOW info;
     DWORD       attributes;
+    int         index;
 
     attributes = FILE_ATTRIBUTE_NORMAL;
     if (isFolder)
@@ -2144,12 +2183,37 @@ static int ShellIconIndex(const wchar_t* name, bool_t isFolder)
         attributes = FILE_ATTRIBUTE_DIRECTORY;
     }
     (void)memset(&info, 0, sizeof(info));
-    if (0 == SHGetFileInfoW(name, attributes, &info, sizeof(info), SHGFI_USEFILEATTRIBUTES | SHGFI_SYSICONINDEX | SHGFI_SMALLICON))
+    if ((0 == SHGetFileInfoW(name, attributes, &info, sizeof(info), SHGFI_USEFILEATTRIBUTES | SHGFI_ICON | SHGFI_SMALLICON)) || (NULL == info.hIcon))
     {
         return -1;
     }
+    index = ImageList_AddIcon(s_setup.treeImages, info.hIcon);
+    DestroyIcon(info.hIcon);
 
-    return info.iIcon;
+    return index;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The product icon at the tree's size, from this executable's resources.
+ */
+static int ProductIconIndex(void)
+{
+    HICON icon;
+    int   size;
+    int   index;
+
+    size = GetSystemMetricsForDpi(SM_CXSMICON, s_setup.dpi);
+    icon = (HICON)LoadImageW(s_setup.module, MAKEINTRESOURCEW(IDI_SETUP), IMAGE_ICON, size, size, LR_DEFAULTCOLOR);
+    if (NULL == icon)
+    {
+        return -1;
+    }
+    index = ImageList_AddIcon(s_setup.treeImages, icon);
+    DestroyIcon(icon);
+
+    return index;
 }
 
 /*************************************************************************************************/
@@ -2535,6 +2599,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE previousInstance, PWSTR comman
     if (NULL != s_setup.textFont) { DeleteObject(s_setup.textFont); }
     if (NULL != s_setup.boldFont) { DeleteObject(s_setup.boldFont); }
     if (NULL != s_setup.icon) { DestroyIcon(s_setup.icon); }
+    if (NULL != s_setup.treeImages) { (void)ImageList_Destroy(s_setup.treeImages); }
     if (NULL != s_setup.pageBrush) { DeleteObject(s_setup.pageBrush); }
     if (NULL != s_setup.wellBrush) { DeleteObject(s_setup.wellBrush); }
     CoUninitialize();
