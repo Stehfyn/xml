@@ -136,7 +136,7 @@ if(WIN32)
     find_program(WIX_EXECUTABLE wix)
     if(WIX_EXECUTABLE)
         add_custom_target(installer
-            COMMAND "${WIX_EXECUTABLE}" build -arch x64 -ext WixToolset.UI.wixext
+            COMMAND "${WIX_EXECUTABLE}" build -arch x64
                 -d "BinDir=$<TARGET_FILE_DIR:cds_editor>"
                 -d "SourceDir=${CMAKE_CURRENT_SOURCE_DIR}"
                 -o "${CMAKE_BINARY_DIR}/cds-editor.msi"
@@ -144,6 +144,15 @@ if(WIN32)
             DEPENDS cds_editor cds_shell
             COMMENT "Building cds-editor.msi"
             VERBATIM)
+
+        # Setup wizard: a native program that embeds the MSI and drives it through the external UI
+        add_executable(cds_setup WIN32 setup/cds_setup.c setup/resource.h setup/cds_setup.rc setup/cds_setup.manifest)
+        target_include_directories(cds_setup PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+        target_compile_definitions(cds_setup PRIVATE UNICODE _UNICODE)
+        target_link_libraries(cds_setup PRIVATE msi comctl32 uxtheme dwmapi shell32 shlwapi ole32 gdi32 msimg32 advapi32)
+        set_source_files_properties(setup/cds_setup.rc PROPERTIES COMPILE_DEFINITIONS "CDS_SETUP_PACKAGE_PATH=\"${CMAKE_BINARY_DIR}/cds-editor.msi\"")
+        set_target_properties(cds_setup PROPERTIES OUTPUT_NAME "cds-setup" LINK_FLAGS "/MANIFEST:NO")
+        add_dependencies(cds_setup installer)
     endif()
 endif()
 

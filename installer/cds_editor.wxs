@@ -6,45 +6,22 @@
   the shell extension adds overlay badges and a context menu verb only to files whose content
   is a Definition File or a FACE configuration, and Default Programs lets the user opt in.
 -->
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
   <Package Name="CDS Editor" Manufacturer="FACEOE" Version="1.0.0.0" Language="1033"
            UpgradeCode="01ADB398-6743-45F5-B841-75BDF9612E7B" Scope="perMachine">
-    <MajorUpgrade DowngradeErrorMessage="A newer version of CDS Editor is already installed." />
+    <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="A newer version of CDS Editor is already installed." />
     <MediaTemplate EmbedCab="yes" />
     <Icon Id="EditorIcon" SourceFile="$(SourceDir)\examples\cds_editor.ico" />
     <Property Id="ARPPRODUCTICON" Value="EditorIcon" />
-    <!-- Classic dialogs: welcome, license, install folder, ready, progress, finish -->
-    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
-    <WixVariable Id="WixUILicenseRtf" Value="$(SourceDir)\installer\license.rtf" />
+    <Property Id="ARPCOMMENTS" Value="Cockpit Display System editor: ARINC 661 Definition Files and FACE display management configurations." />
+    <Property Id="ARPCONTACT" Value="FACEOE" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/faceoe" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/faceoe" />
+
+    <!-- No UI table: cds-setup.exe is the wizard; msiexec /i works with its basic UI and the
+         properties INSTALLFOLDER and ADDLOCAL=Main,StartMenu,Desktop,OpenWith,ShellExt -->
     <!-- msiexec /i cds-editor.msi UPDATEURL=https://host/path/manifest.txt (or a UNC path) -->
     <Property Id="UPDATEURL" Secure="yes" />
-
-    <!-- Files page: what the setup writes and where; shown after the folder page -->
-    <UI>
-      <Dialog Id="FilesDlg" Width="370" Height="270" Title="[ProductName] Setup">
-        <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="WixUI_Bmp_Banner" />
-        <Control Id="Title" Type="Text" X="15" Y="6" Width="300" Height="15" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}Files to Install" />
-        <Control Id="Description" Type="Text" X="25" Y="23" Width="330" Height="15" Transparent="yes" NoPrefix="yes" Text="Review what Setup will place on this computer." />
-        <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
-        <Control Id="FolderLabel" Type="Text" X="20" Y="55" Width="330" Height="12" NoPrefix="yes" Text="Program folder: [INSTALLFOLDER]" />
-        <Control Id="FileList" Type="ScrollableText" X="20" Y="70" Width="330" Height="150" Sunken="yes" TabSkip="no">
-          <Text Value="{\rtf1\ansi\deff0{\fonttbl{\f0\fswiss Segoe UI;}}\fs16 \b Program\b0\par cds-editor.exe \tab the editor\par cds-shell.dll \tab Explorer badges and the &quot;Open in CDS Editor&quot; menu for Definition Files and configurations\par arinc661.chm \tab help (F1 in the editor)\par README.md\par \par \b examples\\\b0\par arinc661_configuration.xml \tab FACE display management configuration\par arinc661_definition.xml \tab ARINC 661 Definition File\par \par \b Start menu\b0\par CDS Editor shortcut\par \par \b Registry\b0\par HKLM\\Software\\FACEOE\\CDS Editor (InstallDir, UpdateUrl)\par Open With entries for .xml and .bin (the default programs for .xml and .bin are not changed)\par Default Programs registration (CDS Editor)\par Shell extension classes, overlay identifiers, and context menu handlers\par }" />
-        </Control>
-        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
-        <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="&amp;Back">
-          <Publish Event="NewDialog" Value="InstallDirDlg" />
-        </Control>
-        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="&amp;Next">
-          <Publish Event="NewDialog" Value="VerifyReadyDlg" />
-        </Control>
-        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="Cancel">
-          <Publish Event="SpawnDialog" Value="CancelDlg" />
-        </Control>
-      </Dialog>
-      <!-- Route the standard sequence through the Files page -->
-      <Publish Dialog="InstallDirDlg" Control="Next" Event="NewDialog" Value="FilesDlg" Order="5" Condition="WIXUI_DONTVALIDATEPATH OR WIXUI_INSTALLDIR_VALID=&quot;1&quot;" />
-      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="FilesDlg" Order="2" Condition="NOT Installed" />
-    </UI>
 
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="CDS Editor">
@@ -53,18 +30,40 @@
       </Directory>
     </StandardDirectory>
     <StandardDirectory Id="ProgramMenuFolder" />
+    <StandardDirectory Id="DesktopFolder" />
 
-    <Feature Id="Main" Title="CDS Editor" Level="1">
+    <!-- Features follow the Options page; Main is always installed -->
+    <Feature Id="Main" Title="CDS Editor" Level="1" AllowAbsent="no">
       <ComponentGroupRef Id="Application" />
-      <ComponentGroupRef Id="Shell" />
       <ComponentGroupRef Id="Examples" />
     </Feature>
+    <Feature Id="StartMenu" Title="Start menu shortcut" Level="1">
+      <ComponentRef Id="StartMenuShortcut" />
+    </Feature>
+    <Feature Id="Desktop" Title="Desktop shortcut" Level="1">
+      <ComponentRef Id="DesktopShortcut" />
+    </Feature>
+    <Feature Id="OpenWith" Title="Open With entries" Level="1">
+      <ComponentRef Id="ProgIds" />
+    </Feature>
+    <Feature Id="ShellExt" Title="Explorer badges and menu" Level="1">
+      <ComponentGroupRef Id="Shell" />
+    </Feature>
+
+    <ComponentGroup Id="Shortcuts">
+      <Component Id="StartMenuShortcut" Directory="ProgramMenuFolder" Guid="7C1C8E5A-5F0B-4D55-9E8B-3B0D6E3F1A01">
+        <Shortcut Id="StartMenuShortcut" Name="CDS Editor" Description="Edit ARINC 661 Definition Files and FACE configurations" Target="[#EditorExe]" Icon="EditorIcon" WorkingDirectory="INSTALLFOLDER" />
+        <RegistryValue Root="HKCU" Key="Software\FACEOE\CDS Editor" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+      <Component Id="DesktopShortcut" Directory="DesktopFolder" Guid="7C1C8E5A-5F0B-4D55-9E8B-3B0D6E3F1A02">
+        <Shortcut Id="DesktopShortcut" Name="CDS Editor" Description="Edit ARINC 661 Definition Files and FACE configurations" Target="[#EditorExe]" Icon="EditorIcon" WorkingDirectory="INSTALLFOLDER" />
+        <RegistryValue Root="HKCU" Key="Software\FACEOE\CDS Editor" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
 
     <ComponentGroup Id="Application" Directory="INSTALLFOLDER">
       <Component Id="Editor">
-        <File Id="EditorExe" Source="$(BinDir)\cds-editor.exe" KeyPath="yes">
-          <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="CDS Editor" Icon="EditorIcon" Advertise="yes" WorkingDirectory="INSTALLFOLDER" />
-        </File>
+        <File Id="EditorExe" Source="$(BinDir)\cds-editor.exe" KeyPath="yes" />
         <!-- Where the shell extension finds the executable -->
         <RegistryValue Root="HKLM" Key="Software\FACEOE\CDS Editor" Name="InstallDir" Type="string" Value="[INSTALLFOLDER]" />
         <RegistryValue Root="HKLM" Key="Software\FACEOE\CDS Editor" Name="UpdateUrl" Type="string" Value="[UPDATEURL]" />
@@ -75,6 +74,9 @@
       <Component Id="Readme">
         <File Source="$(SourceDir)\README.md" KeyPath="yes" />
       </Component>
+    </ComponentGroup>
+
+    <ComponentGroup Id="Associations" Directory="INSTALLFOLDER">
       <Component Id="ProgIds">
         <RegistryKey Root="HKCR" Key="ARINC661.DefinitionFile">
           <RegistryValue Type="string" Value="ARINC 661 Definition File" KeyPath="yes" />

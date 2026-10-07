@@ -1,0 +1,165 @@
+// CDS Editor setup: icon, the embedded package and license, the wizard dialogs. The banner and
+// side images are painted at run time from the icon.
+// Dialog units follow the dialog font (Segoe UI 9), so pages scale with the system DPI.
+#include <windows.h>
+#include <commctrl.h>
+#include "resource.h"
+#include "../examples/arinc661_version.h"
+
+IDI_SETUP          ICON    "../examples/cds_editor.ico"
+IDR_LICENSE        RCDATA  "../LICENSE"
+IDR_PACKAGE        RCDATA  CDS_SETUP_PACKAGE_PATH
+
+1 24 "cds_setup.manifest"
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION    ARINC661_EDITOR_VERSION_MAJOR,ARINC661_EDITOR_VERSION_MINOR,ARINC661_EDITOR_VERSION_PATCH,ARINC661_EDITOR_VERSION_BUILD
+ PRODUCTVERSION ARINC661_EDITOR_VERSION_MAJOR,ARINC661_EDITOR_VERSION_MINOR,ARINC661_EDITOR_VERSION_PATCH,ARINC661_EDITOR_VERSION_BUILD
+ FILEFLAGSMASK  VS_FFI_FILEFLAGSMASK
+ FILEFLAGS      0
+ FILEOS         VOS_NT_WINDOWS32
+ FILETYPE       VFT_APP
+ FILESUBTYPE    VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName",      ARINC661_EDITOR_COMPANY_NAME
+            VALUE "FileDescription",  "CDS Editor Setup"
+            VALUE "FileVersion",      ARINC661_EDITOR_VERSION_TEXT
+            VALUE "InternalName",     "cds_setup"
+            VALUE "OriginalFilename", "cds-setup.exe"
+            VALUE "ProductName",      ARINC661_EDITOR_PRODUCT_NAME
+            VALUE "ProductVersion",   ARINC661_EDITOR_VERSION_TEXT
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
+
+// Frame: the window every page lives in. Pages fill the area above the bottom line.
+// Heights follow the dialog font: text 8-10, check boxes 10, edits 12, buttons 14 units.
+IDD_FRAME DIALOGEX 0, 0, 292, 203
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX
+CAPTION "CDS Editor Setup"
+FONT 8, "Segoe UI", 400, 0, 0x1
+BEGIN
+    CONTROL         "", IDC_PAGE_AREA, "Static", SS_LEFT | NOT WS_VISIBLE, 0, 0, 292, 173
+    CONTROL         "", IDC_BOTTOM_LINE, "Static", SS_ETCHEDHORZ, 0, 175, 292, 1
+    PUSHBUTTON      "< &Back", IDC_BACK, 122, 184, 50, 14
+    DEFPUSHBUTTON   "&Next >", IDC_NEXT, 175, 184, 50, 14
+    PUSHBUTTON      "Cancel", IDCANCEL, 232, 184, 50, 14
+END
+
+// Welcome: side image and the greeting
+IDD_WELCOME DIALOGEX 0, 0, 292, 173
+STYLE DS_SETFONT | DS_CONTROL | WS_CHILD
+FONT 8, "Segoe UI", 400, 0, 0x1
+BEGIN
+    CONTROL         "", IDC_SIDE_IMAGE, "Static", SS_OWNERDRAW, 0, 0, 292, 173
+    LTEXT           "Welcome to the CDS Editor Setup Wizard", IDC_HEADLINE, 107, 16, 175, 37
+    LTEXT           "Version", IDC_VERSION, 107, 58, 175, 12
+    LTEXT           "The Setup Wizard will install CDS Editor, the Cockpit Display System editor for ARINC 661 Definition Files and FACE display management configurations, on your computer.\n\nClick Next to continue or Cancel to exit the Setup Wizard.", IDC_BODY, 107, 76, 175, 83
+END
+
+// License: banner, the text, and acceptance
+IDD_LICENSE DIALOGEX 0, 0, 292, 173
+STYLE DS_SETFONT | DS_CONTROL | WS_CHILD
+FONT 8, "Segoe UI", 400, 0, 0x1
+BEGIN
+    CONTROL         "", IDC_BANNER_IMAGE, "Static", SS_OWNERDRAW, 0, 0, 292, 35
+    LTEXT           "License Agreement", IDC_TITLE, 12, 5, 210, 14
+    LTEXT           "Read the license, then accept it to continue.", IDC_DESCRIPTION, 20, 20, 222, 10
+    CONTROL         "", IDC_BANNER_LINE, "Static", SS_ETCHEDHORZ, 0, 35, 292, 1
+    EDITTEXT        IDC_LICENSE_TEXT, 16, 43, 259, 102, ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL | WS_VSCROLL
+    CONTROL         "I &accept the terms in the License Agreement", IDC_ACCEPT, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 16, 151, 259, 10
+END
+
+// Options: shortcuts, Explorer integration, after install
+IDD_OPTIONS DIALOGEX 0, 0, 292, 173
+STYLE DS_SETFONT | DS_CONTROL | WS_CHILD
+FONT 8, "Segoe UI", 400, 0, 0x1
+BEGIN
+    CONTROL         "", IDC_BANNER_IMAGE, "Static", SS_OWNERDRAW, 0, 0, 292, 35
+    LTEXT           "Setup Options", IDC_TITLE, 12, 5, 210, 14
+    LTEXT           "Choose shortcuts and Explorer integration.", IDC_DESCRIPTION, 20, 20, 222, 10
+    CONTROL         "", IDC_BANNER_LINE, "Static", SS_ETCHEDHORZ, 0, 35, 292, 1
+    GROUPBOX        "Shortcuts", IDC_GROUP_SHORTCUTS, 16, 38, 259, 29
+    CONTROL         "&Start menu", IDC_OPT_STARTMENU, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 26, 50, 111, 10
+    CONTROL         "&Desktop", IDC_OPT_DESKTOP, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 152, 50, 111, 10
+    GROUPBOX        "Explorer integration", IDC_GROUP_EXPLORER, 16, 71, 259, 70
+    CONTROL         "List CDS Editor under &Open With for .xml and .bin files", IDC_OPT_OPENWITH, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 26, 83, 240, 10
+    LTEXT           "The default program for .xml and .bin files is not changed.", IDC_OPT_OPENWITH_NOTE, 36, 96, 230, 10
+    CONTROL         "&Badge Definition Files and configurations", IDC_OPT_SHELL, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 26, 110, 240, 10
+    LTEXT           "Adds badges and an Open in CDS Editor menu entry to such files only. Badges appear after Explorer restarts.", IDC_OPT_SHELL_NOTE, 36, 122, 230, 20
+    GROUPBOX        "After installation", IDC_GROUP_AFTER, 16, 145, 259, 25
+    CONTROL         "Start CDS Editor when Setup &finishes", IDC_OPT_LAUNCH, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 26, 156, 240, 10
+END
+
+// Destination folder and the files that go there
+IDD_FOLDER DIALOGEX 0, 0, 292, 173
+STYLE DS_SETFONT | DS_CONTROL | WS_CHILD
+FONT 8, "Segoe UI", 400, 0, 0x1
+BEGIN
+    CONTROL         "", IDC_BANNER_IMAGE, "Static", SS_OWNERDRAW, 0, 0, 292, 35
+    LTEXT           "Destination Folder and Files", IDC_TITLE, 12, 5, 210, 14
+    LTEXT           "Choose the folder and review what Setup adds.", IDC_DESCRIPTION, 20, 20, 222, 10
+    CONTROL         "", IDC_BANNER_LINE, "Static", SS_ETCHEDHORZ, 0, 35, 292, 1
+    LTEXT           "Install to:", IDC_FOLDER_LABEL, 16, 42, 210, 9
+    EDITTEXT        IDC_FOLDER, 16, 54, 210, 12, ES_AUTOHSCROLL
+    PUSHBUTTON      "&Change...", IDC_BROWSE, 232, 53, 43, 14
+    GROUPBOX        "Setup adds", IDC_GROUP_FILES, 16, 73, 259, 94
+    CONTROL         "", IDC_FILE_LIST, "SysListView32", LVS_REPORT | LVS_SINGLESEL | LVS_NOSORTHEADER | WS_TABSTOP | WS_BORDER, 23, 84, 245, 77
+END
+
+// Ready: the summary
+IDD_READY DIALOGEX 0, 0, 292, 173
+STYLE DS_SETFONT | DS_CONTROL | WS_CHILD
+FONT 8, "Segoe UI", 400, 0, 0x1
+BEGIN
+    CONTROL         "", IDC_BANNER_IMAGE, "Static", SS_OWNERDRAW, 0, 0, 292, 35
+    LTEXT           "Ready to install CDS Editor", IDC_TITLE, 12, 5, 210, 14
+    LTEXT           "Click Install to begin the installation.", IDC_DESCRIPTION, 20, 20, 222, 10
+    CONTROL         "", IDC_BANNER_LINE, "Static", SS_ETCHEDHORZ, 0, 35, 292, 1
+    EDITTEXT        IDC_SUMMARY, 16, 43, 259, 111, ES_MULTILINE | ES_READONLY | NOT WS_BORDER
+    LTEXT           "Windows will ask for permission to make changes to this computer.", IDC_BODY, 16, 158, 259, 10
+END
+
+// Progress: what the installer is doing
+IDD_PROGRESS DIALOGEX 0, 0, 292, 173
+STYLE DS_SETFONT | DS_CONTROL | WS_CHILD
+FONT 8, "Segoe UI", 400, 0, 0x1
+BEGIN
+    CONTROL         "", IDC_BANNER_IMAGE, "Static", SS_OWNERDRAW, 0, 0, 292, 35
+    LTEXT           "Installing CDS Editor", IDC_TITLE, 12, 5, 210, 14
+    LTEXT           "Please wait while CDS Editor is installed.", IDC_DESCRIPTION, 20, 20, 222, 10
+    CONTROL         "", IDC_BANNER_LINE, "Static", SS_ETCHEDHORZ, 0, 35, 292, 1
+    LTEXT           "Preparing...", IDC_PROGRESS_ACTION, 16, 76, 259, 10
+    CONTROL         "", IDC_PROGRESS_BAR, "msctls_progress32", PBS_SMOOTH, 16, 90, 259, 12
+END
+
+// Finish: side image and what to do next
+IDD_FINISH DIALOGEX 0, 0, 292, 173
+STYLE DS_SETFONT | DS_CONTROL | WS_CHILD
+FONT 8, "Segoe UI", 400, 0, 0x1
+BEGIN
+    CONTROL         "", IDC_SIDE_IMAGE, "Static", SS_OWNERDRAW, 0, 0, 292, 173
+    LTEXT           "Completed the CDS Editor Setup Wizard", IDC_HEADLINE, 107, 16, 175, 37
+    LTEXT           "Click Finish to exit the Setup Wizard.\n\nOpen a Definition File or a configuration from the Start page, or drop one on the window. Press F1 in the editor for the reference.", IDC_BODY, 107, 62, 175, 92
+END
+
+// Maintenance: repair or remove an installed copy
+IDD_MAINTENANCE DIALOGEX 0, 0, 292, 173
+STYLE DS_SETFONT | DS_CONTROL | WS_CHILD
+FONT 8, "Segoe UI", 400, 0, 0x1
+BEGIN
+    CONTROL         "", IDC_SIDE_IMAGE, "Static", SS_OWNERDRAW, 0, 0, 292, 173
+    LTEXT           "Change, repair, or remove CDS Editor", IDC_HEADLINE, 107, 16, 175, 37
+    PUSHBUTTON      "&Repair", IDC_REPAIR, 107, 65, 60, 14
+    LTEXT           "Restores missing or damaged files and registry entries.", IDC_REPAIR_NOTE, 107, 83, 175, 21
+    PUSHBUTTON      "Re&move", IDC_REMOVE, 107, 108, 60, 14
+    LTEXT           "Uninstalls CDS Editor. Your files are left in place.", IDC_REMOVE_NOTE, 107, 127, 175, 21
+END
