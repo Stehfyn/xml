@@ -27,6 +27,7 @@ extern "C"
 }
 
 #include <stdio.h>
+#include <windows.h>
 #include <string.h>
 
 /*=================================================================================================
@@ -65,6 +66,18 @@ extern "C"
  * \retval        None
  */
 static void AddProblem(Arinc661_Context_t* context, bool_t isError, Arinc661_Context_Target_t target, uint32_t documentIndex, uint32_t itemIndex, const char_t* text);
+
+/*************************************************************************************************/
+/**
+ * \brief Tests whether a file of that name sits in the shared folder.
+ *
+ * \param[in] context    Context
+ * \param[in] fileName   File name
+ *
+ * \retval    TRUE       if it exists.
+ * \retval    FALSE      otherwise.
+ */
+static bool_t FileExistsInFolder(const Arinc661_Context_t* context, const char_t* fileName);
 
 /*=================================================================================================
 ** 4. PRIVATE FUNCTIONS
@@ -279,6 +292,22 @@ static void AddProblem(Arinc661_Context_t* context, bool_t isError, Arinc661_Con
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  Joins the Definition File editor's folder path and the name and asks the OS.
+ */
+static bool_t FileExistsInFolder(const Arinc661_Context_t* context, const char_t* fileName)
+{
+    char_t path[ARINC661_DEFINITION_MAX_FILE_PATH_BYTES];
+    DWORD  attributes;
+
+    (void)snprintf(path, sizeof(path), "%s\\%s", context->definitionEditor->folderPath, fileName);
+    attributes = GetFileAttributesA(path);
+
+    return !!(INVALID_FILE_ATTRIBUTES != attributes);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Runs the user application checks first, then the window and Definition File checks.
  */
 uint32_t Arinc661_Context_Check(Arinc661_Context_t* context)
@@ -305,6 +334,14 @@ uint32_t Arinc661_Context_Check(Arinc661_Context_t* context)
     uint32_t                           other_document;
     uint32_t                           window_index;
     uint32_t                           layer_index;
+    uint32_t                           widget_index;
+    uint32_t                           index;
+    int64_t                            layer_id;
+    int64_t                            other_layer_id;
+    const char_t*                      style_path;
+    bool_t                             map_source_layer;
+    bool_t                             is_visible;
+    bool_t                             has_map_source;
     bool_t                             has_application;
     bool_t                             has_window;
 
@@ -431,6 +468,84 @@ uint32_t Arinc661_Context_Check(Arinc661_Context_t* context)
         }
     }
 
+    // Inside each Definition File: references, parent rules, identifier uniqueness
+    for (document_index = 0; document_index < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS; ++document_index)
+    {
+        for (index = 0; Arinc661_Definition_ProblemAt(context->definitionEditor, document_index, index, text, sizeof(text), &widget_index, &layer_index); ++index)
+        {
+            if (UINT32_MAX != widget_index)
+            {
+                AddProblem(context, TRUE, ARINC661_CONTEXT_TARGET_WIDGET, document_index, widget_index, text);
+            }
+            else if (UINT32_MAX != layer_index)
+            {
+                AddProblem(context, TRUE, ARINC661_CONTEXT_TARGET_LAYER, document_index, layer_index, text);
+            }
+            else
+            {
+                AddProblem(context, TRUE, ARINC661_CONTEXT_TARGET_DEFINITION, document_index, 0, text);
+            }
+        }
+    }
+    // Across files of one application: LayerId must be unique
+    for (document_index = 0; document_index < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS; ++document_index)
+    {
+        if (FALSE == Arinc661_Definition_DocumentApplicationId(context->definitionEditor, document_index, &application_id))
+        {
+            continue;
+        }
+        for (other_document = document_index + 1; other_document < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS; ++other_document)
+        {
+            if ((FALSE == Arinc661_Definition_DocumentApplicationId(context->definitionEditor, other_document, &other_id)) || (other_id != application_id))
+            {
+                continue;
+            }
+            for (layer_index = 0; Arinc661_Definition_LayerIdAt(context->definitionEditor, document_index, layer_index, &layer_id); ++layer_index)
+            {
+                for (index = 0; Arinc661_Definition_LayerIdAt(context->definitionEditor, other_document, index, &other_layer_id); ++index)
+                {
+                    if (other_layer_id == layer_id)
+                    {
+                        (void)snprintf(text, sizeof(text), "%s and %s both define LayerId %lld for application %lld; layer ids must be unique per application.", Arinc661_Definition_DocumentName(context->definitionEditor, document_index), Arinc661_Definition_DocumentName(context->definitionEditor, other_document), (long long)layer_id, (long long)application_id);
+                        AddProblem(context, TRUE, ARINC661_CONTEXT_TARGET_LAYER, other_document, index, text);
+                    }
+                }
+            }
+        }
+    }
+    // FACE flags against the file: mapSourceLayer and styleFilePath
+    for (application_index = 0; Arinc661_Context_UserApplication(context, application_index, &application); ++application_index)
+    {
+        if (FALSE == Arinc661_Configuration_UserApplicationDetails(context->configurationEditor, application.documentIndex, application.applicationIndex, &map_source_layer, &is_visible, &style_path))
+        {
+            continue;
+        }
+        if (Arinc661_Context_FindDefinition(context, application.dFPath, &definition) && definition.isOpen)
+        {
+            has_map_source = Arinc661_Definition_HasMapSource(context->definitionEditor, definition.documentIndex);
+            if (map_source_layer && (FALSE == has_map_source))
+            {
+                (void)snprintf(text, sizeof(text), "%s: application %lld sets mapSourceLayer but %s holds no MapHorz_Source or MapVert_Source widget.", application.documentName, (long long)application.applicationId, application.dFPath);
+                AddProblem(context, FALSE, ARINC661_CONTEXT_TARGET_USER_APPLICATION, application.documentIndex, application.applicationIndex, text);
+            }
+            else if ((FALSE == map_source_layer) && has_map_source)
+            {
+                (void)snprintf(text, sizeof(text), "%s: %s holds a map source widget but application %lld does not set mapSourceLayer.", application.documentName, application.dFPath, (long long)application.applicationId);
+                AddProblem(context, FALSE, ARINC661_CONTEXT_TARGET_USER_APPLICATION, application.documentIndex, application.applicationIndex, text);
+            }
+        }
+        if (('\0' != style_path[0]) && (FALSE == FileExistsInFolder(context, style_path)))
+        {
+            (void)snprintf(text, sizeof(text), "%s: application %lld names style file %s, which is not in the folder.", application.documentName, (long long)application.applicationId, style_path);
+            AddProblem(context, FALSE, ARINC661_CONTEXT_TARGET_USER_APPLICATION, application.documentIndex, application.applicationIndex, text);
+        }
+        if (FALSE == is_visible)
+        {
+            (void)snprintf(text, sizeof(text), "%s: application %lld starts hidden (visible is false); its layers are not previewed.", application.documentName, (long long)application.applicationId);
+            AddProblem(context, FALSE, ARINC661_CONTEXT_TARGET_USER_APPLICATION, application.documentIndex, application.applicationIndex, text);
+        }
+    }
+
     return context->problemCount;
 }
 
@@ -462,6 +577,11 @@ void Arinc661_Context_ShowProblem(Arinc661_Context_t* context, const Arinc661_Co
             break;
         case ARINC661_CONTEXT_TARGET_LAYER:
             Arinc661_Definition_SelectLayer(context->definitionEditor, problem->documentIndex, problem->itemIndex);
+            context->isDefinitionFocused = TRUE;
+            context->hasFocusRequest     = TRUE;
+            break;
+        case ARINC661_CONTEXT_TARGET_WIDGET:
+            Arinc661_Definition_SelectWidget(context->definitionEditor, problem->documentIndex, problem->itemIndex);
             context->isDefinitionFocused = TRUE;
             context->hasFocusRequest     = TRUE;
             break;
@@ -659,6 +779,111 @@ uint32_t Arinc661_Context_FollowRenames(Arinc661_Context_t* context)
         count = Arinc661_Configuration_RepointDefinition(context->configurationEditor, previous_name, current_name);
         context->definitionEditor->renamedFrom[0] = '\0';
         context->definitionEditor->renamedTo[0]   = '\0';
+    }
+
+    return count;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  First open document whose ApplicationId equals the value.
+ */
+uint32_t Arinc661_Context_DefinitionByApplicationId(const Arinc661_Context_t* context, int64_t applicationId)
+{
+    uint32_t document_index;
+    uint32_t found;
+    int64_t  candidate;
+
+    LOGASSERT(NULL != context);
+    found = ARINC661_DEFINITION_NO_DOCUMENT;
+    for (document_index = 0; document_index < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS; ++document_index)
+    {
+        if (Arinc661_Definition_DocumentApplicationId(context->definitionEditor, document_index, &candidate) && (candidate == applicationId))
+        {
+            found = document_index;
+            break;
+        }
+    }
+
+    return found;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Works on the active configuration: a window is added when none exists, the user
+ *  application is added for the selected or first window, then the Definition File is
+ *  created through Arinc661_Context_CreateDefinitionFor.
+ */
+bool_t Arinc661_Context_NewApplication(Arinc661_Context_t* context)
+{
+    Arinc661_Context_UserApplication_t application;
+    uint32_t                           configuration;
+    uint32_t                           application_index;
+    uint32_t                           count;
+    int64_t                            window_id;
+    const char_t*                      window_name;
+    bool_t                             is_created;
+
+    LOGASSERT(NULL != context);
+    is_created    = FALSE;
+    configuration = context->configurationEditor->activeDocumentIndex;
+    if ((configuration < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS) && (NULL != Arinc661_Configuration_DocumentName(context->configurationEditor, configuration)))
+    {
+        if (0 == Arinc661_Configuration_WindowCount(context->configurationEditor, configuration))
+        {
+            Arinc661_Configuration_AddWindow(context->configurationEditor);
+        }
+        if (Arinc661_Configuration_WindowAt(context->configurationEditor, configuration, 0, &window_id, &window_name))
+        {
+            Arinc661_Configuration_AddUserApplication(context->configurationEditor);
+            count = Arinc661_Configuration_UserApplicationCount(context->configurationEditor, configuration);
+            if (0 < count)
+            {
+                // The new user application is the last one; name its file after its id
+                application_index = 0;
+                for (application_index = 0; Arinc661_Context_UserApplication(context, application_index, &application); ++application_index)
+                {
+                    if ((application.documentIndex == configuration) && (application.applicationIndex == (count - 1)))
+                    {
+                        is_created = Arinc661_Context_CreateDefinitionFor(context, &application);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    return is_created;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Counts errors whose target document matches, by editor side.
+ */
+uint32_t Arinc661_Context_DocumentErrors(const Arinc661_Context_t* context, bool_t isDefinition, uint32_t documentIndex)
+{
+    const Arinc661_Context_Problem_t* problem;
+    uint32_t                          index;
+    uint32_t                          count;
+    bool_t                            is_definition_target;
+
+    LOGASSERT(NULL != context);
+    count = 0;
+    for (index = 0; index < context->problemCount; ++index)
+    {
+        problem = &context->problems[index];
+        if (FALSE == problem->isError)
+        {
+            continue;
+        }
+        is_definition_target = !!((ARINC661_CONTEXT_TARGET_DEFINITION == problem->target) || (ARINC661_CONTEXT_TARGET_LAYER == problem->target) || (ARINC661_CONTEXT_TARGET_WIDGET == problem->target));
+        if ((is_definition_target == isDefinition) && (problem->documentIndex == documentIndex))
+        {
+            count += 1;
+        }
     }
 
     return count;

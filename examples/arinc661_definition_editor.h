@@ -108,6 +108,9 @@ typedef struct Arinc661_Definition_Editor_s
     uint32_t                         dropLayer;                                                   ///< Layer of that node.
     uint32_t                         createConfiguration;                                         ///< Configuration slot chosen for a new user application.
     uint32_t                         createWindow;                                                ///< Window array index chosen for it.
+    char_t                           dropType[ARINC661_MAX_NAME_BYTES];                           ///< Palette type dropped on a hierarchy node this frame, or empty.
+    uint32_t                         dropTypeParent;                                              ///< Node it was dropped on, or UINT32_MAX for the layer.
+    uint32_t                         dropTypeLayer;                                               ///< Layer of that node.
     char_t                           addFilter[ARINC661_DEFINITION_MAX_FILTER_BYTES];             ///< Type filter typed in the add pop-up.
     uint32_t                         addLayer;                                                    ///< Layer the add pop-up targets.
     uint32_t                         addParent;                                                   ///< Parent widget the add pop-up targets.
@@ -122,6 +125,7 @@ typedef struct Arinc661_Definition_Editor_s
     bool_t                           isSaveAllPending;                                            ///< TRUE while Save All is naming untitled documents.
     char_t                           renamedFrom[ARINC661_DEFINITION_MAX_XML_NAME_BYTES];         ///< Name a document had before its last Save As, or empty.
     char_t                           renamedTo[ARINC661_DEFINITION_MAX_XML_NAME_BYTES];           ///< Name it has now.
+    char_t                           statusNote[ARINC661_DEFINITION_MAX_XML_NAME_BYTES];          ///< Host note appended to the status text, or empty.
     char_t                           folderPath[ARINC661_DEFINITION_MAX_FOLDER_PATH_BYTES];       ///< Folder containing Definition Files.
     char_t                           saveFolderPath[ARINC661_DEFINITION_MAX_FOLDER_PATH_BYTES];   ///< Folder chosen in the save dialog.
     char_t                           saveFileName[ARINC661_DEFINITION_MAX_XML_NAME_BYTES];        ///< Filename chosen in the save dialog.
@@ -665,5 +669,98 @@ void Arinc661_Definition_SelectionText(const Arinc661_Definition_Editor_t* edito
  * \retval     FALSE           otherwise.
  */
 bool_t Arinc661_Definition_LayerAt(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, uint32_t layerIndex, const char_t** layerId, const char_t** name, float32_t* width, float32_t* height);
+
+/*************************************************************************************************/
+/**
+ * \brief Reports the index-th consistency problem inside one open document.
+ *
+ * \par Details:
+ *  Dangling identifier references, widgets under a parent the specification forbids,
+ *  duplicate WidgetIdent values within a layer, and duplicate LayerId values.
+ *
+ * \param[in]  editor          Editor state
+ * \param[in]  documentIndex   Document slot
+ * \param[in]  index           Which problem
+ * \param[out] text            Message
+ * \param[in]  capacity        Bytes in text
+ * \param[out] widgetIndex     Widget to select, or INVALID index
+ * \param[out] layerIndex      Layer to select, or INVALID index
+ *
+ * \retval     TRUE            if such a problem exists.
+ * \retval     FALSE           otherwise.
+ */
+bool_t Arinc661_Definition_ProblemAt(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, uint32_t index, char_t* text, uint32_t capacity, uint32_t* widgetIndex, uint32_t* layerIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Tells whether an open document holds a MapHorz_Source or MapVert_Source widget.
+ *
+ * \param[in] editor          Editor state
+ * \param[in] documentIndex   Document slot
+ *
+ * \retval    TRUE            if it does.
+ * \retval    FALSE           otherwise.
+ */
+bool_t Arinc661_Definition_HasMapSource(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads one layer's LayerId.
+ *
+ * \param[in]  editor          Editor state
+ * \param[in]  documentIndex   Document slot
+ * \param[in]  layerIndex      Layer array index
+ * \param[out] layerId         LayerId value
+ *
+ * \retval     TRUE            if the layer exists and has a numeric LayerId.
+ * \retval     FALSE           otherwise.
+ */
+bool_t Arinc661_Definition_LayerIdAt(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, uint32_t layerIndex, int64_t* layerId);
+
+/*************************************************************************************************/
+/**
+ * \brief Reports the widget selected in an open document.
+ *
+ * \param[in]  editor          Editor state
+ * \param[in]  documentIndex   Document slot
+ * \param[out] widgetIndex     Selected widget array index
+ *
+ * \retval     TRUE            if a widget is selected in that document.
+ * \retval     FALSE           otherwise.
+ */
+bool_t Arinc661_Definition_SelectedWidgetIndex(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, uint32_t* widgetIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Reports whether the active document's errors should be shown before saving.
+ *
+ * \param[in,out] editor   Editor state
+ * \param[in]     text     Message to show in the status bar after the save, or NULL to clear
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_SetStatusNote(Arinc661_Definition_Editor_t* editor, const char_t* text);
+
+/*************************************************************************************************/
+/**
+ * \brief Adds a widget of a type under the active document's selection.
+ *
+ * \param[in,out] editor   Editor state
+ * \param[in]     type     Widget type name
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_AddWidgetOfType(Arinc661_Definition_Editor_t* editor, const char_t* type);
+
+/*************************************************************************************************/
+/**
+ * \brief Attaches an extension of a type to the active document's selected widget.
+ *
+ * \param[in,out] editor   Editor state
+ * \param[in]     type     Extension type name
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_AddExtensionOfType(Arinc661_Definition_Editor_t* editor, const char_t* type);
 
 #endif /* ARINC661_DEFINITION_EDITOR_H */

@@ -148,6 +148,7 @@ extern "C"
 #define SCENE_GRID_COLOR          (IM_COL32(255, 255, 255, 14))
 #define SCENE_GRID_MAJOR_COLOR    (IM_COL32(255, 255, 255, 36))
 #define DROP_PAYLOAD_ID           ("A661_WIDGET")
+#define PALETTE_PAYLOAD_ID        ("A661_PALETTE_TYPE")
 #define COPY_SUFFIX               (" copy")
 #define NUDGE_STEP                (10.0f)
 #define NUDGE_FAST_STEP           (100.0f)
@@ -198,6 +199,23 @@ extern "C"
 #define FRAME_LABEL_BYTES         (160)
 #define SCENE_FRAME_COLOR         (IM_COL32(255, 200, 80, 200))
 #define SCENE_FRAME_DASH          (6.0f)
+#define REFERENCE_NONE_LABEL      ("0 (none)")
+#define REFERENCE_WIDGET_FORMAT   ("%lld  %s (%s)")
+#define REFERENCE_LAYER_FORMAT    ("%s  %s")
+#define REFERENCE_APPLICATION_FORMAT ("%lld  %s (%s)")
+#define REFERENCE_SOURCE_FORMAT   ("%u  %s %s")
+#define REFERENCE_MISSING_FORMAT  ("%s  (no match)")
+#define REFERENCE_GO_LABEL        ("Go")
+#define REFERENCE_COMBO_ID        ("##reference")
+#define REFERENCE_TOOLTIP_WIDGET  ("WidgetIdent of a widget in the same layer; 0 means none.")
+#define REFERENCE_TOOLTIP_LAYER   ("LayerId of a layer of this Definition File.")
+#define REFERENCE_TOOLTIP_APPLICATION ("ApplicationId of another user application in the configuration.")
+#define REFERENCE_TOOLTIP_FOCUS_IN ("WidgetIdent of a FocusIn widget in the layer named by NextFocusInLayerId of the application named by NextFocusInAppId.")
+#define REFERENCE_TOOLTIP_SOURCE  ("id of an externalSource in the configuration (FACE H.3.7).")
+#define PARENT_LAYER_NAME         ("LAYER")
+#define PARENT_ANY_NAME           ("")
+#define REFERENCE_TEXT_BYTES      (320)
+#define EXTENSION_NOT_APPLICABLE_FORMAT ("%s may not be attached to %s (Part 1-7, Table 8.4).")
 
 #define DEFINITION_TABLE_ID  ("DefinitionProperties")
 #define LAYER_TABLE_ID       ("LayerProperties")
@@ -355,6 +373,68 @@ typedef struct HierarchyRequest_s
     uint32_t addExtensionParentIndex; ///< Widget receiving a new extension, or INVALID_HIERARCHY_INDEX
     uint32_t duplicateWidgetIndex;    ///< Widget to duplicate with its subtree, or INVALID_HIERARCHY_INDEX
 } HierarchyRequest_t;
+
+/** What an identifier parameter refers to. */
+typedef enum ReferenceKind_e
+{
+    REFERENCE_NONE,        ///< Plain value
+    REFERENCE_WIDGET,      ///< WidgetIdent of a widget in the same layer
+    REFERENCE_LAYER,       ///< LayerId of a layer of this file
+    REFERENCE_APPLICATION, ///< ApplicationId of a user application
+    REFERENCE_FOCUS_IN,    ///< WidgetIdent of a FocusIn widget in another application's layer
+    REFERENCE_SOURCE       ///< id of a configuration external source
+} ReferenceKind_t;
+
+/** Parameter name to reference kind. */
+typedef struct ReferenceParameter_s
+{
+    const char_t*   name; ///< Parameter name
+    ReferenceKind_t kind; ///< What it refers to
+} ReferenceParameter_t;
+
+/** Where a widget type may sit (Part 1-7, section 3.2.3.1 and the Restriction clauses). */
+typedef struct ParentRule_s
+{
+    const char_t* child;      ///< Widget type
+    const char_t* parents[4]; ///< Allowed parent types; PARENT_LAYER_NAME for a direct layer child; NULL ends the list
+    bool_t        isForbidden; ///< TRUE when the listed parents are forbidden instead of allowed
+} ParentRule_t;
+
+static const ReferenceParameter_t c_referenceParameters[] =
+{
+    {"NextFocusedWidget", REFERENCE_WIDGET},      {"TargetWidgetID", REFERENCE_WIDGET},       {"TargetWidgetIdent", REFERENCE_WIDGET},
+    {"ActiveTabbedPanelID", REFERENCE_WIDGET},    {"VisibleChild", REFERENCE_WIDGET},         {"ShowIfFailIdent", REFERENCE_WIDGET},
+    {"ShowNoServiceIdent", REFERENCE_WIDGET},     {"TriggerWidgetIdent", REFERENCE_WIDGET},   {"TabDirectionWidgetIdArray", REFERENCE_WIDGET},
+    {"TriggerLayerIdent", REFERENCE_LAYER},       {"NextFocusInLayerId", REFERENCE_LAYER},    {"ConnectorReference", REFERENCE_LAYER},
+    {"NextLayerConnectorRef", REFERENCE_LAYER},   {"NextFocusInAppId", REFERENCE_APPLICATION}, {"NextFocusInId", REFERENCE_FOCUS_IN},
+    {"SourceReference", REFERENCE_SOURCE}
+};
+
+static const ParentRule_t c_parentRules[] =
+{
+    {"A661_BROADCAST_RECEIVER", {PARENT_LAYER_NAME, NULL}, FALSE},
+    {"A661_BUFFER_FORMAT", {PARENT_LAYER_NAME, NULL}, FALSE},
+    {"A661_DATA_SCALING_FR180", {PARENT_LAYER_NAME, NULL}, FALSE},
+    {"A661_DATA_SCALING_LONG", {PARENT_LAYER_NAME, NULL}, FALSE},
+    {"A661_DATA_SCALING_ULONG", {PARENT_LAYER_NAME, NULL}, FALSE},
+    {"A661_ANIMATION_ONPARAM", {"A661_ANIMATION_GROUP", NULL}, FALSE},
+    {"A661_ANIMATION_ROTATION", {"A661_ANIMATION_GROUP", NULL}, FALSE},
+    {"A661_ANIMATION_SCALE", {"A661_ANIMATION_GROUP", NULL}, FALSE},
+    {"A661_ANIMATION_TRANSLATION", {"A661_ANIMATION_GROUP", NULL}, FALSE},
+    {"A661_MAPHORZ_CONTAINER", {"A661_MAPHORZ_SOURCE", "A661_MAPHORZ_CONTAINER", NULL}, FALSE},
+    {"A661_MAPHORZ_ITEMLIST", {"A661_MAPHORZ_SOURCE", "A661_MAPHORZ_CONTAINER", NULL}, FALSE},
+    {"A661_MAPHORZ_PANEL", {"A661_MAPHORZ_SOURCE", "A661_MAPHORZ_CONTAINER", NULL}, FALSE},
+    {"A661_MAPHORZ_VERTEXBUFFER", {"A661_MAPHORZ_SOURCE", "A661_MAPHORZ_CONTAINER", NULL}, FALSE},
+    {"A661_MAPHORZ_SOURCE", {"A661_MAPHORZ", "A661_MASK_CONTAINER", PARENT_LAYER_NAME, NULL}, FALSE},
+    {"A661_MAPVERT_CONTAINER", {"A661_MAPVERT_SOURCE", "A661_MAPVERT_CONTAINER", NULL}, FALSE},
+    {"A661_MAPVERT_ITEMLIST", {"A661_MAPVERT_SOURCE", "A661_MAPVERT_CONTAINER", NULL}, FALSE},
+    {"A661_MAPVERT_PANEL", {"A661_MAPVERT_SOURCE", "A661_MAPVERT_CONTAINER", NULL}, FALSE},
+    {"A661_MAPVERT_SOURCE", {"A661_MAPVERT", "A661_MASK_CONTAINER", PARENT_LAYER_NAME, NULL}, FALSE},
+    {"A661_MAP_BOUNDARY", {"A661_MAPHORZ", NULL}, FALSE},
+    {"A661_MAP_GRID", {"A661_MAPHORZ_SOURCE", "A661_MAPVERT_SOURCE", "A661_MAPHORZ_CONTAINER", "A661_MAPVERT_CONTAINER"}, FALSE},
+    {"A661_TABBED_PANEL", {"A661_TABBED_PANEL_GROUP", NULL}, FALSE},
+    {"A661_MULTI_STATE_BUTTON", {"A661_RADIO_BOX", NULL}, TRUE}
+};
 
 /*************************************************************************************************/
 /**
@@ -936,7 +1016,7 @@ static void DrawParameterTable(Arinc661_Definition_Document_t* document, uint32_
  * \retval TRUE   if the type changed.
  * \retval FALSE  otherwise.
  */
-static bool_t DrawTypeField(const char_t* label, char_t* type, uint32_t capacity, bool_t isExtension);
+static bool_t DrawTypeField(const char_t* label, char_t* type, uint32_t capacity, bool_t isExtension, const char_t* parentType);
 
 /*************************************************************************************************/
 /**
@@ -1256,6 +1336,100 @@ static void DrawContextReferences(Arinc661_Definition_Document_t* document);
  * \retval        None
  */
 static void DrawCreateApplication(Arinc661_Definition_Document_t* document);
+
+/*************************************************************************************************/
+/**
+ * \brief Maps a parameter name to what it refers to.
+ *
+ * \param[in] parameterName   Parameter name
+ *
+ * \retval    ReferenceKind_t   Kind, or REFERENCE_NONE.
+ */
+static ReferenceKind_t ReferenceKindOf(const char_t* parameterName);
+
+/*************************************************************************************************/
+/**
+ * \brief Adds a widget or extension of a type under a parent, optionally at a layer position.
+ *
+ * \param[in,out] document      Document being edited
+ * \param[in]     layerIndex    Layer array index
+ * \param[in]     parentIndex   Parent widget, or INVALID_HIERARCHY_INDEX for a layer child
+ * \param[in]     type          Widget or extension type name
+ * \param[in]     x             Layer X of the reference point
+ * \param[in]     y             Layer Y of the reference point
+ * \param[in]     hasPosition   TRUE to apply x and y
+ *
+ * \retval        None
+ */
+static void AddTypedWidget(Arinc661_Definition_Document_t* document, uint32_t layerIndex, uint32_t parentIndex, const char_t* type, float32_t x, float32_t y, bool_t hasPosition);
+
+/*************************************************************************************************/
+/**
+ * \brief Finds the widget of a layer carrying a WidgetIdent.
+ *
+ * \param[in] document     Document being edited
+ * \param[in] layerIndex   Layer array index
+ * \param[in] ident        WidgetIdent value
+ *
+ * \retval    uint32_t   Widget array index, or INVALID_HIERARCHY_INDEX.
+ */
+static uint32_t FindWidgetByIdent(const Arinc661_Definition_Document_t* document, uint32_t layerIndex, int64_t ident);
+
+/*************************************************************************************************/
+/**
+ * \brief Finds the layer carrying a LayerId.
+ *
+ * \param[in] document   Document being edited
+ * \param[in] layerId    LayerId value
+ *
+ * \retval    uint32_t   Layer array index, or INVALID_HIERARCHY_INDEX.
+ */
+static uint32_t FindLayerById(const Arinc661_Definition_Document_t* document, int64_t layerId);
+
+/*************************************************************************************************/
+/**
+ * \brief Resolves a reference value to the document and item it names.
+ *
+ * \param[in]  document      Document being edited
+ * \param[in]  widgetIndex   Widget holding the reference
+ * \param[in]  kind          Reference kind
+ * \param[in]  value         Property value
+ * \param[out] targetDocument   Definition File document slot of the target, when a widget or layer
+ * \param[out] targetIndex      Widget or layer array index, user application index, or external source index
+ * \param[out] label         Text naming the target, or the no-match text
+ * \param[in]  labelCapacity Bytes in label
+ *
+ * \retval     TRUE          if the value is zero or names an existing item.
+ * \retval     FALSE         otherwise.
+ */
+static bool_t ResolveReference(const Arinc661_Definition_Document_t* document, uint32_t widgetIndex, ReferenceKind_t kind, const char_t* value, uint32_t* targetDocument, uint32_t* targetIndex, char_t* label, uint32_t labelCapacity);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws a reference parameter as a picker with a go-to button.
+ *
+ * \param[in,out] document      Document being edited
+ * \param[in]     widgetIndex   Widget holding the reference
+ * \param[in]     kind          Reference kind
+ * \param[in,out] value         Property value edited in place
+ * \param[in]     capacity      Bytes available in value
+ *
+ * \retval        TRUE          if the value changed.
+ * \retval        FALSE         otherwise.
+ */
+static bool_t DrawReferenceValue(Arinc661_Definition_Document_t* document, uint32_t widgetIndex, ReferenceKind_t kind, char_t* value, uint32_t capacity);
+
+/*************************************************************************************************/
+/**
+ * \brief Tests whether a widget type may sit under a parent type, or directly under a layer.
+ *
+ * \param[in] childType    Widget type
+ * \param[in] parentType   Parent widget type, or NULL for a layer child
+ *
+ * \retval    TRUE         if the specification allows it.
+ * \retval    FALSE        otherwise.
+ */
+static bool_t IsParentAllowed(const char_t* childType, const char_t* parentType);
 
 /*************************************************************************************************/
 /**
@@ -2489,6 +2663,7 @@ static void AddWidget(Arinc661_Definition_Document_t* document, uint32_t layerIn
     Arinc661_Widget_t* widget;
     char_t             text[INTEGER_TEXT_BYTES];
     uint32_t           insert_index;
+    uint32_t           type_index;
     bool_t             has_room;
 
     insert_index = document->definition.widgetCount;
@@ -2518,6 +2693,15 @@ static void AddWidget(Arinc661_Definition_Document_t* document, uint32_t layerIn
         if (isExtension)
         {
             ImStrncpy(widget->type, DEFAULT_EXTENSION_TYPE, sizeof(widget->type));
+            // Prefer an extension Table 8.4 allows on the parent
+            for (type_index = 0; (INVALID_HIERARCHY_INDEX != parentIndex) && (type_index < Arinc661_TypeCount(TRUE)); ++type_index)
+            {
+                if (Arinc661_ExtensionApplies(Arinc661_TypeName(TRUE, type_index), document->widgets[parentIndex].type))
+                {
+                    ImStrncpy(widget->type, Arinc661_TypeName(TRUE, type_index), sizeof(widget->type));
+                    break;
+                }
+            }
             document->status = STATUS_EXTENSION_ADDED;
         }
         else
@@ -3065,6 +3249,520 @@ static void RemoveSelection(Arinc661_Definition_Document_t* document)
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  An extension type attaches to the parent widget; a widget type goes into the parent when
+ *  it is a container the rules allow, else beside it. The reference point lands at the given
+ *  layer position when the type has one and hasPosition is set.
+ */
+static void AddTypedWidget(Arinc661_Definition_Document_t* document, uint32_t layerIndex, uint32_t parentIndex, const char_t* type, float32_t x, float32_t y, bool_t hasPosition)
+{
+    float32_t parent_x;
+    float32_t parent_y;
+    uint32_t  new_index;
+    bool_t    is_extension;
+
+    is_extension = (0 < Arinc661_FindType(type, TRUE, &new_index));
+    if (is_extension)
+    {
+        if (INVALID_HIERARCHY_INDEX != parentIndex)
+        {
+            AddWidget(document, layerIndex, parentIndex, TRUE);
+            if ((SELECTION_WIDGET == document->selectedKind) && document->widgets[document->selectedIndex].isExtension)
+            {
+                ImStrncpy(document->widgets[document->selectedIndex].type, type, sizeof(document->widgets[document->selectedIndex].type));
+                (void)ConformParameters(document, document->selectedIndex);
+            }
+        }
+    }
+    else
+    {
+        if ((INVALID_HIERARCHY_INDEX != parentIndex) && ((FALSE == IsContainerType(document->widgets[parentIndex].type)) || (FALSE == IsParentAllowed(type, document->widgets[parentIndex].type))))
+        {
+            parentIndex = document->widgets[parentIndex].parentWidgetIndex;
+        }
+        AddWidget(document, layerIndex, parentIndex, FALSE);
+        if ((SELECTION_WIDGET == document->selectedKind) && (0 == strcmp(DEFAULT_WIDGET_TYPE, document->widgets[document->selectedIndex].type)))
+        {
+            new_index = document->selectedIndex;
+            ImStrncpy(document->widgets[new_index].type, type, sizeof(document->widgets[new_index].type));
+            (void)ConformParameters(document, new_index);
+            if (hasPosition && (INVALID_HIERARCHY_INDEX != FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, new_index, PROPERTY_POS_X)))
+            {
+                parent_x = 0.0f;
+                parent_y = 0.0f;
+                if (INVALID_HIERARCHY_INDEX != parentIndex)
+                {
+                    AbsoluteOrigin(document, parentIndex, &parent_x, &parent_y);
+                }
+                SetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, new_index, PROPERTY_POS_X, x - parent_x);
+                SetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, new_index, PROPERTY_POS_Y, y - parent_y);
+            }
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Linear scan of the parameter table.
+ */
+static ReferenceKind_t ReferenceKindOf(const char_t* parameterName)
+{
+    ReferenceKind_t kind;
+    uint32_t        index;
+
+    kind = REFERENCE_NONE;
+    for (index = 0; index < (sizeof(c_referenceParameters) / sizeof(c_referenceParameters[0])); ++index)
+    {
+        if (0 == strcmp(parameterName, c_referenceParameters[index].name))
+        {
+            kind = c_referenceParameters[index].kind;
+            break;
+        }
+    }
+
+    return kind;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Extensions carry no WidgetIdent and are skipped.
+ */
+static uint32_t FindWidgetByIdent(const Arinc661_Definition_Document_t* document, uint32_t layerIndex, int64_t ident)
+{
+    uint32_t  widget_index;
+    uint32_t  found;
+    float32_t number;
+
+    found = INVALID_HIERARCHY_INDEX;
+    for (widget_index = 0; widget_index < document->definition.widgetCount; ++widget_index)
+    {
+        if ((layerIndex == document->widgets[widget_index].layerIndex) && (FALSE == document->widgets[widget_index].isExtension) && GetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, widget_index, PROPERTY_WIDGET_IDENT, &number) && ((int64_t)number == ident))
+        {
+            found = widget_index;
+            break;
+        }
+    }
+
+    return found;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Compares the LayerId property numerically.
+ */
+static uint32_t FindLayerById(const Arinc661_Definition_Document_t* document, int64_t layerId)
+{
+    uint32_t  layer_index;
+    uint32_t  found;
+    float32_t number;
+
+    found = INVALID_HIERARCHY_INDEX;
+    for (layer_index = 0; layer_index < document->definition.layerCount; ++layer_index)
+    {
+        if (GetPropertyNumber(document, ARINC661_PROPERTY_LAYER, layer_index, PROPERTY_LAYER_ID, &number) && ((int64_t)number == layerId))
+        {
+            found = layer_index;
+            break;
+        }
+    }
+
+    return found;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Zero names nothing and is always acceptable. Widgets are looked up in the holder's layer,
+ *  layers in this file, user applications and external sources through the context, and
+ *  FocusIn targets in the file whose ApplicationId equals the holder's NextFocusInAppId.
+ */
+static bool_t ResolveReference(const Arinc661_Definition_Document_t* document, uint32_t widgetIndex, ReferenceKind_t kind, const char_t* value, uint32_t* targetDocument, uint32_t* targetIndex, char_t* label, uint32_t labelCapacity)
+{
+    Arinc661_Context_t*                   context;
+    const Arinc661_Definition_Document_t* target;
+    Arinc661_Context_UserApplication_t    application;
+    const char_t*                         source_name;
+    const char_t*                         source_type;
+    int64_t                               ident;
+    float32_t                             number;
+    uint32_t                              index;
+    uint32_t                              other_document;
+    uint32_t                              layer_index;
+    uint32_t                              source_id;
+    bool_t                                is_valid;
+
+    context          = document->owner->context;
+    (*targetDocument) = INVALID_DOCUMENT_INDEX;
+    (*targetIndex)    = INVALID_HIERARCHY_INDEX;
+    ImStrncpy(label, REFERENCE_NONE_LABEL, (int)labelCapacity);
+    is_valid = (0 < FACEOE_Utl_Scan_Int64(value, &ident));
+    if (is_valid && (0 == ident))
+    {
+        is_valid = TRUE;
+    }
+    else if (is_valid)
+    {
+        is_valid = FALSE;
+        switch (kind)
+        {
+            case REFERENCE_WIDGET:
+                index = FindWidgetByIdent(document, document->widgets[widgetIndex].layerIndex, ident);
+                if (INVALID_HIERARCHY_INDEX != index)
+                {
+                    (*targetDocument) = (uint32_t)(document - document->owner->documents);
+                    (*targetIndex)    = index;
+                    ImFormatString(label, labelCapacity, REFERENCE_WIDGET_FORMAT, (long long)ident, document->widgets[index].name, document->widgets[index].type);
+                    is_valid = TRUE;
+                }
+                break;
+            case REFERENCE_LAYER:
+                index = FindLayerById(document, ident);
+                if (INVALID_HIERARCHY_INDEX != index)
+                {
+                    (*targetDocument) = (uint32_t)(document - document->owner->documents);
+                    (*targetIndex)    = index;
+                    ImFormatString(label, labelCapacity, REFERENCE_LAYER_FORMAT, LayerIdText(document, index), document->layers[index].name);
+                    is_valid = TRUE;
+                }
+                break;
+            case REFERENCE_APPLICATION:
+                for (index = 0; (NULL != context) && Arinc661_Context_UserApplication(context, index, &application); ++index)
+                {
+                    if (application.applicationId == ident)
+                    {
+                        (*targetDocument) = application.documentIndex;
+                        (*targetIndex)    = application.applicationIndex;
+                        ImFormatString(label, labelCapacity, REFERENCE_APPLICATION_FORMAT, (long long)ident, application.dFPath, application.documentName);
+                        is_valid = TRUE;
+                        break;
+                    }
+                }
+                break;
+            case REFERENCE_FOCUS_IN:
+                // Follow NextFocusInAppId to the other file, NextFocusInLayerId to its layer, then the ident
+                other_document = INVALID_DOCUMENT_INDEX;
+                if ((NULL != context) && GetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, widgetIndex, "NextFocusInAppId", &number))
+                {
+                    other_document = Arinc661_Context_DefinitionByApplicationId(context, (int64_t)number);
+                }
+                if ((INVALID_DOCUMENT_INDEX != other_document) && GetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, widgetIndex, "NextFocusInLayerId", &number))
+                {
+                    target      = &document->owner->documents[other_document];
+                    layer_index = FindLayerById(target, (int64_t)number);
+                    if (INVALID_HIERARCHY_INDEX != layer_index)
+                    {
+                        index = FindWidgetByIdent(target, layer_index, ident);
+                        if ((INVALID_HIERARCHY_INDEX != index) && (0 == strcmp("A661_FOCUS_IN", target->widgets[index].type)))
+                        {
+                            (*targetDocument) = other_document;
+                            (*targetIndex)    = index;
+                            ImFormatString(label, labelCapacity, REFERENCE_WIDGET_FORMAT, (long long)ident, target->widgets[index].name, target->documentName);
+                            is_valid = TRUE;
+                        }
+                    }
+                }
+                break;
+            case REFERENCE_SOURCE:
+                for (other_document = 0; (NULL != context) && (other_document < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS) && (FALSE == is_valid); ++other_document)
+                {
+                    for (index = 0; Arinc661_Configuration_ExternalSourceAt(context->configurationEditor, other_document, index, &source_id, &source_name, &source_type); ++index)
+                    {
+                        if ((int64_t)source_id == ident)
+                        {
+                            (*targetDocument) = other_document;
+                            (*targetIndex)    = index;
+                            ImFormatString(label, labelCapacity, REFERENCE_SOURCE_FORMAT, (unsigned)source_id, source_name, source_type);
+                            is_valid = TRUE;
+                            break;
+                        }
+                    }
+                }
+                break;
+            default:
+                is_valid = TRUE;
+                break;
+        }
+        if (FALSE == is_valid)
+        {
+            ImFormatString(label, labelCapacity, REFERENCE_MISSING_FORMAT, value);
+        }
+    }
+    else
+    {
+        ImFormatString(label, labelCapacity, REFERENCE_MISSING_FORMAT, value);
+    }
+
+    return is_valid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  A combo lists what the parameter may name, with the resolved target as its preview, in
+ *  red when nothing matches. The Go button selects the target: a widget or layer in its
+ *  file, a user application or external source in its configuration.
+ */
+static bool_t DrawReferenceValue(Arinc661_Definition_Document_t* document, uint32_t widgetIndex, ReferenceKind_t kind, char_t* value, uint32_t capacity)
+{
+    Arinc661_Context_t*                   context;
+    const Arinc661_Definition_Document_t* target;
+    Arinc661_Context_UserApplication_t    application;
+    const char_t*                         source_name;
+    const char_t*                         source_type;
+    const char_t*                         tooltip;
+    char_t                                label[REFERENCE_TEXT_BYTES];
+    char_t                                item[REFERENCE_TEXT_BYTES];
+    char_t                                text[INTEGER_TEXT_BYTES];
+    float32_t                             number;
+    int64_t                               ident;
+    uint32_t                              target_document;
+    uint32_t                              target_index;
+    uint32_t                              index;
+    uint32_t                              other_document;
+    uint32_t                              layer_index;
+    uint32_t                              source_id;
+    bool_t                                is_valid;
+    bool_t                                has_changed;
+
+    context     = document->owner->context;
+    has_changed = FALSE;
+    is_valid    = ResolveReference(document, widgetIndex, kind, value, &target_document, &target_index, label, sizeof(label));
+    if (FALSE == is_valid)
+    {
+        ImGui::PushStyleColor(ImGuiCol_Text, INVALID_VALUE_COLOR);
+    }
+    ImGui::SetNextItemWidth(-(ImGui::CalcTextSize(REFERENCE_GO_LABEL).x + (3.0f * ImGui::GetStyle().FramePadding.x) + ImGui::GetStyle().ItemSpacing.x));
+    if (ImGui::BeginCombo(REFERENCE_COMBO_ID, label))
+    {
+        if (ImGui::Selectable(REFERENCE_NONE_LABEL))
+        {
+            ImStrncpy(value, "0", (int)capacity);
+            has_changed = TRUE;
+        }
+        switch (kind)
+        {
+            case REFERENCE_WIDGET:
+                for (index = 0; index < document->definition.widgetCount; ++index)
+                {
+                    if ((index != widgetIndex) && (document->widgets[index].layerIndex == document->widgets[widgetIndex].layerIndex) && (FALSE == document->widgets[index].isExtension) && GetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, index, PROPERTY_WIDGET_IDENT, &number))
+                    {
+                        ImFormatString(item, sizeof(item), REFERENCE_WIDGET_FORMAT, (long long)number, document->widgets[index].name, document->widgets[index].type);
+                        ImGui::PushID((int)index);
+                        if (ImGui::Selectable(item))
+                        {
+                            ImFormatString(text, sizeof(text), "%lld", (long long)number);
+                            ImStrncpy(value, text, (int)capacity);
+                            has_changed = TRUE;
+                        }
+                        ImGui::PopID();
+                    }
+                }
+                break;
+            case REFERENCE_LAYER:
+                for (index = 0; index < document->definition.layerCount; ++index)
+                {
+                    if (GetPropertyNumber(document, ARINC661_PROPERTY_LAYER, index, PROPERTY_LAYER_ID, &number))
+                    {
+                        ImFormatString(item, sizeof(item), REFERENCE_LAYER_FORMAT, LayerIdText(document, index), document->layers[index].name);
+                        ImGui::PushID((int)index);
+                        if (ImGui::Selectable(item))
+                        {
+                            ImFormatString(text, sizeof(text), "%lld", (long long)number);
+                            ImStrncpy(value, text, (int)capacity);
+                            has_changed = TRUE;
+                        }
+                        ImGui::PopID();
+                    }
+                }
+                break;
+            case REFERENCE_APPLICATION:
+                for (index = 0; (NULL != context) && Arinc661_Context_UserApplication(context, index, &application); ++index)
+                {
+                    ImFormatString(item, sizeof(item), REFERENCE_APPLICATION_FORMAT, (long long)application.applicationId, application.dFPath, application.documentName);
+                    ImGui::PushID((int)index);
+                    if (ImGui::Selectable(item))
+                    {
+                        ImFormatString(text, sizeof(text), "%lld", (long long)application.applicationId);
+                        ImStrncpy(value, text, (int)capacity);
+                        has_changed = TRUE;
+                    }
+                    ImGui::PopID();
+                }
+                break;
+            case REFERENCE_FOCUS_IN:
+                other_document = INVALID_DOCUMENT_INDEX;
+                if ((NULL != context) && GetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, widgetIndex, "NextFocusInAppId", &number))
+                {
+                    other_document = Arinc661_Context_DefinitionByApplicationId(context, (int64_t)number);
+                }
+                if ((INVALID_DOCUMENT_INDEX != other_document) && GetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, widgetIndex, "NextFocusInLayerId", &number))
+                {
+                    target      = &document->owner->documents[other_document];
+                    layer_index = FindLayerById(target, (int64_t)number);
+                    for (index = 0; (INVALID_HIERARCHY_INDEX != layer_index) && (index < target->definition.widgetCount); ++index)
+                    {
+                        if ((target->widgets[index].layerIndex == layer_index) && (0 == strcmp("A661_FOCUS_IN", target->widgets[index].type)) && GetPropertyNumber(target, ARINC661_PROPERTY_WIDGET, index, PROPERTY_WIDGET_IDENT, &number))
+                        {
+                            ImFormatString(item, sizeof(item), REFERENCE_WIDGET_FORMAT, (long long)number, target->widgets[index].name, target->documentName);
+                            ImGui::PushID((int)index);
+                            if (ImGui::Selectable(item))
+                            {
+                                ImFormatString(text, sizeof(text), "%lld", (long long)number);
+                                ImStrncpy(value, text, (int)capacity);
+                                has_changed = TRUE;
+                            }
+                            ImGui::PopID();
+                        }
+                    }
+                }
+                break;
+            case REFERENCE_SOURCE:
+                for (other_document = 0; (NULL != context) && (other_document < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS); ++other_document)
+                {
+                    for (index = 0; Arinc661_Configuration_ExternalSourceAt(context->configurationEditor, other_document, index, &source_id, &source_name, &source_type); ++index)
+                    {
+                        ImFormatString(item, sizeof(item), REFERENCE_SOURCE_FORMAT, (unsigned)source_id, source_name, source_type);
+                        ImGui::PushID((int)((other_document * 4096) + index));
+                        if (ImGui::Selectable(item))
+                        {
+                            ImFormatString(text, sizeof(text), "%u", (unsigned)source_id);
+                            ImStrncpy(value, text, (int)capacity);
+                            has_changed = TRUE;
+                        }
+                        ImGui::PopID();
+                    }
+                }
+                break;
+            default:
+                break;
+        }
+        ImGui::EndCombo();
+    }
+    if (FALSE == is_valid)
+    {
+        ImGui::PopStyleColor();
+    }
+    tooltip = REFERENCE_TOOLTIP_WIDGET;
+    if (REFERENCE_LAYER == kind)
+    {
+        tooltip = REFERENCE_TOOLTIP_LAYER;
+    }
+    else if (REFERENCE_APPLICATION == kind)
+    {
+        tooltip = REFERENCE_TOOLTIP_APPLICATION;
+    }
+    else if (REFERENCE_FOCUS_IN == kind)
+    {
+        tooltip = REFERENCE_TOOLTIP_FOCUS_IN;
+    }
+    else if (REFERENCE_SOURCE == kind)
+    {
+        tooltip = REFERENCE_TOOLTIP_SOURCE;
+    }
+    if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort))
+    {
+        ImGui::SetTooltip("%s", tooltip);
+    }
+    ImGui::SameLine();
+    ImGui::BeginDisabled(!!((FALSE == is_valid) || (INVALID_HIERARCHY_INDEX == target_index)));
+    if (ImGui::SmallButton(REFERENCE_GO_LABEL))
+    {
+        switch (kind)
+        {
+            case REFERENCE_WIDGET:
+            case REFERENCE_FOCUS_IN:
+                Arinc661_Definition_SelectWidget(document->owner, target_document, target_index);
+                break;
+            case REFERENCE_LAYER:
+                Arinc661_Definition_SelectLayer(document->owner, target_document, target_index);
+                break;
+            case REFERENCE_APPLICATION:
+                if (NULL != context)
+                {
+                    Arinc661_Configuration_SelectUserApplication(context->configurationEditor, target_document, target_index);
+                    context->isDefinitionFocused = FALSE;
+                    context->hasFocusRequest     = TRUE;
+                }
+                break;
+            case REFERENCE_SOURCE:
+                if (NULL != context)
+                {
+                    Arinc661_Configuration_SelectExternalSource(context->configurationEditor, target_document, target_index);
+                    context->isDefinitionFocused = FALSE;
+                    context->hasFocusRequest     = TRUE;
+                }
+                break;
+            default:
+                break;
+        }
+    }
+    ImGui::EndDisabled();
+    (void)ident;
+
+    return has_changed;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Types without a rule may sit anywhere; a forbidden rule lists the parents that are not
+ *  allowed.
+ */
+static bool_t IsParentAllowed(const char_t* childType, const char_t* parentType)
+{
+    const ParentRule_t* rule;
+    uint32_t            rule_index;
+    uint32_t            parent_index;
+    bool_t              is_listed;
+    bool_t              is_allowed;
+
+    is_allowed = TRUE;
+    for (rule_index = 0; rule_index < (sizeof(c_parentRules) / sizeof(c_parentRules[0])); ++rule_index)
+    {
+        rule = &c_parentRules[rule_index];
+        if (0 != strcmp(childType, rule->child))
+        {
+            continue;
+        }
+        is_listed = FALSE;
+        for (parent_index = 0; (parent_index < 4) && (NULL != rule->parents[parent_index]); ++parent_index)
+        {
+            if (NULL == parentType)
+            {
+                if (0 == strcmp(rule->parents[parent_index], PARENT_LAYER_NAME))
+                {
+                    is_listed = TRUE;
+                }
+            }
+            else if (0 == strcmp(rule->parents[parent_index], parentType))
+            {
+                is_listed = TRUE;
+            }
+        }
+        if (rule->isForbidden)
+        {
+            is_allowed = (FALSE == is_listed);
+        }
+        else
+        {
+            is_allowed = is_listed;
+        }
+        break;
+    }
+    // A TabbedPanelGroup takes only TabbedPanel or Connector children
+    if (is_allowed && (NULL != parentType) && (0 == strcmp(parentType, "A661_TABBED_PANEL_GROUP")) && (0 != strcmp(childType, "A661_TABBED_PANEL")) && (0 != strcmp(childType, "A661_CONNECTOR")))
+    {
+        is_allowed = FALSE;
+    }
+
+    return is_allowed;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Shows the specification's description, categories, and restriction of a type, wrapped.
  */
 static void DrawTypeHelp(const char_t* type)
@@ -3174,6 +3872,7 @@ static void DrawAddPopup(Arinc661_Definition_Document_t* document)
     const char_t*                 categories;
     const char_t*                 restriction;
     const char_t*                 parent_name;
+    const char_t*                 parent_type;
     char_t                        label[LABEL_FORMAT_BYTES + (2 * ARINC661_MAX_NAME_BYTES)];
     char_t                        lower_type[ARINC661_MAX_NAME_BYTES];
     char_t                        lower_filter[ARINC661_DEFINITION_MAX_FILTER_BYTES];
@@ -3223,6 +3922,15 @@ static void DrawAddPopup(Arinc661_Definition_Document_t* document)
                     }
                 }
                 is_match = !!(('\0' == lower_filter[0]) || (NULL != strstr(lower_type, lower_filter)));
+                parent_type = NULL;
+                if (INVALID_HIERARCHY_INDEX != owner->addParent)
+                {
+                    parent_type = document->widgets[owner->addParent].type;
+                }
+                if (is_match && (FALSE == IsParentAllowed(type_name, parent_type)))
+                {
+                    is_match = FALSE;
+                }
                 if (is_match)
                 {
                     if (ImGui::Selectable(type_name))
@@ -3823,6 +4531,20 @@ static void DrawSceneInteraction(Arinc661_Definition_Document_t* document, uint3
     {
         RemoveSelection(document);
     }
+    // A palette type dropped on the canvas lands where it was dropped, in the container under it
+    if (ImGui::BeginDragDropTarget())
+    {
+        if (NULL != ImGui::AcceptDragDropPayload(PALETTE_PAYLOAD_ID))
+        {
+            hit_index = Arinc661_Scene_Pick(owner->sceneBounds, owner->sceneBoundsCount, mouse_point);
+            if (ARINC661_SCENE_NO_WIDGET == hit_index)
+            {
+                hit_index = INVALID_HIERARCHY_INDEX;
+            }
+            AddTypedWidget(document, layerIndex, hit_index, (const char_t*)ImGui::GetDragDropPayload()->Data, Snap(owner, (mouse.x - layerMin.x) / scale), Snap(owner, (layerMax.y - mouse.y) / scale), TRUE);
+        }
+        ImGui::EndDragDropTarget();
+    }
     // Right-click: remember where and on what, then open the add pop-up
     if (isCanvasHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
     {
@@ -3947,13 +4669,20 @@ static void DrawWidgetNodes(Arinc661_Definition_Document_t* document, uint32_t l
             ImGui::Text(WIDGET_LABEL_FORMAT, widget->name, widget->type);
             ImGui::EndDragDropSource();
         }
-        if ((FALSE == widget->isExtension) && IsContainerType(widget->type) && ImGui::BeginDragDropTarget())
+        if ((FALSE == widget->isExtension) && ImGui::BeginDragDropTarget())
         {
-            if (NULL != ImGui::AcceptDragDropPayload(DROP_PAYLOAD_ID))
+            if (IsContainerType(widget->type) && (NULL != ImGui::AcceptDragDropPayload(DROP_PAYLOAD_ID)))
             {
                 document->owner->dropWidget = *(const uint32_t*)ImGui::GetDragDropPayload()->Data;
                 document->owner->dropParent = widget_index;
                 document->owner->dropLayer  = layerIndex;
+            }
+            if (NULL != ImGui::AcceptDragDropPayload(PALETTE_PAYLOAD_ID))
+            {
+                // A palette type dropped on a widget: an extension attaches to it, a widget goes into it or beside it
+                ImStrncpy(document->owner->dropType, (const char_t*)ImGui::GetDragDropPayload()->Data, sizeof(document->owner->dropType));
+                document->owner->dropTypeParent = widget_index;
+                document->owner->dropTypeLayer  = layerIndex;
             }
             ImGui::EndDragDropTarget();
         }
@@ -4061,6 +4790,12 @@ static void DrawHierarchy(Arinc661_Definition_Document_t* document)
                 document->owner->dropParent = INVALID_HIERARCHY_INDEX;
                 document->owner->dropLayer  = layer_index;
             }
+            if (NULL != ImGui::AcceptDragDropPayload(PALETTE_PAYLOAD_ID))
+            {
+                ImStrncpy(document->owner->dropType, (const char_t*)ImGui::GetDragDropPayload()->Data, sizeof(document->owner->dropType));
+                document->owner->dropTypeParent = INVALID_HIERARCHY_INDEX;
+                document->owner->dropTypeLayer  = layer_index;
+            }
             ImGui::EndDragDropTarget();
         }
         if (ImGui::BeginPopupContextItem())
@@ -4133,6 +4868,11 @@ static void DrawHierarchy(Arinc661_Definition_Document_t* document)
     {
         (void)MoveWidgetSubtree(document, document->owner->dropWidget, document->owner->dropLayer, document->owner->dropParent);
         document->owner->dropWidget = INVALID_HIERARCHY_INDEX;
+    }
+    else if ('\0' != document->owner->dropType[0])
+    {
+        AddTypedWidget(document, document->owner->dropTypeLayer, document->owner->dropTypeParent, document->owner->dropType, 0.0f, 0.0f, FALSE);
+        document->owner->dropType[0] = '\0';
     }
     else if (INVALID_HIERARCHY_INDEX != request.addExtensionParentIndex)
     {
@@ -4439,7 +5179,14 @@ static bool_t DrawParameterRow(Arinc661_Definition_Document_t* document, Arinc66
     {
         ImGui::PushStyleColor(ImGuiCol_Text, INVALID_VALUE_COLOR);
     }
-    has_changed = DrawParameterValue(parameter, value, ARINC661_MAX_PROPERTY_BYTES);
+    if ((ARINC661_PROPERTY_WIDGET == owner) && (REFERENCE_NONE != ReferenceKindOf(propertyName)) && (FALSE == document->widgets[ownerIndex].isExtension))
+    {
+        has_changed = DrawReferenceValue(document, ownerIndex, ReferenceKindOf(propertyName), value, ARINC661_MAX_PROPERTY_BYTES);
+    }
+    else
+    {
+        has_changed = DrawParameterValue(parameter, value, ARINC661_MAX_PROPERTY_BYTES);
+    }
     if (is_invalid)
     {
         ImGui::PopStyleColor();
@@ -4547,12 +5294,13 @@ static void DrawParameterTable(Arinc661_Definition_Document_t* document, uint32_
  * \par Details:
  *  Offers every widget type, or every extension type, known to the binary form.
  */
-static bool_t DrawTypeField(const char_t* label, char_t* type, uint32_t capacity, bool_t isExtension)
+static bool_t DrawTypeField(const char_t* label, char_t* type, uint32_t capacity, bool_t isExtension, const char_t* parentType)
 {
     const char_t* preview;
     const char_t* description;
     const char_t* categories;
     const char_t* restriction;
+    bool_t        is_applicable;
     uint32_t type_count;
     uint32_t type_index;
     int      selected;
@@ -4584,11 +5332,15 @@ static bool_t DrawTypeField(const char_t* label, char_t* type, uint32_t capacity
     {
         for (type_index = 0; type_index < type_count; ++type_index)
         {
+            // Table 8.4: an extension the parent widget cannot take is shown greyed and not selectable
+            is_applicable = !!((FALSE == isExtension) || (NULL == parentType) || Arinc661_ExtensionApplies(Arinc661_TypeName(isExtension, type_index), parentType));
+            ImGui::BeginDisabled(FALSE == is_applicable);
             if (ImGui::Selectable(Arinc661_TypeName(isExtension, type_index), (int)type_index == selected))
             {
                 ImStrncpy(type, Arinc661_TypeName(isExtension, type_index), capacity);
                 has_changed = TRUE;
             }
+            ImGui::EndDisabled();
             if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) && Arinc661_TypeHelp(Arinc661_TypeName(isExtension, type_index), &description, &categories, &restriction))
             {
                 ImGui::BeginTooltip();
@@ -4908,6 +5660,7 @@ static void DrawWidgetInspector(Arinc661_Definition_Document_t* document)
     Arinc661_Widget_t* widget;
     const char_t*      section_label;
     const char_t*      parent_name;
+    const char_t*      parent_type;
     uint32_t           parameter_count;
 
     widget        = &document->widgets[document->selectedIndex];
@@ -4928,7 +5681,12 @@ static void DrawWidgetInspector(Arinc661_Definition_Document_t* document)
         {
             MarkDocumentDirty(document, DrawTextField(NAME_LABEL, widget->name, sizeof(widget->name)));
         }
-        if (DrawTypeField(TYPE_LABEL, widget->type, sizeof(widget->type), widget->isExtension))
+        parent_type = NULL;
+        if (widget->isExtension && (INVALID_HIERARCHY_INDEX != widget->parentWidgetIndex))
+        {
+            parent_type = document->widgets[widget->parentWidgetIndex].type;
+        }
+        if (DrawTypeField(TYPE_LABEL, widget->type, sizeof(widget->type), widget->isExtension, parent_type))
         {
             // Keep the parameters the new type shares and reseed the rest
             (void)ConformParameters(document, document->selectedIndex);
@@ -4944,6 +5702,12 @@ static void DrawWidgetInspector(Arinc661_Definition_Document_t* document)
         ImGui::TableSetColumnIndex(1);
         ImGui::TextUnformatted(parent_name);
         ImGui::EndTable();
+    }
+    if (widget->isExtension && (NULL != parent_type) && (FALSE == Arinc661_ExtensionApplies(widget->type, parent_type)))
+    {
+        ImGui::PushStyleColor(ImGuiCol_Text, INVALID_VALUE_COLOR);
+        ImGui::TextWrapped(EXTENSION_NOT_APPLICABLE_FORMAT, widget->type, parent_type);
+        ImGui::PopStyleColor();
     }
     ImGui::Separator();
     DrawTypeHelp(widget->type);
@@ -6953,4 +7717,303 @@ bool_t Arinc661_Definition_LayerAt(const Arinc661_Definition_Editor_t* editor, u
     }
 
     return is_found;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Walks every widget property that is a reference, every widget for its parent rule and
+ *  WidgetIdent uniqueness, and every layer for LayerId uniqueness, in that order, and
+ *  reports the index-th finding.
+ */
+bool_t Arinc661_Definition_ProblemAt(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, uint32_t index, char_t* text, uint32_t capacity, uint32_t* widgetIndex, uint32_t* layerIndex)
+{
+    const Arinc661_Definition_Document_t* document;
+    const Arinc661_Property_t*            property;
+    const Arinc661_Widget_t*              widget;
+    const char_t*                         parent_type;
+    char_t                                label[REFERENCE_TEXT_BYTES];
+    float32_t                             number;
+    float32_t                             other_number;
+    uint32_t                              property_index;
+    uint32_t                              widget_slot;
+    uint32_t                              other_slot;
+    uint32_t                              layer_slot;
+    uint32_t                              target_document;
+    uint32_t                              target_index;
+    uint32_t                              seen;
+    ReferenceKind_t                       kind;
+
+    LOGASSERT(NULL != editor);
+    LOGASSERT(NULL != text);
+    LOGASSERT(NULL != widgetIndex);
+    LOGASSERT(NULL != layerIndex);
+    text[0]        = '\0';
+    (*widgetIndex) = INVALID_HIERARCHY_INDEX;
+    (*layerIndex)  = INVALID_HIERARCHY_INDEX;
+    seen           = 0;
+    if ((documentIndex >= ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS) || (FALSE == editor->documents[documentIndex].isLoaded))
+    {
+        return FALSE;
+    }
+    document = &editor->documents[documentIndex];
+    // Dangling references
+    for (property_index = 0; property_index < document->definition.propertyCount; ++property_index)
+    {
+        property = &document->properties[property_index];
+        if ((ARINC661_PROPERTY_WIDGET != property->owner) || (property->ownerIndex >= document->definition.widgetCount) || document->widgets[property->ownerIndex].isExtension)
+        {
+            continue;
+        }
+        kind = ReferenceKindOf(property->name);
+        if ((REFERENCE_NONE != kind) && (FALSE == ResolveReference(document, property->ownerIndex, kind, property->value, &target_document, &target_index, label, sizeof(label))))
+        {
+            if (seen == index)
+            {
+                widget = &document->widgets[property->ownerIndex];
+                ImFormatString(text, capacity, "%s: %s (%s) %s = %s names nothing.", document->documentName, widget->name, widget->type, property->name, property->value);
+                (*widgetIndex) = property->ownerIndex;
+                return TRUE;
+            }
+            seen += 1;
+        }
+    }
+    // Parent rules and duplicate WidgetIdent within a layer; extensions against Table 8.4
+    for (widget_slot = 0; widget_slot < document->definition.widgetCount; ++widget_slot)
+    {
+        widget = &document->widgets[widget_slot];
+        if (widget->isExtension)
+        {
+            if ((INVALID_HIERARCHY_INDEX != widget->parentWidgetIndex) && (FALSE == Arinc661_ExtensionApplies(widget->type, document->widgets[widget->parentWidgetIndex].type)))
+            {
+                if (seen == index)
+                {
+                    ImFormatString(text, capacity, "%s: extension %s is attached to %s (%s), which Table 8.4 does not allow.", document->documentName, widget->type, document->widgets[widget->parentWidgetIndex].name, document->widgets[widget->parentWidgetIndex].type);
+                    (*widgetIndex) = widget_slot;
+                    return TRUE;
+                }
+                seen += 1;
+            }
+            continue;
+        }
+        parent_type = NULL;
+        if (INVALID_HIERARCHY_INDEX != widget->parentWidgetIndex)
+        {
+            parent_type = document->widgets[widget->parentWidgetIndex].type;
+        }
+        if (FALSE == IsParentAllowed(widget->type, parent_type))
+        {
+            if (seen == index)
+            {
+                if (NULL == parent_type)
+                {
+                    ImFormatString(text, capacity, "%s: %s (%s) may not be a direct child of a layer (Part 1-7, 3.2.3.1).", document->documentName, widget->name, widget->type);
+                }
+                else
+                {
+                    ImFormatString(text, capacity, "%s: %s (%s) may not be a child of %s (%s) (Part 1-7, 3.2.3.1).", document->documentName, widget->name, widget->type, document->widgets[widget->parentWidgetIndex].name, parent_type);
+                }
+                (*widgetIndex) = widget_slot;
+                return TRUE;
+            }
+            seen += 1;
+        }
+        if (GetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, widget_slot, PROPERTY_WIDGET_IDENT, &number))
+        {
+            for (other_slot = widget_slot + 1; other_slot < document->definition.widgetCount; ++other_slot)
+            {
+                if ((FALSE == document->widgets[other_slot].isExtension) && (document->widgets[other_slot].layerIndex == widget->layerIndex) && GetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, other_slot, PROPERTY_WIDGET_IDENT, &other_number) && (other_number == number))
+                {
+                    if (seen == index)
+                    {
+                        ImFormatString(text, capacity, "%s: %s and %s share WidgetIdent %lld in layer %s.", document->documentName, widget->name, document->widgets[other_slot].name, (long long)number, LayerIdText(document, widget->layerIndex));
+                        (*widgetIndex) = other_slot;
+                        return TRUE;
+                    }
+                    seen += 1;
+                }
+            }
+        }
+    }
+    // Duplicate LayerId
+    for (layer_slot = 0; layer_slot < document->definition.layerCount; ++layer_slot)
+    {
+        if (GetPropertyNumber(document, ARINC661_PROPERTY_LAYER, layer_slot, PROPERTY_LAYER_ID, &number))
+        {
+            for (other_slot = layer_slot + 1; other_slot < document->definition.layerCount; ++other_slot)
+            {
+                if (GetPropertyNumber(document, ARINC661_PROPERTY_LAYER, other_slot, PROPERTY_LAYER_ID, &other_number) && (other_number == number))
+                {
+                    if (seen == index)
+                    {
+                        ImFormatString(text, capacity, "%s: layers %s and %s share LayerId %lld.", document->documentName, document->layers[layer_slot].name, document->layers[other_slot].name, (long long)number);
+                        (*layerIndex) = other_slot;
+                        return TRUE;
+                    }
+                    seen += 1;
+                }
+            }
+        }
+    }
+
+    return FALSE;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Counts widgets of the two map source types across the document.
+ */
+bool_t Arinc661_Definition_HasMapSource(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex)
+{
+    const Arinc661_Definition_Document_t* document;
+    uint32_t                              widget_index;
+    bool_t                                has_source;
+
+    LOGASSERT(NULL != editor);
+    has_source = FALSE;
+    if ((documentIndex < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS) && editor->documents[documentIndex].isLoaded)
+    {
+        document = &editor->documents[documentIndex];
+        for (widget_index = 0; widget_index < document->definition.widgetCount; ++widget_index)
+        {
+            if ((0 == strcmp("A661_MAPHORZ_SOURCE", document->widgets[widget_index].type)) || (0 == strcmp("A661_MAPVERT_SOURCE", document->widgets[widget_index].type)))
+            {
+                has_source = TRUE;
+                break;
+            }
+        }
+    }
+
+    return has_source;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Reads the index-th layer's LayerId numerically.
+ */
+bool_t Arinc661_Definition_LayerIdAt(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, uint32_t layerIndex, int64_t* layerId)
+{
+    float32_t number;
+    bool_t    is_found;
+
+    LOGASSERT(NULL != editor);
+    LOGASSERT(NULL != layerId);
+    is_found = FALSE;
+    if ((documentIndex < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS) && editor->documents[documentIndex].isLoaded && (layerIndex < editor->documents[documentIndex].definition.layerCount))
+    {
+        is_found = GetPropertyNumber(&editor->documents[documentIndex], ARINC661_PROPERTY_LAYER, layerIndex, PROPERTY_LAYER_ID, &number);
+        if (is_found)
+        {
+            (*layerId) = (int64_t)number;
+        }
+    }
+
+    return is_found;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Reads the document's selection.
+ */
+bool_t Arinc661_Definition_SelectedWidgetIndex(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, uint32_t* widgetIndex)
+{
+    bool_t is_selected;
+
+    LOGASSERT(NULL != editor);
+    LOGASSERT(NULL != widgetIndex);
+    is_selected = FALSE;
+    if ((documentIndex < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS) && editor->documents[documentIndex].isLoaded && (SELECTION_WIDGET == editor->documents[documentIndex].selectedKind) && (editor->documents[documentIndex].selectedIndex < editor->documents[documentIndex].definition.widgetCount))
+    {
+        (*widgetIndex) = editor->documents[documentIndex].selectedIndex;
+        is_selected    = TRUE;
+    }
+
+    return is_selected;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The note is shown after the editor's own status text until replaced.
+ */
+void Arinc661_Definition_SetStatusNote(Arinc661_Definition_Editor_t* editor, const char_t* text)
+{
+    LOGASSERT(NULL != editor);
+    editor->statusNote[0] = '\0';
+    if (NULL != text)
+    {
+        ImStrncpy(editor->statusNote, text, sizeof(editor->statusNote));
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Same placement rule as Arinc661_Definition_AddWidget, with the type set.
+ */
+void Arinc661_Definition_AddWidgetOfType(Arinc661_Definition_Editor_t* editor, const char_t* type)
+{
+    Arinc661_Definition_Document_t* document;
+    uint32_t                        layer_index;
+    uint32_t                        parent_index;
+
+    LOGASSERT(NULL != editor);
+    LOGASSERT(NULL != type);
+    if ((INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex) && editor->documents[editor->activeDocumentIndex].isLoaded)
+    {
+        document = &editor->documents[editor->activeDocumentIndex];
+        if (0 == document->definition.layerCount)
+        {
+            AddLayer(document);
+        }
+        layer_index  = 0;
+        parent_index = INVALID_HIERARCHY_INDEX;
+        if ((SELECTION_LAYER == document->selectedKind) && (document->selectedIndex < document->definition.layerCount))
+        {
+            layer_index = document->selectedIndex;
+        }
+        else if ((SELECTION_WIDGET == document->selectedKind) && (document->selectedIndex < document->definition.widgetCount))
+        {
+            layer_index  = document->widgets[document->selectedIndex].layerIndex;
+            parent_index = document->selectedIndex;
+            if (document->widgets[parent_index].isExtension)
+            {
+                parent_index = document->widgets[parent_index].parentWidgetIndex;
+            }
+        }
+        if (0 < document->definition.layerCount)
+        {
+            AddTypedWidget(document, layer_index, parent_index, type, 0.0f, 0.0f, FALSE);
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Attaches to the selected widget, or to the selected extension's widget.
+ */
+void Arinc661_Definition_AddExtensionOfType(Arinc661_Definition_Editor_t* editor, const char_t* type)
+{
+    Arinc661_Definition_Document_t* document;
+    uint32_t                        parent_index;
+
+    LOGASSERT(NULL != editor);
+    LOGASSERT(NULL != type);
+    if ((INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex) && editor->documents[editor->activeDocumentIndex].isLoaded)
+    {
+        document = &editor->documents[editor->activeDocumentIndex];
+        if ((SELECTION_WIDGET == document->selectedKind) && (document->selectedIndex < document->definition.widgetCount))
+        {
+            parent_index = document->selectedIndex;
+            if (document->widgets[parent_index].isExtension)
+            {
+                parent_index = document->widgets[parent_index].parentWidgetIndex;
+            }
+            AddTypedWidget(document, document->widgets[parent_index].layerIndex, parent_index, type, 0.0f, 0.0f, FALSE);
+        }
+    }
 }

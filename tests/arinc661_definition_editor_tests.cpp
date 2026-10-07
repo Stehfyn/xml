@@ -61,6 +61,7 @@ int main(void)
     Arinc661_Definition_Editor_t*   editor;
     Arinc661_Definition_Document_t* document;
     uint64_t                        byte_count;
+    uint32_t                        extension_parameter_count;
 
     Os_Diagnostics_Initialize();
     editor = (Arinc661_Definition_Editor_t*)OS_CALLOC(sizeof(Arinc661_Definition_Editor_t));
@@ -81,9 +82,26 @@ int main(void)
     assert(0 == document->widgets[1].parentWidgetIndex);
     assert(FALSE == document->widgets[2].isExtension);
     assert(0 == document->widgets[2].parentWidgetIndex);
-    /* WidgetIdent plus the eight Table 3.3.27-2 parameters; the extension's single parameter is seeded too */
+    /* WidgetIdent plus the eight Table 3.3.27-2 parameters; the extension takes a type Table 8.4 allows on a panel, fully seeded */
     assert(9 == CountOwned(document, ARINC661_PROPERTY_WIDGET, 2));
-    assert(1 == CountOwned(document, ARINC661_PROPERTY_WIDGET, 1));
+    assert(Arinc661_ExtensionApplies(document->widgets[1].type, "A661_PANEL"));
+    assert(Arinc661_FindType(document->widgets[1].type, TRUE, &extension_parameter_count));
+    /* Every single-valued parameter is seeded; arrays start empty */
+    {
+        Arinc661_Parameter_t extension_parameter;
+        uint32_t             single_count;
+        uint32_t             extension_index;
+        single_count = 0;
+        for (extension_index = 0; extension_index < extension_parameter_count; ++extension_index)
+        {
+            (void)Arinc661_Parameter(document->widgets[1].type, TRUE, extension_index, &extension_parameter);
+            if (0 == extension_parameter.elementsPerEntry)
+            {
+                single_count += 1;
+            }
+        }
+        assert(single_count == CountOwned(document, ARINC661_PROPERTY_WIDGET, 1));
+    }
     AddWidget(document, 0, 2, FALSE);                                       /* widget 3: grandchild under 2 */
     AddWidget(document, 0, 0, FALSE);                                       /* widget 4: second child of 0, after the subtree of 2 */
     assert(5 == document->definition.widgetCount);

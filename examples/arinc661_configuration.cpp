@@ -143,6 +143,16 @@ extern "C"
 #define LAYOUT_SECTION_LABEL              ("Layout")
 #define WINDOW_SECTION_LABEL              ("Window")
 #define USER_APPLICATION_SECTION_LABEL    ("User Application")
+#define EXTERNAL_SOURCE_SECTION_LABEL     ("External Source")
+#define EXTERNAL_SOURCE_TABLE_ID          ("ExternalSourceProperties")
+#define EXTERNAL_SOURCE_NODE_ID           ("##externalSource")
+#define EXTERNAL_SOURCE_LABEL_FORMAT      ("External Source %u (%s)")
+#define ADD_EXTERNAL_SOURCE_LABEL         ("+ Add External Source")
+#define REMOVE_EXTERNAL_SOURCE_LABEL      ("Remove External Source")
+#define EXTERNAL_TYPE_LABEL               ("Type")
+#define EXTERNAL_SOURCE_HINT_LABEL        ("Referenced by ExternalSource and MapExternalSource widgets through SourceReference (FACE H.3.7).")
+#define ELEMENT_EXTERNAL_SOURCE           ("ExternalSource")
+#define BREADCRUMB_EXTERNAL_FORMAT        ("%s > external source %u %s")
 #define PIXEL_AREA_SECTION_LABEL          ("Pixel Area")
 #define SCALING_FACTOR_SECTION_LABEL      ("Scaling Factor")
 
@@ -297,6 +307,10 @@ typedef enum Status_e
     STATUS_LAYOUT_REMOVED,
     STATUS_WINDOW_REMOVED,
     STATUS_USER_APPLICATION_REMOVED,
+    STATUS_EXTERNAL_SOURCE_ADDED,
+    STATUS_EXTERNAL_SOURCE_ADD_FAILED,
+    STATUS_EXTERNAL_SOURCE_REMOVED,
+    STATUS_DUPLICATE_EXTERNAL_SOURCE_ID,
     STATUS_READ_FAILED,
     STATUS_INPUT_TOO_LARGE,
     STATUS_INPUT_EMPTY,
@@ -306,7 +320,6 @@ typedef enum Status_e
     STATUS_DUPLICATE_LAYOUT_ID,
     STATUS_DUPLICATE_WINDOW_ID,
     STATUS_DUPLICATE_APPLICATION_ID,
-    STATUS_DUPLICATE_EXTERNAL_SOURCE_ID,
     STATUS_TOO_MANY_DOCUMENTS
 } Status_t;
 
@@ -320,7 +333,8 @@ typedef enum SelectionKind_e
     SELECTION_SCREEN,
     SELECTION_LAYOUT,
     SELECTION_WINDOW,
-    SELECTION_USER_APPLICATION
+    SELECTION_USER_APPLICATION,
+    SELECTION_EXTERNAL_SOURCE
 } SelectionKind_t;
 
 /*************************************************************************************************/
@@ -626,6 +640,37 @@ static void AddUserApplication(Arinc661_Configuration_Document_t* editor);
  * \retval        None
  */
 static void RemoveUserApplication(Arinc661_Configuration_Document_t* editor, uint32_t applicationIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Appends an external source with the next free id and selects it.
+ *
+ * \param[in,out] editor   Document being edited
+ *
+ * \retval        None
+ */
+static void AddExternalSource(Arinc661_Configuration_Document_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Removes one external source.
+ *
+ * \param[in,out] editor        Document being edited
+ * \param[in]     sourceIndex   External source array index
+ *
+ * \retval        None
+ */
+static void RemoveExternalSource(Arinc661_Configuration_Document_t* editor, uint32_t sourceIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Edits the selected external source's id, name, and type.
+ *
+ * \param[in,out] editor   Document being edited
+ *
+ * \retval        None
+ */
+static void DrawExternalSourceInspector(Arinc661_Configuration_Document_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -1268,6 +1313,10 @@ static const char_t* EditorStatusToString(int32_t status)
         case STATUS_LAYOUT_REMOVED:                  return "Removed layout.";
         case STATUS_WINDOW_REMOVED:                  return "Removed window.";
         case STATUS_USER_APPLICATION_REMOVED:        return "Removed user application.";
+        case STATUS_EXTERNAL_SOURCE_ADDED:           return "Added external source.";
+        case STATUS_EXTERNAL_SOURCE_ADD_FAILED:      return "Could not add another external source.";
+        case STATUS_EXTERNAL_SOURCE_REMOVED:         return "Removed external source.";
+        case STATUS_DUPLICATE_EXTERNAL_SOURCE_ID:    return "External source IDs must be unique in this document.";
         case STATUS_READ_FAILED:                     return "Could not read XML file.";
         case STATUS_INPUT_TOO_LARGE:                 return "The XML file exceeds the input buffer.";
         case STATUS_INPUT_EMPTY:                     return "The XML file is empty.";
@@ -1277,7 +1326,6 @@ static const char_t* EditorStatusToString(int32_t status)
         case STATUS_DUPLICATE_LAYOUT_ID:             return "Layout IDs must be unique within a screen.";
         case STATUS_DUPLICATE_WINDOW_ID:             return "Window IDs must be unique in this document.";
         case STATUS_DUPLICATE_APPLICATION_ID:        return "Application IDs must be unique in this document.";
-        case STATUS_DUPLICATE_EXTERNAL_SOURCE_ID:    return "External source IDs must be unique in this document.";
         case STATUS_TOO_MANY_DOCUMENTS:              return "Close a document before opening another XML file.";
         default:
           LOGFATAL("Invalid Status_t!");
@@ -1868,6 +1916,7 @@ static bool_t NextIdentifier(const Arinc661_Configuration_Document_t* editor, Se
 {
     int64_t maximum_id;
     bool_t  has_next_id;
+    uint32_t index;
 
     switch (kind)
     {
@@ -1884,6 +1933,15 @@ static bool_t NextIdentifier(const Arinc661_Configuration_Document_t* editor, Se
         case SELECTION_WINDOW:
         {
             maximum_id = GetMaxWindowIdentifier(editor);
+            break;
+        }
+        case SELECTION_EXTERNAL_SOURCE:
+        {
+            maximum_id = NO_IDENTIFIER;
+            for (index = 0; index < editor->configuration.externalSourceCount; ++index)
+            {
+                maximum_id = ImMax(maximum_id, (int64_t)editor->externalSources[index].id);
+            }
             break;
         }
         case SELECTION_USER_APPLICATION:
@@ -1952,6 +2010,17 @@ static bool_t IsIdentifierUnique(const Arinc661_Configuration_Document_t* editor
                 {
                     is_unique = FALSE;
                     break;
+                }
+            }
+            break;
+        }
+        case SELECTION_EXTERNAL_SOURCE:
+        {
+            for (index = 0; index < editor->configuration.externalSourceCount; ++index)
+            {
+                if ((index != itemIndex) && (id == (int64_t)editor->externalSources[index].id))
+                {
+                    is_unique = FALSE;
                 }
             }
             break;
@@ -2033,7 +2102,6 @@ static Status_t CheckIdentifierUniqueness(const Arinc661_Configuration_Document_
             if (FALSE == is_unique)
             {
                 status = STATUS_DUPLICATE_APPLICATION_ID;
-                break;
             }
         }
     }
@@ -2318,6 +2386,55 @@ static void RemoveUserApplication(Arinc661_Configuration_Document_t* editor, uin
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  The new source takes the next free id and empty name and type.
+ */
+static void AddExternalSource(Arinc661_Configuration_Document_t* editor)
+{
+    FACEOE_DisplayManagement_ExternalSource_t* source;
+    int64_t                                    id;
+    bool_t                                     has_capacity;
+    bool_t                                     has_id;
+
+    has_capacity = (editor->configuration.externalSourceCount < editor->configuration.externalSourceCapacity);
+    has_id       = NextIdentifier(editor, SELECTION_EXTERNAL_SOURCE, 0, &id);
+    if (has_capacity && has_id)
+    {
+        source = &editor->externalSources[editor->configuration.externalSourceCount];
+        (void)memset(source, 0, sizeof((*source)));
+        source->id            = (uint32_t)id;
+        editor->selectedKind  = SELECTION_EXTERNAL_SOURCE;
+        editor->selectedIndex = editor->configuration.externalSourceCount;
+        editor->configuration.externalSourceCount += 1;
+        editor->isDirty = TRUE;
+        editor->status  = STATUS_EXTERNAL_SOURCE_ADDED;
+    }
+    else
+    {
+        editor->status = STATUS_EXTERNAL_SOURCE_ADD_FAILED;
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Compacts the external source array after the chosen entry.
+ */
+static void RemoveExternalSource(Arinc661_Configuration_Document_t* editor, uint32_t sourceIndex)
+{
+    uint32_t remaining_count;
+
+    LOGASSERT(sourceIndex < editor->configuration.externalSourceCount);
+    remaining_count = (editor->configuration.externalSourceCount - (sourceIndex + 1));
+    if (0 < remaining_count)
+    {
+        (void)memmove(&editor->externalSources[sourceIndex], &editor->externalSources[sourceIndex + 1], ((uint64_t)remaining_count * sizeof(editor->externalSources[0])));
+    }
+    editor->configuration.externalSourceCount -= 1;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Compacts the window array after the chosen entry.
  */
 static void RemoveWindow(Arinc661_Configuration_Document_t* editor, uint32_t windowIndex)
@@ -2486,6 +2603,8 @@ static void DrawHierarchy(Arinc661_Configuration_Document_t* editor)
     uint32_t                              remove_layout_index;
     uint32_t                              remove_window_index;
     uint32_t                              remove_application_index;
+    uint32_t                              remove_source_index;
+    uint32_t                              source_index;
     bool_t                                is_screen_open;
     bool_t                                is_layout_open;
     bool_t                       is_open;
@@ -2496,6 +2615,7 @@ static void DrawHierarchy(Arinc661_Configuration_Document_t* editor)
     remove_layout_index      = INVALID_HIERARCHY_INDEX;
     remove_window_index      = INVALID_HIERARCHY_INDEX;
     remove_application_index = INVALID_HIERARCHY_INDEX;
+    remove_source_index      = INVALID_HIERARCHY_INDEX;
     for (screen_index = 0; screen_index < editor->configuration.screenCount; ++screen_index)
     {
         screen = &editor->screens[screen_index];
@@ -2636,6 +2756,33 @@ static void DrawHierarchy(Arinc661_Configuration_Document_t* editor)
     {
         AddUserApplication(editor);
     }
+    ImGui::Separator();
+    for (source_index = 0; source_index < editor->configuration.externalSourceCount; ++source_index)
+    {
+        flags = HIERARCHY_LEAF_FLAGS;
+        if ((SELECTION_EXTERNAL_SOURCE == editor->selectedKind) && (source_index == editor->selectedIndex))
+        {
+            flags |= ImGuiTreeNodeFlags_Selected;
+        }
+        ImGui::PushID(&editor->externalSources[source_index]);
+        (void)ImGui::TreeNodeEx(EXTERNAL_SOURCE_NODE_ID, flags, EXTERNAL_SOURCE_LABEL_FORMAT, (unsigned)editor->externalSources[source_index].id, editor->externalSources[source_index].name);
+        if (ImGui::IsItemClicked())
+        {
+            editor->selectedKind  = SELECTION_EXTERNAL_SOURCE;
+            editor->selectedIndex = source_index;
+        }
+        row_height = ImGui::GetItemRectSize().y;
+        if (DrawRemoveButton(REMOVE_EXTERNAL_SOURCE_LABEL, row_height))
+        {
+            remove_source_index = source_index;
+        }
+        ImGui::PopID();
+    }
+    (void)ImGui::TreeNodeEx(ADD_EXTERNAL_SOURCE_LABEL, HIERARCHY_ADD_FLAGS);
+    if (ImGui::IsItemClicked())
+    {
+        AddExternalSource(editor);
+    }
     if (INVALID_HIERARCHY_INDEX != remove_screen_index)
     {
         RemoveScreen(editor, remove_screen_index);
@@ -2669,6 +2816,14 @@ static void DrawHierarchy(Arinc661_Configuration_Document_t* editor)
         editor->selectedIndex = 0;
         editor->isDirty       = TRUE;
         editor->status        = STATUS_USER_APPLICATION_REMOVED;
+    }
+    else if (INVALID_HIERARCHY_INDEX != remove_source_index)
+    {
+        RemoveExternalSource(editor, remove_source_index);
+        editor->selectedKind  = SELECTION_NONE;
+        editor->selectedIndex = 0;
+        editor->isDirty       = TRUE;
+        editor->status        = STATUS_EXTERNAL_SOURCE_REMOVED;
     }
     else if (INVALID_HIERARCHY_INDEX != add_layout_screen_index)
     {
@@ -2757,6 +2912,7 @@ static bool_t DrawIdentifierField(Arinc661_Configuration_Document_t* editor, Sel
                 case SELECTION_LAYOUT:           editor->status = STATUS_DUPLICATE_LAYOUT_ID; break;
                 case SELECTION_WINDOW:           editor->status = STATUS_DUPLICATE_WINDOW_ID; break;
                 case SELECTION_USER_APPLICATION: editor->status = STATUS_DUPLICATE_APPLICATION_ID; break;
+                case SELECTION_EXTERNAL_SOURCE:  editor->status = STATUS_DUPLICATE_EXTERNAL_SOURCE_ID; break;
                 case SELECTION_NONE:
                 default:                         LOGFATAL("Invalid SelectionKind_t!");
             }
@@ -3101,6 +3257,33 @@ static void DrawWindowApplications(Arinc661_Configuration_Document_t* editor, co
     {
         ImGui::TextDisabled("%s", WINDOW_NO_APPLICATION_LABEL);
     }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  User application attributes are edited in their stored order.
+ */
+static void DrawExternalSourceInspector(Arinc661_Configuration_Document_t* editor)
+{
+    FACEOE_DisplayManagement_ExternalSource_t* source;
+    int64_t                                    id;
+
+    source = &editor->externalSources[editor->selectedIndex];
+    ImGui::SeparatorText(EXTERNAL_SOURCE_SECTION_LABEL);
+    if (BeginPropertyTable(EXTERNAL_SOURCE_TABLE_ID))
+    {
+        id = (int64_t)source->id;
+        if (DrawIdentifierField(editor, SELECTION_EXTERNAL_SOURCE, 0, editor->selectedIndex, &id))
+        {
+            source->id = (uint32_t)id;
+            MarkDocumentDirty(editor, TRUE);
+        }
+        MarkDocumentDirty(editor, DrawTextField(NAME_LABEL, source->name, sizeof(source->name)));
+        MarkDocumentDirty(editor, DrawTextField(EXTERNAL_TYPE_LABEL, source->type, sizeof(source->type)));
+        ImGui::EndTable();
+    }
+    ImGui::TextDisabled("%s", EXTERNAL_SOURCE_HINT_LABEL);
 }
 
 /*************************************************************************************************/
@@ -3938,6 +4121,10 @@ static void DrawInspectorPane(Arinc661_Configuration_Editor_t* editor, Arinc661_
             {
                 DrawUserApplicationInspector(editor, document);
             }
+            else if (SELECTION_EXTERNAL_SOURCE == document->selectedKind)
+            {
+                DrawExternalSourceInspector(document);
+            }
             else
             {
                 ImGui::TextWrapped("%s", SELECT_ITEM_PROMPT);
@@ -4167,6 +4354,11 @@ static void DrawScenePane(Arinc661_Configuration_Editor_t* owner, Arinc661_Confi
                                 if (SELECTION_LAYOUT == editor->selectedKind)
                                 {
                                     is_selected_layout_window = (window->layoutIndex == editor->selectedIndex);
+                                }
+                                else if ((SELECTION_USER_APPLICATION == editor->selectedKind) && (editor->selectedIndex < editor->configuration.userApplicationCount))
+                                {
+                                    // The selected user application lights up the window it targets
+                                    is_selected_layout_window = (editor->userApplications[editor->selectedIndex].window == window->id);
                                 }
                                 else if (SELECTION_WINDOW == editor->selectedKind)
                                 {
@@ -4511,6 +4703,14 @@ static void RemoveSelection(Arinc661_Configuration_Document_t* document)
             if (document->selectedIndex < document->configuration.userApplicationCount)
             {
                 RemoveUserApplication(document, document->selectedIndex);
+            }
+            break;
+        case SELECTION_EXTERNAL_SOURCE:
+            if (document->selectedIndex < document->configuration.externalSourceCount)
+            {
+                RemoveExternalSource(document, document->selectedIndex);
+                document->selectedKind = SELECTION_NONE;
+                document->isDirty      = TRUE;
             }
             break;
         default:
@@ -4999,6 +5199,7 @@ static void DrawWindowPreview(Arinc661_Configuration_Editor_t* editor, Arinc661_
     uint32_t                                          document_index;
     uint32_t                                          bounds_count;
     uint32_t                                          bounds_index;
+    uint32_t                                          selected_widget;
 
     if (NULL != editor->context)
     {
@@ -5033,6 +5234,17 @@ static void DrawWindowPreview(Arinc661_Configuration_Editor_t* editor, Arinc661_
                     editor->previewBoundsCount += bounds_count;
                     drawList->PushClipRect(ImVec2(minimum.x, minimum.y), ImVec2(maximum.x, maximum.y), true);
                     Arinc661_Gfx_ImGui_Render(&editor->drawList, drawList);
+                    // Outline the widget selected in the Definition File editor so both views agree
+                    if (Arinc661_Definition_SelectedWidgetIndex(editor->context->definitionEditor, document_index, &selected_widget))
+                    {
+                        for (bounds_index = 0; bounds_index < bounds_count; ++bounds_index)
+                        {
+                            if (editor->previewBounds[editor->previewBoundsCount - bounds_count + bounds_index].widgetIndex == selected_widget)
+                            {
+                                drawList->AddRect(ImVec2(editor->previewBounds[editor->previewBoundsCount - bounds_count + bounds_index].minimum.x, editor->previewBounds[editor->previewBoundsCount - bounds_count + bounds_index].minimum.y), ImVec2(editor->previewBounds[editor->previewBoundsCount - bounds_count + bounds_index].maximum.x, editor->previewBounds[editor->previewBoundsCount - bounds_count + bounds_index].maximum.y), SCENE_TEXT_COLOR, 0.0f, 0, 2.0f);
+                            }
+                        }
+                    }
                     drawList->PopClipRect();
                 }
             }
@@ -5865,6 +6077,7 @@ const char_t* Arinc661_Configuration_SelectedElement(const Arinc661_Configuratio
             case SELECTION_LAYOUT:           element = ELEMENT_LAYOUT; break;
             case SELECTION_WINDOW:           element = ELEMENT_WINDOW; break;
             case SELECTION_USER_APPLICATION: element = ELEMENT_USER_APPLICATION; break;
+            case SELECTION_EXTERNAL_SOURCE:  element = ELEMENT_EXTERNAL_SOURCE; break;
             default:                         break;
         }
     }
@@ -6135,6 +6348,12 @@ void Arinc661_Configuration_SelectionText(const Arinc661_Configuration_Editor_t*
                     ImFormatString(text, capacity, BREADCRUMB_WINDOW_FORMAT, document->documentName, screen_id, layout_id, window->id, window->name);
                 }
                 break;
+            case SELECTION_EXTERNAL_SOURCE:
+                if (document->selectedIndex < document->configuration.externalSourceCount)
+                {
+                    ImFormatString(text, capacity, BREADCRUMB_EXTERNAL_FORMAT, document->documentName, (unsigned)document->externalSources[document->selectedIndex].id, document->externalSources[document->selectedIndex].name);
+                }
+                break;
             case SELECTION_USER_APPLICATION:
                 if (document->selectedIndex < document->configuration.userApplicationCount)
                 {
@@ -6146,4 +6365,89 @@ void Arinc661_Configuration_SelectionText(const Arinc661_Configuration_Editor_t*
                 break;
         }
     }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Reads straight from the external source array.
+ */
+bool_t Arinc661_Configuration_ExternalSourceAt(const Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex, uint32_t sourceIndex, uint32_t* sourceId, const char_t** name, const char_t** type)
+{
+    const Arinc661_Configuration_Document_t* document;
+    bool_t                                   is_found;
+
+    LOGASSERT(NULL != editor);
+    LOGASSERT(NULL != sourceId);
+    LOGASSERT(NULL != name);
+    LOGASSERT(NULL != type);
+    is_found = FALSE;
+    if ((documentIndex < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS) && editor->documents[documentIndex].isLoaded && (sourceIndex < editor->documents[documentIndex].configuration.externalSourceCount))
+    {
+        document    = &editor->documents[documentIndex];
+        (*sourceId) = document->externalSources[sourceIndex].id;
+        (*name)     = document->externalSources[sourceIndex].name;
+        (*type)     = document->externalSources[sourceIndex].type;
+        is_found    = TRUE;
+    }
+
+    return is_found;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The tab bar honours the document request on its next draw.
+ */
+void Arinc661_Configuration_SelectExternalSource(Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex, uint32_t sourceIndex)
+{
+    LOGASSERT(NULL != editor);
+    if ((documentIndex < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS) && editor->documents[documentIndex].isLoaded && (sourceIndex < editor->documents[documentIndex].configuration.externalSourceCount))
+    {
+        editor->activeDocumentIndex                    = documentIndex;
+        editor->requestedDocumentIndex                 = documentIndex;
+        editor->documents[documentIndex].selectedKind  = SELECTION_EXTERNAL_SOURCE;
+        editor->documents[documentIndex].selectedIndex = sourceIndex;
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Acts on the active document.
+ */
+void Arinc661_Configuration_AddExternalSource(Arinc661_Configuration_Editor_t* editor)
+{
+    LOGASSERT(NULL != editor);
+    if ((INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex) && editor->documents[editor->activeDocumentIndex].isLoaded)
+    {
+        AddExternalSource(&editor->documents[editor->activeDocumentIndex]);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Reads the user application's flags and style path.
+ */
+bool_t Arinc661_Configuration_UserApplicationDetails(const Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex, uint32_t applicationIndex, bool_t* mapSourceLayer, bool_t* isVisible, const char_t** styleFilePath)
+{
+    const FACEOE_DisplayManagement_UserApplication_t* application;
+    bool_t                                            is_found;
+
+    LOGASSERT(NULL != editor);
+    LOGASSERT(NULL != mapSourceLayer);
+    LOGASSERT(NULL != isVisible);
+    LOGASSERT(NULL != styleFilePath);
+    is_found = FALSE;
+    if (applicationIndex < Arinc661_Configuration_UserApplicationCount(editor, documentIndex))
+    {
+        application       = &editor->documents[documentIndex].userApplications[applicationIndex];
+        (*mapSourceLayer) = application->mapSourceLayer;
+        (*isVisible)      = application->visible;
+        (*styleFilePath)  = application->styleFilePath;
+        is_found          = TRUE;
+    }
+
+    return is_found;
 }

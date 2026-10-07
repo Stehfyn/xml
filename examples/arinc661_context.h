@@ -49,7 +49,8 @@ typedef enum Arinc661_Context_Target_e
     ARINC661_CONTEXT_TARGET_USER_APPLICATION, ///< A user application of a configuration
     ARINC661_CONTEXT_TARGET_WINDOW,           ///< A window of a configuration
     ARINC661_CONTEXT_TARGET_DEFINITION,       ///< A Definition File document
-    ARINC661_CONTEXT_TARGET_LAYER             ///< A layer of a Definition File document
+    ARINC661_CONTEXT_TARGET_LAYER,            ///< A layer of a Definition File document
+    ARINC661_CONTEXT_TARGET_WIDGET            ///< A widget of a Definition File document
 } Arinc661_Context_Target_t;
 
 /*************************************************************************************************/
@@ -315,5 +316,40 @@ bool_t Arinc661_Context_WindowFrame(const Arinc661_Context_t* context, const cha
  * \retval        uint32_t   Number of user applications changed.
  */
 uint32_t Arinc661_Context_FollowRenames(Arinc661_Context_t* context);
+
+/*************************************************************************************************/
+/**
+ * \brief Finds the open Definition File carrying an ApplicationId.
+ *
+ * \param[in] context         Context
+ * \param[in] applicationId   ApplicationId value
+ *
+ * \retval    uint32_t   Definition File document slot, or ARINC661_DEFINITION_NO_DOCUMENT.
+ */
+uint32_t Arinc661_Context_DefinitionByApplicationId(const Arinc661_Context_t* context, int64_t applicationId);
+
+/*************************************************************************************************/
+/**
+ * \brief Creates a complete application in one step: a window when the active configuration
+ *  has none, a user application targeting it, and a Definition File with a window-sized layer.
+ *
+ * \param[in,out] context   Context
+ *
+ * \retval        TRUE      if everything was created.
+ * \retval        FALSE     when no configuration is active or a step failed.
+ */
+bool_t Arinc661_Context_NewApplication(Arinc661_Context_t* context);
+
+/*************************************************************************************************/
+/**
+ * \brief Counts the errors of the last check that concern one document.
+ *
+ * \param[in] context         Context
+ * \param[in] isDefinition    TRUE for a Definition File slot, FALSE for a configuration slot
+ * \param[in] documentIndex   Document slot
+ *
+ * \retval    uint32_t   Number of errors pointing at that document.
+ */
+uint32_t Arinc661_Context_DocumentErrors(const Arinc661_Context_t* context, bool_t isDefinition, uint32_t documentIndex);
 
 #endif /* ARINC661_CONTEXT_H */

@@ -154,6 +154,36 @@ extern "C"
 #define CONTEXT_BAR_FORMAT          ("Configuration: %s   |   Definition File: %s")
 #define CONTEXT_BAR_GAP             (40.0f)
 #define CONTEXT_CRUMB_BYTES         (512)
+#define DOCKSPACE_ID                ("##arinc661 dockspace")
+#define PANEL_FILES                 ("Files")
+#define PANEL_PROBLEMS              ("Problems")
+#define PANEL_HIERARCHY             ("Hierarchy")
+#define PANEL_PALETTE               ("Palette")
+#define PANEL_SCENE                 ("Scene")
+#define PANEL_INSPECTOR             ("Inspector")
+#define PANEL_LOG                   ("Log")
+#define WINDOW_MENU_LABEL           ("Window")
+#define RESET_LAYOUT_LABEL          ("Reset Layout")
+#define PANEL_COUNT                 (7)
+#define PALETTE_FILTER_HINT         ("Filter widgets")
+#define PALETTE_PAYLOAD_ID          ("A661_PALETTE_TYPE")
+#define PALETTE_HINT_LABEL          ("Click to add to the selection; drag onto a container, a layer, or the scene.")
+#define PALETTE_OTHER_CATEGORY      ("Other")
+#define PALETTE_EXTENSIONS_CATEGORY ("Extensions")
+#define LOG_CAPACITY                (256)
+#define LOG_LINE_BYTES              (320)
+#define LOG_TIME_FORMAT             "[%02d:%02d:%02d] "
+#define LOG_CLEAR_LABEL             ("Clear")
+#define LOG_AUTOSCROLL_LABEL        ("Auto-scroll")
+#define LAYOUT_LEFT_FRACTION        (0.22f)
+#define LAYOUT_RIGHT_FRACTION       (0.26f)
+#define LAYOUT_BOTTOM_FRACTION      (0.24f)
+#define LAYOUT_PALETTE_FRACTION     (0.40f)
+#define HELP_WRAP_WIDTH             (420.0f)
+#define NEW_APPLICATION_LABEL       ("New Application (window + user application + Definition File)")
+#define NEW_APPLICATION_SHORT_LABEL ("New Application")
+#define SAVED_WITH_ERRORS_FORMAT    ("Saved with %u unresolved errors; see Problems.")
+#define SAVED_WITH_ERRORS_BYTES     (96)
 #define SCREENSHOT_OPTION           ("--screenshot")
 #define OPEN_DEFINITION_OPTION      ("--definition")
 #define OPEN_CONFIGURATION_OPTION   ("--configuration")
@@ -189,6 +219,14 @@ extern "C"
 #define WGL_MINOR_VERSION_ATTRIBUTE (0x2092)
 #define WGL_PROFILE_MASK_ATTRIBUTE (0x9126)
 #define WGL_CORE_PROFILE_BIT (0x0001)
+
+/** Dockable panels, indexed into panelOpen. */
+typedef enum Panel_e
+{
+    PANEL_INDEX_FILES, PANEL_INDEX_PROBLEMS, PANEL_INDEX_HIERARCHY, PANEL_INDEX_PALETTE, PANEL_INDEX_SCENE, PANEL_INDEX_INSPECTOR, PANEL_INDEX_LOG
+} Panel_t;
+
+static const char_t* const c_panelNames[PANEL_COUNT] = {PANEL_FILES, PANEL_PROBLEMS, PANEL_HIERARCHY, PANEL_PALETTE, PANEL_SCENE, PANEL_INSPECTOR, PANEL_LOG};
 
 /** FACE H.3 element help shown beside the ARINC 661 reference. */
 typedef struct FaceTopic_s
@@ -236,6 +274,15 @@ typedef struct WindowThreadState_s
     bool_t                           isHelpOpen;          ///< TRUE while the Help window is shown.
     char_t                           helpFilter[MAX_HELP_FILTER_BYTES]; ///< Search text of the Help window.
     char_t                           helpTopic[ARINC661_MAX_NAME_BYTES]; ///< Topic the Help window shows.
+    char_t                           saveNote[SAVED_WITH_ERRORS_BYTES];   ///< Note after a configuration save with errors, or empty.
+    bool                             panelOpen[PANEL_COUNT];              ///< Visibility of each dockable panel, in PANEL_ order.
+    bool_t                           hasLayout;                           ///< TRUE once the default dock layout was built.
+    bool_t                           resetsLayout;                        ///< TRUE to rebuild the default layout next frame.
+    char_t                           paletteFilter[MAX_HELP_FILTER_BYTES]; ///< Palette filter text.
+    char_t                           logLines[LOG_CAPACITY][LOG_LINE_BYTES]; ///< Status history ring.
+    uint32_t                         logCount;                            ///< Lines written to the ring.
+    char_t                           lastStatus[LOG_LINE_BYTES];          ///< Last status text appended.
+    bool                             logAutoScroll;                       ///< TRUE to keep the log scrolled to the end.
     bool_t                           isDefinitionActive;  ///< TRUE while the Definition File section has the focus.
     bool_t                           hasEditors;          ///< TRUE once both editors exist.
     bool_t                           isFolderReadable;    ///< TRUE when the last scan could read the folder.
@@ -465,6 +512,68 @@ static void DrawPageFiles(WindowThreadState_t* window);
  * \retval        None
  */
 static void DrawPageProblems(WindowThreadState_t* window);
+
+/*************************************************************************************************/
+/**
+ * \brief Builds the default dock layout once, or again after a reset.
+ *
+ * \param[in,out] window        Window and editor state
+ * \param[in]     dockspaceId   Dockspace node
+ *
+ * \retval        None
+ */
+static void BuildDefaultLayout(WindowThreadState_t* window, ImGuiID dockspaceId);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws the widget palette: every type by category, clickable and draggable.
+ *
+ * \param[in,out] window   Window and editor state
+ *
+ * \retval        None
+ */
+static void DrawPalette(WindowThreadState_t* window);
+
+/*************************************************************************************************/
+/**
+ * \brief Appends a status line to the log when it changes.
+ *
+ * \param[in,out] window   Window and editor state
+ * \param[in]     text     Status text
+ *
+ * \retval        None
+ */
+static void AppendLog(WindowThreadState_t* window, const char_t* text);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws the status history panel.
+ *
+ * \param[in,out] window   Window and editor state
+ *
+ * \retval        None
+ */
+static void DrawLog(WindowThreadState_t* window);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws the status line with notes and the context breadcrumbs.
+ *
+ * \param[in,out] window   Window and editor state
+ *
+ * \retval        None
+ */
+static void DrawStatusBar(WindowThreadState_t* window);
+
+/*************************************************************************************************/
+/**
+ * \brief Saves the focused section's active document and notes unresolved errors.
+ *
+ * \param[in,out] window   Window and editor state
+ *
+ * \retval        None
+ */
+static void SaveActive(WindowThreadState_t* window);
 
 /*************************************************************************************************/
 /**
@@ -905,16 +1014,13 @@ static void DrawToolbar(WindowThreadState_t* window)
             Arinc661_Configuration_CreateDocument(window->configurationEditor);
         }
     }
+    if (Arinc661_Icons_Button(ARINC661_ICON_APPLICATION, NEW_APPLICATION_SHORT_LABEL, NULL, NULL != Arinc661_Configuration_DocumentName(window->configurationEditor, window->configurationEditor->activeDocumentIndex), FALSE))
+    {
+        (void)Arinc661_Context_NewApplication(window->context);
+    }
     if (Arinc661_Icons_Button(ARINC661_ICON_SAVE, SAVE_LABEL, SAVE_SHORTCUT_LABEL, has_active, FALSE))
     {
-        if (window->isDefinitionActive)
-        {
-            Arinc661_Definition_SaveActiveDocument(window->definitionEditor);
-        }
-        else
-        {
-            Arinc661_Configuration_SaveActiveDocument(window->configurationEditor);
-        }
+        SaveActive(window);
     }
     if (Arinc661_Icons_Button(ARINC661_ICON_SAVE_ALL, SAVE_ALL_LABEL, SAVE_ALL_SHORTCUT_LABEL, is_dirty, FALSE))
     {
@@ -1194,9 +1300,7 @@ static void DrawHelpWindow(WindowThreadState_t* window)
             {
                 if (ImGui::Selectable(HELP_GETTING_STARTED, 0 == strcmp(window->helpTopic, HELP_GETTING_STARTED)))
                 {
-                    window->isHelpOpen    = FALSE;
-    window->helpFilter[0] = 0;
-    strncpy_s(window->helpTopic, sizeof(window->helpTopic), HELP_GETTING_STARTED, _TRUNCATE);
+                    strncpy_s(window->helpTopic, sizeof(window->helpTopic), HELP_GETTING_STARTED, _TRUNCATE);
                 }
                 for (index = 0; index < (sizeof(c_faceTopics) / sizeof(c_faceTopics[0])); ++index)
                 {
@@ -1347,6 +1451,7 @@ static void DrawPageMenu(WindowThreadState_t* window)
     bool_t can_undo;
     bool_t can_redo;
     bool_t has_selection;
+    uint32_t panel_index;
 
     has_active_configuration = Arinc661_Configuration_HasActiveDocument(window->configurationEditor, &has_dirty_configuration, &has_free_configuration);
     has_active_definition    = Arinc661_Definition_HasActiveDocument(window->definitionEditor, &has_dirty_definition, &has_free_definition);
@@ -1370,17 +1475,14 @@ static void DrawPageMenu(WindowThreadState_t* window)
                 Arinc661_Definition_CreateDocument(window->definitionEditor);
                 window->isDefinitionActive = TRUE;
             }
+            if (ImGui::MenuItem(NEW_APPLICATION_LABEL, NULL, false, has_active_configuration && has_free_definition))
+            {
+                (void)Arinc661_Context_NewApplication(window->context);
+            }
             ImGui::Separator();
             if (ImGui::MenuItem(SAVE_LABEL, SAVE_SHORTCUT_LABEL, false, has_active))
             {
-                if (window->isDefinitionActive)
-                {
-                    Arinc661_Definition_SaveActiveDocument(window->definitionEditor);
-                }
-                else
-                {
-                    Arinc661_Configuration_SaveActiveDocument(window->configurationEditor);
-                }
+                SaveActive(window);
             }
             if (ImGui::MenuItem(SAVE_ALL_LABEL, SAVE_ALL_SHORTCUT_LABEL, false, is_dirty))
             {
@@ -1511,6 +1613,19 @@ static void DrawPageMenu(WindowThreadState_t* window)
             }
             ImGui::EndMenu();
         }
+        if (ImGui::BeginMenu(WINDOW_MENU_LABEL))
+        {
+            for (panel_index = 0; panel_index < PANEL_COUNT; ++panel_index)
+            {
+                ImGui::MenuItem(c_panelNames[panel_index], NULL, &window->panelOpen[panel_index]);
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem(RESET_LAYOUT_LABEL))
+            {
+                window->resetsLayout = TRUE;
+            }
+            ImGui::EndMenu();
+        }
         if (ImGui::BeginMenu(HELP_MENU_LABEL))
         {
             if (ImGui::MenuItem(HELP_CONTEXT_LABEL, HELP_SHORTCUT_LABEL))
@@ -1595,14 +1710,7 @@ static void DrawPageMenu(WindowThreadState_t* window)
     }
     if (ImGui::Shortcut(SAVE_CHORD, SHORTCUT_FLAGS) && has_active)
     {
-        if (window->isDefinitionActive)
-        {
-            Arinc661_Definition_SaveActiveDocument(window->definitionEditor);
-        }
-        else
-        {
-            Arinc661_Configuration_SaveActiveDocument(window->configurationEditor);
-        }
+        SaveActive(window);
     }
     if (ImGui::Shortcut(SAVE_ALL_CHORD, SHORTCUT_FLAGS) && is_dirty)
     {
@@ -1618,6 +1726,43 @@ static void DrawPageMenu(WindowThreadState_t* window)
         else
         {
             Arinc661_Configuration_CloseActiveDocument(window->configurationEditor);
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Saving never blocks, but a document with errors in the Problems list gets a note in the
+ *  status line so the author knows what was written.
+ */
+static void SaveActive(WindowThreadState_t* window)
+{
+    char_t   note[SAVED_WITH_ERRORS_BYTES];
+    uint32_t errors;
+
+    if (window->isDefinitionActive)
+    {
+        errors = Arinc661_Context_DocumentErrors(window->context, TRUE, window->definitionEditor->activeDocumentIndex);
+        Arinc661_Definition_SaveActiveDocument(window->definitionEditor);
+        if (0 < errors)
+        {
+            (void)snprintf(note, sizeof(note), SAVED_WITH_ERRORS_FORMAT, (unsigned)errors);
+            Arinc661_Definition_SetStatusNote(window->definitionEditor, note);
+        }
+        else
+        {
+            Arinc661_Definition_SetStatusNote(window->definitionEditor, NULL);
+        }
+    }
+    else
+    {
+        errors = Arinc661_Context_DocumentErrors(window->context, FALSE, window->configurationEditor->activeDocumentIndex);
+        Arinc661_Configuration_SaveActiveDocument(window->configurationEditor);
+        window->saveNote[0] = '\0';
+        if (0 < errors)
+        {
+            (void)snprintf(window->saveNote, sizeof(window->saveNote), SAVED_WITH_ERRORS_FORMAT, (unsigned)errors);
         }
     }
 }
@@ -1824,18 +1969,9 @@ static void DrawPageHierarchy(WindowThreadState_t* window)
 static void DrawEditors(WindowThreadState_t* window)
 {
     const ImGuiViewport* viewport;
-    char_t               configuration_crumb[CONTEXT_CRUMB_BYTES];
-    char_t               definition_crumb[CONTEXT_CRUMB_BYTES];
+    ImGuiID              dockspace_id;
+    uint32_t             panel_index;
     bool_t               is_definition_focused;
-    const char_t*        status_text;
-    ImVec2               table_size;
-    float32_t            configuration_hierarchy_width;
-    float32_t            configuration_inspector_width;
-    float32_t            definition_hierarchy_width;
-    float32_t            definition_inspector_width;
-    float32_t            hierarchy_width;
-    float32_t            inspector_width;
-    float32_t            status_bar_height;
 
     // Honour a cross-editor navigation request before drawing so the focused section follows it
     if (Arinc661_Context_TakeFocusRequest(window->context, &is_definition_focused))
@@ -1847,72 +1983,324 @@ static void DrawEditors(WindowThreadState_t* window)
     ImGui::SetNextWindowPos(viewport->WorkPos);
     ImGui::SetNextWindowSize(viewport->WorkSize);
     ImGui::SetNextWindowViewport(viewport->ID);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
     if (ImGui::Begin(PAGE_WINDOW_NAME, NULL, PAGE_WINDOW_FLAGS))
     {
+        ImGui::PopStyleVar(2);
         DrawToolbar(window);
-        DrawPageFiles(window);
-        DrawPageProblems(window);
-        Arinc661_Configuration_MeasurePanes(window->configurationEditor, &configuration_hierarchy_width, &configuration_inspector_width);
-        Arinc661_Definition_MeasurePanes(window->definitionEditor, &definition_hierarchy_width, &definition_inspector_width);
-        hierarchy_width   = ImMax(configuration_hierarchy_width, definition_hierarchy_width);
-        inspector_width   = ImMax(configuration_inspector_width, definition_inspector_width);
-        status_bar_height = (ImGui::GetFrameHeightWithSpacing() + ImGui::GetStyle().ItemSpacing.y);
-        table_size        = ImGui::GetContentRegionAvail();
-        table_size.y      = ImMax(ImGui::GetTextLineHeight(), (table_size.y - status_bar_height));
-        if (ImGui::BeginTable(PANE_TABLE_ID, 3, PANE_TABLE_FLAGS, table_size))
+        dockspace_id = ImGui::GetID(DOCKSPACE_ID);
+        if ((FALSE == window->hasLayout) || window->resetsLayout || (NULL == ImGui::DockBuilderGetNode(dockspace_id)))
         {
-            ImGui::TableSetupColumn(HIERARCHY_PANE_NAME, ImGuiTableColumnFlags_WidthFixed, hierarchy_width);
-            ImGui::TableSetupColumn("Scene", ImGuiTableColumnFlags_WidthStretch);
-            ImGui::TableSetupColumn("Inspector", ImGuiTableColumnFlags_WidthFixed, inspector_width);
-            ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.0f, 0.0f));
-            ImGui::TableNextRow();
-            ImGui::PopStyleVar();
-            ImGui::TableSetColumnIndex(0);
-            DrawPageHierarchy(window);
-            ImGui::TableSetColumnIndex(1);
-            if (window->isDefinitionActive)
-            {
-                Arinc661_Definition_DrawScene(window->definitionEditor);
-            }
-            else
-            {
-                Arinc661_Configuration_DrawScene(window->configurationEditor);
-            }
-            ImGui::TableSetColumnIndex(2);
-            if (window->isDefinitionActive)
-            {
-                Arinc661_Definition_DrawInspector(window->definitionEditor);
-            }
-            else
-            {
-                Arinc661_Configuration_DrawInspector(window->configurationEditor);
-            }
-            ImGui::EndTable();
+            BuildDefaultLayout(window, dockspace_id);
         }
-        DrawHelpWindow(window);
+        ImGui::DockSpace(dockspace_id, ImVec2(0.0f, -(ImGui::GetFrameHeightWithSpacing() + ImGui::GetStyle().ItemSpacing.y)), ImGuiDockNodeFlags_PassthruCentralNode);
+        DrawStatusBar(window);
+    }
+    else
+    {
+        ImGui::PopStyleVar(2);
+    }
+    ImGui::End();
+    // Panels dock into the space above; each can be closed from the Window menu
+    for (panel_index = 0; panel_index < PANEL_COUNT; ++panel_index)
+    {
+        if (FALSE == window->panelOpen[panel_index])
+        {
+            continue;
+        }
+        if (ImGui::Begin(c_panelNames[panel_index], &window->panelOpen[panel_index]))
+        {
+            switch (panel_index)
+            {
+                case PANEL_INDEX_FILES:     DrawPageFiles(window); break;
+                case PANEL_INDEX_PROBLEMS:  DrawPageProblems(window); break;
+                case PANEL_INDEX_HIERARCHY: DrawPageHierarchy(window); break;
+                case PANEL_INDEX_PALETTE:   DrawPalette(window); break;
+                case PANEL_INDEX_SCENE:
+                    if (window->isDefinitionActive)
+                    {
+                        Arinc661_Definition_DrawScene(window->definitionEditor);
+                    }
+                    else
+                    {
+                        Arinc661_Configuration_DrawScene(window->configurationEditor);
+                    }
+                    break;
+                case PANEL_INDEX_INSPECTOR:
+                    if (window->isDefinitionActive)
+                    {
+                        Arinc661_Definition_DrawInspector(window->definitionEditor);
+                    }
+                    else
+                    {
+                        Arinc661_Configuration_DrawInspector(window->configurationEditor);
+                    }
+                    break;
+                case PANEL_INDEX_LOG:       DrawLog(window); break;
+                default:                    break;
+            }
+        }
+        ImGui::End();
+    }
+    DrawHelpWindow(window);
     (void)Arinc661_Context_FollowRenames(window->context);
     Arinc661_Configuration_EndFrame(window->configurationEditor);
     Arinc661_Definition_EndFrame(window->definitionEditor);
     Arinc661_Configuration_DrawDialogs(window->configurationEditor);
-        Arinc661_Definition_DrawDialogs(window->definitionEditor);
-        status_text = Arinc661_Configuration_StatusText(window->configurationEditor);
-        if (window->isDefinitionActive)
-        {
-            status_text = Arinc661_Definition_StatusText(window->definitionEditor);
-        }
-        if ('\0' == status_text[0])
-        {
-            status_text = READY_LABEL;
-        }
-        ImGui::Separator();
-        ImGui::TextUnformatted(status_text);
-        // Context bar: where the selection sits on each side
-        Arinc661_Configuration_SelectionText(window->configurationEditor, configuration_crumb, sizeof(configuration_crumb));
-        Arinc661_Definition_SelectionText(window->definitionEditor, definition_crumb, sizeof(definition_crumb));
-        ImGui::SameLine(0.0f, CONTEXT_BAR_GAP);
-        ImGui::TextDisabled(CONTEXT_BAR_FORMAT, configuration_crumb, definition_crumb);
+    Arinc661_Definition_DrawDialogs(window->definitionEditor);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Left column: Hierarchy over Palette. Right column: Inspector. Bottom of the centre: Files,
+ *  Problems, and Log as tabs. Centre: Scene. Every panel is reopened.
+ */
+static void BuildDefaultLayout(WindowThreadState_t* window, ImGuiID dockspaceId)
+{
+    ImGuiID  dock_main;
+    ImGuiID  dock_left;
+    ImGuiID  dock_left_bottom;
+    ImGuiID  dock_right;
+    ImGuiID  dock_bottom;
+    uint32_t panel_index;
+
+    ImGui::DockBuilderRemoveNode(dockspaceId);
+    ImGui::DockBuilderAddNode(dockspaceId, ImGuiDockNodeFlags_DockSpace);
+    ImGui::DockBuilderSetNodeSize(dockspaceId, ImGui::GetMainViewport()->WorkSize);
+    dock_main        = dockspaceId;
+    dock_left        = ImGui::DockBuilderSplitNode(dock_main, ImGuiDir_Left, LAYOUT_LEFT_FRACTION, NULL, &dock_main);
+    dock_right       = ImGui::DockBuilderSplitNode(dock_main, ImGuiDir_Right, LAYOUT_RIGHT_FRACTION, NULL, &dock_main);
+    dock_bottom      = ImGui::DockBuilderSplitNode(dock_main, ImGuiDir_Down, LAYOUT_BOTTOM_FRACTION, NULL, &dock_main);
+    dock_left_bottom = ImGui::DockBuilderSplitNode(dock_left, ImGuiDir_Down, LAYOUT_PALETTE_FRACTION, NULL, &dock_left);
+    ImGui::DockBuilderDockWindow(PANEL_HIERARCHY, dock_left);
+    ImGui::DockBuilderDockWindow(PANEL_PALETTE, dock_left_bottom);
+    ImGui::DockBuilderDockWindow(PANEL_INSPECTOR, dock_right);
+    ImGui::DockBuilderDockWindow(PANEL_FILES, dock_bottom);
+    ImGui::DockBuilderDockWindow(PANEL_PROBLEMS, dock_bottom);
+    ImGui::DockBuilderDockWindow(PANEL_LOG, dock_bottom);
+    ImGui::DockBuilderDockWindow(PANEL_SCENE, dock_main);
+    ImGui::DockBuilderFinish(dockspaceId);
+    for (panel_index = 0; panel_index < PANEL_COUNT; ++panel_index)
+    {
+        window->panelOpen[panel_index] = true;
     }
-    ImGui::End();
+    window->hasLayout    = TRUE;
+    window->resetsLayout = FALSE;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Types are grouped by the first category the specification lists for them. A click adds a
+ *  widget of that type to the Definition File selection; a drag carries the type name as a
+ *  payload the hierarchy and the scene accept. Extensions get their own group.
+ */
+static void DrawPalette(WindowThreadState_t* window)
+{
+    static const char_t* const c_categories[] = {"Container", "Interactive", "Graphical representation", "Text string", "Map management", "Dynamic motion", "Utility", "Animation", PALETTE_OTHER_CATEGORY, PALETTE_EXTENSIONS_CATEGORY};
+    const char_t* type_name;
+    const char_t* description;
+    const char_t* categories;
+    const char_t* restriction;
+    const char_t* category;
+    char_t        upper_filter[MAX_HELP_FILTER_BYTES];
+    char_t        upper_name[ARINC661_MAX_NAME_BYTES];
+    uint32_t      category_index;
+    uint32_t      type_index;
+    uint32_t      character;
+    bool_t        is_extension;
+    bool_t        is_in_category;
+    bool_t        has_header;
+
+    ImGui::SetNextItemWidth(-1.0f);
+    (void)ImGui::InputTextWithHint("##palette filter", PALETTE_FILTER_HINT, window->paletteFilter, sizeof(window->paletteFilter));
+    ImGui::TextDisabled("%s", PALETTE_HINT_LABEL);
+    for (character = 0; character < sizeof(upper_filter); ++character)
+    {
+        upper_filter[character] = (char_t)ImToUpper(window->paletteFilter[character]);
+        if ('\0' == window->paletteFilter[character])
+        {
+            break;
+        }
+    }
+    for (category_index = 0; category_index < (sizeof(c_categories) / sizeof(c_categories[0])); ++category_index)
+    {
+        category     = c_categories[category_index];
+        is_extension = (0 == strcmp(category, PALETTE_EXTENSIONS_CATEGORY));
+        has_header   = FALSE;
+        for (type_index = 0; type_index < Arinc661_TypeCount(is_extension); ++type_index)
+        {
+            type_name = Arinc661_TypeName(is_extension, type_index);
+            (void)Arinc661_TypeHelp(type_name, &description, &categories, &restriction);
+            if (is_extension)
+            {
+                is_in_category = TRUE;
+            }
+            else if (0 == strcmp(category, PALETTE_OTHER_CATEGORY))
+            {
+                // Types whose first category matches none of the named groups
+                is_in_category = TRUE;
+                for (character = 0; character < (sizeof(c_categories) / sizeof(c_categories[0])) - 2; ++character)
+                {
+                    if (0 == ImStrnicmp(categories, c_categories[character], (int)strlen(c_categories[character])))
+                    {
+                        is_in_category = FALSE;
+                    }
+                }
+            }
+            else
+            {
+                is_in_category = (0 == ImStrnicmp(categories, category, (int)strlen(category)));
+            }
+            if (FALSE == is_in_category)
+            {
+                continue;
+            }
+            for (character = 0; character < sizeof(upper_name); ++character)
+            {
+                upper_name[character] = (char_t)ImToUpper(type_name[character]);
+                if ('\0' == type_name[character])
+                {
+                    break;
+                }
+            }
+            if (('\0' != upper_filter[0]) && (NULL == strstr(upper_name, upper_filter)))
+            {
+                continue;
+            }
+            if (FALSE == has_header)
+            {
+                ImGui::SeparatorText(category);
+                has_header = TRUE;
+            }
+            ImGui::PushID(type_name);
+            if (ImGui::Selectable(type_name + 5))
+            {
+                if (is_extension)
+                {
+                    Arinc661_Definition_AddExtensionOfType(window->definitionEditor, type_name);
+                }
+                else
+                {
+                    Arinc661_Definition_AddWidgetOfType(window->definitionEditor, type_name);
+                }
+                window->isDefinitionActive = TRUE;
+            }
+            if (ImGui::BeginDragDropSource())
+            {
+                ImGui::SetDragDropPayload(PALETTE_PAYLOAD_ID, type_name, strlen(type_name) + 1);
+                ImGui::TextUnformatted(type_name);
+                ImGui::EndDragDropSource();
+            }
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) && ('\0' != description[0]))
+            {
+                ImGui::BeginTooltip();
+                ImGui::PushTextWrapPos(HELP_WRAP_WIDTH);
+                ImGui::TextUnformatted(type_name);
+                ImGui::TextUnformatted(description);
+                ImGui::PopTextWrapPos();
+                ImGui::EndTooltip();
+            }
+            ImGui::PopID();
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Only a changed text is appended, stamped with the wall clock.
+ */
+static void AppendLog(WindowThreadState_t* window, const char_t* text)
+{
+    SYSTEMTIME now;
+    char_t*    line;
+
+    if ((NULL != text) && ('\0' != text[0]) && (0 != strcmp(text, window->lastStatus)))
+    {
+        strncpy_s(window->lastStatus, sizeof(window->lastStatus), text, _TRUNCATE);
+        GetLocalTime(&now);
+        line = window->logLines[window->logCount % LOG_CAPACITY];
+        (void)snprintf(line, LOG_LINE_BYTES, LOG_TIME_FORMAT "%s", (int)now.wHour, (int)now.wMinute, (int)now.wSecond, text);
+        window->logCount += 1;
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Oldest first; the ring keeps the last LOG_CAPACITY lines.
+ */
+static void DrawLog(WindowThreadState_t* window)
+{
+    uint32_t first;
+    uint32_t index;
+
+    if (ImGui::SmallButton(LOG_CLEAR_LABEL))
+    {
+        window->logCount      = 0;
+        window->lastStatus[0] = '\0';
+    }
+    ImGui::SameLine();
+    ImGui::Checkbox(LOG_AUTOSCROLL_LABEL, &window->logAutoScroll);
+    if (ImGui::BeginChild("##log lines", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders))
+    {
+        first = 0;
+        if (LOG_CAPACITY < window->logCount)
+        {
+            first = (window->logCount - LOG_CAPACITY);
+        }
+        for (index = first; index < window->logCount; ++index)
+        {
+            ImGui::TextUnformatted(window->logLines[index % LOG_CAPACITY]);
+        }
+        if (window->logAutoScroll && (ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - ImGui::GetTextLineHeight()))
+        {
+            ImGui::SetScrollHereY(1.0f);
+        }
+    }
+    ImGui::EndChild();
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Status text of the focused section, any save note, then the context breadcrumbs.
+ */
+static void DrawStatusBar(WindowThreadState_t* window)
+{
+    char_t        configuration_crumb[CONTEXT_CRUMB_BYTES];
+    char_t        definition_crumb[CONTEXT_CRUMB_BYTES];
+    const char_t* status_text;
+
+    status_text = Arinc661_Configuration_StatusText(window->configurationEditor);
+    if (window->isDefinitionActive)
+    {
+        status_text = Arinc661_Definition_StatusText(window->definitionEditor);
+    }
+    AppendLog(window, status_text);
+    if ('\0' == status_text[0])
+    {
+        status_text = READY_LABEL;
+    }
+    ImGui::Separator();
+    ImGui::TextUnformatted(status_text);
+    if (window->isDefinitionActive && ('\0' != window->definitionEditor->statusNote[0]))
+    {
+        ImGui::SameLine();
+        ImGui::TextColored(PROBLEM_ERROR_COLOR, "%s", window->definitionEditor->statusNote);
+    }
+    else if ((FALSE == window->isDefinitionActive) && ('\0' != window->saveNote[0]))
+    {
+        ImGui::SameLine();
+        ImGui::TextColored(PROBLEM_ERROR_COLOR, "%s", window->saveNote);
+    }
+    Arinc661_Configuration_SelectionText(window->configurationEditor, configuration_crumb, sizeof(configuration_crumb));
+    Arinc661_Definition_SelectionText(window->definitionEditor, definition_crumb, sizeof(definition_crumb));
+    ImGui::SameLine(0.0f, CONTEXT_BAR_GAP);
+    ImGui::TextDisabled(CONTEXT_BAR_FORMAT, configuration_crumb, definition_crumb);
 }
 
 /*************************************************************************************************/
@@ -2221,6 +2609,7 @@ static LRESULT WINAPI WindowProcedure(HWND windowHandle, UINT message, WPARAM wo
  */
 static DWORD WINAPI WindowThread(LPVOID parameter)
 {
+    uint32_t panel_index;
     WindowThreadState_t*       window;
     WNDCLASSEXW                window_class;
     ImGuiIO*                   io;
@@ -2321,6 +2710,18 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
     window->isHelpOpen    = FALSE;
     window->helpFilter[0] = 0;
     strncpy_s(window->helpTopic, sizeof(window->helpTopic), HELP_GETTING_STARTED, _TRUNCATE);
+    window->isHelpOpen    = FALSE;
+    window->saveNote[0]   = 0;
+    window->hasLayout     = FALSE;
+    window->resetsLayout  = FALSE;
+    window->paletteFilter[0] = 0;
+    window->logCount      = 0;
+    window->lastStatus[0] = 0;
+    window->logAutoScroll = true;
+    for (panel_index = 0; panel_index < PANEL_COUNT; ++panel_index)
+    {
+        window->panelOpen[panel_index] = true;
+    }
     window->context = (Arinc661_Context_t*)OS_CALLOC(sizeof(Arinc661_Context_t));
     Arinc661_Context_Initialize(window->context, window->configurationEditor, window->definitionEditor);
     ScanFolder(window);

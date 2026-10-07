@@ -586,4 +586,58 @@ uint32_t Arinc661_Configuration_RepointDefinition(Arinc661_Configuration_Editor_
  */
 void Arinc661_Configuration_SelectionText(const Arinc661_Configuration_Editor_t* editor, char_t* text, uint32_t capacity);
 
+/*************************************************************************************************/
+/**
+ * \brief Reads one external source of an open document.
+ *
+ * \param[in]  editor          Editor state
+ * \param[in]  documentIndex   Document slot
+ * \param[in]  sourceIndex     External source array index
+ * \param[out] sourceId        FACE external source id
+ * \param[out] name            Name; stays valid while the document stays open
+ * \param[out] type            Type; stays valid while the document stays open
+ *
+ * \retval     TRUE            if the source exists.
+ * \retval     FALSE           otherwise.
+ */
+bool_t Arinc661_Configuration_ExternalSourceAt(const Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex, uint32_t sourceIndex, uint32_t* sourceId, const char_t** name, const char_t** type);
+
+/*************************************************************************************************/
+/**
+ * \brief Makes a document active and selects one of its external sources.
+ *
+ * \param[in,out] editor          Editor state
+ * \param[in]     documentIndex   Document slot
+ * \param[in]     sourceIndex     External source array index
+ *
+ * \retval        None
+ */
+void Arinc661_Configuration_SelectExternalSource(Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex, uint32_t sourceIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Adds an external source to the active document.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Configuration_AddExternalSource(Arinc661_Configuration_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads a user application's mapSourceLayer, visible, and styleFilePath values.
+ *
+ * \param[in]  editor             Editor state
+ * \param[in]  documentIndex      Document slot
+ * \param[in]  applicationIndex   User application array index
+ * \param[out] mapSourceLayer     FACE mapSourceLayer flag
+ * \param[out] isVisible          FACE visible flag
+ * \param[out] styleFilePath      FACE styleFilePath; stays valid while the document stays open
+ *
+ * \retval     TRUE               if the user application exists.
+ * \retval     FALSE              otherwise.
+ */
+bool_t Arinc661_Configuration_UserApplicationDetails(const Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex, uint32_t applicationIndex, bool_t* mapSourceLayer, bool_t* isVisible, const char_t** styleFilePath);
+
 #endif /* ARINC661_CONFIGURATION_H */

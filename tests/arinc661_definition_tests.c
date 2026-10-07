@@ -719,8 +719,27 @@ static void TestDefinitionSchema(void)
  * \par Details:
  *  Runs the ARINC 661 checks as part of the unit test executable.
  */
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Table 8.4 rows read from the specification: ActiveArea takes the style set extension, a
+ *  BasicContainer the reorder extension, a BufferFormat only the static parameter buffer, and
+ *  GpArcCircle takes no word wrap.
+ */
+static void TestExtensionApplicability(void)
+{
+    assert(Arinc661_ExtensionApplies("A661_STYLE_SET_EXTENSION", "A661_ACTIVE_AREA"));
+    assert(Arinc661_ExtensionApplies("A661_REORDER_EXTENSION", "A661_BASIC_CONTAINER"));
+    assert(Arinc661_ExtensionApplies("A661_STATIC_PARAM_BUFFER_EXTENSION", "A661_BUFFER_FORMAT"));
+    assert(FALSE == Arinc661_ExtensionApplies("A661_PICTURE_EXTENSION", "A661_BUFFER_FORMAT"));
+    assert(FALSE == Arinc661_ExtensionApplies("A661_WORD_WRAP_EXTENSION", "A661_GP_ARC_CIRCLE"));
+    assert(NULL != Arinc661_ExtensionTarget("A661_WORD_WRAP_EXTENSION", 0));
+    assert(NULL == Arinc661_ExtensionTarget("A661_NO_SUCH_EXTENSION", 0));
+}
+
 void RunArinc661Tests(void)
 {
+    TestExtensionApplicability();
     TestDefinition();
     TestDefinitionWithoutDeclaration();
     TestDefinitionBinary();

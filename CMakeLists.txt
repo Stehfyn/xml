@@ -56,6 +56,7 @@ add_library(arinc661 STATIC
     src/arinc661/arinc661_definition_binary.c
     src/arinc661/arinc661_scene.c
     src/arinc661/arinc661_definition_help.c
+    src/arinc661/arinc661_definition_extensions.c
     include/arinc661/arinc661_definition.h
     include/arinc661/arinc661_scene.h)
 target_link_libraries(arinc661 PUBLIC faceoe_utl faceoe_gfx)
