@@ -328,6 +328,11 @@ extern "C"
 #define PANEL_LOG                   ("Log")
 #define WINDOW_MENU_LABEL           ("Window")
 #define RESET_LAYOUT_LABEL          ("Reset Layout")
+#define LAYOUT_MENU_LABEL           ("Layout")
+#define LAYOUT_DEFAULT_LABEL        ("Default")
+#define LAYOUT_TALL_LABEL           ("Tall")
+#define LAYOUT_WIDE_LABEL           ("Wide")
+#define LAYOUT_TALL_SPLIT_FRACTION  (0.45f)
 #define PANEL_COUNT                 (9)
 #define PANEL_TIMELINE              ("Timeline")
 #define PANEL_HISTORY               ("History")
@@ -398,7 +403,17 @@ typedef enum Panel_e
     PANEL_INDEX_FILES, PANEL_INDEX_PROBLEMS, PANEL_INDEX_HIERARCHY, PANEL_INDEX_PALETTE, PANEL_INDEX_SCENE, PANEL_INDEX_INSPECTOR, PANEL_INDEX_LOG, PANEL_INDEX_TIMELINE, PANEL_INDEX_HISTORY
 } Panel_t;
 
+/** Dock layout presets, as the Window menu lists them. */
+typedef enum LayoutPreset_e
+{
+    LAYOUT_PRESET_DEFAULT, ///< Side columns and a bottom strip of tool tabs.
+    LAYOUT_PRESET_TALL,    ///< Scene full height; tools stacked in the right column.
+    LAYOUT_PRESET_WIDE     ///< Scene full width; every tool in the bottom strip.
+} LayoutPreset_t;
+
 static const char_t* const c_panelNames[PANEL_COUNT] = {PANEL_FILES, PANEL_PROBLEMS, PANEL_HIERARCHY, PANEL_PALETTE, PANEL_SCENE, PANEL_INSPECTOR, PANEL_LOG, PANEL_TIMELINE, PANEL_HISTORY};
+/** Layout preset names, in LAYOUT_PRESET_ order. */
+static const char_t* const c_layoutNames[] = {LAYOUT_DEFAULT_LABEL, LAYOUT_TALL_LABEL, LAYOUT_WIDE_LABEL};
 
 /** FACE H.3 element help shown beside the ARINC 661 reference. */
 typedef struct FaceTopic_s
@@ -449,7 +464,8 @@ typedef struct WindowThreadState_s
     char_t                           saveNote[SAVED_WITH_ERRORS_BYTES];   ///< Note after a configuration save with errors, or empty.
     bool                             panelOpen[PANEL_COUNT];              ///< Visibility of each dockable panel, in PANEL_ order.
     bool_t                           hasLayout;                           ///< TRUE once the default dock layout was built.
-    bool_t                           resetsLayout;                        ///< TRUE to rebuild the default layout next frame.
+    bool_t                           resetsLayout;                        ///< TRUE to rebuild the layout preset next frame.
+    LayoutPreset_t                   layoutPreset;                        ///< Preset that Reset Layout rebuilds.
     char_t                           paletteFilter[MAX_HELP_FILTER_BYTES]; ///< Palette filter text.
     char_t                           logLines[LOG_CAPACITY][LOG_LINE_BYTES]; ///< Status history ring.
     uint32_t                         logCount;                            ///< Lines written to the ring.
@@ -2001,6 +2017,7 @@ static void DrawPageMenu(WindowThreadState_t* window)
     bool_t can_redo;
     bool_t has_selection;
     uint32_t panel_index;
+    uint32_t preset_index;
     const char_t* play_label;
 
     has_active_configuration = Arinc661_Configuration_HasActiveDocument(window->configurationEditor, &has_dirty_configuration, &has_free_configuration);
@@ -2263,6 +2280,18 @@ static void DrawPageMenu(WindowThreadState_t* window)
                 ImGui::MenuItem(c_panelNames[panel_index], NULL, &window->panelOpen[panel_index]);
             }
             ImGui::Separator();
+            if (ImGui::BeginMenu(LAYOUT_MENU_LABEL))
+            {
+                for (preset_index = 0; preset_index < COUNT_OF(c_layoutNames); ++preset_index)
+                {
+                    if (ImGui::MenuItem(c_layoutNames[preset_index], NULL, (LayoutPreset_t)preset_index == window->layoutPreset))
+                    {
+                        window->layoutPreset = (LayoutPreset_t)preset_index;
+                        window->resetsLayout = TRUE;
+                    }
+                }
+                ImGui::EndMenu();
+            }
             if (ImGui::MenuItem(RESET_LAYOUT_LABEL))
             {
                 window->resetsLayout = TRUE;
@@ -2988,8 +3017,10 @@ static void DrawEditors(WindowThreadState_t* window)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Left column: Hierarchy over Palette. Right column: Inspector. Bottom of the centre: Files,
- *  Problems, and Log as tabs. Centre: Scene. Every panel is reopened.
+ *  Default: left column Hierarchy over Palette, right column Inspector, bottom strip of tool
+ *  tabs, Scene in the centre. Tall: no bottom strip; the tool tabs stack under the Inspector so
+ *  the Scene runs full height. Wide: no right column; Inspector and the tools share the bottom
+ *  strip so the Scene runs full width. Every panel is reopened.
  */
 static void BuildDefaultLayout(WindowThreadState_t* window, ImGuiID dockspaceId)
 {
@@ -2997,7 +3028,7 @@ static void BuildDefaultLayout(WindowThreadState_t* window, ImGuiID dockspaceId)
     ImGuiID  dock_left;
     ImGuiID  dock_left_bottom;
     ImGuiID  dock_right;
-    ImGuiID  dock_bottom;
+    ImGuiID  dock_tools;
     uint32_t panel_index;
 
     ImGui::DockBuilderRemoveNode(dockspaceId);
@@ -3005,18 +3036,31 @@ static void BuildDefaultLayout(WindowThreadState_t* window, ImGuiID dockspaceId)
     ImGui::DockBuilderSetNodeSize(dockspaceId, ImGui::GetMainViewport()->WorkSize);
     dock_main        = dockspaceId;
     dock_left        = ImGui::DockBuilderSplitNode(dock_main, ImGuiDir_Left, LAYOUT_LEFT_FRACTION, NULL, &dock_main);
-    dock_right       = ImGui::DockBuilderSplitNode(dock_main, ImGuiDir_Right, LAYOUT_RIGHT_FRACTION, NULL, &dock_main);
-    dock_bottom      = ImGui::DockBuilderSplitNode(dock_main, ImGuiDir_Down, LAYOUT_BOTTOM_FRACTION, NULL, &dock_main);
     dock_left_bottom = ImGui::DockBuilderSplitNode(dock_left, ImGuiDir_Down, LAYOUT_PALETTE_FRACTION, NULL, &dock_left);
+    if (LAYOUT_PRESET_TALL == window->layoutPreset)
+    {
+        dock_right = ImGui::DockBuilderSplitNode(dock_main, ImGuiDir_Right, LAYOUT_RIGHT_FRACTION, NULL, &dock_main);
+        dock_tools = ImGui::DockBuilderSplitNode(dock_right, ImGuiDir_Down, LAYOUT_TALL_SPLIT_FRACTION, NULL, &dock_right);
+    }
+    else if (LAYOUT_PRESET_WIDE == window->layoutPreset)
+    {
+        dock_tools = ImGui::DockBuilderSplitNode(dock_main, ImGuiDir_Down, LAYOUT_BOTTOM_FRACTION, NULL, &dock_main);
+        dock_right = dock_tools;
+    }
+    else
+    {
+        dock_right = ImGui::DockBuilderSplitNode(dock_main, ImGuiDir_Right, LAYOUT_RIGHT_FRACTION, NULL, &dock_main);
+        dock_tools = ImGui::DockBuilderSplitNode(dock_main, ImGuiDir_Down, LAYOUT_BOTTOM_FRACTION, NULL, &dock_main);
+    }
     ImGui::DockBuilderDockWindow(PANEL_HIERARCHY, dock_left);
     ImGui::DockBuilderDockWindow(PANEL_PALETTE, dock_left_bottom);
-    // Tabs appear in this order; the last docked tab is the one selected, so Files goes last
+    // Tabs appear in this order; the last docked tab is the one selected, so Files and Inspector go last
     ImGui::DockBuilderDockWindow(PANEL_HISTORY, dock_right);
+    ImGui::DockBuilderDockWindow(PANEL_TIMELINE, dock_tools);
+    ImGui::DockBuilderDockWindow(PANEL_LOG, dock_tools);
+    ImGui::DockBuilderDockWindow(PANEL_PROBLEMS, dock_tools);
+    ImGui::DockBuilderDockWindow(PANEL_FILES, dock_tools);
     ImGui::DockBuilderDockWindow(PANEL_INSPECTOR, dock_right);
-    ImGui::DockBuilderDockWindow(PANEL_TIMELINE, dock_bottom);
-    ImGui::DockBuilderDockWindow(PANEL_LOG, dock_bottom);
-    ImGui::DockBuilderDockWindow(PANEL_PROBLEMS, dock_bottom);
-    ImGui::DockBuilderDockWindow(PANEL_FILES, dock_bottom);
     ImGui::DockBuilderDockWindow(PANEL_SCENE, dock_main);
     ImGui::DockBuilderFinish(dockspaceId);
     for (panel_index = 0; panel_index < PANEL_COUNT; ++panel_index)
@@ -4984,6 +5028,7 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
     window->saveNote[0]   = 0;
     window->hasLayout     = FALSE;
     window->resetsLayout  = FALSE;
+    window->layoutPreset  = LAYOUT_PRESET_DEFAULT;
     window->paletteFilter[0] = 0;
     window->logCount      = 0;
     window->lastStatus[0] = 0;

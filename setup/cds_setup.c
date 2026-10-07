@@ -66,7 +66,10 @@
 #define UXTHEME_ORDINAL_APP_MODE  (135)
 #define UXTHEME_ORDINAL_FLUSH_MENUS (136)
 #define APP_MODE_FORCE_DARK       (2)
+#define APP_MODE_DEFAULT          (0)
 #define THEME_DARK_CONTROLS       L"DarkMode_Explorer"
+#define THEME_LIGHT_CONTROLS      L"Explorer"
+#define THEME_CHANGED_SECTION     L"ImmersiveColorSet"
 #define THEMES_KEY                L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize"
 #define THEMES_LIGHT_VALUE        L"AppsUseLightTheme"
 #define COLOR_DARK_PAGE           RGB(32, 32, 32)
@@ -282,7 +285,8 @@ static uint32_t ReadBuildNumber(void);
  * \retval FALSE   otherwise.
  */
 static bool_t ReadsDarkTheme(void);
-static void ApplyDarkMenus(void);
+static void ApplyMenuTheme(void);
+static void ApplyTheme(bool_t isDark);
 
 /*************************************************************************************************/
 /**
@@ -670,9 +674,9 @@ static bool_t ReadsDarkTheme(void)
  *  The system menu and other popup menus follow an undocumented per-process preference in
  *  uxtheme: ordinal 135 is AllowDarkModeForApp(BOOL) on 1809 and SetPreferredAppMode(enum) from
  *  1903, where ForceDark is 2; ordinal 136, FlushMenuThemes, applies it. Must run before the
- *  frame is created. Missing exports leave the menus light.
+ *  frame is created, and again on a theme change. Missing exports leave the menus light.
  */
-static void ApplyDarkMenus(void)
+static void ApplyMenuTheme(void)
 {
     typedef int(WINAPI * SetPreferredAppMode_t)(int);
     typedef void(WINAPI * FlushMenuThemes_t)(void);
@@ -690,17 +694,65 @@ static void ApplyDarkMenus(void)
     flush    = (FlushMenuThemes_t)(void*)GetProcAddress(uxtheme, MAKEINTRESOURCEA(UXTHEME_ORDINAL_FLUSH_MENUS));
     if ((NULL != set_mode) && (NULL != flush))
     {
-        if (BUILD_DARK_MODE_APP_MODE <= s_setup.build)
+        // Both ABI variants read light as zero
+        mode = APP_MODE_DEFAULT;
+        if (s_setup.isDark && (BUILD_DARK_MODE_APP_MODE <= s_setup.build))
         {
             mode = APP_MODE_FORCE_DARK;
         }
-        else
+        else if (s_setup.isDark)
         {
             mode = TRUE;
         }
         (void)set_mode(mode);
         flush();
     }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Everything of the frame that depends on the theme: the brushes, the title bar (asked of DWM
+ *  by the attribute number of this build), the wizard buttons, the popup menus, and the etched
+ *  line that dark mode paints itself. The page is not touched; callers recreate it.
+ */
+static void ApplyTheme(bool_t isDark)
+{
+    const wchar_t* controls;
+    HWND           frame;
+    BOOL           on;
+    int            line_show;
+
+    frame          = s_setup.frame;
+    s_setup.isDark = isDark;
+    if (NULL != s_setup.pageBrush) { DeleteObject(s_setup.pageBrush); s_setup.pageBrush = NULL; }
+    if (NULL != s_setup.wellBrush) { DeleteObject(s_setup.wellBrush); s_setup.wellBrush = NULL; }
+    controls  = THEME_LIGHT_CONTROLS;
+    line_show = SW_SHOW;
+    on        = FALSE;
+    if (isDark)
+    {
+        s_setup.pageBrush = CreateSolidBrush(COLOR_DARK_PAGE);
+        s_setup.wellBrush = CreateSolidBrush(COLOR_DARK_WELL);
+        controls          = THEME_DARK_CONTROLS;
+        line_show         = SW_HIDE;
+        on                = TRUE;
+    }
+    ApplyMenuTheme();
+    // The attribute number moved between Windows 10 builds
+    if (BUILD_DARK_MODE_ATTRIBUTE <= s_setup.build)
+    {
+        (void)DwmSetWindowAttribute(frame, DWMWA_IMMERSIVE_DARK_MODE, &on, sizeof(on));
+    }
+    else
+    {
+        (void)DwmSetWindowAttribute(frame, DWMWA_IMMERSIVE_DARK_MODE_OLD, &on, sizeof(on));
+    }
+    (void)SetWindowTheme(GetDlgItem(frame, IDC_BACK), controls, NULL);
+    (void)SetWindowTheme(GetDlgItem(frame, IDC_NEXT), controls, NULL);
+    (void)SetWindowTheme(GetDlgItem(frame, IDCANCEL), controls, NULL);
+    ShowWindow(GetDlgItem(frame, IDC_BOTTOM_LINE), line_show);
+    RedrawWindow(frame, NULL, NULL, RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN);
 }
 
 /*************************************************************************************************/
@@ -846,14 +898,15 @@ static void FormatSize(uint64_t bytes, wchar_t* text, uint32_t capacity)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The dark title bar is asked of DWM by both attribute numbers so Windows 10 1809 obeys too.
+ *  A theme switch in Settings arrives as WM_SETTINGCHANGE for ImmersiveColorSet; the frame is
+ *  rethemed in place and the page recreated, after saving a folder being typed.
  */
 static INT_PTR CALLBACK FrameProcedure(HWND window, UINT message, WPARAM wordParameter, LPARAM longParameter)
 {
     PAINTSTRUCT paint;
     HDC         paint_context;
     RECT        frame_area;
-    BOOL        on;
+    bool_t      is_dark;
     int32_t     percent;
     wchar_t*    action;
 
@@ -870,23 +923,7 @@ static INT_PTR CALLBACK FrameProcedure(HWND window, UINT message, WPARAM wordPar
         SendMessageW(window, WM_CHANGEUISTATE, MAKEWPARAM(UIS_SET, UISF_HIDEFOCUS | UISF_HIDEACCEL), 0);
         SendMessageW(window, WM_SETICON, ICON_BIG, (LPARAM)LoadIconW(s_setup.module, MAKEINTRESOURCEW(IDI_SETUP)));
         SendMessageW(window, WM_SETICON, ICON_SMALL, (LPARAM)LoadIconW(s_setup.module, MAKEINTRESOURCEW(IDI_SETUP)));
-        if (s_setup.isDark)
-        {
-            // The attribute number moved between Windows 10 builds
-            on = TRUE;
-            if (BUILD_DARK_MODE_ATTRIBUTE <= s_setup.build)
-            {
-                (void)DwmSetWindowAttribute(window, DWMWA_IMMERSIVE_DARK_MODE, &on, sizeof(on));
-            }
-            else
-            {
-                (void)DwmSetWindowAttribute(window, DWMWA_IMMERSIVE_DARK_MODE_OLD, &on, sizeof(on));
-            }
-            (void)SetWindowTheme(GetDlgItem(window, IDC_BACK), THEME_DARK_CONTROLS, NULL);
-            (void)SetWindowTheme(GetDlgItem(window, IDC_NEXT), THEME_DARK_CONTROLS, NULL);
-            (void)SetWindowTheme(GetDlgItem(window, IDCANCEL), THEME_DARK_CONTROLS, NULL);
-            ShowWindow(GetDlgItem(window, IDC_BOTTOM_LINE), SW_HIDE);
-        }
+        ApplyTheme(s_setup.isDark);
         if (s_setup.isElevated && (s_setup.isInstalled || (MODE_INSTALLING == s_setup.mode)) && (0 != s_setup.options) && (L'\0' != s_setup.folder[0]))
         {
             // Relaunched elevated with a job: straight to the progress page
@@ -1014,6 +1051,23 @@ static INT_PTR CALLBACK FrameProcedure(HWND window, UINT message, WPARAM wordPar
             s_setup.thread = NULL;
         }
         ShowPage(PAGE_FINISH);
+        return TRUE;
+    case WM_SETTINGCHANGE:
+        if ((0 != longParameter) && (0 == wcscmp((const wchar_t*)longParameter, THEME_CHANGED_SECTION)))
+        {
+            is_dark = (bool_t)(ReadsDarkTheme() && (BUILD_DARK_MODE <= s_setup.build));
+            if (is_dark != s_setup.isDark)
+            {
+                if (PAGE_FOLDER == s_setup.pageId)
+                {
+                    GetDlgItemTextW(s_setup.page, IDC_FOLDER, s_setup.folder, COUNT_OF(s_setup.folder));
+                }
+                ApplyTheme(is_dark);
+                ShowPage(s_setup.pageId);
+            }
+            // DefWindowProc re-reads the keyboard cues setting on this message and shows them again
+            SendMessageW(window, WM_CHANGEUISTATE, MAKEWPARAM(UIS_SET, UISF_HIDEFOCUS | UISF_HIDEACCEL), 0);
+        }
         return TRUE;
     case WM_CLOSE:
         if (PAGE_PROGRESS != s_setup.pageId)
@@ -2448,10 +2502,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE previousInstance, PWSTR comman
     {
         s_setup.isDark = TRUE;
     }
-    if (s_setup.isDark)
-    {
-        ApplyDarkMenus();
-    }
+    ApplyMenuTheme();
     s_setup.isElevated = IsElevated();
     is_elevated_run    = ParseElevatedArguments(GetCommandLineW());
     (void)CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
@@ -2472,11 +2523,6 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE previousInstance, PWSTR comman
     FindInstalledProduct();
     ReadFileRows();
     s_setup.icon = (HICON)LoadImageW(instance, MAKEINTRESOURCEW(IDI_SETUP), IMAGE_ICON, 256, 256, LR_DEFAULTCOLOR);
-    if (s_setup.isDark)
-    {
-        s_setup.pageBrush = CreateSolidBrush(COLOR_DARK_PAGE);
-        s_setup.wellBrush = CreateSolidBrush(COLOR_DARK_WELL);
-    }
     outcome = DialogBoxParamW(instance, MAKEINTRESOURCEW(IDD_FRAME), NULL, FrameProcedure, 0);
 
     if (NULL != s_setup.thread)
