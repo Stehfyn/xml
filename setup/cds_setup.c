@@ -84,6 +84,7 @@
 #define COLOR_DARK_HEADER         RGB(48, 48, 48)
 #define THEME_DARK_HEADER         L"DarkMode_ItemsView"
 #define HEADER_SUBCLASS_ID        (1)
+#define WELL_SUBCLASS_ID          (2)
 #define CHECK_BOX_GAP             (3)
 #define ANCHOR_LEFT               (1u << 0)
 #define ANCHOR_TOP                (1u << 1)
@@ -438,6 +439,7 @@ static LRESULT PaintCheckBoxLabel(const NMCUSTOMDRAW* draw);
  * \brief Subclass of the list header: paints it dark with light column names.
  */
 static LRESULT CALLBACK HeaderProcedure(HWND window, UINT message, WPARAM wordParameter, LPARAM longParameter, UINT_PTR subclassId, DWORD_PTR reference);
+static LRESULT CALLBACK WellProcedure(HWND window, UINT message, WPARAM wordParameter, LPARAM longParameter, UINT_PTR subclassId, DWORD_PTR reference);
 
 /*************************************************************************************************/
 /**
@@ -1579,6 +1581,7 @@ static void ThemePage(HWND page)
             SetWindowLongPtrW(child, GWL_STYLE, style & ~(LONG_PTR)WS_BORDER);
             SetWindowLongPtrW(child, GWL_EXSTYLE, extended & ~(LONG_PTR)(WS_EX_CLIENTEDGE | WS_EX_STATICEDGE));
             SetWindowPos(child, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+            (void)SetWindowSubclass(child, WellProcedure, WELL_SUBCLASS_ID, 0);
             RedrawWindow(child, NULL, NULL, RDW_FRAME | RDW_INVALIDATE | RDW_ERASE);
             if (0 == wcscmp(class_name, WC_TREEVIEWW))
             {
@@ -1740,6 +1743,41 @@ static LRESULT PaintCheckBoxLabel(const NMCUSTOMDRAW* draw)
     (void)SelectObject(draw->hdc, previous_font);
 
     return CDRF_DODEFAULT;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The themed tree, list, and edit keep a one pixel non-client ring that the theme paints light
+ *  until a focus change repaints it; after the default paint, which also draws the scroll bars,
+ *  the ring is painted in the well colour so only the page's own frame shows.
+ */
+static LRESULT CALLBACK WellProcedure(HWND window, UINT message, WPARAM wordParameter, LPARAM longParameter, UINT_PTR subclassId, DWORD_PTR reference)
+{
+    LRESULT result;
+    HDC     context;
+    RECT    area;
+
+    (void)subclassId;
+    (void)reference;
+    result = DefSubclassProc(window, message, wordParameter, longParameter);
+    if (WM_NCPAINT == message)
+    {
+        context = GetWindowDC(window);
+        if (NULL != context)
+        {
+            GetWindowRect(window, &area);
+            OffsetRect(&area, -area.left, -area.top);
+            (void)FrameRect(context, &area, s_setup.wellBrush);
+            (void)ReleaseDC(window, context);
+        }
+    }
+    else if (WM_NCDESTROY == message)
+    {
+        (void)RemoveWindowSubclass(window, WellProcedure, WELL_SUBCLASS_ID);
+    }
+
+    return result;
 }
 
 /*************************************************************************************************/
