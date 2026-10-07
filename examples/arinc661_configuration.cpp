@@ -191,7 +191,8 @@ extern "C"
 #define SCREEN_LAYOUTS_LABEL          ("Layouts On This Screen")
 #define ADD_LAYOUT_HERE_LABEL         ("Add layout to this screen")
 #define LAYOUT_ITEM_FORMAT            ("Layout %" PRId64 " (%u windows)")
-#define SCENE_HINT_LABEL              ("Drag: move window | Corners: resize | Arrows: nudge (Shift x10) | Del: remove | Right-click: add | Double-click a previewed widget: edit it")
+#define SCENE_HINT_LABEL              ("Drag: move window\nCorners: resize\nArrows: nudge (Shift x10)\nDel: remove\nRight-click: add\nDouble-click a previewed widget: edit it\nPlay mode: click acts on the widget")
+#define SCENE_HINT_TITLE              ("Scene controls")
 #define SCENE_HINT_COLOR              (IM_COL32(180, 190, 200, 200))
 #define SCENE_HANDLE_COLOR            (IM_COL32(255, 255, 255, 230))
 #define SCENE_LABEL_BACK_COLOR        (IM_COL32(0, 0, 0, 90))
@@ -2563,6 +2564,11 @@ static bool_t DrawRemoveButton(const char_t* label, float32_t rowHeight)
     ImGui::SameLine();
     is_clicked = ImGui::InvisibleButton(label, button_size);
     ImGui::SetItemTooltip("%s", label);
+    // Show the cross only while the pointer is on the row, as a modern editor keeps rows clean
+    if (FALSE == ImGui::IsMouseHoveringRect(ImVec2(ImGui::GetWindowPos().x, ImGui::GetItemRectMin().y), ImVec2(ImGui::GetWindowPos().x + ImGui::GetWindowSize().x, ImGui::GetItemRectMax().y)))
+    {
+        return is_clicked;
+    }
     cross_center      = ((ImGui::GetItemRectMin() + ImGui::GetItemRectMax()) * 0.5f);
     cross_min         = (cross_center - cross_half_size);
     cross_max         = (cross_center + cross_half_size);
@@ -2850,6 +2856,8 @@ static bool_t BeginPropertyTable(const char_t* name)
     style          = &ImGui::GetStyle();
     label_size     = ImGui::CalcTextSize(MAP_SOURCE_LAYER_LABEL);
     property_width = (label_size.x + (style->FramePadding.x * 2.0f));
+    // Keep the value column at least as wide as the label column when the pane is narrow
+    property_width = ImMin(property_width, ImGui::GetContentRegionAvail().x * 0.45f);
     is_visible     = ImGui::BeginTable(name, 2, PROPERTY_TABLE_FLAGS);
     if (is_visible)
     {
@@ -4080,8 +4088,6 @@ static void DrawHierarchyPane(Arinc661_Configuration_Document_t* editor)
 {
     if (ImGui::BeginChild(HIERARCHY_PANE_NAME, ImVec2(0.0f, 0.0f), PANE_FLAGS, ImGuiWindowFlags_HorizontalScrollbar))
     {
-        ImGui::TextUnformatted(HIERARCHY_PANE_NAME);
-        ImGui::Separator();
         if (editor->isLoaded)
         {
             DrawHierarchy(editor);
@@ -4100,8 +4106,6 @@ static void DrawInspectorPane(Arinc661_Configuration_Editor_t* editor, Arinc661_
     if (ImGui::BeginChild(INSPECTOR_PANE_NAME, ImVec2(0.0f, 0.0f), PANE_FLAGS))
     {
         ImGui::PushTextWrapPos(0.0f);
-        ImGui::TextUnformatted(INSPECTOR_PANE_NAME);
-        ImGui::Separator();
 
         if (document->isLoaded)
         {
@@ -4212,9 +4216,6 @@ static void DrawScenePane(Arinc661_Configuration_Editor_t* owner, Arinc661_Confi
         if (editor->isLoaded)
         {
             DrawSceneToolbar(owner, editor);
-            ImGui::PushStyleColor(ImGuiCol_Text, SCENE_HINT_COLOR);
-            ImGui::TextWrapped("%s", SCENE_HINT_LABEL);
-            ImGui::PopStyleColor();
         }
         else
         {
@@ -4418,8 +4419,29 @@ static void DrawScenePane(Arinc661_Configuration_Editor_t* owner, Arinc661_Confi
                     }
                 }
                 DrawSceneInteraction(owner, editor, hover_screen, hover_window, handle_min, handle_max, has_handles, scale, draw_list, is_canvas_hovered, ImVec2(canvas_min.x + style->WindowPadding.x, canvas_max.y - label_height));
+                // In play mode a click acts on the previewed widget as a CDS would
+                if (is_canvas_hovered && owner->context->definitionEditor->isPlaying && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && (NULL != owner->context))
+                {
+                    FACEOE_Gfx_Point_t play_point;
+                    uint32_t           play_index;
+                    uint32_t           play_slot;
+
+                    play_point.x = mouse_position.x;
+                    play_point.y = mouse_position.y;
+                    play_index   = Arinc661_Scene_Pick(owner->previewBounds, owner->previewBoundsCount, play_point);
+                    for (play_slot = 0; (ARINC661_SCENE_NO_WIDGET != play_index) && (play_slot < owner->previewBoundsCount); ++play_slot)
+                    {
+                        if (owner->previewBounds[play_slot].widgetIndex == play_index)
+                        {
+                            (void)Arinc661_Definition_Interact(owner->context->definitionEditor, owner->previewDocuments[play_slot], play_index,
+                                                               (mouse_position.x - owner->previewBounds[play_slot].minimum.x) / ImMax(1.0f, owner->previewBounds[play_slot].maximum.x - owner->previewBounds[play_slot].minimum.x),
+                                                               (owner->previewBounds[play_slot].maximum.y - mouse_position.y) / ImMax(1.0f, owner->previewBounds[play_slot].maximum.y - owner->previewBounds[play_slot].minimum.y));
+                            break;
+                        }
+                    }
+                }
                 // A double-click on a previewed widget opens it in the Definition File editor
-                if (is_canvas_hovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && (NULL != owner->context))
+                if (is_canvas_hovered && (FALSE == owner->context->definitionEditor->isPlaying) && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && (NULL != owner->context))
                 {
                     FACEOE_Gfx_Point_t pick_point;
                     uint32_t           pick_index;
@@ -4889,6 +4911,14 @@ static void DrawSceneToolbar(Arinc661_Configuration_Editor_t* owner, Arinc661_Co
     if (Arinc661_Icons_Button(ARINC661_ICON_DELETE, TOOL_DELETE_LABEL, SHORTCUT_DEL, has_selection, FALSE))
     {
         RemoveSelection(document);
+    }
+    Arinc661_Icons_Gap();
+    (void)Arinc661_Icons_Button(ARINC661_ICON_HELP, SCENE_HINT_TITLE, NULL, TRUE, FALSE);
+    if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip))
+    {
+        ImGui::BeginTooltip();
+        ImGui::TextUnformatted(SCENE_HINT_LABEL);
+        ImGui::EndTooltip();
     }
     ImGui::NewLine();
 }

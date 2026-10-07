@@ -14,6 +14,7 @@
 **===============================================================================================*/
 
 #include "arinc661/arinc661_definition.h"
+#include "faceoe_utl/faceoe_utl_defines.h"
 #include "faceoe_utl/faceoe_utl_scan.h"
 
 #include "os/os_assert.h"
@@ -2572,11 +2573,11 @@ static const BinaryWidget_t* FindTypeByName(const char_t* name, bool_t isExtensi
     uint32_t              type_index;
 
     table      = c_binaryWidgets;
-    type_count = (uint32_t)(sizeof(c_binaryWidgets) / sizeof(c_binaryWidgets[0]));
+    type_count = (uint32_t)COUNT_OF(c_binaryWidgets);
     if (isExtension)
     {
         table      = c_binaryExtensions;
-        type_count = (uint32_t)(sizeof(c_binaryExtensions) / sizeof(c_binaryExtensions[0]));
+        type_count = (uint32_t)COUNT_OF(c_binaryExtensions);
     }
     type = NULL;
     for (type_index = 0; type_index < type_count; ++type_index)
@@ -2604,11 +2605,11 @@ static const BinaryWidget_t* FindTypeByCode(uint32_t code, bool_t isExtension)
     uint32_t              type_index;
 
     table      = c_binaryWidgets;
-    type_count = (uint32_t)(sizeof(c_binaryWidgets) / sizeof(c_binaryWidgets[0]));
+    type_count = (uint32_t)COUNT_OF(c_binaryWidgets);
     if (isExtension)
     {
         table      = c_binaryExtensions;
-        type_count = (uint32_t)(sizeof(c_binaryExtensions) / sizeof(c_binaryExtensions[0]));
+        type_count = (uint32_t)COUNT_OF(c_binaryExtensions);
     }
     type = NULL;
     for (type_index = 0; type_index < type_count; ++type_index)
@@ -2682,7 +2683,7 @@ static bool_t ScanInteger(const Arinc661_Property_t* property, int64_t minimum, 
         is_valid = (0 < consumed) && ('\0' == property->value[consumed]);
         if (FALSE == is_valid)
         {
-            for (constant_index = 0; constant_index < (sizeof(c_binaryConstants) / sizeof(c_binaryConstants[0])); ++constant_index)
+            for (constant_index = 0; constant_index < COUNT_OF(c_binaryConstants); ++constant_index)
             {
                 if (0 == strcmp(property->value, c_binaryConstants[constant_index].name))
                 {
@@ -4102,10 +4103,10 @@ uint32_t Arinc661_TypeCount(bool_t isExtension)
 {
     uint32_t type_count;
 
-    type_count = (uint32_t)(sizeof(c_binaryWidgets) / sizeof(c_binaryWidgets[0]));
+    type_count = (uint32_t)COUNT_OF(c_binaryWidgets);
     if (isExtension)
     {
-        type_count = (uint32_t)(sizeof(c_binaryExtensions) / sizeof(c_binaryExtensions[0]));
+        type_count = (uint32_t)COUNT_OF(c_binaryExtensions);
     }
 
     return type_count;
@@ -4237,7 +4238,7 @@ bool_t Arinc661_Parameter(const char_t* typeName, bool_t isExtension, uint32_t p
  */
 uint32_t Arinc661_ConstantCount(void)
 {
-    return (uint32_t)(sizeof(c_binaryConstants) / sizeof(c_binaryConstants[0]));
+    return (uint32_t)COUNT_OF(c_binaryConstants);
 }
 
 /*************************************************************************************************/

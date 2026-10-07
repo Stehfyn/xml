@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  CDS Editor installer (WiX v6).
+  Build: wix build -arch x64 -d BinDir=<folder with the exe and dll> -d SourceDir=<repo> -o cds-editor.msi cds_editor.wxs
+  Shell integration never takes over .xml or .bin: the editor is offered under "Open with",
+  the shell extension adds overlay badges and a context menu verb only to files whose content
+  is a Definition File or a FACE configuration, and Default Programs lets the user opt in.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Package Name="CDS Editor" Manufacturer="FACEOE" Version="1.0.0.0" Language="1033"
+           UpgradeCode="01ADB398-6743-45F5-B841-75BDF9612E7B" Scope="perMachine">
+    <MajorUpgrade DowngradeErrorMessage="A newer version of CDS Editor is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+    <Icon Id="EditorIcon" SourceFile="$(SourceDir)\examples\cds_editor.ico" />
+    <Property Id="ARPPRODUCTICON" Value="EditorIcon" />
+    <!-- Classic dialogs: welcome, license, install folder, ready, progress, finish -->
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+    <WixVariable Id="WixUILicenseRtf" Value="$(SourceDir)\installer\license.rtf" />
+    <!-- msiexec /i cds-editor.msi UPDATEURL=https://host/path/manifest.txt (or a UNC path) -->
+    <Property Id="UPDATEURL" Secure="yes" />
+
+    <!-- Files page: what the setup writes and where; shown after the folder page -->
+    <UI>
+      <Dialog Id="FilesDlg" Width="370" Height="270" Title="[ProductName] Setup">
+        <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="WixUI_Bmp_Banner" />
+        <Control Id="Title" Type="Text" X="15" Y="6" Width="300" Height="15" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}Files to Install" />
+        <Control Id="Description" Type="Text" X="25" Y="23" Width="330" Height="15" Transparent="yes" NoPrefix="yes" Text="Review what Setup will place on this computer." />
+        <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
+        <Control Id="FolderLabel" Type="Text" X="20" Y="55" Width="330" Height="12" NoPrefix="yes" Text="Program folder: [INSTALLFOLDER]" />
+        <Control Id="FileList" Type="ScrollableText" X="20" Y="70" Width="330" Height="150" Sunken="yes" TabSkip="no">
+          <Text Value="{\rtf1\ansi\deff0{\fonttbl{\f0\fswiss Segoe UI;}}\fs16 \b Program\b0\par cds-editor.exe \tab the editor\par cds-shell.dll \tab Explorer badges and the &quot;Open in CDS Editor&quot; menu for Definition Files and configurations\par arinc661.chm \tab help (F1 in the editor)\par README.md\par \par \b examples\\\b0\par arinc661_configuration.xml \tab FACE display management configuration\par arinc661_definition.xml \tab ARINC 661 Definition File\par \par \b Start menu\b0\par CDS Editor shortcut\par \par \b Registry\b0\par HKLM\\Software\\FACEOE\\CDS Editor (InstallDir, UpdateUrl)\par Open With entries for .xml and .bin (the default programs for .xml and .bin are not changed)\par Default Programs registration (CDS Editor)\par Shell extension classes, overlay identifiers, and context menu handlers\par }" />
+        </Control>
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+        <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="&amp;Back">
+          <Publish Event="NewDialog" Value="InstallDirDlg" />
+        </Control>
+        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="&amp;Next">
+          <Publish Event="NewDialog" Value="VerifyReadyDlg" />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="Cancel">
+          <Publish Event="SpawnDialog" Value="CancelDlg" />
+        </Control>
+      </Dialog>
+      <!-- Route the standard sequence through the Files page -->
+      <Publish Dialog="InstallDirDlg" Control="Next" Event="NewDialog" Value="FilesDlg" Order="5" Condition="WIXUI_DONTVALIDATEPATH OR WIXUI_INSTALLDIR_VALID=&quot;1&quot;" />
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="FilesDlg" Order="2" Condition="NOT Installed" />
+    </UI>
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="CDS Editor">
+        <Directory Id="ExamplesFolder" Name="examples" />
+        <Directory Id="DocsFolder" Name="docs" />
+      </Directory>
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder" />
+
+    <Feature Id="Main" Title="CDS Editor" Level="1">
+      <ComponentGroupRef Id="Application" />
+      <ComponentGroupRef Id="Shell" />
+      <ComponentGroupRef Id="Examples" />
+    </Feature>
+
+    <ComponentGroup Id="Application" Directory="INSTALLFOLDER">
+      <Component Id="Editor">
+        <File Id="EditorExe" Source="$(BinDir)\cds-editor.exe" KeyPath="yes">
+          <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="CDS Editor" Icon="EditorIcon" Advertise="yes" WorkingDirectory="INSTALLFOLDER" />
+        </File>
+        <!-- Where the shell extension finds the executable -->
+        <RegistryValue Root="HKLM" Key="Software\FACEOE\CDS Editor" Name="InstallDir" Type="string" Value="[INSTALLFOLDER]" />
+        <RegistryValue Root="HKLM" Key="Software\FACEOE\CDS Editor" Name="UpdateUrl" Type="string" Value="[UPDATEURL]" />
+      </Component>
+      <Component Id="Help">
+        <File Source="$(SourceDir)\docs\arinc661.chm" KeyPath="yes" />
+      </Component>
+      <Component Id="Readme">
+        <File Source="$(SourceDir)\README.md" KeyPath="yes" />
+      </Component>
+      <Component Id="ProgIds">
+        <RegistryKey Root="HKCR" Key="ARINC661.DefinitionFile">
+          <RegistryValue Type="string" Value="ARINC 661 Definition File" KeyPath="yes" />
+          <RegistryValue Key="DefaultIcon" Type="string" Value="[INSTALLFOLDER]cds-editor.exe,0" />
+          <RegistryValue Key="shell\open\command" Type="string" Value="&quot;[INSTALLFOLDER]cds-editor.exe&quot; &quot;%1&quot;" />
+        </RegistryKey>
+        <RegistryKey Root="HKCR" Key="FACEOE.Configuration">
+          <RegistryValue Type="string" Value="FACE Display Management Configuration" />
+          <RegistryValue Key="DefaultIcon" Type="string" Value="[INSTALLFOLDER]cds-editor.exe,0" />
+          <RegistryValue Key="shell\open\command" Type="string" Value="&quot;[INSTALLFOLDER]cds-editor.exe&quot; &quot;%1&quot;" />
+        </RegistryKey>
+        <!-- Offered under "Open with"; the default handler of .xml and .bin is left alone -->
+        <RegistryValue Root="HKCR" Key=".xml\OpenWithProgids" Name="ARINC661.DefinitionFile" Type="string" Value="" />
+        <RegistryValue Root="HKCR" Key=".xml\OpenWithProgids" Name="FACEOE.Configuration" Type="string" Value="" />
+        <RegistryValue Root="HKCR" Key=".bin\OpenWithProgids" Name="ARINC661.DefinitionFile" Type="string" Value="" />
+        <!-- Default Programs: the user can choose the editor for .xml or .bin from Settings -->
+        <RegistryKey Root="HKLM" Key="Software\FACEOE\CDS Editor\Capabilities">
+          <RegistryValue Name="ApplicationName" Type="string" Value="CDS Editor" />
+          <RegistryValue Name="ApplicationDescription" Type="string" Value="Edits ARINC 661 Definition Files and FACE display management configurations" />
+          <RegistryValue Key="FileAssociations" Name=".xml" Type="string" Value="ARINC661.DefinitionFile" />
+          <RegistryValue Key="FileAssociations" Name=".bin" Type="string" Value="ARINC661.DefinitionFile" />
+        </RegistryKey>
+        <RegistryValue Root="HKLM" Key="Software\RegisteredApplications" Name="CDS Editor" Type="string" Value="Software\FACEOE\CDS Editor\Capabilities" />
+      </Component>
+    </ComponentGroup>
+
+    <ComponentGroup Id="Shell" Directory="INSTALLFOLDER">
+      <Component Id="ShellExtension">
+        <File Id="ShellDll" Source="$(BinDir)\cds-shell.dll" KeyPath="yes" />
+        <!-- COM classes -->
+        <RegistryKey Root="HKCR" Key="CLSID\{B490275C-C09C-4CEC-91AD-3A9EEDE63F4E}">
+          <RegistryValue Type="string" Value="ARINC 661 Definition File overlay" />
+          <RegistryValue Key="InprocServer32" Type="string" Value="[INSTALLFOLDER]cds-shell.dll" />
+          <RegistryValue Key="InprocServer32" Name="ThreadingModel" Type="string" Value="Apartment" />
+        </RegistryKey>
+        <RegistryKey Root="HKCR" Key="CLSID\{A484FF8A-8CAE-41D2-B056-0B0BE5D884CC}">
+          <RegistryValue Type="string" Value="FACE configuration overlay" />
+          <RegistryValue Key="InprocServer32" Type="string" Value="[INSTALLFOLDER]cds-shell.dll" />
+          <RegistryValue Key="InprocServer32" Name="ThreadingModel" Type="string" Value="Apartment" />
+        </RegistryKey>
+        <RegistryKey Root="HKCR" Key="CLSID\{FB3A3DF2-C819-45BF-9043-3E7E6C2BA68C}">
+          <RegistryValue Type="string" Value="CDS Editor context menu" />
+          <RegistryValue Key="InprocServer32" Type="string" Value="[INSTALLFOLDER]cds-shell.dll" />
+          <RegistryValue Key="InprocServer32" Name="ThreadingModel" Type="string" Value="Apartment" />
+        </RegistryKey>
+        <!-- Overlay badges; leading spaces rank them ahead of other overlay handlers -->
+        <RegistryValue Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\  ARINC661Definition" Type="string" Value="{B490275C-C09C-4CEC-91AD-3A9EEDE63F4E}" />
+        <RegistryValue Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\  ARINC661Configuration" Type="string" Value="{A484FF8A-8CAE-41D2-B056-0B0BE5D884CC}" />
+        <!-- Context menu verb on .xml and .bin, shown only when the content matches -->
+        <RegistryValue Root="HKCR" Key="SystemFileAssociations\.xml\shellex\ContextMenuHandlers\CDSEditor" Type="string" Value="{FB3A3DF2-C819-45BF-9043-3E7E6C2BA68C}" />
+        <RegistryValue Root="HKCR" Key="SystemFileAssociations\.bin\shellex\ContextMenuHandlers\CDSEditor" Type="string" Value="{FB3A3DF2-C819-45BF-9043-3E7E6C2BA68C}" />
+        <!-- Approved for the shell -->
+        <RegistryValue Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Shell Extensions\Approved" Name="{B490275C-C09C-4CEC-91AD-3A9EEDE63F4E}" Type="string" Value="ARINC 661 Definition File overlay" />
+        <RegistryValue Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Shell Extensions\Approved" Name="{A484FF8A-8CAE-41D2-B056-0B0BE5D884CC}" Type="string" Value="FACE configuration overlay" />
+        <RegistryValue Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Shell Extensions\Approved" Name="{FB3A3DF2-C819-45BF-9043-3E7E6C2BA68C}" Type="string" Value="CDS Editor context menu" />
+      </Component>
+    </ComponentGroup>
+
+    <ComponentGroup Id="Examples" Directory="ExamplesFolder">
+      <Component Id="ExampleConfiguration">
+        <File Source="$(SourceDir)\examples\arinc661_configuration.xml" KeyPath="yes" />
+      </Component>
+      <Component Id="ExampleDefinition">
+        <File Source="$(SourceDir)\examples\arinc661_definition.xml" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Package>
+</Wix>

@@ -36,6 +36,8 @@ extern "C"
 #define ARINC661_DEFINITION_NO_DOCUMENT            (UINT32_MAX)
 #define ARINC661_DEFINITION_MAX_HISTORY            (64)
 #define ARINC661_DEFINITION_MAX_FILTER_BYTES       (64)
+#define ARINC661_DEFINITION_CLIPBOARD_WIDGETS      (512)
+#define ARINC661_DEFINITION_CLIPBOARD_PROPERTIES   (4096)
 
 /*=================================================================================================
 ** 3.2 Types
@@ -62,8 +64,11 @@ typedef struct Arinc661_Definition_Document_s
     bool_t                  isLoaded;                                                 ///< TRUE after a successful read.
     bool_t                  isDirty;                                                  ///< TRUE when the loaded document has unsaved changes.
     bool_t                  isBinary;                                                 ///< TRUE when the document is saved in the binary form.
-    int32_t                 selectedKind;                                             ///< Selected entity type.
-    uint32_t                selectedIndex;                                            ///< Selected array index.
+    int32_t                 selectedKind;                                             ///< Selected entity type; the primary selection.
+    uint32_t                selectedIndex;                                            ///< Selected array index; the primary selection.
+    byte_t                  isSelected[ARINC661_DEFINITION_MAX_WIDGETS];              ///< Widgets in the multi-selection, primary included.
+    byte_t                  isHiddenInEditor[ARINC661_DEFINITION_MAX_WIDGETS];        ///< Widgets hidden from the scene by the author (editor only).
+    byte_t                  isLocked[ARINC661_DEFINITION_MAX_WIDGETS];                ///< Widgets the scene does not pick or move (editor only).
     char_t                  documentName[ARINC661_DEFINITION_MAX_XML_NAME_BYTES];     ///< Filename shown on the tab.
     char_t                  documentPath[ARINC661_DEFINITION_MAX_FILE_PATH_BYTES];    ///< Path of the loaded document.
     byte_t                  inputBuffer[ARINC661_DEFINITION_MAX_DOCUMENT_BYTES + 1];  ///< Input file bytes.
@@ -99,8 +104,28 @@ typedef struct Arinc661_Definition_Editor_s
     float32_t                        dragOriginY;                                                 ///< PosY at drag start.
     float32_t                        dragOriginWidth;                                             ///< SizeX at drag start.
     float32_t                        dragOriginHeight;                                            ///< SizeY at drag start.
+    float32_t                        dragOriginAngle;                                             ///< RotationAngle at drag start.
+    float32_t                        dragCenterX;                                                 ///< Rotation pivot on screen at drag start.
+    float32_t                        dragCenterY;                                                 ///< Rotation pivot on screen at drag start.
     float32_t                        dragScale;                                                   ///< Screen pixels per layer unit during the drag.
     bool_t                           hasDragged;                                                  ///< TRUE once the drag moved the mouse.
+    bool_t                           isMarquee;                                                   ///< TRUE while a rubber-band selection is drawn.
+    bool_t                           zoomsToSelection;                                            ///< TRUE to fit the view to the selection next frame.
+    float32_t                        animationTime;                                               ///< Seconds into the animations shown, or negative for the rest state.
+    bool_t                           isPlaying;                                                   ///< TRUE while play mode holds snapshots of the documents.
+    void*                            playSnapshots[ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS];       ///< Document states to restore when play stops.
+    bool_t                           playWasDirty[ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS];        ///< Dirty flags to restore when play stops.
+    Arinc661_Widget_t                clipboardWidgets[ARINC661_DEFINITION_CLIPBOARD_WIDGETS];     ///< Copied subtrees; parent indices are relative to the clipboard.
+    Arinc661_Property_t              clipboardProperties[ARINC661_DEFINITION_CLIPBOARD_PROPERTIES]; ///< Their properties; ownerIndex is relative to the clipboard.
+    uint32_t                         clipboardWidgetCount;                                        ///< Widgets in the clipboard.
+    uint32_t                         clipboardPropertyCount;                                      ///< Properties in the clipboard.
+    uint32_t                         renamingWidget;                                              ///< Widget whose name is being edited inline, or UINT32_MAX.
+    char_t                           renameBuffer[ARINC661_MAX_NAME_BYTES];                       ///< Inline rename text.
+    char_t                           hierarchyFilter[ARINC661_DEFINITION_MAX_FILTER_BYTES];       ///< Hierarchy filter text.
+    char_t                           inspectorFilter[ARINC661_DEFINITION_MAX_FILTER_BYTES];       ///< Inspector parameter filter text.
+    float32_t                        marqueeStartX;                                               ///< Screen X where the marquee started.
+    float32_t                        marqueeStartY;                                               ///< Screen Y where the marquee started.
+    float32_t                        dragOrigins[ARINC661_DEFINITION_MAX_WIDGETS][2];              ///< PosX and PosY of every selected widget at drag start.
     bool_t                           isSnapping;                                                  ///< TRUE to snap moves and sizes to whole millimetres.
     bool_t                           showsGrid;                                                   ///< TRUE to draw a millimetre grid behind the layer.
     uint32_t                         dropWidget;                                                  ///< Widget dropped onto a hierarchy node this frame, or UINT32_MAX.
@@ -762,5 +787,180 @@ void Arinc661_Definition_AddWidgetOfType(Arinc661_Definition_Editor_t* editor, c
  * \retval        None
  */
 void Arinc661_Definition_AddExtensionOfType(Arinc661_Definition_Editor_t* editor, const char_t* type);
+
+/*************************************************************************************************/
+/**
+ * \brief Copies the selected widgets' subtrees to the editor clipboard.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        uint32_t   Widgets copied.
+ */
+uint32_t Arinc661_Definition_Copy(Arinc661_Definition_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Pastes the clipboard under the active document's selection.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        uint32_t   Widgets pasted.
+ */
+uint32_t Arinc661_Definition_Paste(Arinc661_Definition_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Starts an inline rename of the selected widget in the hierarchy.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_BeginRename(Arinc661_Definition_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Sets the animation time the scenes and previews show.
+ *
+ * \param[in,out] editor    Editor state
+ * \param[in]     seconds   Seconds into the animations, or negative for the rest state
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_SetAnimationTime(Arinc661_Definition_Editor_t* editor, float32_t seconds);
+
+/*************************************************************************************************/
+/**
+ * \brief Lists the animation widgets of the active document.
+ *
+ * \param[in]  editor            Editor state
+ * \param[in]  index             Which animation
+ * \param[out] name              Widget name
+ * \param[out] type              Widget type
+ * \param[out] delaySeconds      Delay in seconds
+ * \param[out] durationSeconds   Duration in seconds
+ *
+ * \retval     TRUE              if such an animation exists.
+ * \retval     FALSE             otherwise.
+ */
+bool_t Arinc661_Definition_AnimationAt(const Arinc661_Definition_Editor_t* editor, uint32_t index, const char_t** name, const char_t** type, float32_t* delaySeconds, float32_t* durationSeconds);
+
+/*************************************************************************************************/
+/**
+ * \brief Enters play mode: snapshots every open document.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_BeginPlay(Arinc661_Definition_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Leaves play mode: restores the snapshots.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_EndPlay(Arinc661_Definition_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Applies a crew member's click to a widget as a CDS would.
+ *
+ * \param[in,out] editor          Editor state
+ * \param[in]     documentIndex   Document slot
+ * \param[in]     widgetIndex     Widget array index
+ * \param[in]     fractionX       Click position across the widget, 0 to 1
+ * \param[in]     fractionY       Click position up the widget, 0 to 1
+ *
+ * \retval        TRUE            if a state changed.
+ * \retval        FALSE           otherwise.
+ */
+bool_t Arinc661_Definition_Interact(Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, uint32_t widgetIndex, float32_t fractionX, float32_t fractionY);
+
+/*************************************************************************************************/
+/**
+ * \brief Writes an open document's binary form beside its file.
+ *
+ * \param[in,out] editor          Editor state
+ * \param[in]     documentIndex   Document slot
+ * \param[out]    path            Path written
+ * \param[in]     capacity        Bytes in path
+ *
+ * \retval        TRUE            if the file was written.
+ * \retval        FALSE           otherwise.
+ */
+bool_t Arinc661_Definition_ExportBinary(Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, char_t* path, uint32_t capacity);
+
+/*************************************************************************************************/
+/**
+ * \brief Counts the active document's widgets.
+ *
+ * \param[in] editor   Editor state
+ *
+ * \retval    uint32_t   Widget count, zero without an active document.
+ */
+uint32_t Arinc661_Definition_WidgetCount(const Arinc661_Definition_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Saves the clipboard as a prefab file in the folder.
+ *
+ * \param[in,out] editor     Editor state
+ * \param[in]     name       Prefab name without extension
+ * \param[out]    path       Path written
+ * \param[in]     capacity   Bytes in path
+ *
+ * \retval        TRUE       if the file was written.
+ * \retval        FALSE      otherwise.
+ */
+bool_t Arinc661_Definition_SavePrefab(Arinc661_Definition_Editor_t* editor, const char_t* name, char_t* path, uint32_t capacity);
+
+/*************************************************************************************************/
+/**
+ * \brief Loads a prefab file into the clipboard and pastes it at the selection.
+ *
+ * \param[in,out] editor     Editor state
+ * \param[in]     fileName   Prefab file name inside the folder
+ *
+ * \retval        TRUE       if widgets were added.
+ * \retval        FALSE      otherwise.
+ */
+bool_t Arinc661_Definition_LoadPrefab(Arinc661_Definition_Editor_t* editor, const char_t* fileName);
+
+/*************************************************************************************************/
+/**
+ * \brief Counts the history states of the active document.
+ *
+ * \param[in]  editor         Editor state
+ * \param[out] currentIndex   Index of the current state
+ *
+ * \retval     uint32_t       States, zero without a document.
+ */
+uint32_t Arinc661_Definition_HistoryCount(const Arinc661_Definition_Editor_t* editor, uint32_t* currentIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Names a history state by the change that produced it.
+ *
+ * \param[in] editor   Editor state
+ * \param[in] index    State index
+ *
+ * \retval    const char_t*   Label, empty when out of range.
+ */
+const char_t* Arinc661_Definition_HistoryLabel(const Arinc661_Definition_Editor_t* editor, uint32_t index);
+
+/*************************************************************************************************/
+/**
+ * \brief Makes a history state current by undoing or redoing.
+ *
+ * \param[in,out] editor   Editor state
+ * \param[in]     index    State index
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_GoToHistory(Arinc661_Definition_Editor_t* editor, uint32_t index);
 
 #endif /* ARINC661_DEFINITION_EDITOR_H */

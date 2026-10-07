@@ -1,0 +1,5 @@
+LIBRARY cds_shell
+EXPORTS
+    DllGetClassObject    PRIVATE
+    DllCanUnloadNow      PRIVATE
+    Arinc661_Shell_Sniff

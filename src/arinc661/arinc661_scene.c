@@ -12,6 +12,7 @@
 **===============================================================================================*/
 
 #include "arinc661/arinc661_scene.h"
+#include "faceoe_utl/faceoe_utl_defines.h"
 
 #include "faceoe_utl/faceoe_utl_scan.h"
 #include "os/os_assert.h"
@@ -41,7 +42,6 @@
 #define SCENE_THICK            (2.0f)
 #define SCENE_CHIP_HEIGHT      (260.0f)
 #define SCENE_CHIP_WIDTH       (3200.0f)
-#define SCENE_CHIP_GAP         (60.0f)
 #define SCENE_PAD              (40.0f)
 #define SCENE_TEXT_FIT         (0.8f)
 #define SCENE_MIN_FONT         (4.0f)
@@ -154,6 +154,9 @@ typedef struct Scene_s
     float32_t                    layerWidth;
     float32_t                    layerHeight;
     uint32_t                     chipCount;
+    byte_t*                      isChip;
+    uint32_t                     animationCount;
+    uint32_t                     animations[256];
     FACEOE_Gfx_Transform_t       base;
     uint32_t*                    first;
     uint32_t*                    count;
@@ -213,6 +216,7 @@ static const FACEOE_Gfx_Color_t c_palette[SCENE_PALETTE_COUNT] =
 static uint32_t s_first[SCENE_MAX_WIDGETS + 1];
 static uint32_t s_count[SCENE_MAX_WIDGETS + 1];
 static uint32_t s_order[SCENE_MAX_PROPERTIES];
+static byte_t   s_isChip[SCENE_MAX_WIDGETS + 1]; ///< Non-zero where a widget drew as a chip this pass, so its name is not drawn twice
 
 /*=================================================================================================
 ** 3.5 Static function prototypes
@@ -746,6 +750,17 @@ static void DrawTabbedGroup(const Scene_t* scene, uint32_t widgetIndex, const La
 
 /*************************************************************************************************/
 /**
+ * \brief Applies the layer's transform animations that target a widget at the scene's animation time.
+ *
+ * \param scene         Scene
+ * \param widgetIndex   Widget array index
+ *
+ * \retval None
+ */
+static void ApplyAnimations(Scene_t* scene, uint32_t widgetIndex);
+
+/*************************************************************************************************/
+/**
  * \brief Records one widget by its Creation Structure, then its children through the policy its kind imposes.
  *
  * \param scene         Scene
@@ -784,7 +799,7 @@ static Kind_t KindOf(const char_t* type)
     Kind_t   kind;
 
     kind = KIND_UNKNOWN;
-    for (index = 0; index < (sizeof(c_kindNames) / sizeof(c_kindNames[0])); ++index)
+    for (index = 0; index < COUNT_OF(c_kindNames); ++index)
     {
         if (0 == strcmp(type, c_kindNames[index].name))
         {
@@ -1344,20 +1359,33 @@ static void Chip(Scene_t* scene, uint32_t widgetIndex, float32_t alpha, Bounds_t
     char_t                   text[SCENE_TEXT_BYTES];
     float32_t                x;
     float32_t                y;
+    float32_t                unit_x;
+    float32_t                unit_y;
+    float32_t                height;
+    float32_t                width;
+    float32_t                gap;
 
     if (scene->options->showsNonGraphical)
     {
         widget = &scene->definition->widgets[widgetIndex];
-        x      = SCENE_PAD;
-        y      = scene->layerHeight - SCENE_PAD - ((float32_t)(scene->chipCount + 1) * (SCENE_CHIP_HEIGHT + SCENE_CHIP_GAP));
-        scene->chipCount += 1;
         if (FACEOE_Gfx_DrawList_PushTransform(scene->drawList))
         {
-            // Place chips in layer space regardless of the container's transform
+            // Place chips in layer space regardless of the container's transform, sized from the font so text always fits
             FACEOE_Gfx_DrawList_SetTransform(scene->drawList, &scene->base);
+            FACEOE_Gfx_DrawList_UnitLengths(scene->drawList, &unit_x, &unit_y);
+            height = ((scene->options->fontSize * 1.4f) / unit_y);
+            gap    = (height * 0.25f);
+            width  = ((scene->options->fontSize * (float32_t)(strlen(widget->name) + strlen(widget->type) + 2) * 0.6f) / unit_x);
+            x      = SCENE_PAD;
+            y      = scene->layerHeight - SCENE_PAD - ((float32_t)(scene->chipCount + 1) * (height + gap));
+            scene->chipCount += 1;
+            if (widgetIndex < SCENE_MAX_WIDGETS)
+            {
+                scene->isChip[widgetIndex] = 1;
+            }
             (void)snprintf(text, sizeof(text), "%s  %s", widget->name, widget->type);
-            Frame(scene, x, y, SCENE_CHIP_WIDTH, SCENE_CHIP_HEIGHT, COLOR_CHIP, COLOR_CHIP_BORDER, alpha, bounds);
-            BoxText(scene, x + SCENE_PAD, y, SCENE_CHIP_WIDTH - (2.0f * SCENE_PAD), SCENE_CHIP_HEIGHT, text, FACEOE_GFX_ALIGN_START, FACEOE_GFX_ALIGN_CENTER, 0.0f, Fade(COLOR_TEXT, alpha));
+            Frame(scene, x, y, width, height, COLOR_CHIP, COLOR_CHIP_BORDER, alpha, bounds);
+            BoxText(scene, x + (gap * 0.5f), y, width - gap, height, text, FACEOE_GFX_ALIGN_START, FACEOE_GFX_ALIGN_CENTER, 0.0f, Fade(COLOR_TEXT, alpha));
             FACEOE_Gfx_DrawList_PopTransform(scene->drawList);
         }
     }
@@ -1406,7 +1434,8 @@ static void Record(Scene_t* scene, uint32_t widgetIndex, const Bounds_t* bounds,
             options->bounds[options->boundsCount].maximum     = bounds->maximum;
             options->boundsCount += 1;
         }
-        if (options->showsNames && FACEOE_Gfx_DrawList_PushTransform(scene->drawList))
+        // A chip already carries the name
+        if (options->showsNames && ((widgetIndex >= SCENE_MAX_WIDGETS) || (0 == scene->isChip[widgetIndex])) && FACEOE_Gfx_DrawList_PushTransform(scene->drawList))
         {
             extension_count = ExtensionCount(scene, widgetIndex);
             if (0 < extension_count)
@@ -2373,6 +2402,88 @@ static void DrawTabbedGroup(const Scene_t* scene, uint32_t widgetIndex, const La
 
 /*************************************************************************************************/
 /**
+ * \brief Applies the layer's rotation, scale, and translation animations that target a widget
+ *  at the scene's animation time: linear law, Delay and Duration in milliseconds, repetition
+ *  looping the sweep, clamped at the end otherwise.
+ */
+static void ApplyAnimations(Scene_t* scene, uint32_t widgetIndex)
+{
+    uint32_t  slot;
+    uint32_t  animation;
+    float32_t ident;
+    float32_t target;
+    float32_t delay;
+    float32_t duration;
+    float32_t repetition;
+    float32_t time_ms;
+    float32_t progress;
+    float32_t from_a;
+    float32_t to_a;
+    float32_t from_b;
+    float32_t to_b;
+    Kind_t    kind;
+
+    if ((scene->options->animationTime < 0.0f) || (FALSE == Number(scene, widgetIndex, "WidgetIdent", &ident)))
+    {
+        return;
+    }
+    time_ms = (scene->options->animationTime * 1000.0f);
+    for (slot = 0; slot < scene->animationCount; ++slot)
+    {
+        animation = scene->animations[slot];
+        if ((FALSE == Number(scene, animation, "TargetWidgetID", &target)) || (target != ident))
+        {
+            continue;
+        }
+        delay      = NumberOr(scene, animation, "Delay", 0.0f);
+        duration   = NumberOr(scene, animation, "Duration", 0.0f);
+        repetition = NumberOr(scene, animation, "AnimationRepetition", 1.0f);
+        progress   = 0.0f;
+        if (0.0f < duration)
+        {
+            progress = ((time_ms - delay) / duration);
+            if (progress < 0.0f)
+            {
+                progress = 0.0f;
+            }
+            else if ((1.0f < progress) && ((0.0f == repetition) || (progress < repetition)))
+            {
+                // Repeat the sweep; zero repetitions means forever
+                progress = (progress - floorf(progress));
+            }
+            else if (1.0f < progress)
+            {
+                progress = 1.0f;
+            }
+        }
+        kind = KindOf(scene->definition->widgets[animation].type);
+        if (KIND_ANIMATION_TRANSLATION == kind)
+        {
+            from_a = NumberOr(scene, animation, "FromValueX", 0.0f);
+            to_a   = NumberOr(scene, animation, "ToValueX", 0.0f);
+            from_b = NumberOr(scene, animation, "FromValueY", 0.0f);
+            to_b   = NumberOr(scene, animation, "ToValueY", 0.0f);
+            FACEOE_Gfx_DrawList_Translate(scene->drawList, from_a + ((to_a - from_a) * progress), from_b + ((to_b - from_b) * progress));
+        }
+        else if (KIND_ANIMATION_ROTATION == kind)
+        {
+            from_a = NumberOr(scene, animation, "FromAngle", 0.0f);
+            to_a   = NumberOr(scene, animation, "ToAngle", 0.0f);
+            FACEOE_Gfx_DrawList_Rotate(scene->drawList, NumberOr(scene, animation, "CenterX", 0.0f), NumberOr(scene, animation, "CenterY", 0.0f), (from_a + ((to_a - from_a) * progress)) * SCENE_DEGREES);
+        }
+        else if (KIND_ANIMATION_SCALE == kind)
+        {
+            from_a = NumberOr(scene, animation, "FromScaleX", 1.0f);
+            to_a   = NumberOr(scene, animation, "ToScaleX", 1.0f);
+            from_b = NumberOr(scene, animation, "FromScaleY", 1.0f);
+            to_b   = NumberOr(scene, animation, "ToScaleY", 1.0f);
+            FACEOE_Gfx_DrawList_Scale(scene->drawList, NumberOr(scene, animation, "CenterX", 0.0f), NumberOr(scene, animation, "CenterY", 0.0f), from_a + ((to_a - from_a) * progress), from_b + ((to_b - from_b) * progress));
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
  * \brief Records one widget by its Creation Structure, then its children through the policy
  *  its kind imposes.
  */
@@ -2413,6 +2524,10 @@ static void DrawWidget(Scene_t* scene, uint32_t widgetIndex, float32_t alpha, co
     // Propagate Visible and Enable to children; skip hidden subtrees unless they are shown faded
     is_visible = (FALSE == Is(scene, widgetIndex, "Visible", "A661_FALSE"));
     is_drawn   = TRUE;
+    if ((NULL != scene->options->skipFlags) && (0 != scene->options->skipFlags[widgetIndex]))
+    {
+        is_drawn = FALSE;
+    }
     if (FALSE == is_visible)
     {
         if (scene->options->showsHidden)
@@ -2438,6 +2553,7 @@ static void DrawWidget(Scene_t* scene, uint32_t widgetIndex, float32_t alpha, co
         (void)memset(&bounds, 0, sizeof(bounds));
         children.mode = CHILD_ALL;
         has_clip      = FALSE;
+        ApplyAnimations(scene, widgetIndex);
         switch (kind)
         {
             case KIND_PANEL:
@@ -2984,6 +3100,7 @@ void Arinc661_Scene_DrawLayer(const Arinc661_Definition_t* definition, uint32_t 
 {
     Scene_t  scene;
     uint32_t widget_index;
+    Kind_t   kind;
 
     LOGASSERT(NULL != definition);
     LOGASSERT(NULL != drawList);
@@ -2998,7 +3115,23 @@ void Arinc661_Scene_DrawLayer(const Arinc661_Definition_t* definition, uint32_t 
     scene.layerIndex  = layerIndex;
     options->boundsCount = 0;
     scene.base           = (*FACEOE_Gfx_DrawList_Transform(drawList));
+    scene.isChip         = s_isChip;
+    (void)memset(s_isChip, 0, sizeof(s_isChip));
     IndexProperties(&scene);
+    // Collect the layer's animation widgets once so targets can be matched cheaply
+    scene.animationCount = 0;
+    for (widget_index = 0; (0.0f <= options->animationTime) && (widget_index < definition->widgetCount); ++widget_index)
+    {
+        if ((layerIndex == definition->widgets[widget_index].layerIndex) && (scene.animationCount < COUNT_OF(scene.animations)))
+        {
+            kind = KindOf(definition->widgets[widget_index].type);
+            if ((KIND_ANIMATION_TRANSLATION == kind) || (KIND_ANIMATION_ROTATION == kind) || (KIND_ANIMATION_SCALE == kind))
+            {
+                scene.animations[scene.animationCount] = widget_index;
+                scene.animationCount += 1;
+            }
+        }
+    }
     Arinc661_Scene_LayerSize(definition, layerIndex, &scene.layerWidth, &scene.layerHeight);
     if (options->fillsLayerArea)
     {

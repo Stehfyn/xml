@@ -59,5 +59,48 @@
                 </model>
             </a661_widget>
         </a661_widget>
+        <a661_widget name="StatusAnimations" type="A661_ANIMATION_GROUP">
+            <model>
+                <prop name="WidgetIdent" value="10"/>
+                <prop name="Anonymous" value="A661_FALSE"/>
+                <prop name="Type" value="0"/>
+                <prop name="Delay" value="0"/>
+                <prop name="AnimationRepetition" value="0"/>
+            </model>
+            <a661_widget name="SecondarySpin" type="A661_ANIMATION_ROTATION">
+                <model>
+                    <prop name="WidgetIdent" value="11"/>
+                    <prop name="Anonymous" value="A661_FALSE"/>
+                    <prop name="TargetWidgetID" value="3"/>
+                    <prop name="StyleSet" value="0"/>
+                    <prop name="CenterX" value="5000"/>
+                    <prop name="CenterY" value="6000"/>
+                    <prop name="FromAngle" value="0.0"/>
+                    <prop name="ToAngle" value="360.0"/>
+                    <prop name="AnimationLawRef" value="0"/>
+                    <prop name="Duration" value="4000"/>
+                    <prop name="Delay" value="500"/>
+                    <prop name="Direction" value="A661_CLOCKWISE"/>
+                    <prop name="NumberOfTurns" value="1"/>
+                    <prop name="AnimationRepetition" value="0"/>
+                </model>
+            </a661_widget>
+            <a661_widget name="StatusSlide" type="A661_ANIMATION_TRANSLATION">
+                <model>
+                    <prop name="WidgetIdent" value="12"/>
+                    <prop name="Anonymous" value="A661_FALSE"/>
+                    <prop name="TargetWidgetID" value="2"/>
+                    <prop name="StyleSet" value="0"/>
+                    <prop name="FromValueX" value="0"/>
+                    <prop name="FromValueY" value="0"/>
+                    <prop name="ToValueX" value="2000"/>
+                    <prop name="ToValueY" value="0"/>
+                    <prop name="AnimationLawRef" value="0"/>
+                    <prop name="Duration" value="2000"/>
+                    <prop name="Delay" value="0"/>
+                    <prop name="AnimationRepetition" value="1"/>
+                </model>
+            </a661_widget>
+        </a661_widget>
     </a661_layer>
 </a661_df>

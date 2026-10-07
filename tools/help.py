@@ -112,6 +112,7 @@ out.append('''/*================================================================
 **===============================================================================================*/
 
 #include "arinc661/arinc661_definition.h"
+#include "faceoe_utl/faceoe_utl_defines.h"
 
 #include "os/os_assert.h"
 
@@ -172,7 +173,7 @@ for code, w, first, cnt in widget_rows:
     out.append('    {%s, %s, %s, %s, %uU, %uU},' % (cstr(code), cstr(', '.join(w['categories'])), cstr(w['description']), cstr(w['restriction']), first, cnt))
 out.append('''};
 
-#define HELP_WIDGET_COUNT ((uint32_t)(sizeof(c_helpWidgets) / sizeof(c_helpWidgets[0])))
+#define HELP_WIDGET_COUNT ((uint32_t)COUNT_OF(c_helpWidgets))
 
 /*=================================================================================================
 ** 3.5 Static function prototypes

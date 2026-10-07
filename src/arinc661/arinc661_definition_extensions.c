@@ -12,6 +12,7 @@
 **===============================================================================================*/
 
 #include "arinc661/arinc661_definition.h"
+#include "faceoe_utl/faceoe_utl_defines.h"
 
 #include "os/os_assert.h"
 
@@ -88,7 +89,7 @@ static const ExtensionTargets_t c_extensionTargets[] =
     {"A661_WORD_WRAP_EXTENSION", c_targets19, 17U},
 };
 
-#define EXTENSION_TARGET_COUNT ((uint32_t)(sizeof(c_extensionTargets) / sizeof(c_extensionTargets[0])))
+#define EXTENSION_TARGET_COUNT ((uint32_t)COUNT_OF(c_extensionTargets))
 
 /*=================================================================================================
 ** 3.5 Static function prototypes

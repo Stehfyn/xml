@@ -446,7 +446,7 @@ const char_t* Arinc661_ParameterHelp(const char_t* type, const char_t* parameter
 
 /*************************************************************************************************/
 /**
- * rief Tells whether an extension may be attached to a widget type.
+ * \brief Tells whether an extension may be attached to a widget type.
  *
  * \par Details:
  *  Part 1-7, Table 8.4, Possible Widgets for Extension.
@@ -454,19 +454,19 @@ const char_t* Arinc661_ParameterHelp(const char_t* type, const char_t* parameter
  * \param[in] extensionType   Extension type name
  * \param[in] widgetType      Widget type name
  *
- * etval    TRUE            if the table lists the widget for the extension.
- * etval    FALSE           otherwise.
+ * \retval    TRUE            if the table lists the widget for the extension.
+ * \retval    FALSE           otherwise.
  */
 bool_t Arinc661_ExtensionApplies(const char_t* extensionType, const char_t* widgetType);
 
 /*************************************************************************************************/
 /**
- * rief Lists the widget types an extension may be attached to.
+ * \brief Lists the widget types an extension may be attached to.
  *
  * \param[in] extensionType   Extension type name
  * \param[in] index           Position in the list
  *
- * etval    const char_t*   Widget type name, or NULL past the end.
+ * \retval    const char_t*   Widget type name, or NULL past the end.
  */
 const char_t* Arinc661_ExtensionTarget(const char_t* extensionType, uint32_t index);
 

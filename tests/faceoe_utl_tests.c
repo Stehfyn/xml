@@ -46,6 +46,14 @@ void RunArinc661SceneTests(void);
 
 /*************************************************************************************************/
 /**
+ * \brief Runs the editor updater tests.
+ *
+ * \retval None
+ */
+void RunArinc661UpdateTests(void);
+
+/*************************************************************************************************/
+/**
  * \par Details:
  *  Exercises XML name validation through the public document writer.
  */
@@ -578,5 +586,6 @@ int main(void)
     RunFACEOEDisplayManagementTests();
     RunFACEOEGfxTests();
     RunArinc661SceneTests();
+    RunArinc661UpdateTests();
     return 0;
 }

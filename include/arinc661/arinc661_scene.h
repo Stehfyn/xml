@@ -57,6 +57,8 @@ typedef struct Arinc661_Scene_Options_s
     Arinc661_Scene_Bounds_t* bounds;            ///< Caller's bounds storage, or NULL
     uint32_t                 boundsCapacity;    ///< Bounds slots
     uint32_t                 boundsCount;       ///< Result: bounds written, in drawing order
+    const byte_t*            skipFlags;         ///< Per-widget non-zero to leave the widget and its subtree out, or NULL
+    float32_t                animationTime;     ///< Seconds into the layer's animations, or negative to draw the rest state
 } Arinc661_Scene_Options_t;
 
 /*=================================================================================================

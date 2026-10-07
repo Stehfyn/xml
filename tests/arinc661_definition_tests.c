@@ -737,6 +737,11 @@ static void TestExtensionApplicability(void)
     assert(NULL == Arinc661_ExtensionTarget("A661_NO_SUCH_EXTENSION", 0));
 }
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Runs every ARINC 661 Definition File test in order.
+ */
 void RunArinc661Tests(void)
 {
     TestExtensionApplicability();

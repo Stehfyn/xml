@@ -352,4 +352,16 @@ bool_t Arinc661_Context_NewApplication(Arinc661_Context_t* context);
  */
 uint32_t Arinc661_Context_DocumentErrors(const Arinc661_Context_t* context, bool_t isDefinition, uint32_t documentIndex);
 
+/*************************************************************************************************/
+/**
+ * \brief Builds: checks every document and writes the binary form of every open Definition File.
+ *
+ * \param[in,out] context    Context
+ * \param[out]    report     Multi-line report
+ * \param[in]     capacity   Bytes in report
+ *
+ * \retval        uint32_t   Number of errors found; zero means a clean build.
+ */
+uint32_t Arinc661_Context_Build(Arinc661_Context_t* context, char_t* report, uint32_t capacity);
+
 #endif /* ARINC661_CONTEXT_H */

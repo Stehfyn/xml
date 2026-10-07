@@ -56,7 +56,23 @@ typedef enum Arinc661_Icon_e
     ARINC661_ICON_SCREEN,
     ARINC661_ICON_LAYOUT,
     ARINC661_ICON_WINDOW,
-    ARINC661_ICON_APPLICATION
+    ARINC661_ICON_APPLICATION,
+    ARINC661_ICON_ALIGN_LEFT,
+    ARINC661_ICON_ALIGN_RIGHT,
+    ARINC661_ICON_ALIGN_TOP,
+    ARINC661_ICON_ALIGN_BOTTOM,
+    ARINC661_ICON_ALIGN_CENTER_X,
+    ARINC661_ICON_ALIGN_CENTER_Y,
+    ARINC661_ICON_DISTRIBUTE_X,
+    ARINC661_ICON_DISTRIBUTE_Y,
+    ARINC661_ICON_ZOOM_SELECTION,
+    ARINC661_ICON_EYE,
+    ARINC661_ICON_LOCK,
+    ARINC661_ICON_COPY,
+    ARINC661_ICON_PASTE,
+    ARINC661_ICON_SEARCH,
+    ARINC661_ICON_PLAY,
+    ARINC661_ICON_BUILD
 } Arinc661_Icon_t;
 
 /*=================================================================================================
@@ -73,7 +89,23 @@ typedef enum Arinc661_Icon_e
 
 /*************************************************************************************************/
 /**
- * \brief Draws one icon from primitives into a box.
+ * \brief Loads Segoe UI for text and merges Segoe MDL2 Assets for icons into the font atlas.
+ *
+ * \par Details:
+ *  Falls back to the built-in font when Segoe UI is not installed; icons then draw from
+ *  primitives. Call once after the ImGui context exists and before the first frame.
+ *
+ * \param[in] textSize   Text size in pixels before DPI scaling
+ *
+ * \retval    TRUE       if the Segoe icon font was merged.
+ * \retval    FALSE      otherwise.
+ */
+bool_t Arinc661_Icons_LoadFonts(float32_t textSize);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws one icon from the Segoe MDL2 glyph, or from primitives when the glyph is missing,
+ *  into a box.
  *
  * \param[in,out] drawList   Target draw list
  * \param[in]     icon       Icon to draw

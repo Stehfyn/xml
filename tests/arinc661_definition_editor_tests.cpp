@@ -60,8 +60,26 @@ int main(void)
 {
     Arinc661_Definition_Editor_t*   editor;
     Arinc661_Definition_Document_t* document;
+    Arinc661_Parameter_t            extension_parameter;
+    Arinc661_Parameter_t            parameter;
+    char_t                          value[ARINC661_MAX_PROPERTY_BYTES];
+    uint32_t                        type_index;
+    uint32_t                        parameter_count;
+    uint32_t                        parameter_index;
+    const char_t*                   animation_name;
+    const char_t*                   animation_type;
+    FILE*                           export_file;
+    char_t                          export_path[ARINC661_DEFINITION_MAX_FILE_PATH_BYTES];
     uint64_t                        byte_count;
     uint32_t                        extension_parameter_count;
+    uint32_t                        extension_index;
+    uint32_t                        single_count;
+    uint32_t                        widget_count_before;
+    uint32_t                        subtree_size;
+    uint32_t                        history_index;
+    float32_t                       button_state;
+    float32_t                       animation_delay;
+    float32_t                       animation_duration;
 
     Os_Diagnostics_Initialize();
     editor = (Arinc661_Definition_Editor_t*)OS_CALLOC(sizeof(Arinc661_Definition_Editor_t));
@@ -87,21 +105,16 @@ int main(void)
     assert(Arinc661_ExtensionApplies(document->widgets[1].type, "A661_PANEL"));
     assert(Arinc661_FindType(document->widgets[1].type, TRUE, &extension_parameter_count));
     /* Every single-valued parameter is seeded; arrays start empty */
+    single_count = 0;
+    for (extension_index = 0; extension_index < extension_parameter_count; ++extension_index)
     {
-        Arinc661_Parameter_t extension_parameter;
-        uint32_t             single_count;
-        uint32_t             extension_index;
-        single_count = 0;
-        for (extension_index = 0; extension_index < extension_parameter_count; ++extension_index)
+        (void)Arinc661_Parameter(document->widgets[1].type, TRUE, extension_index, &extension_parameter);
+        if (0 == extension_parameter.elementsPerEntry)
         {
-            (void)Arinc661_Parameter(document->widgets[1].type, TRUE, extension_index, &extension_parameter);
-            if (0 == extension_parameter.elementsPerEntry)
-            {
-                single_count += 1;
-            }
+            single_count += 1;
         }
-        assert(single_count == CountOwned(document, ARINC661_PROPERTY_WIDGET, 1));
     }
+    assert(single_count == CountOwned(document, ARINC661_PROPERTY_WIDGET, 1));
     AddWidget(document, 0, 2, FALSE);                                       /* widget 3: grandchild under 2 */
     AddWidget(document, 0, 0, FALSE);                                       /* widget 4: second child of 0, after the subtree of 2 */
     assert(5 == document->definition.widgetCount);
@@ -159,67 +172,60 @@ int main(void)
     assert(14 == CountOwned(document, ARINC661_PROPERTY_WIDGET, 0));
 
     /* Every widget and extension type seeds a property set that writes as binary */
+    for (type_index = 0; type_index < Arinc661_TypeCount(FALSE); ++type_index)
     {
-        Arinc661_Parameter_t parameter;
-        uint32_t             type_index;
-        uint32_t             parameter_count;
-        uint32_t             parameter_index;
-        char_t               value[ARINC661_MAX_PROPERTY_BYTES];
-        for (type_index = 0; type_index < Arinc661_TypeCount(FALSE); ++type_index)
+        strcpy(document->widgets[0].type, Arinc661_TypeName(FALSE, type_index));
+        (void)ConformParameters(document, 0);
+        if (0 == Arinc661_WriteDefinitionBinary(&document->definition, document->outputBuffer, sizeof(document->outputBuffer)))
         {
-            strcpy(document->widgets[0].type, Arinc661_TypeName(FALSE, type_index));
-            (void)ConformParameters(document, 0);
-            if (0 == Arinc661_WriteDefinitionBinary(&document->definition, document->outputBuffer, sizeof(document->outputBuffer)))
+            fprintf(stderr, "seed write failed for %s\n", document->widgets[0].type);
+            for (parameter_index = 0; parameter_index < document->definition.propertyCount; ++parameter_index)
             {
-                fprintf(stderr, "seed write failed for %s\n", document->widgets[0].type);
-                for (parameter_index = 0; parameter_index < document->definition.propertyCount; ++parameter_index)
+                if ((ARINC661_PROPERTY_WIDGET == document->properties[parameter_index].owner) && (0 == document->properties[parameter_index].ownerIndex))
                 {
-                    if ((ARINC661_PROPERTY_WIDGET == document->properties[parameter_index].owner) && (0 == document->properties[parameter_index].ownerIndex))
-                    {
-                        fprintf(stderr, "  %s = %s\n", document->properties[parameter_index].name, document->properties[parameter_index].value);
-                    }
-                }
-                assert(FALSE);
-            }
-            /* Growing every array to two entries still writes */
-            assert(Arinc661_FindType(document->widgets[0].type, FALSE, &parameter_count));
-            for (parameter_index = 0; parameter_index < parameter_count; ++parameter_index)
-            {
-                (void)Arinc661_Parameter(document->widgets[0].type, FALSE, parameter_index, &parameter);
-                if (0 != parameter.elementsPerEntry)
-                {
-                    strcpy(document->properties[FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, 0, parameter.countName)].value, "2");
+                    fprintf(stderr, "  %s = %s\n", document->properties[parameter_index].name, document->properties[parameter_index].value);
                 }
             }
-            for (parameter_index = 0; parameter_index < parameter_count; ++parameter_index)
+            assert(FALSE);
+        }
+        /* Growing every array to two entries still writes */
+        assert(Arinc661_FindType(document->widgets[0].type, FALSE, &parameter_count));
+        for (parameter_index = 0; parameter_index < parameter_count; ++parameter_index)
+        {
+            (void)Arinc661_Parameter(document->widgets[0].type, FALSE, parameter_index, &parameter);
+            if (0 != parameter.elementsPerEntry)
             {
-                (void)Arinc661_Parameter(document->widgets[0].type, FALSE, parameter_index, &parameter);
-                if (0 != parameter.elementsPerEntry)
-                {
-                    (void)SyncArrayLength(document, 0, &parameter);
-                    assert(INVALID_HIERARCHY_INDEX != FindOwnedPropertyAt(document, ARINC661_PROPERTY_WIDGET, 0, parameter.name, (2 * parameter.elementsPerEntry) - 1));
-                    assert(INVALID_HIERARCHY_INDEX == FindOwnedPropertyAt(document, ARINC661_PROPERTY_WIDGET, 0, parameter.name, 2 * parameter.elementsPerEntry));
-                    DefaultParameterValue(&parameter, value, sizeof(value));
-                }
-            }
-            if (0 == Arinc661_WriteDefinitionBinary(&document->definition, document->outputBuffer, sizeof(document->outputBuffer)))
-            {
-                fprintf(stderr, "array write failed for %s\n", document->widgets[0].type);
-                assert(FALSE);
+                strcpy(document->properties[FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, 0, parameter.countName)].value, "2");
             }
         }
-        strcpy(document->widgets[0].type, "A661_PANEL");
-        (void)ConformParameters(document, 0);
-        AddWidget(document, 0, 0, TRUE);
-        for (type_index = 0; type_index < Arinc661_TypeCount(TRUE); ++type_index)
+        for (parameter_index = 0; parameter_index < parameter_count; ++parameter_index)
         {
-            strcpy(document->widgets[1].type, Arinc661_TypeName(TRUE, type_index));
-            (void)ConformParameters(document, 1);
-            if (0 == Arinc661_WriteDefinitionBinary(&document->definition, document->outputBuffer, sizeof(document->outputBuffer)))
+            (void)Arinc661_Parameter(document->widgets[0].type, FALSE, parameter_index, &parameter);
+            if (0 != parameter.elementsPerEntry)
             {
-                fprintf(stderr, "extension write failed for %s\n", document->widgets[1].type);
-                assert(FALSE);
+                (void)SyncArrayLength(document, 0, &parameter);
+                assert(INVALID_HIERARCHY_INDEX != FindOwnedPropertyAt(document, ARINC661_PROPERTY_WIDGET, 0, parameter.name, (2 * parameter.elementsPerEntry) - 1));
+                assert(INVALID_HIERARCHY_INDEX == FindOwnedPropertyAt(document, ARINC661_PROPERTY_WIDGET, 0, parameter.name, 2 * parameter.elementsPerEntry));
+                DefaultParameterValue(&parameter, value, sizeof(value));
             }
+        }
+        if (0 == Arinc661_WriteDefinitionBinary(&document->definition, document->outputBuffer, sizeof(document->outputBuffer)))
+        {
+            fprintf(stderr, "array write failed for %s\n", document->widgets[0].type);
+            assert(FALSE);
+        }
+    }
+    strcpy(document->widgets[0].type, "A661_PANEL");
+    (void)ConformParameters(document, 0);
+    AddWidget(document, 0, 0, TRUE);
+    for (type_index = 0; type_index < Arinc661_TypeCount(TRUE); ++type_index)
+    {
+        strcpy(document->widgets[1].type, Arinc661_TypeName(TRUE, type_index));
+        (void)ConformParameters(document, 1);
+        if (0 == Arinc661_WriteDefinitionBinary(&document->definition, document->outputBuffer, sizeof(document->outputBuffer)))
+        {
+            fprintf(stderr, "extension write failed for %s\n", document->widgets[1].type);
+            assert(FALSE);
         }
     }
 
@@ -279,8 +285,73 @@ int main(void)
     AddWidget(document, 0, INVALID_HIERARCHY_INDEX, FALSE);
     CommitHistory(document);
     assert(0 == document->redoCount);
+    /* History states carry labels: the open state, then the addition */
+    assert(2 == Arinc661_Definition_HistoryCount(editor, &history_index));
+    assert(1 == history_index);
+    assert(0 == strcmp(HISTORY_OPEN_LABEL, Arinc661_Definition_HistoryLabel(editor, 0)));
+    assert(0 == strncmp("Add ", Arinc661_Definition_HistoryLabel(editor, 1), 4));
+    Arinc661_Definition_GoToHistory(editor, 0);
+    assert(8 == document->definition.widgetCount);
+    Arinc661_Definition_GoToHistory(editor, 1);
+    assert(9 == document->definition.widgetCount);
     ClearHistory(document);
     assert(NULL == document->shadow);
+
+    /* Play mode: interaction flips a toggle and wraps a one-state button; stopping restores both */
+    AddWidget(document, 0, INVALID_HIERARCHY_INDEX, FALSE);
+    strcpy(document->widgets[9].type, "A661_TOGGLE_BUTTON");
+    assert(ConformParameters(document, 9));
+    AddWidget(document, 0, INVALID_HIERARCHY_INDEX, FALSE);
+    strcpy(document->widgets[10].type, "A661_MULTI_STATE_BUTTON");
+    assert(ConformParameters(document, 10));
+    strcpy(document->properties[FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, 9, "ToggleState")].value, "A661_UNSELECTED");
+    document->isDirty = FALSE;
+    Arinc661_Definition_BeginPlay(editor);
+    assert(editor->isPlaying);
+    assert(Arinc661_Definition_Interact(editor, 0, 9, 0.5f, 0.5f));
+    assert(0 == strcmp("A661_SELECTED", document->properties[FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, 9, "ToggleState")].value));
+    assert(Arinc661_Definition_Interact(editor, 0, 10, 0.5f, 0.5f));
+    assert(GetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, 10, "ButtonState", &button_state));
+    assert(1.0f == button_state);
+    assert(FALSE == Arinc661_Definition_Interact(editor, 0, 0, 0.5f, 0.5f));
+    Arinc661_Definition_EndPlay(editor);
+    assert(FALSE == editor->isPlaying);
+    assert(FALSE == document->isDirty);
+    assert(0 == strcmp("A661_UNSELECTED", document->properties[FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, 9, "ToggleState")].value));
+
+    /* Animations are listed in seconds */
+    AddWidget(document, 0, INVALID_HIERARCHY_INDEX, FALSE);
+    strcpy(document->widgets[11].type, "A661_ANIMATION_ROTATION");
+    assert(ConformParameters(document, 11));
+    SetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, 11, "Delay", 500.0f);
+    SetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, 11, "Duration", 2000.0f);
+    assert(Arinc661_Definition_AnimationAt(editor, 0, &animation_name, &animation_type, &animation_delay, &animation_duration));
+    assert(0 == strcmp("A661_ANIMATION_ROTATION", animation_type));
+    assert(0.5f == animation_delay);
+    assert(2.0f == animation_duration);
+    assert(FALSE == Arinc661_Definition_AnimationAt(editor, 1, &animation_name, &animation_type, &animation_delay, &animation_duration));
+
+    /* Export writes the binary twin beside the XML path */
+    strcpy(document->documentPath, "arinc661_editor_export_test.xml");
+    assert(Arinc661_Definition_ExportBinary(editor, 0, export_path, sizeof(export_path)));
+    assert(0 == strcmp("arinc661_editor_export_test.bin", export_path));
+    export_file = fopen(export_path, "rb");
+    assert(NULL != export_file);
+    (void)fclose(export_file);
+    (void)remove(export_path);
+    assert(FALSE == Arinc661_Definition_ExportBinary(editor, 1, export_path, sizeof(export_path)));
+
+    /* A prefab round trip: the selected panel subtree is saved, then pasted back from the file */
+    strcpy(editor->folderPath, ".");
+    SelectOnly(document, 0);
+    widget_count_before = document->definition.widgetCount;
+    subtree_size        = SubtreeEnd(document, 0);
+    assert(0 < Arinc661_Definition_Copy(editor));
+    assert(Arinc661_Definition_SavePrefab(editor, "editor_test_prefab", export_path, sizeof(export_path)));
+    assert(FALSE == Arinc661_Definition_SavePrefab(editor, "bad/name", export_path, sizeof(export_path)));
+    assert(Arinc661_Definition_LoadPrefab(editor, "editor_test_prefab.prefab.xml"));
+    assert(document->definition.widgetCount == (widget_count_before + subtree_size));
+    (void)remove("./editor_test_prefab.prefab.xml");
 
     return 0;
 }

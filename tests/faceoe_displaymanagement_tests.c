@@ -1,4 +1,5 @@
 #include "faceoe/faceoe_displaymanagement.h"
+#include "faceoe_utl/faceoe_utl_defines.h"
 
 #ifdef NDEBUG
 #undef NDEBUG
@@ -24,6 +25,7 @@ static void TestConfiguration(void)
     FACEOE_DisplayManagement_ExternalSource_t sources[2];
     FACEOE_DisplayManagement_Configuration_t configuration;
     uint64_t output_byte_count;
+    char_t* scale_text;
     bool_t is_valid;
 
     memset(&configuration, 0, sizeof(configuration));
@@ -81,14 +83,13 @@ static void TestConfiguration(void)
     assert(1.0e-40f == windows[0].scalingFactor.xScale);
     assert(FLT_MAX == windows[0].scalingFactor.yScale);
 
-    {
-        char_t* scale_text = strstr((char_t*)input, "xScale=\"20.0\"");
-        assert(NULL != scale_text);
-        memcpy(scale_text + (sizeof("xScale=\"") - 1), "1e03", 4);
-        is_valid = FACEOE_DisplayManagement_ReadConfiguration(&configuration, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
-        assert(FALSE == is_valid);
-        assert(0 == configuration.screenCount);
-    }
+    /* A scale with an exponent is rejected */
+    scale_text = strstr((char_t*)input, "xScale=\"20.0\"");
+    assert(NULL != scale_text);
+    memcpy(scale_text + (sizeof("xScale=\"") - 1), "1e03", 4);
+    is_valid = FACEOE_DisplayManagement_ReadConfiguration(&configuration, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
+    assert(FALSE == is_valid);
+    assert(0 == configuration.screenCount);
 }
 
 /*************************************************************************************************/
@@ -196,7 +197,7 @@ static void TestConfigurationSchema(void)
     assert(NULL != strstr((const char_t*)output, "xsi:noNamespaceSchemaLocation=\"H3.xsd\""));
     assert(0 == FACEOE_DisplayManagement_WriteConfiguration(&configuration, output, byte_count - 1, c_workspace, sizeof(c_workspace)));
 
-    for (index = 0; index < sizeof(invalid_inputs) / sizeof(invalid_inputs[0]); ++index)
+    for (index = 0; index < COUNT_OF(invalid_inputs); ++index)
     {
         strcpy((char_t*)input, invalid_inputs[index]);
         configuration.hasXmlDeclaration = TRUE;

@@ -888,3 +888,49 @@ uint32_t Arinc661_Context_DocumentErrors(const Arinc661_Context_t* context, bool
 
     return count;
 }
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Runs the check first; binaries are written whatever the result so the report shows both.
+ */
+uint32_t Arinc661_Context_Build(Arinc661_Context_t* context, char_t* report, uint32_t capacity)
+{
+    char_t   path[ARINC661_DEFINITION_MAX_FILE_PATH_BYTES];
+    uint32_t document_index;
+    uint32_t errors;
+    size_t   used;
+
+    LOGASSERT(NULL != context);
+    LOGASSERT(NULL != report);
+    report[0] = '\0';
+    used      = 0;
+    (void)Arinc661_Context_Check(context);
+    errors = context->errorCount;
+    for (document_index = 0; document_index < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS; ++document_index)
+    {
+        if (NULL == Arinc661_Definition_DocumentName(context->definitionEditor, document_index))
+        {
+            continue;
+        }
+        if (Arinc661_Definition_ExportBinary(context->definitionEditor, document_index, path, sizeof(path)))
+        {
+            used += (size_t)snprintf(&report[used], capacity - used, "Wrote %s\n", path);
+        }
+        else
+        {
+            used += (size_t)snprintf(&report[used], capacity - used, "Could not write the binary form of %s\n", Arinc661_Definition_DocumentName(context->definitionEditor, document_index));
+            errors += 1;
+        }
+        if (used >= capacity)
+        {
+            break;
+        }
+    }
+    if (used < capacity)
+    {
+        (void)snprintf(&report[used], capacity - used, "Build finished: %u errors, %u warnings.", (unsigned)errors, (unsigned)(context->problemCount - context->errorCount));
+    }
+
+    return errors;
+}

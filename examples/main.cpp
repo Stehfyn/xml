@@ -9,9 +9,12 @@
 **===============================================================================================*/
 
 #include "arinc661_configuration.h"
+#include "faceoe_utl/faceoe_utl_defines.h"
 #include "arinc661_context.h"
 #include "arinc661_icons.h"
 #include "arinc661_definition_editor.h"
+#include "arinc661_update.h"
+#include "arinc661_version.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "imgui_impl_opengl3.h"
@@ -33,6 +36,8 @@ extern "C"
 #endif
 #include <windows.h>
 #include <shellapi.h>
+#include <shobjidl.h>
+#include <shlobj.h>
 #include <winternl.h>
 #include <d3dkmthk.h>
 #include <dwmapi.h>
@@ -42,6 +47,7 @@ extern "C"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 
 /*=================================================================================================
 ** 3. DECLARATIONS
@@ -68,7 +74,30 @@ extern "C"
 #define FOLDER_PATH_LABEL           ("Folder")
 #define FOLDER_INPUT_ID             ("##pageFolderPath")
 #define FILE_LIST_ID                ("##pageFiles")
-#define FILE_LIST_ROWS              (4)
+#define FILE_LIST_ROWS              (6)
+#define FILE_COLUMN_COUNT           (5)
+#define FILE_COLUMN_NAME            ("Name")
+#define FILE_COLUMN_KIND            ("Kind")
+#define FILE_COLUMN_SIZE            ("Size")
+#define FILE_COLUMN_MODIFIED        ("Modified")
+#define FILE_COLUMN_STATE           ("State")
+#define FILE_COLUMN_NAME_ID         (1)
+#define FILE_COLUMN_KIND_ID         (2)
+#define FILE_COLUMN_SIZE_ID         (3)
+#define FILE_COLUMN_MODIFIED_ID     (4)
+#define FILE_COLUMN_STATE_ID        (5)
+#define FILE_TABLE_FLAGS            (ImGuiTableFlags_Sortable | ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY | ImGuiTableFlags_SizingStretchProp)
+#define FILE_KIND_DEFINITION        ("Definition File")
+#define FILE_KIND_CONFIGURATION     ("Configuration")
+#define FILE_STATE_OPEN             ("Open")
+#define FILE_STATE_MODIFIED         ("Modified")
+#define FILE_STATE_CLOSED           ("")
+#define FILE_ROW_MENU_ID            ("##file row menu")
+#define FILE_OPEN_ROW_LABEL         ("Open")
+#define SIZE_BYTES_FORMAT           ("%llu B")
+#define SIZE_KILOBYTES_FORMAT       ("%.1f KB")
+#define SIZE_MEGABYTES_FORMAT       ("%.1f MB")
+#define TIME_FORMAT                 ("%04u-%02u-%02u %02u:%02u")
 #define CONFIGURATION_FILE_FORMAT   ("[Configuration]    %s")
 #define DEFINITION_FILE_FORMAT      ("[Definition File]  %s")
 #define NO_FILES_LABEL              ("No configuration or Definition Files in this folder.")
@@ -118,6 +147,141 @@ extern "C"
 #define HELP_CHORD                  (ImGuiKey_F1)
 #define HELP_BROWSER_CHORD          (ImGuiMod_Shift | ImGuiKey_F1)
 #define TOOLBAR_ID                  ("##toolbar")
+#define UI_TEXT_SIZE                (16.0f)
+#define PLAY_LABEL                  ("Play")
+#define RECENT_MENU_LABEL           ("Open Recent")
+#define OPEN_FILE_LABEL             ("Open File...")
+#define OPEN_FILE_SHORTCUT          ("Ctrl+O")
+#define OPEN_FILE_CHORD             (ImGuiMod_Ctrl | ImGuiKey_O)
+#define OPEN_FOLDER_LABEL           ("Open Folder...")
+#define REVEAL_LABEL                ("Reveal in Explorer")
+#define OPEN_DIALOG_TITLE           (L"Open a Definition File or configuration")
+#define FOLDER_DIALOG_TITLE         (L"Open a folder of Definition Files and configurations")
+#define NOT_A_DOCUMENT_FORMAT       ("%s is not an ARINC 661 Definition File or a FACE configuration.")
+#define OPENED_PATH_FORMAT          ("Opened %s")
+#define ICON_RESOURCE_ID            (1)
+#define ABOUT_LABEL                 ("About CDS Editor")
+#define ABOUT_POPUP_ID              ("About CDS Editor##about")
+// Unparenthesised so it stays one string literal
+#define ABOUT_DETAILS_FORMAT        "Version %s\nBuilt %s %s\nDear ImGui %s (docking)\nOpenGL %s\nInstalled in %s\n"
+#define ABOUT_UPDATE_URL_FORMAT     ("Update source: %s")
+#define ABOUT_NO_UPDATE_URL_LABEL   ("Update source: not configured (set updateUrl in cds-editor.cfg or UpdateUrl in the registry)")
+#define ABOUT_COPY_LABEL            ("Copy Details")
+#define ABOUT_CLOSE_LABEL           ("Close")
+#define ABOUT_HELP_LABEL            ("Open Help")
+#define ABOUT_DESCRIPTION_LABEL     ("Cockpit Display System editor: ARINC 661 Definition Files and FACE display management configurations.")
+#define ABOUT_COPYRIGHT_LABEL       ("FACEOE. Segoe UI and Segoe MDL2 Assets are Microsoft fonts used from the local system.")
+#define CHECK_UPDATES_LABEL         ("Check for Updates...")
+#define UPDATE_POPUP_ID             ("Software Update##update")
+#define UPDATE_AVAILABLE_FORMAT     ("Version %s is available (you have %s).")
+#define UPDATE_NOTES_FORMAT         ("What's new: %s")
+#define UPDATE_INSTALL_LABEL        ("Download and Install")
+#define UPDATE_LATER_LABEL          ("Later")
+#define UPDATE_SKIP_LABEL           ("Skip This Version")
+#define UPDATE_DOWNLOADING_LABEL    ("Downloading the update...")
+#define UPDATE_CHECKING_LABEL       ("Checking for updates...")
+#define UPDATE_UP_TO_DATE_LABEL     ("You have the newest version.")
+#define UPDATE_UNREACHABLE_LABEL    ("The update source could not be reached.")
+#define UPDATE_MALFORMED_LABEL      ("The update source did not return a readable manifest.")
+#define UPDATE_CORRUPT_LABEL        ("The downloaded package failed its integrity check and was not installed.")
+#define UPDATE_NO_SOURCE_LABEL      ("No update source is configured.")
+#define UPDATE_APPLY_FAIL_LABEL     ("The installer could not be started.")
+#define UPDATE_APPLYING_LABEL       ("Installing the update; the editor will restart.")
+#define UPDATE_OK_LABEL             ("OK")
+#define UPDATE_STATE_IDLE           (0)
+#define UPDATE_STATE_CHECKING       (1)
+#define UPDATE_STATE_CHECKED        (2)
+#define UPDATE_STATE_DOWNLOADING    (3)
+#define UPDATE_STATE_DOWNLOADED     (4)
+#define UPDATE_CHECK_INTERVAL_SECONDS (24.0 * 60.0 * 60.0)
+#define PREFERENCE_UPDATE_URL_KEY   ("updateUrl")
+#define PREFERENCE_UPDATE_CHECKED_KEY ("updateChecked")
+#define PREFERENCE_UPDATE_SKIP_KEY  ("updateSkip")
+#define UPDATE_REGISTRY_KEY         ("Software\\FACEOE\\CDS Editor")
+#define UPDATE_REGISTRY_VALUE       ("UpdateUrl")
+#define WINDOW_TITLE                (L"CDS Editor")
+#define WINDOW_DEFAULT_WIDTH        (1280)
+#define WINDOW_DEFAULT_HEIGHT       (800)
+#define DIALOG_IDLE                 (0)
+#define DIALOG_RUNNING              (1)
+#define DIALOG_PICKED_FILE          (2)
+#define DIALOG_PICKED_FOLDER        (3)
+#define DIALOG_CANCELLED            (4)
+#define BROWSE_FILE_LABEL           ("Browse File...")
+#define BROWSE_FOLDER_LABEL         ("Browse...")
+#define PREFAB_EXTENSION            (".prefab.xml")
+#define PREFAB_SECTION_LABEL        ("Prefabs")
+#define PREFAB_HINT_LABEL           ("Click to add the prefab at the selection")
+#define SAVE_PREFAB_LABEL           ("Save Selection as Prefab...")
+#define SAVE_PREFAB_POPUP_ID        ("Save Prefab")
+#define SAVE_PREFAB_NAME_HINT       ("Prefab name")
+#define SAVE_PREFAB_OK_LABEL        ("Save")
+#define SAVE_PREFAB_CANCEL_LABEL    ("Cancel")
+#define SAVE_PREFAB_NOTE_FORMAT     ("Saved prefab %s")
+#define SAVE_PREFAB_FAIL_LABEL      ("Could not save the prefab; the name must be a plain file name and something must be selected.")
+#define MAX_PREFABS                 (64)
+#define RECENT_EMPTY_LABEL          ("(no recent files)")
+#define RECENT_CLEAR_LABEL          ("Clear Recent")
+#define RECENT_COUNT                (8)
+#define PREFERENCE_RECENT_KEY       ("recent")
+#define PREFERENCE_FOLDER_KEY       ("folder")
+#define START_TITLE_LABEL           ("CDS Editor")
+#define START_SUBTITLE_LABEL        ("Open a file from the Files panel or the list below, or start something new.")
+#define START_RECENT_LABEL          ("Recent")
+#define START_LEARN_LABEL           ("Learn")
+#define START_OPEN_HELP_LABEL       ("Open the reference (F1)")
+#define START_SHORTCUTS_LABEL       ("Keyboard shortcuts")
+#define START_BUTTON_WIDTH          (220.0f)
+#define LOG_FILTER_HINT             ("Filter log")
+#define LOG_ERRORS_LABEL            ("Errors")
+#define LOG_WARNINGS_LABEL          ("Warnings")
+#define LOG_INFO_LABEL              ("Info")
+#define LOG_ERROR_COLOR             (ImVec4(1.0f, 0.45f, 0.45f, 1.0f))
+#define LOG_WARNING_COLOR           (ImVec4(1.0f, 0.8f, 0.4f, 1.0f))
+#define STOP_LABEL                  ("Stop")
+#define PLAY_SHORTCUT_LABEL         ("F5")
+#define PLAY_CHORD                  (ImGuiKey_F5)
+#define BUILD_LABEL                 ("Build All")
+#define BUILD_SHORTCUT_LABEL        ("F7")
+#define BUILD_CHORD                 (ImGuiKey_F7)
+#define BUILD_REPORT_BYTES          (8192)
+#define COMMAND_PALETTE_LABEL       ("Command Palette")
+#define COMMAND_PALETTE_SHORTCUT    ("Ctrl+Shift+P")
+#define COMMAND_PALETTE_CHORD       (ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_P)
+#define COMMAND_PALETTE_ID          ("##command palette")
+#define COMMAND_PALETTE_HINT        ("Type a command, a file, or a widget name")
+#define COMMAND_PALETTE_ROWS        (12.0f)
+#define TIMELINE_PLAY_LABEL         ("Play")
+#define TIMELINE_PAUSE_LABEL        ("Pause")
+#define TIMELINE_STOP_LABEL         ("Rest")
+#define TIMELINE_LOOP_LABEL         ("Loop")
+#define TIMELINE_TIME_LABEL         ("Time (s)")
+#define TIMELINE_EMPTY_LABEL        ("The active Definition File has no animation widgets; add an AnimationGroup with rotation, scale, translation, or parameter animations.")
+#define TIMELINE_BAR_COLOR          (IM_COL32(97, 160, 245, 160))
+#define TIMELINE_CURSOR_COLOR       (IM_COL32(255, 200, 80, 255))
+#define TIMELINE_ROW_HEIGHT         (20.0f)
+#define TIMELINE_NAME_WIDTH         (220.0f)
+#define STATS_FORMAT                ("%u widgets  |  %u commands  |  %u points  |  %.1f ms")
+#define PLAY_BANNER_LABEL           ("PLAY MODE: clicks act as a crew member; Stop restores the documents")
+#define PLAY_BANNER_COLOR           (ImVec4(1.0f, 0.75f, 0.3f, 1.0f))
+#define COPY_LABEL                  ("Copy")
+#define PASTE_LABEL                 ("Paste")
+#define RENAME_LABEL                ("Rename")
+#define COPY_SHORTCUT_LABEL         ("Ctrl+C")
+#define PASTE_SHORTCUT_LABEL        ("Ctrl+V")
+#define RENAME_SHORTCUT_LABEL       ("F2")
+#define COPY_CHORD                  (ImGuiMod_Ctrl | ImGuiKey_C)
+#define PASTE_CHORD                 (ImGuiMod_Ctrl | ImGuiKey_V)
+#define RENAME_CHORD                (ImGuiKey_F2)
+#define UI_SCALE_LABEL              ("UI Scale")
+#define THEME_DARK_LABEL            ("Dark Theme")
+#define THEME_LIGHT_LABEL           ("Light Theme")
+#define SHORTCUTS_LABEL             ("Keyboard Shortcuts")
+#define UI_SCALE_MIN                (0.75f)
+#define UI_SCALE_MAX                (2.0f)
+#define PREFERENCES_FILE            ("cds-editor.cfg")
+#define PREFERENCE_SCALE_KEY        ("scale")
+#define PREFERENCE_THEME_KEY        ("theme")
 #define HELP_PAGE_PATH              ("docs\\arinc661_help.html")
 #define HELP_CHM_PATH               ("docs\\arinc661.chm")
 #define HELP_LIBRARY_NAME           ("hhctrl.ocx")
@@ -164,7 +328,11 @@ extern "C"
 #define PANEL_LOG                   ("Log")
 #define WINDOW_MENU_LABEL           ("Window")
 #define RESET_LAYOUT_LABEL          ("Reset Layout")
-#define PANEL_COUNT                 (7)
+#define PANEL_COUNT                 (9)
+#define PANEL_TIMELINE              ("Timeline")
+#define PANEL_HISTORY               ("History")
+#define HISTORY_EMPTY_LABEL         ("No Definition File is active.")
+#define HISTORY_CURRENT_MARK        ("  <- current")
 #define PALETTE_FILTER_HINT         ("Filter widgets")
 #define PALETTE_PAYLOAD_ID          ("A661_PALETTE_TYPE")
 #define PALETTE_HINT_LABEL          ("Click to add to the selection; drag onto a container, a layer, or the scene.")
@@ -176,7 +344,7 @@ extern "C"
 #define LOG_CLEAR_LABEL             ("Clear")
 #define LOG_AUTOSCROLL_LABEL        ("Auto-scroll")
 #define LAYOUT_LEFT_FRACTION        (0.22f)
-#define LAYOUT_RIGHT_FRACTION       (0.26f)
+#define LAYOUT_RIGHT_FRACTION       (0.30f)
 #define LAYOUT_BOTTOM_FRACTION      (0.24f)
 #define LAYOUT_PALETTE_FRACTION     (0.40f)
 #define HELP_WRAP_WIDTH             (420.0f)
@@ -189,6 +357,10 @@ extern "C"
 #define OPEN_CONFIGURATION_OPTION   ("--configuration")
 #define FOCUS_DEFINITION_OPTION     ("--focus-definition")
 #define SELECT_OPTION               ("--select")
+#define TIME_OPTION                 ("--time")
+#define PLAY_OPTION                 ("--play")
+#define ABOUT_OPTION                ("--about")
+#define CHECK_UPDATES_OPTION        ("--check-updates")
 #define FRAMES_OPTION               ("--frames")
 #define SCREENSHOT_DEFAULT_FRAMES   (12)
 #define BMP_HEADER_BYTES            (54)
@@ -223,10 +395,10 @@ extern "C"
 /** Dockable panels, indexed into panelOpen. */
 typedef enum Panel_e
 {
-    PANEL_INDEX_FILES, PANEL_INDEX_PROBLEMS, PANEL_INDEX_HIERARCHY, PANEL_INDEX_PALETTE, PANEL_INDEX_SCENE, PANEL_INDEX_INSPECTOR, PANEL_INDEX_LOG
+    PANEL_INDEX_FILES, PANEL_INDEX_PROBLEMS, PANEL_INDEX_HIERARCHY, PANEL_INDEX_PALETTE, PANEL_INDEX_SCENE, PANEL_INDEX_INSPECTOR, PANEL_INDEX_LOG, PANEL_INDEX_TIMELINE, PANEL_INDEX_HISTORY
 } Panel_t;
 
-static const char_t* const c_panelNames[PANEL_COUNT] = {PANEL_FILES, PANEL_PROBLEMS, PANEL_HIERARCHY, PANEL_PALETTE, PANEL_SCENE, PANEL_INSPECTOR, PANEL_LOG};
+static const char_t* const c_panelNames[PANEL_COUNT] = {PANEL_FILES, PANEL_PROBLEMS, PANEL_HIERARCHY, PANEL_PALETTE, PANEL_SCENE, PANEL_INSPECTOR, PANEL_LOG, PANEL_TIMELINE, PANEL_HISTORY};
 
 /** FACE H.3 element help shown beside the ARINC 661 reference. */
 typedef struct FaceTopic_s
@@ -283,6 +455,41 @@ typedef struct WindowThreadState_s
     uint32_t                         logCount;                            ///< Lines written to the ring.
     char_t                           lastStatus[LOG_LINE_BYTES];          ///< Last status text appended.
     bool                             logAutoScroll;                       ///< TRUE to keep the log scrolled to the end.
+    float32_t                        uiScale;                             ///< Font scale chosen in the View menu.
+    bool_t                           isTimelinePlaying;                   ///< TRUE while the timeline advances with the clock.
+    bool_t                           isTimelineLooping;                   ///< TRUE to wrap at the end.
+    float32_t                        timelineTime;                        ///< Current animation time in seconds.
+    float32_t                        timelineLength;                      ///< End of the last animation in seconds.
+    bool_t                           isPaletteOpen;                       ///< TRUE while the command palette is shown.
+    char_t                           recentNames[RECENT_COUNT][MAX_FILE_PATH_BYTES]; ///< Most recently opened files as full paths, newest first.
+    char_t                           pendingOpenPath[MAX_FILE_PATH_BYTES]; ///< A path dropped on the window or given on the command line, opened next frame.
+    std::atomic<int32_t>             dialogState;                         ///< DIALOG_* state of the native picker running on its own thread.
+    std::atomic<int32_t>             updateState;                         ///< UPDATE_STATE_* of the updater thread.
+    Arinc661_Update_Result_t         updateResult;                        ///< Outcome of the last check or download, read once the state settles.
+    Arinc661_Update_Manifest_t       updateManifest;                      ///< What the update source offers.
+    char_t                           updateUrl[ARINC661_UPDATE_MAX_URL_BYTES]; ///< Manifest source, empty when not configured.
+    char_t                           updatePackagePath[MAX_FILE_PATH_BYTES]; ///< Downloaded package.
+    char_t                           updateSkipVersion[ARINC661_UPDATE_MAX_VERSION_BYTES]; ///< Version the user chose to skip.
+    float64_t                        updateCheckedAt;                     ///< Unix time of the last automatic check.
+    bool_t                           updateIsManual;                      ///< TRUE when the user asked, so every outcome is shown.
+    bool_t                           opensUpdatePopup;                    ///< TRUE to open the update pop-up this frame.
+    bool_t                           opensAboutPopup;                     ///< TRUE to open the About box this frame.
+    bool_t                           isApplyingUpdate;                    ///< TRUE once the installer has been started.
+    bool_t                           dialogIsFolder;                      ///< TRUE while the running picker picks a folder.
+    char_t                           dialogPath[MAX_FILE_PATH_BYTES];     ///< Path the picker chose, read once the state says picked.
+    char_t                           prefabNames[MAX_PREFABS][MAX_FILE_NAME_BYTES];  ///< Prefab files found by the last folder scan.
+    uint32_t                         prefabCount;                         ///< Entries in the prefab list.
+    bool_t                           opensPrefabPopup;                    ///< TRUE to open the save-prefab pop-up this frame.
+    char_t                           prefabName[MAX_FILE_NAME_BYTES];     ///< Name typed into the save-prefab pop-up.
+    bool_t                           recentIsDefinition[RECENT_COUNT];    ///< Kind of each recent file.
+    uint32_t                         recentCount;                         ///< Entries in the recent list.
+    char_t                           logFilter[MAX_HELP_FILTER_BYTES];    ///< Log text filter.
+    bool_t                           logShowsErrors;                      ///< TRUE to list error lines.
+    bool_t                           logShowsWarnings;                    ///< TRUE to list warning lines.
+    bool_t                           logShowsInfo;                        ///< TRUE to list the other lines.
+    char_t                           commandFilter[MAX_HELP_FILTER_BYTES]; ///< Command palette text.
+    bool_t                           isLightTheme;                        ///< TRUE for the light colour scheme.
+    bool_t                           preferencesDirty;                    ///< TRUE until the preferences file is written.
     bool_t                           isDefinitionActive;  ///< TRUE while the Definition File section has the focus.
     bool_t                           hasEditors;          ///< TRUE once both editors exist.
     bool_t                           isFolderReadable;    ///< TRUE when the last scan could read the folder.
@@ -291,6 +498,9 @@ typedef struct WindowThreadState_s
     char_t                           folderPath[MAX_FOLDER_PATH_BYTES];                ///< Folder shared by both editors.
     char_t                           fileNames[MAX_PAGE_FILES][MAX_FILE_NAME_BYTES];  ///< Names found by the last folder scan.
     bool_t                           fileIsDefinition[MAX_PAGE_FILES];                  ///< TRUE for a Definition File, FALSE for a configuration.
+    uint64_t                         fileSizes[MAX_PAGE_FILES];                         ///< Bytes of each file.
+    uint64_t                         fileTimes[MAX_PAGE_FILES];                         ///< Last write time of each file as a FILETIME value.
+    uint32_t                         fileOrder[MAX_PAGE_FILES];                         ///< Display order after sorting.
     float32_t              mainScale;           ///< Initial display scale.
     SRWLOCK                presentLock;         ///< Protects geometry, drawing, and buffer swaps.
     CONDITION_VARIABLE     presentCondition;    ///< Wakes the window thread after geometry is acknowledged.
@@ -332,6 +542,11 @@ static const char_t* g_screenshotPath;        ///< BMP written after the capture
 static const char_t* g_openDefinition;        ///< Definition File opened at start, or NULL.
 static const char_t* g_openConfiguration;     ///< Configuration opened at start, or NULL.
 static const char_t* g_selectName;            ///< Widget name selected after opening, or NULL.
+static float32_t     g_startTime = -1.0f;     ///< Animation time shown after opening, or negative for rest.
+static const char_t* g_openPath;              ///< Full path given on the command line without an option, or NULL.
+static bool_t        g_startsPlaying;         ///< TRUE to enter play mode after opening.
+static bool_t        g_showsAbout;            ///< TRUE to open the About box after opening.
+static bool_t        g_checksUpdates;         ///< TRUE to run a manual update check after opening.
 static bool_t        g_focusDefinition;       ///< TRUE to focus the Definition File section at start.
 static uint32_t      g_captureFrame;          ///< Frame on which the screenshot is taken.
 static uint32_t      g_frameCount;            ///< Frames rendered so far.
@@ -505,6 +720,52 @@ static void DrawPageFiles(WindowThreadState_t* window);
 
 /*************************************************************************************************/
 /**
+ * \brief Orders the file rows by the table's sort specification.
+ *
+ * \param[in,out] window   Window and editor state
+ * \param[in]     specs    Sort specification, or NULL
+ *
+ * \retval        None
+ */
+static void SortFiles(WindowThreadState_t* window, ImGuiTableSortSpecs* specs);
+
+/*************************************************************************************************/
+/**
+ * \brief Formats a byte count as B, KB, or MB.
+ *
+ * \param[in]  bytes      Byte count
+ * \param[out] text       Text written
+ * \param[in]  capacity   Bytes in text
+ *
+ * \retval     None
+ */
+static void FormatSize(uint64_t bytes, char_t* text, uint32_t capacity);
+
+/*************************************************************************************************/
+/**
+ * \brief Formats a FILETIME value as a local date and time.
+ *
+ * \param[in]  fileTime   FILETIME as one value
+ * \param[out] text       Text written
+ * \param[in]  capacity   Bytes in text
+ *
+ * \retval     None
+ */
+static void FormatTime(uint64_t fileTime, char_t* text, uint32_t capacity);
+
+/*************************************************************************************************/
+/**
+ * \brief Tells whether a folder file is open in an editor, and whether it has unsaved changes.
+ *
+ * \param[in] window      Window and editor state
+ * \param[in] fileIndex   Folder file
+ *
+ * \retval    const char_t*   Open, Modified, or empty.
+ */
+static const char_t* FileState(const WindowThreadState_t* window, uint32_t fileIndex);
+
+/*************************************************************************************************/
+/**
  * \brief Draws the cross-document problem list; clicking a row navigates to it.
  *
  * \param[in,out] window   Window and editor state
@@ -557,6 +818,153 @@ static void DrawLog(WindowThreadState_t* window);
 
 /*************************************************************************************************/
 /**
+ * \brief Opens a folder file in the matching editor and records it as recent.
+ *
+ * \param[in,out] window         Window and editor state
+ * \param[in]     name           File name inside the folder
+ * \param[in]     isDefinition   TRUE for a Definition File, FALSE for a configuration
+ *
+ * \retval        None
+ */
+static void OpenFolderFile(WindowThreadState_t* window, const char_t* name, bool_t isDefinition);
+
+/*************************************************************************************************/
+/**
+ * \brief Opens a document by full path: the folder becomes the working folder, the file is
+ *  classified by content and opened in the matching editor.
+ *
+ * \param[in,out] window   Window and editor state
+ * \param[in]     path     Full path
+ *
+ * \retval        TRUE     if the file was a Definition File or a configuration.
+ * \retval        FALSE    otherwise.
+ */
+static bool_t OpenPath(WindowThreadState_t* window, const char_t* path);
+
+/*************************************************************************************************/
+/**
+ * \brief Starts the native file or folder picker on its own thread so the UI keeps running.
+ *
+ * \param[in,out] window     Window and editor state
+ * \param[in]     isFolder   TRUE to pick a folder, FALSE to pick a file
+ *
+ * \retval        None
+ */
+static void BeginPick(WindowThreadState_t* window, bool_t isFolder);
+
+/*************************************************************************************************/
+/**
+ * \brief Picker thread: shows the dialog and hands the result back through the window state.
+ *
+ * \param[in] parameter   Window and editor state
+ *
+ * \retval    DWORD       Zero.
+ */
+static DWORD WINAPI PickThread(LPVOID parameter);
+
+/*************************************************************************************************/
+/**
+ * \brief Applies a finished picker: opens the file or switches the folder.
+ *
+ * \param[in,out] window   Window and editor state
+ *
+ * \retval        None
+ */
+static void FinishPick(WindowThreadState_t* window);
+
+/*************************************************************************************************/
+/**
+ * \brief Opens Explorer with the active document selected, or the folder when none is active.
+ *
+ * \param[in] window   Window and editor state
+ *
+ * \retval    None
+ */
+static void RevealInExplorer(WindowThreadState_t* window);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws the start page shown while no document is open.
+ *
+ * \param[in,out] window   Window and editor state
+ *
+ * \retval        None
+ */
+static void DrawStartPage(WindowThreadState_t* window);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws the undo history of the active Definition File.
+ *
+ * \param[in,out] window   Window and editor state
+ *
+ * \retval        None
+ */
+static void DrawHistory(WindowThreadState_t* window);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws the pop-up that names and saves a prefab from the selection.
+ *
+ * \param[in,out] window   Window and editor state
+ *
+ * \retval        None
+ */
+static void DrawSavePrefabPopup(WindowThreadState_t* window);
+
+/*************************************************************************************************/
+/**
+ * \brief Starts an update check on its own thread.
+ *
+ * \param[in,out] window     Window and editor state
+ * \param[in]     isManual   TRUE when the user asked
+ *
+ * \retval        None
+ */
+static void BeginUpdateCheck(WindowThreadState_t* window, bool_t isManual);
+
+/*************************************************************************************************/
+/**
+ * \brief Updater thread: checks, or downloads when asked to.
+ *
+ * \param[in] parameter   Window and editor state
+ *
+ * \retval    DWORD       Zero.
+ */
+static DWORD WINAPI UpdateThread(LPVOID parameter);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws the update pop-up and reacts to the updater thread's results.
+ *
+ * \param[in,out] window   Window and editor state
+ *
+ * \retval        None
+ */
+static void DrawUpdatePopup(WindowThreadState_t* window);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws the About box.
+ *
+ * \param[in,out] window   Window and editor state
+ *
+ * \retval        None
+ */
+static void DrawAboutPopup(WindowThreadState_t* window);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads the update source from the registry when the preferences do not name one.
+ *
+ * \param[in,out] window   Window and editor state
+ *
+ * \retval        None
+ */
+static void LoadUpdateSource(WindowThreadState_t* window);
+
+/*************************************************************************************************/
+/**
  * \brief Draws the status line with notes and the context breadcrumbs.
  *
  * \param[in,out] window   Window and editor state
@@ -564,6 +972,76 @@ static void DrawLog(WindowThreadState_t* window);
  * \retval        None
  */
 static void DrawStatusBar(WindowThreadState_t* window);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws the animation timeline for the active Definition File.
+ *
+ * \param[in,out] window   Window and editor state
+ *
+ * \retval        None
+ */
+static void DrawTimeline(WindowThreadState_t* window);
+
+/*************************************************************************************************/
+/**
+ * \brief Enters or leaves play mode.
+ *
+ * \param[in,out] window   Window and editor state
+ *
+ * \retval        None
+ */
+static void TogglePlay(WindowThreadState_t* window);
+
+/*************************************************************************************************/
+/**
+ * \brief Checks everything and writes every binary Definition File, logging the report.
+ *
+ * \param[in,out] window   Window and editor state
+ *
+ * \retval        None
+ */
+static void BuildAll(WindowThreadState_t* window);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws the command palette pop-up when open.
+ *
+ * \param[in,out] window   Window and editor state
+ *
+ * \retval        None
+ */
+static void DrawCommandPalette(WindowThreadState_t* window);
+
+/*************************************************************************************************/
+/**
+ * \brief Applies the chosen colour scheme and font scale.
+ *
+ * \param[in,out] window   Window and editor state
+ *
+ * \retval        None
+ */
+static void ApplyTheme(WindowThreadState_t* window);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads the preferences file beside the executable, when present.
+ *
+ * \param[in,out] window   Window and editor state
+ *
+ * \retval        None
+ */
+static void LoadPreferences(WindowThreadState_t* window);
+
+/*************************************************************************************************/
+/**
+ * \brief Writes the preferences file when a setting changed.
+ *
+ * \param[in,out] window   Window and editor state
+ *
+ * \retval        None
+ */
+static void SavePreferences(WindowThreadState_t* window);
 
 /*************************************************************************************************/
 /**
@@ -758,10 +1236,10 @@ static void EndFrame(WindowThreadState_t* window)
  */
 static void CaptureScreenshot(WindowThreadState_t* window)
 {
-    byte_t*  pixels;
-    byte_t*  row;
-    byte_t   header[BMP_HEADER_BYTES];
-    FILE*    file;
+    byte_t*    pixels;
+    byte_t*    row;
+    byte_t     header[BMP_HEADER_BYTES];
+    FILE*      file;
     int32_t  width;
     int32_t  height;
     int32_t  x;
@@ -821,7 +1299,7 @@ static void CaptureScreenshot(WindowThreadState_t* window)
 /**
  * \par Details:
  *  --screenshot path.bmp [--frames n] [--definition name] [--configuration name]
- *  [--focus-definition] [--select widgetName].
+ *  [--focus-definition] [--select widgetName] [--time seconds] [--play].
  */
 static void ParseOptions(int argc, char** argv)
 {
@@ -850,6 +1328,23 @@ static void ParseOptions(int argc, char** argv)
             index += 1;
             g_selectName = argv[index];
         }
+        else if ((0 == strcmp(argv[index], TIME_OPTION)) && ((index + 1) < argc))
+        {
+            index += 1;
+            g_startTime = (float32_t)atof(argv[index]);
+        }
+        else if (0 == strcmp(argv[index], PLAY_OPTION))
+        {
+            g_startsPlaying = TRUE;
+        }
+        else if (0 == strcmp(argv[index], ABOUT_OPTION))
+        {
+            g_showsAbout = TRUE;
+        }
+        else if (0 == strcmp(argv[index], CHECK_UPDATES_OPTION))
+        {
+            g_checksUpdates = TRUE;
+        }
         else if ((0 == strcmp(argv[index], FRAMES_OPTION)) && ((index + 1) < argc))
         {
             index += 1;
@@ -858,6 +1353,11 @@ static void ParseOptions(int argc, char** argv)
         else if (0 == strcmp(argv[index], FOCUS_DEFINITION_OPTION))
         {
             g_focusDefinition = TRUE;
+        }
+        else if ('-' != argv[index][0])
+        {
+            // A bare path: the shell's open verb and drag-drop onto the executable
+            g_openPath = argv[index];
         }
     }
 }
@@ -871,6 +1371,7 @@ static void ParseOptions(int argc, char** argv)
  */
 static void ClassifyFolderFile(const char_t* fileName, void* context)
 {
+    WIN32_FILE_ATTRIBUTE_DATA attributes;
     WindowThreadState_t* window;
     byte_t               head[FILE_HEAD_BYTES];
     char_t               file_path[MAX_FILE_PATH_BYTES];
@@ -895,6 +1396,16 @@ static void ClassifyFolderFile(const char_t* fileName, void* context)
     }
     if ((FALSE == has_known_extension) || (window->fileCount >= MAX_PAGE_FILES) || (name_length >= MAX_FILE_NAME_BYTES) || ((strlen(window->folderPath) + 1 + name_length) >= MAX_FILE_PATH_BYTES))
     {
+        return;
+    }
+    // Prefabs are Definition File fragments kept apart from the documents
+    if ((strlen(PREFAB_EXTENSION) < name_length) && (0 == _stricmp(fileName + name_length - strlen(PREFAB_EXTENSION), PREFAB_EXTENSION)))
+    {
+        if (window->prefabCount < MAX_PREFABS)
+        {
+            strncpy_s(window->prefabNames[window->prefabCount], sizeof(window->prefabNames[0]), fileName, _TRUNCATE);
+            window->prefabCount += 1;
+        }
         return;
     }
     (void)snprintf(file_path, sizeof(file_path), "%s/%s", window->folderPath, fileName);
@@ -933,6 +1444,14 @@ static void ClassifyFolderFile(const char_t* fileName, void* context)
     {
         strncpy_s(window->fileNames[window->fileCount], sizeof(window->fileNames[0]), fileName, _TRUNCATE);
         window->fileIsDefinition[window->fileCount] = is_definition;
+        window->fileSizes[window->fileCount]        = 0;
+        window->fileTimes[window->fileCount]        = 0;
+        if (::GetFileAttributesExA(file_path, GetFileExInfoStandard, &attributes))
+        {
+            window->fileSizes[window->fileCount] = (((uint64_t)attributes.nFileSizeHigh << 32) | attributes.nFileSizeLow);
+            window->fileTimes[window->fileCount] = (((uint64_t)attributes.ftLastWriteTime.dwHighDateTime << 32) | attributes.ftLastWriteTime.dwLowDateTime);
+        }
+        window->fileOrder[window->fileCount] = window->fileCount;
         window->fileCount += 1;
         if (is_definition)
         {
@@ -955,6 +1474,7 @@ static void ClassifyFolderFile(const char_t* fileName, void* context)
 static void ScanFolder(WindowThreadState_t* window)
 {
     window->fileCount    = 0;
+    window->prefabCount  = 0;
     window->lastScanTime = ImGui::GetTime();
     Arinc661_Configuration_ClearDefinitionFiles(window->configurationEditor);
     window->context->definitionFileCount = 0;
@@ -977,6 +1497,7 @@ static void DrawToolbar(WindowThreadState_t* window)
 {
     const char_t* new_label;
     const char_t* new_shortcut;
+    const char_t* play_label;
     bool_t has_active;
     bool_t is_dirty;
     bool_t has_free;
@@ -1113,6 +1634,20 @@ static void DrawToolbar(WindowThreadState_t* window)
         {
             Arinc661_Configuration_DeleteSelection(window->configurationEditor);
         }
+    }
+    Arinc661_Icons_Gap();
+    play_label = PLAY_LABEL;
+    if (window->definitionEditor->isPlaying)
+    {
+        play_label = STOP_LABEL;
+    }
+    if (Arinc661_Icons_Button(ARINC661_ICON_PLAY, play_label, PLAY_SHORTCUT_LABEL, TRUE, window->definitionEditor->isPlaying))
+    {
+        TogglePlay(window);
+    }
+    if (Arinc661_Icons_Button(ARINC661_ICON_BUILD, BUILD_LABEL, BUILD_SHORTCUT_LABEL, TRUE, FALSE))
+    {
+        BuildAll(window);
     }
     Arinc661_Icons_Gap();
     if (Arinc661_Icons_Button(ARINC661_ICON_HELP, HELP_CONTEXT_LABEL, HELP_SHORTCUT_LABEL, TRUE, FALSE))
@@ -1302,7 +1837,11 @@ static void DrawHelpWindow(WindowThreadState_t* window)
                 {
                     strncpy_s(window->helpTopic, sizeof(window->helpTopic), HELP_GETTING_STARTED, _TRUNCATE);
                 }
-                for (index = 0; index < (sizeof(c_faceTopics) / sizeof(c_faceTopics[0])); ++index)
+                if (ImGui::Selectable(SHORTCUTS_LABEL, 0 == strcmp(window->helpTopic, SHORTCUTS_LABEL)))
+                {
+                    strncpy_s(window->helpTopic, sizeof(window->helpTopic), SHORTCUTS_LABEL, _TRUNCATE);
+                }
+                for (index = 0; index < COUNT_OF(c_faceTopics); ++index)
                 {
                     for (character = 0; character < sizeof(upper_name); ++character)
                     {
@@ -1367,10 +1906,20 @@ static void DrawHelpWindow(WindowThreadState_t* window)
                     ImGui::TextUnformatted("5. Link both: set the Definition File's ApplicationId (root node) to the user application's applicationId. The user application inspector checks it and previews the Definition File's layers inside the window; the Definition File root lists who references it.");
                     ImGui::TextUnformatted("6. Save with Ctrl+S; a .bin name saves the binary form of ARINC 661 Part 1-7, any other name the XML form. Undo with Ctrl+Z, redo with Ctrl+Y. F1 opens this help on the selection; Shift+F1 opens the HTML reference in the browser.");
                 }
+                else if (0 == strcmp(window->helpTopic, SHORTCUTS_LABEL))
+                {
+                    ImGui::SeparatorText(SHORTCUTS_LABEL);
+                    ImGui::TextUnformatted("Ctrl+N new configuration   Ctrl+Shift+N new Definition File   Ctrl+S save   Ctrl+Shift+S save all   Ctrl+W close");
+                    ImGui::TextUnformatted("Ctrl+Z undo   Ctrl+Y redo   Ctrl+C copy   Ctrl+V paste   Ctrl+D duplicate   Del delete   F2 rename");
+                    ImGui::TextUnformatted("Scene: drag move, corner handles resize, arrows nudge (Shift x10), Ctrl-click multi-select, drag on empty space box-select");
+                    ImGui::TextUnformatted("Scene: wheel zoom, middle or Space drag pan, F fit, Z zoom to selection, G grid, S snap, right-click add");
+                    ImGui::TextUnformatted("Hierarchy: double-click rename, drag onto a container to re-parent, right-click for the context menu, eye hides, lock freezes");
+                    ImGui::TextUnformatted("Help: F1 Windows Help on the selection, Shift+F1 this reference");
+                }
                 else
                 {
                     is_match = FALSE;
-                    for (index = 0; index < (sizeof(c_faceTopics) / sizeof(c_faceTopics[0])); ++index)
+                    for (index = 0; index < COUNT_OF(c_faceTopics); ++index)
                     {
                         if (0 == strcmp(window->helpTopic, c_faceTopics[index].name))
                         {
@@ -1452,6 +2001,7 @@ static void DrawPageMenu(WindowThreadState_t* window)
     bool_t can_redo;
     bool_t has_selection;
     uint32_t panel_index;
+    const char_t* play_label;
 
     has_active_configuration = Arinc661_Configuration_HasActiveDocument(window->configurationEditor, &has_dirty_configuration, &has_free_configuration);
     has_active_definition    = Arinc661_Definition_HasActiveDocument(window->definitionEditor, &has_dirty_definition, &has_free_definition);
@@ -1480,9 +2030,52 @@ static void DrawPageMenu(WindowThreadState_t* window)
                 (void)Arinc661_Context_NewApplication(window->context);
             }
             ImGui::Separator();
+            if (ImGui::MenuItem(OPEN_FILE_LABEL, OPEN_FILE_SHORTCUT))
+            {
+                BeginPick(window, FALSE);
+            }
+            if (ImGui::MenuItem(OPEN_FOLDER_LABEL))
+            {
+                BeginPick(window, TRUE);
+            }
+            if (ImGui::MenuItem(REVEAL_LABEL))
+            {
+                RevealInExplorer(window);
+            }
+            ImGui::Separator();
             if (ImGui::MenuItem(SAVE_LABEL, SAVE_SHORTCUT_LABEL, false, has_active))
             {
                 SaveActive(window);
+            }
+            if (ImGui::MenuItem(BUILD_LABEL, BUILD_SHORTCUT_LABEL))
+            {
+                BuildAll(window);
+            }
+            if (ImGui::BeginMenu(RECENT_MENU_LABEL))
+            {
+                if (0 == window->recentCount)
+                {
+                    ImGui::MenuItem(RECENT_EMPTY_LABEL, NULL, false, false);
+                }
+                for (panel_index = 0; panel_index < window->recentCount; ++panel_index)
+                {
+                    ImGui::PushID((int)panel_index);
+                    if (ImGui::MenuItem(window->recentNames[panel_index]))
+                    {
+                        (void)OpenPath(window, window->recentNames[panel_index]);
+                    }
+                    ImGui::PopID();
+                }
+                if (0 < window->recentCount)
+                {
+                    ImGui::Separator();
+                    if (ImGui::MenuItem(RECENT_CLEAR_LABEL))
+                    {
+                        window->recentCount      = 0;
+                        window->preferencesDirty = TRUE;
+                    }
+                }
+                ImGui::EndMenu();
             }
             if (ImGui::MenuItem(SAVE_ALL_LABEL, SAVE_ALL_SHORTCUT_LABEL, false, is_dirty))
             {
@@ -1573,6 +2166,18 @@ static void DrawPageMenu(WindowThreadState_t* window)
                 }
             }
             ImGui::Separator();
+            if (ImGui::MenuItem(COPY_LABEL, COPY_SHORTCUT_LABEL, false, window->isDefinitionActive && has_selection))
+            {
+                (void)Arinc661_Definition_Copy(window->definitionEditor);
+            }
+            if (ImGui::MenuItem(PASTE_LABEL, PASTE_SHORTCUT_LABEL, false, window->isDefinitionActive && (0 < window->definitionEditor->clipboardWidgetCount)))
+            {
+                (void)Arinc661_Definition_Paste(window->definitionEditor);
+            }
+            if (ImGui::MenuItem(RENAME_LABEL, RENAME_SHORTCUT_LABEL, false, window->isDefinitionActive && has_selection))
+            {
+                Arinc661_Definition_BeginRename(window->definitionEditor);
+            }
             if (ImGui::MenuItem(DUPLICATE_LABEL, DUPLICATE_SHORTCUT_LABEL, false, has_selection))
             {
                 if (window->isDefinitionActive)
@@ -1599,6 +2204,25 @@ static void DrawPageMenu(WindowThreadState_t* window)
         }
         if (ImGui::BeginMenu(VIEW_MENU_LABEL))
         {
+            play_label = PLAY_LABEL;
+            if (window->definitionEditor->isPlaying)
+            {
+                play_label = STOP_LABEL;
+            }
+            if (ImGui::MenuItem(play_label, PLAY_SHORTCUT_LABEL))
+            {
+                TogglePlay(window);
+            }
+            if (ImGui::MenuItem(SAVE_PREFAB_LABEL, NULL, false, window->isDefinitionActive && has_selection))
+            {
+                window->opensPrefabPopup = TRUE;
+            }
+            if (ImGui::MenuItem(COMMAND_PALETTE_LABEL, COMMAND_PALETTE_SHORTCUT))
+            {
+                window->isPaletteOpen   = TRUE;
+                window->commandFilter[0] = '\0';
+            }
+            ImGui::Separator();
             if (ImGui::MenuItem(GRID_LABEL, GRID_SHORTCUT_LABEL, Arinc661_Definition_Grid(window->definitionEditor, FALSE)))
             {
                 (void)Arinc661_Definition_Grid(window->definitionEditor, TRUE);
@@ -1610,6 +2234,25 @@ static void DrawPageMenu(WindowThreadState_t* window)
             if (ImGui::MenuItem(FIT_LABEL, FIT_SHORTCUT_LABEL))
             {
                 Arinc661_Definition_FitView(window->definitionEditor);
+            }
+            ImGui::Separator();
+            ImGui::SetNextItemWidth(160.0f);
+            if (ImGui::SliderFloat(UI_SCALE_LABEL, &window->uiScale, UI_SCALE_MIN, UI_SCALE_MAX, "%.2f"))
+            {
+                ImGui::GetStyle().FontScaleMain = window->uiScale;
+                window->preferencesDirty        = TRUE;
+            }
+            if (ImGui::MenuItem(THEME_DARK_LABEL, NULL, FALSE == window->isLightTheme))
+            {
+                window->isLightTheme     = FALSE;
+                window->preferencesDirty = TRUE;
+                ApplyTheme(window);
+            }
+            if (ImGui::MenuItem(THEME_LIGHT_LABEL, NULL, FALSE != window->isLightTheme))
+            {
+                window->isLightTheme     = TRUE;
+                window->preferencesDirty = TRUE;
+                ApplyTheme(window);
             }
             ImGui::EndMenu();
         }
@@ -1653,6 +2296,20 @@ static void DrawPageMenu(WindowThreadState_t* window)
             {
                 ShowHelp(window, HELP_GETTING_STARTED);
             }
+            if (ImGui::MenuItem(SHORTCUTS_LABEL))
+            {
+                ShowHelp(window, SHORTCUTS_LABEL);
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem(CHECK_UPDATES_LABEL))
+            {
+                BeginUpdateCheck(window, TRUE);
+                window->opensUpdatePopup = (bool_t)(UPDATE_STATE_IDLE != window->updateState.load());
+            }
+            if (ImGui::MenuItem(ABOUT_LABEL))
+            {
+                window->opensAboutPopup = TRUE;
+            }
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -1678,6 +2335,35 @@ static void DrawPageMenu(WindowThreadState_t* window)
         {
             Arinc661_Configuration_Redo(window->configurationEditor);
         }
+    }
+    if (window->isDefinitionActive && ImGui::Shortcut(COPY_CHORD, SHORTCUT_FLAGS))
+    {
+        (void)Arinc661_Definition_Copy(window->definitionEditor);
+    }
+    if (window->isDefinitionActive && ImGui::Shortcut(PASTE_CHORD, SHORTCUT_FLAGS))
+    {
+        (void)Arinc661_Definition_Paste(window->definitionEditor);
+    }
+    if (window->isDefinitionActive && ImGui::Shortcut(RENAME_CHORD, SHORTCUT_FLAGS))
+    {
+        Arinc661_Definition_BeginRename(window->definitionEditor);
+    }
+    if (ImGui::Shortcut(OPEN_FILE_CHORD, SHORTCUT_FLAGS))
+    {
+        BeginPick(window, FALSE);
+    }
+    if (ImGui::Shortcut(PLAY_CHORD, SHORTCUT_FLAGS))
+    {
+        TogglePlay(window);
+    }
+    if (ImGui::Shortcut(BUILD_CHORD, SHORTCUT_FLAGS))
+    {
+        BuildAll(window);
+    }
+    if (ImGui::Shortcut(COMMAND_PALETTE_CHORD, SHORTCUT_FLAGS))
+    {
+        window->isPaletteOpen    = TRUE;
+        window->commandFilter[0] = '\0';
     }
     if (ImGui::Shortcut(DUPLICATE_CHORD, SHORTCUT_FLAGS))
     {
@@ -1728,6 +2414,168 @@ static void DrawPageMenu(WindowThreadState_t* window)
             Arinc661_Configuration_CloseActiveDocument(window->configurationEditor);
         }
     }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Insertion sort on the order array; the lists are short. Only the first sort column counts.
+ */
+static void SortFiles(WindowThreadState_t* window, ImGuiTableSortSpecs* specs)
+{
+    uint32_t row;
+    uint32_t probe;
+    uint32_t held;
+    int32_t  comparison;
+    bool_t   is_descending;
+    ImGuiID  column;
+
+    column        = FILE_COLUMN_NAME_ID;
+    is_descending = FALSE;
+    if ((NULL != specs) && (0 < specs->SpecsCount))
+    {
+        column        = specs->Specs[0].ColumnUserID;
+        is_descending = (ImGuiSortDirection_Descending == specs->Specs[0].SortDirection);
+    }
+    for (row = 1; row < window->fileCount; ++row)
+    {
+        held  = window->fileOrder[row];
+        probe = row;
+        while (0 < probe)
+        {
+            switch (column)
+            {
+            case FILE_COLUMN_KIND_ID:
+                comparison = ((int32_t)window->fileIsDefinition[held] - (int32_t)window->fileIsDefinition[window->fileOrder[probe - 1]]);
+                break;
+            case FILE_COLUMN_SIZE_ID:
+                comparison = 0;
+                if (window->fileSizes[held] < window->fileSizes[window->fileOrder[probe - 1]])
+                {
+                    comparison = -1;
+                }
+                else if (window->fileSizes[held] > window->fileSizes[window->fileOrder[probe - 1]])
+                {
+                    comparison = 1;
+                }
+                break;
+            case FILE_COLUMN_MODIFIED_ID:
+                comparison = 0;
+                if (window->fileTimes[held] < window->fileTimes[window->fileOrder[probe - 1]])
+                {
+                    comparison = -1;
+                }
+                else if (window->fileTimes[held] > window->fileTimes[window->fileOrder[probe - 1]])
+                {
+                    comparison = 1;
+                }
+                break;
+            case FILE_COLUMN_STATE_ID:
+                comparison = strcmp(FileState(window, held), FileState(window, window->fileOrder[probe - 1]));
+                break;
+            default:
+                comparison = _stricmp(window->fileNames[held], window->fileNames[window->fileOrder[probe - 1]]);
+                break;
+            }
+            if (0 == comparison)
+            {
+                comparison = _stricmp(window->fileNames[held], window->fileNames[window->fileOrder[probe - 1]]);
+            }
+            if (is_descending)
+            {
+                comparison = -comparison;
+            }
+            if (0 <= comparison)
+            {
+                break;
+            }
+            window->fileOrder[probe] = window->fileOrder[probe - 1];
+            probe -= 1;
+        }
+        window->fileOrder[probe] = held;
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  None
+ */
+static void FormatSize(uint64_t bytes, char_t* text, uint32_t capacity)
+{
+    if (bytes < 1024)
+    {
+        (void)snprintf(text, capacity, SIZE_BYTES_FORMAT, (unsigned long long)bytes);
+    }
+    else if (bytes < (1024 * 1024))
+    {
+        (void)snprintf(text, capacity, SIZE_KILOBYTES_FORMAT, (float64_t)bytes / 1024.0);
+    }
+    else
+    {
+        (void)snprintf(text, capacity, SIZE_MEGABYTES_FORMAT, (float64_t)bytes / (1024.0 * 1024.0));
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  None
+ */
+static void FormatTime(uint64_t fileTime, char_t* text, uint32_t capacity)
+{
+    FILETIME   file_time;
+    FILETIME   local_time;
+    SYSTEMTIME system_time;
+
+    file_time.dwLowDateTime  = (DWORD)(fileTime & 0xFFFFFFFFu);
+    file_time.dwHighDateTime = (DWORD)(fileTime >> 32);
+    text[0] = '\0';
+    if (::FileTimeToLocalFileTime(&file_time, &local_time) && ::FileTimeToSystemTime(&local_time, &system_time))
+    {
+        (void)snprintf(text, capacity, TIME_FORMAT, (unsigned)system_time.wYear, (unsigned)system_time.wMonth, (unsigned)system_time.wDay, (unsigned)system_time.wHour, (unsigned)system_time.wMinute);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Matches the name against the open documents of the editor of its kind.
+ */
+static const char_t* FileState(const WindowThreadState_t* window, uint32_t fileIndex)
+{
+    uint32_t slot;
+
+    if (window->fileIsDefinition[fileIndex])
+    {
+        for (slot = 0; slot < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS; ++slot)
+        {
+            if (window->definitionEditor->documents[slot].isLoaded && (0 == _stricmp(window->definitionEditor->documents[slot].documentName, window->fileNames[fileIndex])))
+            {
+                if (window->definitionEditor->documents[slot].isDirty)
+                {
+                    return FILE_STATE_MODIFIED;
+                }
+                return FILE_STATE_OPEN;
+            }
+        }
+    }
+    else
+    {
+        for (slot = 0; slot < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS; ++slot)
+        {
+            if (window->configurationEditor->documents[slot].isLoaded && (0 == _stricmp(window->configurationEditor->documents[slot].documentName, window->fileNames[fileIndex])))
+            {
+                if (window->configurationEditor->documents[slot].isDirty)
+                {
+                    return FILE_STATE_MODIFIED;
+                }
+                return FILE_STATE_OPEN;
+            }
+        }
+    }
+
+    return FILE_STATE_CLOSED;
 }
 
 /*************************************************************************************************/
@@ -1848,9 +2696,10 @@ static void DrawPageProblems(WindowThreadState_t* window)
  */
 static void DrawPageFiles(WindowThreadState_t* window)
 {
-    char_t    label[MAX_FILE_NAME_BYTES + 32];
-    ImVec2    list_size;
+    char_t    label[MAX_FILE_PATH_BYTES + 32];
+    float32_t buttons_width;
     uint32_t  file_index;
+    uint32_t  row;
     bool_t    should_scan;
 
     should_scan = FALSE;
@@ -1859,10 +2708,21 @@ static void DrawPageFiles(WindowThreadState_t* window)
         ImGui::AlignTextToFramePadding();
         ImGui::TextUnformatted(FOLDER_PATH_LABEL);
         ImGui::SameLine();
-        ImGui::SetNextItemWidth(-(ImGui::CalcTextSize(REFRESH_LABEL).x + (ImGui::GetStyle().FramePadding.x * 2.0f) + ImGui::GetStyle().ItemSpacing.x));
+        buttons_width = ImGui::CalcTextSize(BROWSE_FOLDER_LABEL).x + ImGui::CalcTextSize(BROWSE_FILE_LABEL).x + ImGui::CalcTextSize(REFRESH_LABEL).x + (ImGui::GetStyle().FramePadding.x * 6.0f) + (ImGui::GetStyle().ItemSpacing.x * 3.0f);
+        ImGui::SetNextItemWidth(-buttons_width);
         if (ImGui::InputText(FOLDER_INPUT_ID, window->folderPath, sizeof(window->folderPath)))
         {
             should_scan = TRUE;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(BROWSE_FOLDER_LABEL))
+        {
+            BeginPick(window, TRUE);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(BROWSE_FILE_LABEL))
+        {
+            BeginPick(window, FALSE);
         }
         ImGui::SameLine();
         if (ImGui::Button(REFRESH_LABEL))
@@ -1873,45 +2733,67 @@ static void DrawPageFiles(WindowThreadState_t* window)
         {
             ScanFolder(window);
         }
-        list_size = ImVec2(-1.0f, ImGui::GetTextLineHeightWithSpacing() * FILE_LIST_ROWS);
-        if (ImGui::BeginListBox(FILE_LIST_ID, list_size))
+        if (FALSE == window->isFolderReadable)
         {
-            if (FALSE == window->isFolderReadable)
+            ImGui::TextDisabled("%s", FOLDER_UNREADABLE_LABEL);
+        }
+        else if (0 == window->fileCount)
+        {
+            ImGui::TextDisabled("%s", NO_FILES_LABEL);
+        }
+        else if (ImGui::BeginTable(FILE_LIST_ID, FILE_COLUMN_COUNT, FILE_TABLE_FLAGS, ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * (FILE_LIST_ROWS + 1.5f))))
+        {
+            ImGui::TableSetupScrollFreeze(0, 1);
+            ImGui::TableSetupColumn(FILE_COLUMN_NAME, ImGuiTableColumnFlags_WidthStretch | ImGuiTableColumnFlags_DefaultSort, 0.0f, FILE_COLUMN_NAME_ID);
+            ImGui::TableSetupColumn(FILE_COLUMN_KIND, ImGuiTableColumnFlags_WidthFixed, 0.0f, FILE_COLUMN_KIND_ID);
+            ImGui::TableSetupColumn(FILE_COLUMN_SIZE, ImGuiTableColumnFlags_WidthFixed, 0.0f, FILE_COLUMN_SIZE_ID);
+            ImGui::TableSetupColumn(FILE_COLUMN_MODIFIED, ImGuiTableColumnFlags_WidthFixed, 0.0f, FILE_COLUMN_MODIFIED_ID);
+            ImGui::TableSetupColumn(FILE_COLUMN_STATE, ImGuiTableColumnFlags_WidthFixed, 0.0f, FILE_COLUMN_STATE_ID);
+            ImGui::TableHeadersRow();
+            SortFiles(window, ImGui::TableGetSortSpecs());
+            for (row = 0; row < window->fileCount; ++row)
             {
-                ImGui::TextDisabled("%s", FOLDER_UNREADABLE_LABEL);
-            }
-            else if (0 == window->fileCount)
-            {
-                ImGui::TextDisabled("%s", NO_FILES_LABEL);
-            }
-            for (file_index = 0; file_index < window->fileCount; ++file_index)
-            {
+                file_index = window->fileOrder[row];
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::PushID((int)file_index);
+                if (ImGui::Selectable(window->fileNames[file_index], false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick))
+                {
+                    OpenFolderFile(window, window->fileNames[file_index], window->fileIsDefinition[file_index]);
+                }
+                if (ImGui::BeginPopupContextItem(FILE_ROW_MENU_ID))
+                {
+                    if (ImGui::MenuItem(FILE_OPEN_ROW_LABEL))
+                    {
+                        OpenFolderFile(window, window->fileNames[file_index], window->fileIsDefinition[file_index]);
+                    }
+                    if (ImGui::MenuItem(REVEAL_LABEL))
+                    {
+                        (void)snprintf(label, sizeof(label), "/select,\"%s\\%s\"", window->folderPath, window->fileNames[file_index]);
+                        (void)::ShellExecuteA(window->windowHandle, "open", "explorer.exe", label, NULL, SW_SHOWNORMAL);
+                    }
+                    ImGui::EndPopup();
+                }
+                ImGui::PopID();
+                ImGui::TableSetColumnIndex(1);
                 if (window->fileIsDefinition[file_index])
                 {
-                    (void)snprintf(label, sizeof(label), DEFINITION_FILE_FORMAT, window->fileNames[file_index]);
+                    ImGui::TextUnformatted(FILE_KIND_DEFINITION);
                 }
                 else
                 {
-                    (void)snprintf(label, sizeof(label), CONFIGURATION_FILE_FORMAT, window->fileNames[file_index]);
+                    ImGui::TextUnformatted(FILE_KIND_CONFIGURATION);
                 }
-                ImGui::PushID((int)file_index);
-                if (ImGui::Selectable(label))
-                {
-                    if (window->fileIsDefinition[file_index])
-                    {
-                        Arinc661_Definition_LoadFile(window->definitionEditor, window->fileNames[file_index]);
-                        window->isDefinitionActive = TRUE;
-                    }
-                    else
-                    {
-                        Arinc661_Configuration_LoadFile(window->configurationEditor, window->fileNames[file_index]);
-                        (void)Arinc661_Context_OpenReferencedDefinitions(window->context);
-                        window->isDefinitionActive = FALSE;
-                    }
-                }
-                ImGui::PopID();
+                ImGui::TableSetColumnIndex(2);
+                FormatSize(window->fileSizes[file_index], label, sizeof(label));
+                ImGui::TextUnformatted(label);
+                ImGui::TableSetColumnIndex(3);
+                FormatTime(window->fileTimes[file_index], label, sizeof(label));
+                ImGui::TextUnformatted(label);
+                ImGui::TableSetColumnIndex(4);
+                ImGui::TextUnformatted(FileState(window, file_index));
             }
-            ImGui::EndListBox();
+            ImGui::EndTable();
         }
     }
     ImGui::Separator();
@@ -1928,8 +2810,6 @@ static void DrawPageHierarchy(WindowThreadState_t* window)
 {
     if (ImGui::BeginChild(HIERARCHY_PANE_NAME, ImVec2(0.0f, 0.0f), PANE_FLAGS, ImGuiWindowFlags_HorizontalScrollbar))
     {
-        ImGui::TextUnformatted(HIERARCHY_PANE_NAME);
-        ImGui::Separator();
         if (ImGui::CollapsingHeader(CONFIGURATION_SECTION_LABEL, ImGuiTreeNodeFlags_DefaultOpen))
         {
             ImGui::PushID(CONFIGURATION_SECTION_ID);
@@ -1968,6 +2848,9 @@ static void DrawPageHierarchy(WindowThreadState_t* window)
  */
 static void DrawEditors(WindowThreadState_t* window)
 {
+    const FACEOE_Gfx_DrawList_t* stats_list;
+    bool_t is_dirty;
+    bool_t has_free;
     const ImGuiViewport* viewport;
     ImGuiID              dockspace_id;
     uint32_t             panel_index;
@@ -1994,8 +2877,14 @@ static void DrawEditors(WindowThreadState_t* window)
         {
             BuildDefaultLayout(window, dockspace_id);
         }
-        ImGui::DockSpace(dockspace_id, ImVec2(0.0f, -(ImGui::GetFrameHeightWithSpacing() + ImGui::GetStyle().ItemSpacing.y)), ImGuiDockNodeFlags_PassthruCentralNode);
+        ImGui::DockSpace(dockspace_id, ImVec2(0.0f, -((2.0f * ImGui::GetTextLineHeightWithSpacing()) + (2.0f * ImGui::GetStyle().ItemSpacing.y))), ImGuiDockNodeFlags_PassthruCentralNode);
         DrawStatusBar(window);
+        // On the second frame, after a saved layout has placed every panel, bring the working tabs to the front
+        if (4 == g_frameCount)
+        {
+            ImGui::SetWindowFocus(PANEL_FILES);
+            ImGui::SetWindowFocus(PANEL_INSPECTOR);
+        }
     }
     else
     {
@@ -2018,7 +2907,23 @@ static void DrawEditors(WindowThreadState_t* window)
                 case PANEL_INDEX_HIERARCHY: DrawPageHierarchy(window); break;
                 case PANEL_INDEX_PALETTE:   DrawPalette(window); break;
                 case PANEL_INDEX_SCENE:
-                    if (window->isDefinitionActive)
+                    if (window->definitionEditor->isPlaying)
+                    {
+                        ImGui::TextColored(PLAY_BANNER_COLOR, "%s", PLAY_BANNER_LABEL);
+                    }
+                    if ((FALSE == Arinc661_Configuration_HasActiveDocument(window->configurationEditor, &is_dirty, &has_free)) && (FALSE == Arinc661_Definition_HasActiveDocument(window->definitionEditor, &is_dirty, &has_free)))
+                    {
+                        DrawStartPage(window);
+                        break;
+                    }
+                    // Stats line above the canvas: scene size and frame time, from whichever draw list the view replays
+                    stats_list = &window->configurationEditor->drawList;
+                    if (window->isDefinitionActive && (FALSE == window->definitionEditor->isPlaying))
+                    {
+                        stats_list = &window->definitionEditor->drawList;
+                    }
+                    ImGui::TextDisabled(STATS_FORMAT, (unsigned)Arinc661_Definition_WidgetCount(window->definitionEditor), (unsigned)stats_list->commandCount, (unsigned)stats_list->pointCount, (float64_t)(ImGui::GetIO().DeltaTime * 1000.0f));
+                    if (window->isDefinitionActive && (FALSE == window->definitionEditor->isPlaying))
                     {
                         Arinc661_Definition_DrawScene(window->definitionEditor);
                     }
@@ -2038,17 +2943,46 @@ static void DrawEditors(WindowThreadState_t* window)
                     }
                     break;
                 case PANEL_INDEX_LOG:       DrawLog(window); break;
+                case PANEL_INDEX_TIMELINE:  DrawTimeline(window); break;
+                case PANEL_INDEX_HISTORY:   DrawHistory(window); break;
                 default:                    break;
             }
         }
         ImGui::End();
     }
+    if ('\0' != window->pendingOpenPath[0])
+    {
+        (void)OpenPath(window, window->pendingOpenPath);
+        window->pendingOpenPath[0] = '\0';
+    }
+    FinishPick(window);
     DrawHelpWindow(window);
+    DrawCommandPalette(window);
+    DrawSavePrefabPopup(window);
+    if (g_showsAbout && (6 == g_frameCount))
+    {
+        // Screenshot automation: open the About box once the layout has settled
+        window->opensAboutPopup = TRUE;
+    }
+    if (g_checksUpdates && (6 == g_frameCount))
+    {
+        BeginUpdateCheck(window, TRUE);
+        window->opensUpdatePopup = (bool_t)(UPDATE_STATE_IDLE != window->updateState.load());
+    }
+    DrawUpdatePopup(window);
+    DrawAboutPopup(window);
+    // One silent check a day
+    if ((UPDATE_STATE_IDLE == window->updateState.load()) && ('\0' != window->updateUrl[0]) && (((float64_t)time(NULL) - window->updateCheckedAt) > UPDATE_CHECK_INTERVAL_SECONDS))
+    {
+        window->updateCheckedAt = (float64_t)time(NULL);
+        BeginUpdateCheck(window, FALSE);
+    }
     (void)Arinc661_Context_FollowRenames(window->context);
     Arinc661_Configuration_EndFrame(window->configurationEditor);
     Arinc661_Definition_EndFrame(window->definitionEditor);
     Arinc661_Configuration_DrawDialogs(window->configurationEditor);
     Arinc661_Definition_DrawDialogs(window->definitionEditor);
+    SavePreferences(window);
 }
 
 /*************************************************************************************************/
@@ -2076,10 +3010,13 @@ static void BuildDefaultLayout(WindowThreadState_t* window, ImGuiID dockspaceId)
     dock_left_bottom = ImGui::DockBuilderSplitNode(dock_left, ImGuiDir_Down, LAYOUT_PALETTE_FRACTION, NULL, &dock_left);
     ImGui::DockBuilderDockWindow(PANEL_HIERARCHY, dock_left);
     ImGui::DockBuilderDockWindow(PANEL_PALETTE, dock_left_bottom);
+    // Tabs appear in this order; the last docked tab is the one selected, so Files goes last
+    ImGui::DockBuilderDockWindow(PANEL_HISTORY, dock_right);
     ImGui::DockBuilderDockWindow(PANEL_INSPECTOR, dock_right);
-    ImGui::DockBuilderDockWindow(PANEL_FILES, dock_bottom);
-    ImGui::DockBuilderDockWindow(PANEL_PROBLEMS, dock_bottom);
+    ImGui::DockBuilderDockWindow(PANEL_TIMELINE, dock_bottom);
     ImGui::DockBuilderDockWindow(PANEL_LOG, dock_bottom);
+    ImGui::DockBuilderDockWindow(PANEL_PROBLEMS, dock_bottom);
+    ImGui::DockBuilderDockWindow(PANEL_FILES, dock_bottom);
     ImGui::DockBuilderDockWindow(PANEL_SCENE, dock_main);
     ImGui::DockBuilderFinish(dockspaceId);
     for (panel_index = 0; panel_index < PANEL_COUNT; ++panel_index)
@@ -2116,7 +3053,25 @@ static void DrawPalette(WindowThreadState_t* window)
 
     ImGui::SetNextItemWidth(-1.0f);
     (void)ImGui::InputTextWithHint("##palette filter", PALETTE_FILTER_HINT, window->paletteFilter, sizeof(window->paletteFilter));
-    ImGui::TextDisabled("%s", PALETTE_HINT_LABEL);
+    ImGui::SetItemTooltip("%s", PALETTE_HINT_LABEL);
+    if (0 < window->prefabCount)
+    {
+        ImGui::SeparatorText(PREFAB_SECTION_LABEL);
+        for (character = 0; character < window->prefabCount; ++character)
+        {
+            (void)snprintf(upper_filter, sizeof(upper_filter), "%.*s", (int)(strlen(window->prefabNames[character]) - strlen(PREFAB_EXTENSION)), window->prefabNames[character]);
+            ImGui::PushID((int)(50000 + character));
+            if (ImGui::Selectable(upper_filter))
+            {
+                if (Arinc661_Definition_LoadPrefab(window->definitionEditor, window->prefabNames[character]))
+                {
+                    window->isDefinitionActive = TRUE;
+                }
+            }
+            ImGui::SetItemTooltip("%s", PREFAB_HINT_LABEL);
+            ImGui::PopID();
+        }
+    }
     for (character = 0; character < sizeof(upper_filter); ++character)
     {
         upper_filter[character] = (char_t)ImToUpper(window->paletteFilter[character]);
@@ -2125,7 +3080,7 @@ static void DrawPalette(WindowThreadState_t* window)
             break;
         }
     }
-    for (category_index = 0; category_index < (sizeof(c_categories) / sizeof(c_categories[0])); ++category_index)
+    for (category_index = 0; category_index < COUNT_OF(c_categories); ++category_index)
     {
         category     = c_categories[category_index];
         is_extension = (0 == strcmp(category, PALETTE_EXTENSIONS_CATEGORY));
@@ -2142,7 +3097,7 @@ static void DrawPalette(WindowThreadState_t* window)
             {
                 // Types whose first category matches none of the named groups
                 is_in_category = TRUE;
-                for (character = 0; character < (sizeof(c_categories) / sizeof(c_categories[0])) - 2; ++character)
+                for (character = 0; character < COUNT_OF(c_categories) - 2; ++character)
                 {
                     if (0 == ImStrnicmp(categories, c_categories[character], (int)strlen(c_categories[character])))
                     {
@@ -2235,8 +3190,11 @@ static void AppendLog(WindowThreadState_t* window, const char_t* text)
  */
 static void DrawLog(WindowThreadState_t* window)
 {
-    uint32_t first;
-    uint32_t index;
+    const char_t* line;
+    uint32_t      first;
+    uint32_t      index;
+    bool_t        is_error;
+    bool_t        is_warn;
 
     if (ImGui::SmallButton(LOG_CLEAR_LABEL))
     {
@@ -2245,6 +3203,15 @@ static void DrawLog(WindowThreadState_t* window)
     }
     ImGui::SameLine();
     ImGui::Checkbox(LOG_AUTOSCROLL_LABEL, &window->logAutoScroll);
+    ImGui::SameLine();
+    ImGui::Checkbox(LOG_ERRORS_LABEL, (bool*)&window->logShowsErrors);
+    ImGui::SameLine();
+    ImGui::Checkbox(LOG_WARNINGS_LABEL, (bool*)&window->logShowsWarnings);
+    ImGui::SameLine();
+    ImGui::Checkbox(LOG_INFO_LABEL, (bool*)&window->logShowsInfo);
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(ImMax(120.0f, ImGui::GetContentRegionAvail().x));
+    (void)ImGui::InputTextWithHint("##log filter", LOG_FILTER_HINT, window->logFilter, sizeof(window->logFilter));
     if (ImGui::BeginChild("##log lines", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders))
     {
         first = 0;
@@ -2254,7 +3221,29 @@ static void DrawLog(WindowThreadState_t* window)
         }
         for (index = first; index < window->logCount; ++index)
         {
-            ImGui::TextUnformatted(window->logLines[index % LOG_CAPACITY]);
+            line     = window->logLines[index % LOG_CAPACITY];
+            is_error = !!((NULL != ImStristr(line, NULL, "error", NULL)) || (NULL != ImStristr(line, NULL, "could not", NULL)) || (NULL != ImStristr(line, NULL, "failed", NULL)));
+            is_warn  = !!((FALSE == is_error) && (NULL != ImStristr(line, NULL, "warning", NULL)));
+            if ((is_error && (FALSE == window->logShowsErrors)) || (is_warn && (FALSE == window->logShowsWarnings)) || ((FALSE == is_error) && (FALSE == is_warn) && (FALSE == window->logShowsInfo)))
+            {
+                continue;
+            }
+            if (('\0' != window->logFilter[0]) && (NULL == ImStristr(line, NULL, window->logFilter, NULL)))
+            {
+                continue;
+            }
+            if (is_error)
+            {
+                ImGui::TextColored(LOG_ERROR_COLOR, "%s", line);
+            }
+            else if (is_warn)
+            {
+                ImGui::TextColored(LOG_WARNING_COLOR, "%s", line);
+            }
+            else
+            {
+                ImGui::TextUnformatted(line);
+            }
         }
         if (window->logAutoScroll && (ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - ImGui::GetTextLineHeight()))
         {
@@ -2262,6 +3251,1248 @@ static void DrawLog(WindowThreadState_t* window)
         }
     }
     ImGui::EndChild();
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The name moves to the front of the recent list, which the preferences file keeps.
+ */
+static void OpenFolderFile(WindowThreadState_t* window, const char_t* name, bool_t isDefinition)
+{
+    char_t   full_path[MAX_FILE_PATH_BYTES];
+    uint32_t index;
+    uint32_t found;
+
+    if (isDefinition)
+    {
+        Arinc661_Definition_LoadFile(window->definitionEditor, name);
+        window->isDefinitionActive = TRUE;
+    }
+    else
+    {
+        Arinc661_Configuration_LoadFile(window->configurationEditor, name);
+        (void)Arinc661_Context_OpenReferencedDefinitions(window->context);
+        window->isDefinitionActive = FALSE;
+    }
+    (void)snprintf(full_path, sizeof(full_path), "%s\\%s", window->folderPath, name);
+    ::SHAddToRecentDocs(SHARD_PATHA, full_path);
+    found = window->recentCount;
+    for (index = 0; index < window->recentCount; ++index)
+    {
+        if (0 == _stricmp(window->recentNames[index], full_path))
+        {
+            found = index;
+        }
+    }
+    if (found == window->recentCount)
+    {
+        if (window->recentCount < RECENT_COUNT)
+        {
+            window->recentCount += 1;
+        }
+        found = (window->recentCount - 1);
+    }
+    for (index = found; 0 < index; --index)
+    {
+        strncpy_s(window->recentNames[index], sizeof(window->recentNames[0]), window->recentNames[index - 1], _TRUNCATE);
+        window->recentIsDefinition[index] = window->recentIsDefinition[index - 1];
+    }
+    strncpy_s(window->recentNames[0], sizeof(window->recentNames[0]), full_path, _TRUNCATE);
+    window->recentIsDefinition[0] = isDefinition;
+    window->preferencesDirty      = TRUE;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The folder is rescanned so the name is classified the same way the Files panel does it.
+ */
+static bool_t OpenPath(WindowThreadState_t* window, const char_t* path)
+{
+    char_t        note[MAX_FILE_PATH_BYTES + 80];
+    const char_t* name;
+    const char_t* cursor;
+    size_t        folder_length;
+    uint32_t      index;
+
+    name = path;
+    for (cursor = path; '\0' != (*cursor); ++cursor)
+    {
+        if (('\\' == (*cursor)) || ('/' == (*cursor)))
+        {
+            name = (cursor + 1);
+        }
+    }
+    folder_length = (size_t)(name - path);
+    if ((0 < folder_length) && (folder_length < sizeof(window->folderPath)))
+    {
+        (void)memcpy(window->folderPath, path, folder_length - 1);
+        window->folderPath[folder_length - 1] = '\0';
+        if ((2 == strlen(window->folderPath)) && (':' == window->folderPath[1]))
+        {
+            // A drive root keeps its separator
+            (void)strcat_s(window->folderPath, sizeof(window->folderPath), "\\");
+        }
+        window->preferencesDirty = TRUE;
+    }
+    ScanFolder(window);
+    for (index = 0; index < window->fileCount; ++index)
+    {
+        if (0 == _stricmp(window->fileNames[index], name))
+        {
+            OpenFolderFile(window, window->fileNames[index], window->fileIsDefinition[index]);
+            (void)snprintf(note, sizeof(note), OPENED_PATH_FORMAT, path);
+            AppendLog(window, note);
+            return TRUE;
+        }
+    }
+    (void)snprintf(note, sizeof(note), NOT_A_DOCUMENT_FORMAT, path);
+    AppendLog(window, note);
+    window->panelOpen[PANEL_INDEX_LOG] = true;
+
+    return FALSE;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  One picker at a time; a second request while one is up is ignored.
+ */
+static void BeginPick(WindowThreadState_t* window, bool_t isFolder)
+{
+    HANDLE thread;
+
+    if (DIALOG_IDLE != window->dialogState.load())
+    {
+        return;
+    }
+    window->dialogIsFolder = isFolder;
+    window->dialogPath[0]  = '\0';
+    window->dialogState.store(DIALOG_RUNNING);
+    thread = ::CreateThread(NULL, 0, PickThread, window, 0, NULL);
+    if (NULL == thread)
+    {
+        window->dialogState.store(DIALOG_IDLE);
+        return;
+    }
+    ::CloseHandle(thread);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The common item dialog on an apartment thread of its own, owned by the editor window so it
+ *  centres there and is modal to it, while the window thread keeps rendering. The path is
+ *  written before the state changes, and the window thread reads it only after.
+ */
+static DWORD WINAPI PickThread(LPVOID parameter)
+{
+    WindowThreadState_t*  window;
+    IFileOpenDialog*      dialog;
+    IShellItem*           item;
+    IShellItem*           folder;
+    wchar_t               wide_folder[MAX_FILE_PATH_BYTES];
+    wchar_t*              wide_path;
+    FILEOPENDIALOGOPTIONS options;
+    int32_t               outcome;
+
+    window  = (WindowThreadState_t*)parameter;
+    outcome = DIALOG_CANCELLED;
+    (void)::CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+    dialog = NULL;
+    if (SUCCEEDED(::CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dialog))) && (NULL != dialog))
+    {
+        options = 0;
+        (void)dialog->GetOptions(&options);
+        options |= (FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST | FOS_FILEMUSTEXIST);
+        if (window->dialogIsFolder)
+        {
+            options |= FOS_PICKFOLDERS;
+            (void)dialog->SetTitle(FOLDER_DIALOG_TITLE);
+        }
+        else
+        {
+            (void)dialog->SetTitle(OPEN_DIALOG_TITLE);
+        }
+        (void)dialog->SetOptions(options);
+        if (0 < ::MultiByteToWideChar(CP_UTF8, 0, window->folderPath, -1, wide_folder, (int)COUNT_OF(wide_folder)))
+        {
+            folder = NULL;
+            if (SUCCEEDED(::SHCreateItemFromParsingName(wide_folder, NULL, IID_PPV_ARGS(&folder))) && (NULL != folder))
+            {
+                (void)dialog->SetFolder(folder);
+                folder->Release();
+            }
+        }
+        if (SUCCEEDED(dialog->Show(window->windowHandle)))
+        {
+            item = NULL;
+            if (SUCCEEDED(dialog->GetResult(&item)) && (NULL != item))
+            {
+                wide_path = NULL;
+                if (SUCCEEDED(item->GetDisplayName(SIGDN_FILESYSPATH, &wide_path)) && (NULL != wide_path))
+                {
+                    if (0 < ::WideCharToMultiByte(CP_UTF8, 0, wide_path, -1, window->dialogPath, (int)sizeof(window->dialogPath), NULL, NULL))
+                    {
+                        outcome = DIALOG_PICKED_FILE;
+                        if (window->dialogIsFolder)
+                        {
+                            outcome = DIALOG_PICKED_FOLDER;
+                        }
+                    }
+                    ::CoTaskMemFree(wide_path);
+                }
+                item->Release();
+            }
+        }
+        dialog->Release();
+    }
+    ::CoUninitialize();
+    window->dialogState.store(outcome);
+
+    return 0;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Called once per frame on the window thread.
+ */
+static void FinishPick(WindowThreadState_t* window)
+{
+    int32_t state;
+
+    state = window->dialogState.load();
+    if ((DIALOG_IDLE == state) || (DIALOG_RUNNING == state))
+    {
+        return;
+    }
+    if (DIALOG_PICKED_FILE == state)
+    {
+        (void)OpenPath(window, window->dialogPath);
+    }
+    else if (DIALOG_PICKED_FOLDER == state)
+    {
+        strncpy_s(window->folderPath, sizeof(window->folderPath), window->dialogPath, _TRUNCATE);
+        ScanFolder(window);
+        window->preferencesDirty = TRUE;
+    }
+    window->dialogState.store(DIALOG_IDLE);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Explorer's select verb highlights the file; without a document the folder opens.
+ */
+static void RevealInExplorer(WindowThreadState_t* window)
+{
+    char_t        arguments[MAX_FILE_PATH_BYTES + 16];
+    const char_t* name;
+
+    name = NULL;
+    if (window->isDefinitionActive && (window->definitionEditor->activeDocumentIndex < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS))
+    {
+        name = Arinc661_Definition_DocumentName(window->definitionEditor, window->definitionEditor->activeDocumentIndex);
+    }
+    else if ((FALSE == window->isDefinitionActive) && (window->configurationEditor->activeDocumentIndex < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS))
+    {
+        name = Arinc661_Configuration_DocumentName(window->configurationEditor, window->configurationEditor->activeDocumentIndex);
+    }
+    if ((NULL != name) && ('\0' != name[0]))
+    {
+        (void)snprintf(arguments, sizeof(arguments), "/select,\"%s\\%s\"", window->folderPath, name);
+        (void)::ShellExecuteA(window->windowHandle, "open", "explorer.exe", arguments, NULL, SW_SHOWNORMAL);
+    }
+    else
+    {
+        (void)::ShellExecuteA(window->windowHandle, "open", "explorer.exe", window->folderPath, NULL, SW_SHOWNORMAL);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  One row per state with the change that produced it; the current one is marked and a click
+ *  undoes or redoes to any other.
+ */
+static void DrawHistory(WindowThreadState_t* window)
+{
+    char_t   label[160];
+    uint32_t count;
+    uint32_t current;
+    uint32_t index;
+
+    count = Arinc661_Definition_HistoryCount(window->definitionEditor, &current);
+    if (0 == count)
+    {
+        ImGui::TextDisabled("%s", HISTORY_EMPTY_LABEL);
+        return;
+    }
+    for (index = 0; index < count; ++index)
+    {
+        if (index == current)
+        {
+            (void)snprintf(label, sizeof(label), "%u  %s%s", (unsigned)index, Arinc661_Definition_HistoryLabel(window->definitionEditor, index), HISTORY_CURRENT_MARK);
+        }
+        else
+        {
+            (void)snprintf(label, sizeof(label), "%u  %s", (unsigned)index, Arinc661_Definition_HistoryLabel(window->definitionEditor, index));
+        }
+        ImGui::PushID((int)index);
+        if (index > current)
+        {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        }
+        if (ImGui::Selectable(label, index == current))
+        {
+            Arinc661_Definition_GoToHistory(window->definitionEditor, index);
+        }
+        if (index > current)
+        {
+            ImGui::PopStyleColor();
+        }
+        ImGui::PopID();
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  A running check or download is left alone.
+ */
+static void BeginUpdateCheck(WindowThreadState_t* window, bool_t isManual)
+{
+    HANDLE thread;
+
+    if (UPDATE_STATE_IDLE != window->updateState.load())
+    {
+        return;
+    }
+    window->updateIsManual = isManual;
+    if ('\0' == window->updateUrl[0])
+    {
+        if (isManual)
+        {
+            AppendLog(window, UPDATE_NO_SOURCE_LABEL);
+            window->panelOpen[PANEL_INDEX_LOG] = true;
+        }
+        return;
+    }
+    window->updateState.store(UPDATE_STATE_CHECKING);
+    thread = ::CreateThread(NULL, 0, UpdateThread, window, 0, NULL);
+    if (NULL == thread)
+    {
+        window->updateState.store(UPDATE_STATE_IDLE);
+        return;
+    }
+    ::CloseHandle(thread);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  CHECKING fetches the manifest and settles to CHECKED; DOWNLOADING fetches the package and
+ *  settles to DOWNLOADED. Results are written before the state changes.
+ */
+static DWORD WINAPI UpdateThread(LPVOID parameter)
+{
+    WindowThreadState_t*      window;
+    Arinc661_Update_Version_t installed;
+
+    window = (WindowThreadState_t*)parameter;
+    if (UPDATE_STATE_CHECKING == window->updateState.load())
+    {
+        (void)Arinc661_Update_ParseVersion(ARINC661_EDITOR_VERSION_TEXT, &installed);
+        window->updateResult = Arinc661_Update_Check(window->updateUrl, &installed, &window->updateManifest);
+        window->updateState.store(UPDATE_STATE_CHECKED);
+    }
+    else if (UPDATE_STATE_DOWNLOADING == window->updateState.load())
+    {
+        window->updateResult = Arinc661_Update_Download(&window->updateManifest, window->updatePackagePath, sizeof(window->updatePackagePath));
+        window->updateState.store(UPDATE_STATE_DOWNLOADED);
+    }
+
+    return 0;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  A silent check only speaks when a version the user has not skipped is available. A manual
+ *  check reports every outcome. Installing starts msiexec and ends the session so files can be
+ *  replaced; the installer relaunches the editor.
+ */
+static void DrawUpdatePopup(WindowThreadState_t* window)
+{
+    char_t  line[ARINC661_UPDATE_MAX_NOTE_BYTES + 128];
+    char_t  executable[MAX_FILE_PATH_BYTES];
+    int32_t state;
+    HANDLE  thread;
+
+    state = window->updateState.load();
+    if (UPDATE_STATE_CHECKED == state)
+    {
+        window->updateState.store(UPDATE_STATE_IDLE);
+        window->updateCheckedAt  = (float64_t)time(NULL);
+        window->preferencesDirty = TRUE;
+        if (ARINC661_UPDATE_RESULT_AVAILABLE == window->updateResult)
+        {
+            if (window->updateIsManual || (0 != strcmp(window->updateSkipVersion, window->updateManifest.versionText)))
+            {
+                window->opensUpdatePopup = TRUE;
+            }
+        }
+        else if (window->updateIsManual)
+        {
+            window->opensUpdatePopup = TRUE;
+        }
+    }
+    else if (UPDATE_STATE_DOWNLOADED == state)
+    {
+        window->updateState.store(UPDATE_STATE_IDLE);
+        if (ARINC661_UPDATE_RESULT_DOWNLOADED == window->updateResult)
+        {
+            executable[0] = '\0';
+            (void)::GetModuleFileNameA(NULL, executable, (DWORD)sizeof(executable));
+            if (Arinc661_Update_Apply(window->updatePackagePath, executable))
+            {
+                AppendLog(window, UPDATE_APPLYING_LABEL);
+                window->isApplyingUpdate = TRUE;
+                SavePreferences(window);
+                window->isDone.store(TRUE);
+            }
+            else
+            {
+                window->updateResult = ARINC661_UPDATE_RESULT_UNREACHABLE;
+                AppendLog(window, UPDATE_APPLY_FAIL_LABEL);
+            }
+        }
+    }
+    if (window->opensUpdatePopup)
+    {
+        ImGui::OpenPopup(UPDATE_POPUP_ID);
+        window->opensUpdatePopup = FALSE;
+    }
+    if (ImGui::BeginPopupModal(UPDATE_POPUP_ID, NULL, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        state = window->updateState.load();
+        if (UPDATE_STATE_CHECKING == state)
+        {
+            ImGui::TextUnformatted(UPDATE_CHECKING_LABEL);
+        }
+        else if (UPDATE_STATE_DOWNLOADING == state)
+        {
+            ImGui::TextUnformatted(UPDATE_DOWNLOADING_LABEL);
+        }
+        else if (ARINC661_UPDATE_RESULT_AVAILABLE == window->updateResult)
+        {
+            (void)snprintf(line, sizeof(line), UPDATE_AVAILABLE_FORMAT, window->updateManifest.versionText, ARINC661_EDITOR_VERSION_TEXT);
+            ImGui::TextUnformatted(line);
+            if ('\0' != window->updateManifest.notes[0])
+            {
+                (void)snprintf(line, sizeof(line), UPDATE_NOTES_FORMAT, window->updateManifest.notes);
+                ImGui::PushTextWrapPos(ImGui::GetFontSize() * 30.0f);
+                ImGui::TextUnformatted(line);
+                ImGui::PopTextWrapPos();
+            }
+            ImGui::Separator();
+            if (ImGui::Button(UPDATE_INSTALL_LABEL))
+            {
+                window->updateState.store(UPDATE_STATE_DOWNLOADING);
+                thread = ::CreateThread(NULL, 0, UpdateThread, window, 0, NULL);
+                if (NULL == thread)
+                {
+                    window->updateState.store(UPDATE_STATE_IDLE);
+                    window->updateResult = ARINC661_UPDATE_RESULT_UNREACHABLE;
+                }
+                else
+                {
+                    ::CloseHandle(thread);
+                }
+            }
+            ImGui::SameLine();
+            if (ImGui::Button(UPDATE_LATER_LABEL))
+            {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button(UPDATE_SKIP_LABEL))
+            {
+                strncpy_s(window->updateSkipVersion, sizeof(window->updateSkipVersion), window->updateManifest.versionText, _TRUNCATE);
+                window->preferencesDirty = TRUE;
+                ImGui::CloseCurrentPopup();
+            }
+        }
+        else
+        {
+            if (ARINC661_UPDATE_RESULT_UP_TO_DATE == window->updateResult)
+            {
+                ImGui::TextUnformatted(UPDATE_UP_TO_DATE_LABEL);
+            }
+            else if (ARINC661_UPDATE_RESULT_MALFORMED == window->updateResult)
+            {
+                ImGui::TextUnformatted(UPDATE_MALFORMED_LABEL);
+            }
+            else if (ARINC661_UPDATE_RESULT_CORRUPT == window->updateResult)
+            {
+                ImGui::TextUnformatted(UPDATE_CORRUPT_LABEL);
+            }
+            else
+            {
+                ImGui::TextUnformatted(UPDATE_UNREACHABLE_LABEL);
+            }
+            if (ImGui::Button(UPDATE_OK_LABEL))
+            {
+                ImGui::CloseCurrentPopup();
+            }
+        }
+        ImGui::EndPopup();
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Product, version, build, the libraries, where it runs from, and the update source; Copy
+ *  Details puts the same text on the clipboard for a bug report.
+ */
+static void DrawAboutPopup(WindowThreadState_t* window)
+{
+    char_t        details[2048];
+    char_t        executable[MAX_FILE_PATH_BYTES];
+    const char_t* opengl;
+    size_t        cut;
+
+    if (window->opensAboutPopup)
+    {
+        ImGui::OpenPopup(ABOUT_POPUP_ID);
+        window->opensAboutPopup = FALSE;
+    }
+    if (ImGui::BeginPopupModal(ABOUT_POPUP_ID, NULL, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        executable[0] = '\0';
+        (void)::GetModuleFileNameA(NULL, executable, (DWORD)sizeof(executable));
+        cut = strlen(executable);
+        while ((0 < cut) && ('\\' != executable[cut - 1]))
+        {
+            cut -= 1;
+        }
+        if (0 < cut)
+        {
+            executable[cut - 1] = '\0';
+        }
+        opengl = (const char_t*)glGetString(GL_VERSION);
+        if (NULL == opengl)
+        {
+            opengl = "";
+        }
+        ImGui::PushFont(NULL, ImGui::GetFontSize() * 1.4f);
+        ImGui::TextUnformatted(ARINC661_EDITOR_PRODUCT_NAME);
+        ImGui::PopFont();
+        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 32.0f);
+        ImGui::TextDisabled("%s", ABOUT_DESCRIPTION_LABEL);
+        ImGui::PopTextWrapPos();
+        ImGui::Separator();
+        (void)snprintf(details, sizeof(details), ABOUT_DETAILS_FORMAT, ARINC661_EDITOR_VERSION_TEXT, __DATE__, __TIME__, IMGUI_VERSION, opengl, executable);
+        if ('\0' != window->updateUrl[0])
+        {
+            (void)snprintf(&details[strlen(details)], sizeof(details) - strlen(details), ABOUT_UPDATE_URL_FORMAT, window->updateUrl);
+        }
+        else
+        {
+            (void)snprintf(&details[strlen(details)], sizeof(details) - strlen(details), "%s", ABOUT_NO_UPDATE_URL_LABEL);
+        }
+        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 32.0f);
+        ImGui::TextUnformatted(details);
+        ImGui::PopTextWrapPos();
+        ImGui::Separator();
+        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 32.0f);
+        ImGui::TextDisabled("%s", ABOUT_COPYRIGHT_LABEL);
+        ImGui::PopTextWrapPos();
+        ImGui::Separator();
+        if (ImGui::Button(CHECK_UPDATES_LABEL))
+        {
+            ImGui::CloseCurrentPopup();
+            BeginUpdateCheck(window, TRUE);
+            window->opensUpdatePopup = (bool_t)(UPDATE_STATE_IDLE != window->updateState.load());
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(ABOUT_COPY_LABEL))
+        {
+            ImGui::SetClipboardText(details);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(ABOUT_HELP_LABEL))
+        {
+            OpenWindowsHelp(window, HH_DISPLAY_TOC_COMMAND);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(ABOUT_CLOSE_LABEL) || ImGui::IsKeyPressed(ImGuiKey_Escape))
+        {
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  HKCU first, then HKLM, where the installer writes UPDATEURL.
+ */
+static void LoadUpdateSource(WindowThreadState_t* window)
+{
+    HKEY     roots[2];
+    HKEY     key;
+    DWORD    byte_count;
+    DWORD    type;
+    uint32_t index;
+
+    if ('\0' != window->updateUrl[0])
+    {
+        return;
+    }
+    roots[0] = HKEY_CURRENT_USER;
+    roots[1] = HKEY_LOCAL_MACHINE;
+    for (index = 0; (index < 2) && ('\0' == window->updateUrl[0]); ++index)
+    {
+        if (ERROR_SUCCESS == ::RegOpenKeyExA(roots[index], UPDATE_REGISTRY_KEY, 0, KEY_READ, &key))
+        {
+            byte_count = (DWORD)(sizeof(window->updateUrl) - 1);
+            type       = REG_NONE;
+            if ((ERROR_SUCCESS == ::RegQueryValueExA(key, UPDATE_REGISTRY_VALUE, NULL, &type, (BYTE*)window->updateUrl, &byte_count)) && (REG_SZ == type))
+            {
+                window->updateUrl[byte_count] = '\0';
+            }
+            else
+            {
+                window->updateUrl[0] = '\0';
+            }
+            ::RegCloseKey(key);
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Copies the selection, writes it under the typed name, and rescans the folder so the Palette
+ *  lists it at once.
+ */
+static void DrawSavePrefabPopup(WindowThreadState_t* window)
+{
+    char_t path[MAX_FILE_PATH_BYTES];
+    char_t note[MAX_FILE_PATH_BYTES + 32];
+
+    if (window->opensPrefabPopup)
+    {
+        ImGui::OpenPopup(SAVE_PREFAB_POPUP_ID);
+        window->opensPrefabPopup = FALSE;
+    }
+    if (ImGui::BeginPopupModal(SAVE_PREFAB_POPUP_ID, NULL, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        if (ImGui::IsWindowAppearing())
+        {
+            ImGui::SetKeyboardFocusHere();
+        }
+        if (ImGui::InputTextWithHint("##prefab name", SAVE_PREFAB_NAME_HINT, window->prefabName, sizeof(window->prefabName), ImGuiInputTextFlags_EnterReturnsTrue) || ImGui::Button(SAVE_PREFAB_OK_LABEL))
+        {
+            (void)Arinc661_Definition_Copy(window->definitionEditor);
+            if (Arinc661_Definition_SavePrefab(window->definitionEditor, window->prefabName, path, sizeof(path)))
+            {
+                (void)snprintf(note, sizeof(note), SAVE_PREFAB_NOTE_FORMAT, path);
+                AppendLog(window, note);
+                ScanFolder(window);
+            }
+            else
+            {
+                AppendLog(window, SAVE_PREFAB_FAIL_LABEL);
+            }
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(SAVE_PREFAB_CANCEL_LABEL) || ImGui::IsKeyPressed(ImGuiKey_Escape))
+        {
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  A project-hub style page: title, the three ways to start, the recent files, and the help
+ *  entry points.
+ */
+static void DrawStartPage(WindowThreadState_t* window)
+{
+    char_t   label[MAX_FILE_NAME_BYTES + 32];
+    uint32_t index;
+
+    ImGui::Dummy(ImVec2(0.0f, ImGui::GetTextLineHeight()));
+    ImGui::Indent(ImGui::GetTextLineHeight() * 2.0f);
+    ImGui::PushFont(NULL, ImGui::GetFontSize() * 1.6f);
+    ImGui::TextUnformatted(START_TITLE_LABEL);
+    ImGui::PopFont();
+    ImGui::TextDisabled("%s", START_SUBTITLE_LABEL);
+    ImGui::Dummy(ImVec2(0.0f, ImGui::GetTextLineHeight()));
+    if (ImGui::Button(NEW_CONFIGURATION_LABEL, ImVec2(ImMax(START_BUTTON_WIDTH, ImGui::CalcTextSize(NEW_APPLICATION_LABEL).x + ImGui::GetStyle().FramePadding.x * 4.0f), 0.0f)))
+    {
+        Arinc661_Configuration_CreateDocument(window->configurationEditor);
+        window->isDefinitionActive = FALSE;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button(NEW_DEFINITION_LABEL, ImVec2(ImMax(START_BUTTON_WIDTH, ImGui::CalcTextSize(NEW_APPLICATION_LABEL).x + ImGui::GetStyle().FramePadding.x * 4.0f), 0.0f)))
+    {
+        Arinc661_Definition_CreateDocument(window->definitionEditor);
+        window->isDefinitionActive = TRUE;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button(NEW_APPLICATION_LABEL, ImVec2(ImMax(START_BUTTON_WIDTH, ImGui::CalcTextSize(NEW_APPLICATION_LABEL).x + ImGui::GetStyle().FramePadding.x * 4.0f), 0.0f)))
+    {
+        (void)Arinc661_Context_NewApplication(window->context);
+    }
+    ImGui::Dummy(ImVec2(0.0f, ImGui::GetTextLineHeight()));
+    ImGui::SeparatorText(START_RECENT_LABEL);
+    if (0 == window->recentCount)
+    {
+        ImGui::TextDisabled("%s", RECENT_EMPTY_LABEL);
+    }
+    for (index = 0; index < window->recentCount; ++index)
+    {
+        if (window->recentIsDefinition[index])
+        {
+            (void)snprintf(label, sizeof(label), DEFINITION_FILE_FORMAT, window->recentNames[index]);
+        }
+        else
+        {
+            (void)snprintf(label, sizeof(label), CONFIGURATION_FILE_FORMAT, window->recentNames[index]);
+        }
+        ImGui::PushID((int)index);
+        if (ImGui::Selectable(label, false, 0, ImVec2(START_BUTTON_WIDTH * 3.0f, 0.0f)))
+        {
+            (void)OpenPath(window, window->recentNames[index]);
+        }
+        ImGui::PopID();
+    }
+    ImGui::Dummy(ImVec2(0.0f, ImGui::GetTextLineHeight()));
+    ImGui::SeparatorText(START_LEARN_LABEL);
+    if (ImGui::Selectable(START_OPEN_HELP_LABEL, false, 0, ImVec2(START_BUTTON_WIDTH * 3.0f, 0.0f)))
+    {
+        OpenWindowsHelp(window, HH_DISPLAY_TOPIC_COMMAND);
+    }
+    if (ImGui::Selectable(START_SHORTCUTS_LABEL, false, 0, ImVec2(START_BUTTON_WIDTH * 3.0f, 0.0f)))
+    {
+        ShowHelp(window, SHORTCUTS_LABEL);
+    }
+    ImGui::Unindent(ImGui::GetTextLineHeight() * 2.0f);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Rows list each animation with a bar from Delay to Delay plus Duration over a shared time
+ *  axis; the cursor follows the time slider, which the Play button advances with the clock.
+ *  The scene and the window previews draw the animated state at that time.
+ */
+static void DrawTimeline(WindowThreadState_t* window)
+{
+    const char_t* name;
+    const char_t* type;
+    ImDrawList*   draw_list;
+    ImVec2        row_min;
+    ImVec2        axis_min;
+    float32_t     axis_width;
+    float32_t     name_width;
+    float32_t     delay;
+    float32_t     duration;
+    float32_t     end;
+    uint32_t      index;
+    char_t        label[ARINC661_MAX_NAME_BYTES + 64];
+
+    window->timelineLength = 0.0f;
+    for (index = 0; Arinc661_Definition_AnimationAt(window->definitionEditor, index, &name, &type, &delay, &duration); ++index)
+    {
+        end = (delay + duration);
+        if (window->timelineLength < end)
+        {
+            window->timelineLength = end;
+        }
+    }
+    if (0 == index)
+    {
+        ImGui::TextWrapped("%s", TIMELINE_EMPTY_LABEL);
+        window->isTimelinePlaying = FALSE;
+        Arinc661_Definition_SetAnimationTime(window->definitionEditor, -1.0f);
+        return;
+    }
+    if (window->isTimelinePlaying)
+    {
+        if (ImGui::Button(TIMELINE_PAUSE_LABEL))
+        {
+            window->isTimelinePlaying = FALSE;
+        }
+    }
+    else if (ImGui::Button(TIMELINE_PLAY_LABEL))
+    {
+        window->isTimelinePlaying = TRUE;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button(TIMELINE_STOP_LABEL))
+    {
+        window->isTimelinePlaying = FALSE;
+        window->timelineTime      = 0.0f;
+        Arinc661_Definition_SetAnimationTime(window->definitionEditor, -1.0f);
+    }
+    ImGui::SameLine();
+    ImGui::Checkbox(TIMELINE_LOOP_LABEL, (bool*)&window->isTimelineLooping);
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+    if (ImGui::SliderFloat(TIMELINE_TIME_LABEL, &window->timelineTime, 0.0f, ImMax(window->timelineLength, 0.001f), "%.2f s"))
+    {
+        Arinc661_Definition_SetAnimationTime(window->definitionEditor, window->timelineTime);
+    }
+    if (window->isTimelinePlaying)
+    {
+        window->timelineTime += ImGui::GetIO().DeltaTime;
+        if (window->timelineTime > window->timelineLength)
+        {
+            if (window->isTimelineLooping)
+            {
+                window->timelineTime = 0.0f;
+            }
+            else
+            {
+                window->timelineTime      = window->timelineLength;
+                window->isTimelinePlaying = FALSE;
+            }
+        }
+        Arinc661_Definition_SetAnimationTime(window->definitionEditor, window->timelineTime);
+    }
+    draw_list  = ImGui::GetWindowDrawList();
+    // Name column as wide as the longest label so bars never cross text
+    name_width = TIMELINE_NAME_WIDTH;
+    for (index = 0; Arinc661_Definition_AnimationAt(window->definitionEditor, index, &name, &type, &delay, &duration); ++index)
+    {
+        (void)snprintf(label, sizeof(label), "%s (%s)", name, type + 5);
+        name_width = ImMax(name_width, ImGui::CalcTextSize(label).x + ImGui::GetStyle().ItemSpacing.x * 2.0f);
+    }
+    axis_width = ImMax(50.0f, ImGui::GetContentRegionAvail().x - name_width);
+    for (index = 0; Arinc661_Definition_AnimationAt(window->definitionEditor, index, &name, &type, &delay, &duration); ++index)
+    {
+        row_min  = ImGui::GetCursorScreenPos();
+        axis_min = ImVec2(row_min.x + name_width, row_min.y);
+        ImGui::Text("%s (%s)", name, type + 5);
+        draw_list->AddRectFilled(ImVec2(axis_min.x, row_min.y + 2.0f), ImVec2(axis_min.x + axis_width, row_min.y + TIMELINE_ROW_HEIGHT - 2.0f), IM_COL32(255, 255, 255, 12));
+        if (0.0f < window->timelineLength)
+        {
+            draw_list->AddRectFilled(ImVec2(axis_min.x + (axis_width * (delay / window->timelineLength)), row_min.y + 4.0f), ImVec2(axis_min.x + (axis_width * ((delay + duration) / window->timelineLength)), row_min.y + TIMELINE_ROW_HEIGHT - 4.0f), TIMELINE_BAR_COLOR, 3.0f);
+            draw_list->AddLine(ImVec2(axis_min.x + (axis_width * (window->timelineTime / window->timelineLength)), row_min.y), ImVec2(axis_min.x + (axis_width * (window->timelineTime / window->timelineLength)), row_min.y + TIMELINE_ROW_HEIGHT), TIMELINE_CURSOR_COLOR, 2.0f);
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Entering play snapshots the Definition Files and focuses the configuration view, where the
+ *  windows show the applications as a CDS would; leaving restores them.
+ */
+static void TogglePlay(WindowThreadState_t* window)
+{
+    if (window->definitionEditor->isPlaying)
+    {
+        Arinc661_Definition_EndPlay(window->definitionEditor);
+    }
+    else
+    {
+        Arinc661_Definition_BeginPlay(window->definitionEditor);
+        window->isDefinitionActive = FALSE;
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Each report line becomes a log line.
+ */
+static void BuildAll(WindowThreadState_t* window)
+{
+    char_t  report[BUILD_REPORT_BYTES];
+    char_t* line;
+    char_t* next;
+
+    (void)Arinc661_Context_Build(window->context, report, sizeof(report));
+    line = report;
+    while (NULL != line)
+    {
+        next = strchr(line, '\n');
+        if (NULL != next)
+        {
+            (*next) = '\0';
+            next += 1;
+        }
+        if ('\0' != line[0])
+        {
+            window->lastStatus[0] = '\0';
+            AppendLog(window, line);
+        }
+        line = next;
+    }
+    window->panelOpen[PANEL_INDEX_LOG] = true;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  One list mixes commands, folder files, and the active Definition File's widgets; the first
+ *  match runs on Enter. Escape closes.
+ */
+static void DrawCommandPalette(WindowThreadState_t* window)
+{
+    static const char_t* const c_commands[] = {NEW_CONFIGURATION_LABEL, NEW_DEFINITION_LABEL, NEW_APPLICATION_LABEL, SAVE_LABEL, SAVE_ALL_LABEL, BUILD_LABEL, PLAY_LABEL, UNDO_LABEL, REDO_LABEL, OPEN_REFERENCED_LABEL, RESET_LAYOUT_LABEL, HELP_CONTEXT_LABEL, SHORTCUTS_LABEL};
+    const Arinc661_Definition_t* definition;
+    char_t                       upper_filter[MAX_HELP_FILTER_BYTES];
+    char_t                       upper_item[ARINC661_MAX_NAME_BYTES + 64];
+    char_t                       label[ARINC661_MAX_NAME_BYTES + 64];
+    uint32_t                     index;
+    uint32_t                     character;
+    uint32_t                     shown;
+    bool_t                       runs_first;
+    bool_t                       is_match;
+
+    if (FALSE == window->isPaletteOpen)
+    {
+        return;
+    }
+    ImGui::SetNextWindowPos(ImVec2(ImGui::GetMainViewport()->GetCenter().x, ImGui::GetMainViewport()->WorkPos.y + 80.0f), ImGuiCond_Always, ImVec2(0.5f, 0.0f));
+    ImGui::SetNextWindowSize(ImVec2(640.0f, 0.0f));
+    if (ImGui::Begin(COMMAND_PALETTE_ID, NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoSavedSettings))
+    {
+        if (ImGui::IsWindowAppearing())
+        {
+            ImGui::SetKeyboardFocusHere();
+        }
+        ImGui::SetNextItemWidth(-1.0f);
+        runs_first = ImGui::InputTextWithHint("##command", COMMAND_PALETTE_HINT, window->commandFilter, sizeof(window->commandFilter), ImGuiInputTextFlags_EnterReturnsTrue);
+        if (ImGui::IsKeyPressed(ImGuiKey_Escape))
+        {
+            window->isPaletteOpen = FALSE;
+        }
+        for (character = 0; character < sizeof(upper_filter); ++character)
+        {
+            upper_filter[character] = (char_t)ImToUpper(window->commandFilter[character]);
+            if ('\0' == window->commandFilter[character])
+            {
+                break;
+            }
+        }
+        shown = 0;
+        if (ImGui::BeginChild("##command list", ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * COMMAND_PALETTE_ROWS), ImGuiChildFlags_Borders))
+        {
+            for (index = 0; index < COUNT_OF(c_commands); ++index)
+            {
+                for (character = 0; character < sizeof(upper_item); ++character)
+                {
+                    upper_item[character] = (char_t)ImToUpper(c_commands[index][character]);
+                    if ('\0' == c_commands[index][character])
+                    {
+                        break;
+                    }
+                }
+                is_match = !!(('\0' == upper_filter[0]) || (NULL != strstr(upper_item, upper_filter)));
+                if (is_match)
+                {
+                    (void)snprintf(label, sizeof(label), "> %s", c_commands[index]);
+                    if (ImGui::Selectable(label) || (runs_first && (0 == shown)))
+                    {
+                        if (0 == strcmp(c_commands[index], NEW_CONFIGURATION_LABEL)) { Arinc661_Configuration_CreateDocument(window->configurationEditor); window->isDefinitionActive = FALSE; }
+                        else if (0 == strcmp(c_commands[index], NEW_DEFINITION_LABEL)) { Arinc661_Definition_CreateDocument(window->definitionEditor); window->isDefinitionActive = TRUE; }
+                        else if (0 == strcmp(c_commands[index], NEW_APPLICATION_LABEL)) { (void)Arinc661_Context_NewApplication(window->context); }
+                        else if (0 == strcmp(c_commands[index], SAVE_LABEL)) { SaveActive(window); }
+                        else if (0 == strcmp(c_commands[index], SAVE_ALL_LABEL)) { Arinc661_Configuration_SaveAllDocuments(window->configurationEditor); Arinc661_Definition_SaveAllDocuments(window->definitionEditor); }
+                        else if (0 == strcmp(c_commands[index], BUILD_LABEL)) { BuildAll(window); }
+                        else if (0 == strcmp(c_commands[index], PLAY_LABEL)) { TogglePlay(window); }
+                        else if (0 == strcmp(c_commands[index], UNDO_LABEL)) { if (window->isDefinitionActive) { Arinc661_Definition_Undo(window->definitionEditor); } else { Arinc661_Configuration_Undo(window->configurationEditor); } }
+                        else if (0 == strcmp(c_commands[index], REDO_LABEL)) { if (window->isDefinitionActive) { Arinc661_Definition_Redo(window->definitionEditor); } else { Arinc661_Configuration_Redo(window->configurationEditor); } }
+                        else if (0 == strcmp(c_commands[index], OPEN_REFERENCED_LABEL)) { (void)Arinc661_Context_OpenReferencedDefinitions(window->context); }
+                        else if (0 == strcmp(c_commands[index], RESET_LAYOUT_LABEL)) { window->resetsLayout = TRUE; }
+                        else if (0 == strcmp(c_commands[index], HELP_CONTEXT_LABEL)) { OpenWindowsHelp(window, HH_DISPLAY_TOPIC_COMMAND); }
+                        else { ShowHelp(window, SHORTCUTS_LABEL); }
+                        window->isPaletteOpen = FALSE;
+                    }
+                    shown += 1;
+                }
+            }
+            // Files of the folder
+            for (index = 0; index < window->fileCount; ++index)
+            {
+                for (character = 0; character < sizeof(upper_item); ++character)
+                {
+                    upper_item[character] = (char_t)ImToUpper(window->fileNames[index][character]);
+                    if ('\0' == window->fileNames[index][character])
+                    {
+                        break;
+                    }
+                }
+                if (('\0' != upper_filter[0]) && (NULL != strstr(upper_item, upper_filter)))
+                {
+                    (void)snprintf(label, sizeof(label), "Open %s", window->fileNames[index]);
+                    if (ImGui::Selectable(label) || (runs_first && (0 == shown)))
+                    {
+                        OpenFolderFile(window, window->fileNames[index], window->fileIsDefinition[index]);
+                        window->isPaletteOpen = FALSE;
+                    }
+                    shown += 1;
+                }
+            }
+            // Widgets of the active Definition File
+            definition = Arinc661_Definition_Document(window->definitionEditor, window->definitionEditor->activeDocumentIndex);
+            for (index = 0; (NULL != definition) && ('\0' != upper_filter[0]) && (index < definition->widgetCount); ++index)
+            {
+                for (character = 0; character < sizeof(upper_item); ++character)
+                {
+                    upper_item[character] = (char_t)ImToUpper(definition->widgets[index].name[character]);
+                    if ('\0' == definition->widgets[index].name[character])
+                    {
+                        break;
+                    }
+                }
+                if (NULL != strstr(upper_item, upper_filter))
+                {
+                    (void)snprintf(label, sizeof(label), "Select %s (%s)", definition->widgets[index].name, definition->widgets[index].type);
+                    ImGui::PushID((int)(100000 + index));
+                    if (ImGui::Selectable(label) || (runs_first && (0 == shown)))
+                    {
+                        Arinc661_Definition_SelectWidget(window->definitionEditor, window->definitionEditor->activeDocumentIndex, index);
+                        window->isDefinitionActive = TRUE;
+                        window->isPaletteOpen      = FALSE;
+                    }
+                    ImGui::PopID();
+                    shown += 1;
+                }
+            }
+        }
+        ImGui::EndChild();
+        if ((FALSE == ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows)) && (FALSE == ImGui::IsWindowAppearing()))
+        {
+            window->isPaletteOpen = FALSE;
+        }
+    }
+    ImGui::End();
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Dark or light ImGui scheme with the viewport tweaks, then the font scale.
+ */
+static void ApplyTheme(WindowThreadState_t* window)
+{
+    ImGuiStyle* style;
+    ImVec4*     colors;
+    ImVec4*     style_colors_dark;
+
+    if (window->isLightTheme)
+    {
+        ImGui::StyleColorsLight();
+    }
+    else
+    {
+        ImGui::StyleColorsDark();
+        style_colors_dark = ImGui::GetStyle().Colors;
+        // Near-black panels, darker input wells, flat blue accent, as in a modern engine editor
+        colors = style_colors_dark;
+        colors[ImGuiCol_Text]                  = ImVec4(0.86f, 0.86f, 0.86f, 1.00f);
+        colors[ImGuiCol_TextDisabled]          = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
+        colors[ImGuiCol_WindowBg]              = ImVec4(0.11f, 0.11f, 0.11f, 1.00f);
+        colors[ImGuiCol_ChildBg]               = ImVec4(0.11f, 0.11f, 0.11f, 0.00f);
+        colors[ImGuiCol_PopupBg]               = ImVec4(0.09f, 0.09f, 0.09f, 0.98f);
+        colors[ImGuiCol_Border]                = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+        colors[ImGuiCol_BorderShadow]          = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+        colors[ImGuiCol_FrameBg]               = ImVec4(0.06f, 0.06f, 0.06f, 1.00f);
+        colors[ImGuiCol_FrameBgHovered]        = ImVec4(0.10f, 0.10f, 0.10f, 1.00f);
+        colors[ImGuiCol_FrameBgActive]         = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
+        colors[ImGuiCol_TitleBg]               = ImVec4(0.07f, 0.07f, 0.07f, 1.00f);
+        colors[ImGuiCol_TitleBgActive]         = ImVec4(0.07f, 0.07f, 0.07f, 1.00f);
+        colors[ImGuiCol_TitleBgCollapsed]      = ImVec4(0.07f, 0.07f, 0.07f, 1.00f);
+        colors[ImGuiCol_MenuBarBg]             = ImVec4(0.08f, 0.08f, 0.08f, 1.00f);
+        colors[ImGuiCol_ScrollbarBg]           = ImVec4(0.08f, 0.08f, 0.08f, 0.60f);
+        colors[ImGuiCol_ScrollbarGrab]         = ImVec4(0.30f, 0.30f, 0.30f, 1.00f);
+        colors[ImGuiCol_ScrollbarGrabHovered]  = ImVec4(0.40f, 0.40f, 0.40f, 1.00f);
+        colors[ImGuiCol_ScrollbarGrabActive]   = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
+        colors[ImGuiCol_CheckMark]             = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+        colors[ImGuiCol_SliderGrab]            = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
+        colors[ImGuiCol_SliderGrabActive]      = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+        colors[ImGuiCol_Button]                = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+        colors[ImGuiCol_ButtonHovered]         = ImVec4(0.28f, 0.28f, 0.28f, 1.00f);
+        colors[ImGuiCol_ButtonActive]          = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+        colors[ImGuiCol_Header]                = ImVec4(0.18f, 0.18f, 0.18f, 1.00f);
+        colors[ImGuiCol_HeaderHovered]         = ImVec4(0.24f, 0.24f, 0.24f, 1.00f);
+        colors[ImGuiCol_HeaderActive]          = ImVec4(0.16f, 0.38f, 0.66f, 1.00f);
+        colors[ImGuiCol_Separator]             = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+        colors[ImGuiCol_SeparatorHovered]      = ImVec4(0.26f, 0.59f, 0.98f, 0.78f);
+        colors[ImGuiCol_SeparatorActive]       = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+        colors[ImGuiCol_ResizeGrip]            = ImVec4(0.26f, 0.59f, 0.98f, 0.20f);
+        colors[ImGuiCol_ResizeGripHovered]     = ImVec4(0.26f, 0.59f, 0.98f, 0.67f);
+        colors[ImGuiCol_ResizeGripActive]      = ImVec4(0.26f, 0.59f, 0.98f, 0.95f);
+        colors[ImGuiCol_Tab]                   = ImVec4(0.09f, 0.09f, 0.09f, 1.00f);
+        colors[ImGuiCol_TabHovered]            = ImVec4(0.22f, 0.22f, 0.22f, 1.00f);
+        colors[ImGuiCol_TabSelected]           = ImVec4(0.15f, 0.15f, 0.15f, 1.00f);
+        colors[ImGuiCol_TabSelectedOverline]   = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+        colors[ImGuiCol_TabDimmed]             = ImVec4(0.08f, 0.08f, 0.08f, 1.00f);
+        colors[ImGuiCol_TabDimmedSelected]     = ImVec4(0.13f, 0.13f, 0.13f, 1.00f);
+        colors[ImGuiCol_TabDimmedSelectedOverline] = ImVec4(0.30f, 0.30f, 0.30f, 1.00f);
+        colors[ImGuiCol_DockingPreview]        = ImVec4(0.26f, 0.59f, 0.98f, 0.50f);
+        colors[ImGuiCol_DockingEmptyBg]        = ImVec4(0.08f, 0.08f, 0.08f, 1.00f);
+        colors[ImGuiCol_TableHeaderBg]         = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
+        colors[ImGuiCol_TableBorderStrong]     = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+        colors[ImGuiCol_TableBorderLight]      = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
+        colors[ImGuiCol_TableRowBg]            = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+        colors[ImGuiCol_TableRowBgAlt]         = ImVec4(1.00f, 1.00f, 1.00f, 0.03f);
+        colors[ImGuiCol_TextSelectedBg]        = ImVec4(0.26f, 0.59f, 0.98f, 0.35f);
+        colors[ImGuiCol_NavCursor]             = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+        colors[ImGuiCol_ModalWindowDimBg]      = ImVec4(0.00f, 0.00f, 0.00f, 0.60f);
+    }
+    style = &ImGui::GetStyle();
+    // Flat engine-editor metrics: tight rounded frames, square tabs, thin borders
+    style->WindowPadding     = ImVec2(8.0f, 8.0f);
+    style->FramePadding      = ImVec2(6.0f, 4.0f);
+    style->CellPadding       = ImVec2(6.0f, 3.0f);
+    style->ItemSpacing       = ImVec2(8.0f, 5.0f);
+    style->ItemInnerSpacing  = ImVec2(6.0f, 4.0f);
+    style->IndentSpacing     = 18.0f;
+    style->ScrollbarSize     = 12.0f;
+    style->GrabMinSize       = 10.0f;
+    style->WindowBorderSize  = 1.0f;
+    style->ChildBorderSize   = 1.0f;
+    style->PopupBorderSize   = 1.0f;
+    style->FrameBorderSize   = 0.0f;
+    style->TabBorderSize     = 0.0f;
+    style->WindowRounding    = 4.0f;
+    style->ChildRounding     = 3.0f;
+    style->FrameRounding     = 3.0f;
+    style->PopupRounding     = 4.0f;
+    style->ScrollbarRounding = 6.0f;
+    style->GrabRounding      = 3.0f;
+    style->TabRounding       = 0.0f;
+    style->TabBarOverlineSize = 2.0f;
+    style->DockingSeparatorSize = 2.0f;
+    style->WindowTitleAlign  = ImVec2(0.0f, 0.5f);
+    style->WindowMenuButtonPosition = ImGuiDir_None;
+    style->SeparatorTextBorderSize = 1.0f;
+    style->SeparatorTextPadding = ImVec2(12.0f, 4.0f);
+    style->ScaleAllSizes(window->mainScale);
+    style->FontScaleDpi  = window->mainScale;
+    style->FontScaleMain = window->uiScale;
+    if (0 != (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable))
+    {
+        style->WindowRounding              = 0.0f;
+        style->Colors[ImGuiCol_WindowBg].w = 1.0f;
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Two lines, key=value: scale and theme.
+ */
+static void LoadPreferences(WindowThreadState_t* window)
+{
+    FILE*  file;
+    char_t line[MAX_FILE_PATH_BYTES + 64];
+    char_t key[32];
+    char_t value[MAX_FILE_PATH_BYTES + 4];
+
+    window->uiScale      = 1.0f;
+    window->isLightTheme = FALSE;
+    window->recentCount  = 0;
+    window->updateUrl[0]         = '\0';
+    window->updateSkipVersion[0] = '\0';
+    window->updateCheckedAt      = 0.0;
+    file = fopen(PREFERENCES_FILE, "r");
+    if (NULL != file)
+    {
+        while (NULL != fgets(line, sizeof(line), file))
+        {
+            if (2 == sscanf_s(line, "%31[^=]=%1023[^\r\n]", key, (unsigned)sizeof(key), value, (unsigned)sizeof(value)))
+            {
+                if (0 == strcmp(key, PREFERENCE_SCALE_KEY))
+                {
+                    window->uiScale = ImClamp((float32_t)atof(value), UI_SCALE_MIN, UI_SCALE_MAX);
+                }
+                else if (0 == strcmp(key, PREFERENCE_THEME_KEY))
+                {
+                    window->isLightTheme = (0 == strcmp(value, "light"));
+                }
+                else if (0 == strcmp(key, PREFERENCE_FOLDER_KEY))
+                {
+                    strncpy_s(window->folderPath, sizeof(window->folderPath), value, _TRUNCATE);
+                }
+                else if (0 == strcmp(key, PREFERENCE_UPDATE_URL_KEY))
+                {
+                    strncpy_s(window->updateUrl, sizeof(window->updateUrl), value, _TRUNCATE);
+                }
+                else if (0 == strcmp(key, PREFERENCE_UPDATE_CHECKED_KEY))
+                {
+                    window->updateCheckedAt = atof(value);
+                }
+                else if (0 == strcmp(key, PREFERENCE_UPDATE_SKIP_KEY))
+                {
+                    strncpy_s(window->updateSkipVersion, sizeof(window->updateSkipVersion), value, _TRUNCATE);
+                }
+                else if ((0 == strcmp(key, PREFERENCE_RECENT_KEY)) && (('d' == value[0]) || ('c' == value[0])) && (':' == value[1]) && (window->recentCount < RECENT_COUNT))
+                {
+                    strncpy_s(window->recentNames[window->recentCount], sizeof(window->recentNames[0]), value + 2, _TRUNCATE);
+                    window->recentIsDefinition[window->recentCount] = ('d' == value[0]);
+                    window->recentCount += 1;
+                }
+            }
+        }
+        (void)fclose(file);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Written beside the executable's working directory.
+ */
+static void SavePreferences(WindowThreadState_t* window)
+{
+    FILE*         file;
+    const char_t* theme;
+    uint32_t      index;
+    char_t        kind;
+
+    if (window->preferencesDirty)
+    {
+        file = fopen(PREFERENCES_FILE, "w");
+        if (NULL != file)
+        {
+            theme = "dark";
+            if (window->isLightTheme)
+            {
+                theme = "light";
+            }
+            (void)fprintf(file, "%s=%.2f\n%s=%s\n%s=%s\n", PREFERENCE_SCALE_KEY, (float64_t)window->uiScale, PREFERENCE_THEME_KEY, theme, PREFERENCE_FOLDER_KEY, window->folderPath);
+            (void)fprintf(file, "%s=%s\n%s=%.0f\n%s=%s\n", PREFERENCE_UPDATE_URL_KEY, window->updateUrl, PREFERENCE_UPDATE_CHECKED_KEY, window->updateCheckedAt, PREFERENCE_UPDATE_SKIP_KEY, window->updateSkipVersion);
+            for (index = 0; index < window->recentCount; ++index)
+            {
+                kind = 'c';
+                if (window->recentIsDefinition[index])
+                {
+                    kind = 'd';
+                }
+                (void)fprintf(file, "%s=%c:%s\n", PREFERENCE_RECENT_KEY, kind, window->recentNames[index]);
+            }
+            (void)fclose(file);
+        }
+        window->preferencesDirty = FALSE;
+    }
 }
 
 /*************************************************************************************************/
@@ -2299,8 +4530,9 @@ static void DrawStatusBar(WindowThreadState_t* window)
     }
     Arinc661_Configuration_SelectionText(window->configurationEditor, configuration_crumb, sizeof(configuration_crumb));
     Arinc661_Definition_SelectionText(window->definitionEditor, definition_crumb, sizeof(definition_crumb));
-    ImGui::SameLine(0.0f, CONTEXT_BAR_GAP);
-    ImGui::TextDisabled(CONTEXT_BAR_FORMAT, configuration_crumb, definition_crumb);
+    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+    ImGui::TextWrapped(CONTEXT_BAR_FORMAT, configuration_crumb, definition_crumb);
+    ImGui::PopStyleColor();
 }
 
 /*************************************************************************************************/
@@ -2513,6 +4745,7 @@ static LRESULT WINAPI WindowProcedure(HWND windowHandle, UINT message, WPARAM wo
     CREATESTRUCTW*       create;
     RECT*                lpRect;
     LRESULT              result;
+    wchar_t              dropped[MAX_FILE_PATH_BYTES];
 
     if (WM_NCCREATE == message)
     {
@@ -2583,6 +4816,16 @@ static LRESULT WINAPI WindowProcedure(HWND windowHandle, UINT message, WPARAM wo
         }
         break;
     }
+    case WM_DROPFILES:
+    {
+        // The first dropped file opens next frame on this thread
+        if ((NULL != window) && (0 < ::DragQueryFileW((HDROP)wordParameter, 0, dropped, (UINT)COUNT_OF(dropped))))
+        {
+            (void)::WideCharToMultiByte(CP_UTF8, 0, dropped, -1, window->pendingOpenPath, (int)sizeof(window->pendingOpenPath), NULL, NULL);
+        }
+        ::DragFinish((HDROP)wordParameter);
+        return 0;
+    }
     case WM_DESTROY:
     {
         window->isDone.store(TRUE);
@@ -2612,6 +4855,10 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
     uint32_t panel_index;
     WindowThreadState_t*       window;
     WNDCLASSEXW                window_class;
+    MONITORINFO                monitor_info;
+    RECT                       monitor_rect;
+    int                        window_width;
+    int                        window_height;
     ImGuiIO*                   io;
     ImGuiStyle*                style;
     ImGuiPlatformIO*           platform_io;
@@ -2633,20 +4880,36 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
     window_class.lpfnWndProc   = WindowProcedure;
     window_class.hInstance     = ::GetModuleHandleW(NULL);
     window_class.lpszClassName = L"ARINC661Configuration";
+    window_class.hIcon         = ::LoadIconW(window_class.hInstance, MAKEINTRESOURCEW(ICON_RESOURCE_ID));
+    window_class.hIconSm       = window_class.hIcon;
     LOGASSERT(0 != ::RegisterClassExW(&window_class));
+    (void)::CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+    // Centre the window on the primary monitor's work area, sized to fit it
+    monitor_info.cbSize = sizeof(monitor_info);
+    monitor_rect.left   = 0;
+    monitor_rect.top    = 0;
+    monitor_rect.right  = ::GetSystemMetrics(SM_CXSCREEN);
+    monitor_rect.bottom = ::GetSystemMetrics(SM_CYSCREEN);
+    if (::GetMonitorInfoW(::MonitorFromPoint(POINT{0, 0}, MONITOR_DEFAULTTOPRIMARY), &monitor_info))
+    {
+        monitor_rect = monitor_info.rcWork;
+    }
+    window_width  = ImMin((int)(WINDOW_DEFAULT_WIDTH * window->mainScale), (int)(monitor_rect.right - monitor_rect.left));
+    window_height = ImMin((int)(WINDOW_DEFAULT_HEIGHT * window->mainScale), (int)(monitor_rect.bottom - monitor_rect.top));
     window->windowHandle = ::CreateWindowW(
         window_class.lpszClassName,
-        L"ARINC 661 Configuration",
+        WINDOW_TITLE,
         WS_OVERLAPPEDWINDOW,
-        100,
-        100,
-        (int)(1280 * window->mainScale),
-        (int)(800 * window->mainScale),
+        (int)monitor_rect.left + (((int)(monitor_rect.right - monitor_rect.left) - window_width) / 2),
+        (int)monitor_rect.top + (((int)(monitor_rect.bottom - monitor_rect.top) - window_height) / 2),
+        window_width,
+        window_height,
         NULL,
         NULL,
         window_class.hInstance,
         window);
     LOGASSERT(NULL != window->windowHandle);
+    ::DragAcceptFiles(window->windowHandle, TRUE);
     ::ShowWindow(window->windowHandle, SW_SHOWDEFAULT);
     ::UpdateWindow(window->windowHandle);
 
@@ -2674,11 +4937,18 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
     io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io->ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
     io->ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    io->ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+    if (NULL == g_screenshotPath)
+    {
+        // Pop-ups in their own OS windows cannot be read back from the main framebuffer, so
+        // automation runs keep every window inside the main viewport
+        io->ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+    }
 
-    ImGui::StyleColorsDark();
+    LoadPreferences(window);
+    LoadUpdateSource(window);
+    ApplyTheme(window);
+    (void)Arinc661_Icons_LoadFonts(UI_TEXT_SIZE);
     style = &ImGui::GetStyle();
-    style->ScaleAllSizes(window->mainScale);
     style->FontScaleDpi         = window->mainScale;
     io->ConfigDpiScaleFonts     = TRUE;
     io->ConfigDpiScaleViewports = TRUE;
@@ -2718,6 +4988,30 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
     window->logCount      = 0;
     window->lastStatus[0] = 0;
     window->logAutoScroll = true;
+    window->isTimelinePlaying = FALSE;
+    window->isTimelineLooping = TRUE;
+    window->timelineTime      = 0.0f;
+    window->timelineLength    = 0.0f;
+    window->isPaletteOpen     = FALSE;
+    window->commandFilter[0]  = 0;
+    window->logFilter[0]      = 0;
+    window->pendingOpenPath[0] = 0;
+    window->updateState.store(UPDATE_STATE_IDLE);
+    window->updateResult       = ARINC661_UPDATE_RESULT_UP_TO_DATE;
+    window->updatePackagePath[0] = 0;
+    window->updateIsManual     = FALSE;
+    window->opensUpdatePopup   = FALSE;
+    window->opensAboutPopup    = FALSE;
+    window->isApplyingUpdate   = FALSE;
+    window->dialogState.store(DIALOG_IDLE);
+    window->dialogIsFolder    = FALSE;
+    window->dialogPath[0]     = 0;
+    window->opensPrefabPopup  = FALSE;
+    window->prefabName[0]     = 0;
+    window->prefabCount       = 0;
+    window->logShowsErrors    = TRUE;
+    window->logShowsWarnings  = TRUE;
+    window->logShowsInfo      = TRUE;
     for (panel_index = 0; panel_index < PANEL_COUNT; ++panel_index)
     {
         window->panelOpen[panel_index] = true;
@@ -2739,6 +5033,19 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
         }
     }
     window->isDefinitionActive = g_focusDefinition;
+    if (NULL != g_openPath)
+    {
+        (void)OpenPath(window, g_openPath);
+    }
+    if (0.0f <= g_startTime)
+    {
+        window->timelineTime = g_startTime;
+        Arinc661_Definition_SetAnimationTime(window->definitionEditor, g_startTime);
+    }
+    if (g_startsPlaying)
+    {
+        TogglePlay(window);
+    }
     window->hasEditors = TRUE;
     window->isInitialized = TRUE;
     LOGASSERT(FALSE != ::SetEvent(window->readyEvent));

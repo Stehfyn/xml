@@ -73,8 +73,10 @@ add_executable(unit_tests
     tests/arinc661_definition_tests.c
     tests/arinc661_scene_tests.c
     tests/faceoe_gfx_tests.c
-    tests/faceoe_displaymanagement_tests.c)
-target_link_libraries(unit_tests PRIVATE faceoe_utl arinc661 faceoe)
+    tests/faceoe_displaymanagement_tests.c
+    tests/arinc661_update_tests.c
+    examples/arinc661_update.c)
+target_link_libraries(unit_tests PRIVATE faceoe_utl arinc661 faceoe winhttp bcrypt)
 
 add_executable(arinc661_example examples/arinc661_example.c)
 target_link_libraries(arinc661_example PRIVATE arinc661 faceoe)
@@ -94,7 +96,7 @@ if(WIN32)
     target_compile_features(imgui PUBLIC cxx_std_11)
     target_include_directories(imgui PUBLIC "${IMGUI_DIR}" "${IMGUI_DIR}/backends")
 
-    add_executable(arinc661_editor
+    add_executable(cds_editor
         examples/main.cpp
         examples/arinc661_configuration.cpp
         examples/arinc661_configuration.h
@@ -105,14 +107,44 @@ if(WIN32)
         examples/arinc661_gfx_imgui.cpp
         examples/arinc661_gfx_imgui.h
         examples/arinc661_icons.cpp
-        examples/arinc661_icons.h)
-    target_link_libraries(arinc661_editor PRIVATE faceoe arinc661 imgui opengl32 gdi32 dwmapi)
-    set_target_properties(arinc661_editor PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+        examples/arinc661_icons.h
+        examples/arinc661_update.c
+        examples/arinc661_update.h
+        examples/arinc661_version.h
+        examples/cds_editor.rc)
+    target_link_libraries(cds_editor PRIVATE faceoe arinc661 imgui opengl32 gdi32 dwmapi ole32 shell32 winhttp bcrypt)
+    set_target_properties(cds_editor PROPERTIES OUTPUT_NAME "cds-editor" VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
     add_executable(arinc661_definition_editor_tests tests/arinc661_definition_editor_tests.cpp examples/arinc661_gfx_imgui.cpp examples/arinc661_context.cpp examples/arinc661_configuration.cpp examples/arinc661_icons.cpp)
     target_include_directories(arinc661_definition_editor_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/examples")
     target_link_libraries(arinc661_definition_editor_tests PRIVATE arinc661 faceoe imgui)
     add_test(NAME arinc661_definition_editor_tests COMMAND arinc661_definition_editor_tests)
+
+    # GUI tests drive the editor panels through the null backend with synthetic input
+    add_executable(arinc661_gui_tests tests/arinc661_gui_tests.cpp examples/arinc661_gfx_imgui.cpp examples/arinc661_context.cpp examples/arinc661_configuration.cpp examples/arinc661_icons.cpp)
+    target_include_directories(arinc661_gui_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/examples")
+    target_link_libraries(arinc661_gui_tests PRIVATE arinc661 faceoe imgui)
+    add_test(NAME arinc661_gui_tests COMMAND arinc661_gui_tests "${CMAKE_CURRENT_SOURCE_DIR}/examples")
+
+    # Shell extension: content-sniffed overlay badges and a context menu verb for Explorer
+    add_library(cds_shell SHARED shell/cds_shell.c shell/cds_shell.h shell/cds_shell.def shell/cds_shell.rc)
+    target_link_libraries(cds_shell PRIVATE shlwapi ole32 shell32 uuid)
+    target_compile_definitions(cds_shell PRIVATE UNICODE _UNICODE)
+    set_target_properties(cds_shell PROPERTIES OUTPUT_NAME "cds-shell")
+
+    # MSI through the WiX toolset when its command line tool is installed
+    find_program(WIX_EXECUTABLE wix)
+    if(WIX_EXECUTABLE)
+        add_custom_target(installer
+            COMMAND "${WIX_EXECUTABLE}" build -arch x64 -ext WixToolset.UI.wixext
+                -d "BinDir=$<TARGET_FILE_DIR:cds_editor>"
+                -d "SourceDir=${CMAKE_CURRENT_SOURCE_DIR}"
+                -o "${CMAKE_BINARY_DIR}/cds-editor.msi"
+                "${CMAKE_CURRENT_SOURCE_DIR}/installer/cds_editor.wxs"
+            DEPENDS cds_editor cds_shell
+            COMMENT "Building cds-editor.msi"
+            VERBATIM)
+    endif()
 endif()
 
 enable_testing()

@@ -14,6 +14,7 @@
 **===============================================================================================*/
 
 #include "arinc661/arinc661_definition.h"
+#include "faceoe_utl/faceoe_utl_defines.h"
 #include "faceoe_utl/faceoe_utl_scan.h"
 #include "faceoe_utl/faceoe_utl_xml.h"
 
@@ -1462,7 +1463,7 @@ bool_t Arinc661_ReadDefinition(Arinc661_Definition_t* definition, byte_t* buffer
                 }
                 if (is_valid)
                 {
-                    for (charset_index = 0; charset_index < (sizeof(c_charsetEncodings) / sizeof(c_charsetEncodings[0])); ++charset_index)
+                    for (charset_index = 0; charset_index < COUNT_OF(c_charsetEncodings); ++charset_index)
                     {
                         if (0 == strcmp(charset_name, c_charsetEncodings[charset_index].name))
                         {
@@ -1590,7 +1591,7 @@ uint64_t Arinc661_WriteDefinition(const Arinc661_Definition_t* definition, byte_
         if (is_valid)
         {
             is_valid = FALSE;
-            for (charset_index = 0; charset_index < (sizeof(c_charsetEncodings) / sizeof(c_charsetEncodings[0])); ++charset_index)
+            for (charset_index = 0; charset_index < COUNT_OF(c_charsetEncodings); ++charset_index)
             {
                 if (definition->charsetEncoding == c_charsetEncodings[charset_index].value)
                 {
