@@ -84,19 +84,17 @@ STYLE DS_SETFONT | DS_CONTROL | WS_CHILD
 FONT 8, "Segoe UI", 400, 0, 0x1
 BEGIN
     CONTROL         "", IDC_BANNER_IMAGE, "Static", SS_OWNERDRAW, 0, 0, 292, 35
-    LTEXT           "Setup Options", IDC_TITLE, 12, 5, 210, 14
+    LTEXT           "Installation Options", IDC_TITLE, 12, 5, 210, 14
     LTEXT           "Choose shortcuts and Explorer integration.", IDC_DESCRIPTION, 20, 20, 222, 10
     CONTROL         "", IDC_BANNER_LINE, "Static", SS_ETCHEDHORZ, 0, 35, 292, 1
-    GROUPBOX        "Shortcuts", IDC_GROUP_SHORTCUTS, 16, 38, 259, 29
-    CONTROL         "&Start menu", IDC_OPT_STARTMENU, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 26, 50, 111, 10
-    CONTROL         "&Desktop", IDC_OPT_DESKTOP, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 152, 50, 111, 10
-    GROUPBOX        "Explorer integration", IDC_GROUP_EXPLORER, 16, 71, 259, 70
-    CONTROL         "List CDS Editor under &Open With for .xml and .bin files", IDC_OPT_OPENWITH, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 26, 83, 240, 10
-    LTEXT           "The default program for .xml and .bin files is not changed.", IDC_OPT_OPENWITH_NOTE, 36, 96, 230, 10
-    CONTROL         "&Badge Definition Files and configurations", IDC_OPT_SHELL, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 26, 110, 240, 10
-    LTEXT           "Adds badges and an Open in CDS Editor menu entry to such files only. Badges appear after Explorer restarts.", IDC_OPT_SHELL_NOTE, 36, 122, 230, 20
-    GROUPBOX        "After installation", IDC_GROUP_AFTER, 16, 145, 259, 25
-    CONTROL         "Start CDS Editor when Setup &finishes", IDC_OPT_LAUNCH, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 26, 156, 240, 10
+    LTEXT           "Shortcuts", IDC_GROUP_SHORTCUTS, 20, 48, 250, 10
+    CONTROL         "&Start menu", IDC_OPT_STARTMENU, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 32, 63, 240, 10
+    CONTROL         "&Desktop", IDC_OPT_DESKTOP, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 32, 78, 240, 10
+    LTEXT           "Explorer", IDC_GROUP_EXPLORER, 20, 99, 250, 10
+    CONTROL         "List CDS Editor under &Open With for .xml and .bin files", IDC_OPT_OPENWITH, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 32, 114, 240, 10
+    LTEXT           "The default program for .xml and .bin files is not changed.", IDC_OPT_OPENWITH_NOTE, 44, 125, 228, 9
+    CONTROL         "&Badge Definition Files and configurations", IDC_OPT_SHELL, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 32, 140, 240, 10
+    LTEXT           "Adds badges and an Open in CDS Editor menu entry to those files only. Badges appear after Explorer restarts.", IDC_OPT_SHELL_NOTE, 44, 151, 228, 18
 END
 
 // Destination folder and the files that go there
@@ -148,7 +146,8 @@ FONT 8, "Segoe UI", 400, 0, 0x1
 BEGIN
     CONTROL         "", IDC_SIDE_IMAGE, "Static", SS_OWNERDRAW, 0, 0, 292, 173
     LTEXT           "Completed the CDS Editor Setup Wizard", IDC_HEADLINE, 107, 16, 175, 37
-    LTEXT           "Click Finish to exit the Setup Wizard.\n\nOpen a Definition File or a configuration from the Start page, or drop one on the window. Press F1 in the editor for the reference.", IDC_BODY, 107, 62, 175, 92
+    LTEXT           "Click Finish to exit the Setup Wizard.\n\nOpen a Definition File or a configuration from the Start page, or drop one on the window. Press F1 in the editor for the reference.", IDC_BODY, 107, 62, 175, 70
+    CONTROL         "&Start CDS Editor", IDC_OPT_LAUNCH, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 107, 140, 175, 10
 END
 
 // Maintenance: repair or remove an installed copy

@@ -85,7 +85,7 @@
 #define MAX_TEXT                  (512)
 #define MAX_PROPERTIES            (1024)
 #define FILE_QUERY                L"SELECT `FileName`, `FileSize`, `Directory_` FROM `File`, `Component` WHERE `File`.`Component_` = `Component`.`Component`"
-#define SUMMARY_FORMAT            L"Folder\r\n    %s\r\n\r\nOptions\r\n    %s\r\n    %s\r\n    %s\r\n    %s\r\n    %s"
+#define SUMMARY_FORMAT            L"Folder\r\n    %s\r\n\r\nOptions\r\n    %s\r\n    %s\r\n    %s\r\n    %s"
 #define LIST_COLUMN_NAME          L"Name"
 #define LIST_COLUMN_SIZE          L"Size"
 #define LIST_COLUMN_WHERE         L"Where"
@@ -127,8 +127,6 @@
 #define OPTION_NO_OPENWITH        L"No Open With entries"
 #define OPTION_YES_SHELL          L"Explorer badges and context menu"
 #define OPTION_NO_SHELL           L"No Explorer badges or context menu"
-#define OPTION_YES_LAUNCH         L"Start CDS Editor when Setup finishes"
-#define OPTION_NO_LAUNCH          L"Do not start CDS Editor afterwards"
 #define PROPERTIES_FORMAT         L"INSTALLFOLDER=\"%s\" ADDLOCAL=%s REBOOT=ReallySuppress"
 #define FEATURES_MAIN             L"Main"
 #define FEATURE_STARTMENU         L",StartMenu"
@@ -200,6 +198,7 @@ typedef struct Setup_s
     HBRUSH    wellBrush;                   ///< Edit and list background in dark mode
     HFONT     headlineFont;                ///< Large page headline
     HFONT     textFont;                    ///< The dialog font, for painting the header and group captions
+    HFONT     boldFont;                    ///< Section headings of the options page
     HANDLE    thread;                      ///< Installer thread
     int32_t   progressTotal;               ///< Ticks the installer announced
     int32_t   progressDone;                ///< Ticks reported so far
@@ -950,11 +949,12 @@ static INT_PTR CALLBACK PageProcedure(HWND window, UINT message, WPARAM wordPara
             CheckDlgButton(window, IDC_ACCEPT, s_setup.isAccepted ? BST_CHECKED : BST_UNCHECKED);
             break;
         case IDD_OPTIONS:
+            SendDlgItemMessageW(window, IDC_GROUP_SHORTCUTS, WM_SETFONT, (WPARAM)s_setup.boldFont, FALSE);
+            SendDlgItemMessageW(window, IDC_GROUP_EXPLORER, WM_SETFONT, (WPARAM)s_setup.boldFont, FALSE);
             CheckDlgButton(window, IDC_OPT_STARTMENU, (0 != (s_setup.options & OPTION_STARTMENU)) ? BST_CHECKED : BST_UNCHECKED);
             CheckDlgButton(window, IDC_OPT_DESKTOP, (0 != (s_setup.options & OPTION_DESKTOP)) ? BST_CHECKED : BST_UNCHECKED);
             CheckDlgButton(window, IDC_OPT_OPENWITH, (0 != (s_setup.options & OPTION_OPENWITH)) ? BST_CHECKED : BST_UNCHECKED);
             CheckDlgButton(window, IDC_OPT_SHELL, (0 != (s_setup.options & OPTION_SHELL)) ? BST_CHECKED : BST_UNCHECKED);
-            CheckDlgButton(window, IDC_OPT_LAUNCH, (0 != (s_setup.options & OPTION_LAUNCH)) ? BST_CHECKED : BST_UNCHECKED);
             break;
         case IDD_FOLDER:
             SetDlgItemTextW(window, IDC_FOLDER, s_setup.folder);
@@ -977,6 +977,11 @@ static INT_PTR CALLBACK PageProcedure(HWND window, UINT message, WPARAM wordPara
             }
             break;
         case IDD_FINISH:
+            CheckDlgButton(window, IDC_OPT_LAUNCH, (0 != (s_setup.options & OPTION_LAUNCH)) ? BST_CHECKED : BST_UNCHECKED);
+            if ((MODE_INSTALLING != s_setup.mode) || ((ERROR_SUCCESS != s_setup.result) && (ERROR_SUCCESS_REBOOT_REQUIRED != s_setup.result)))
+            {
+                ShowWindow(GetDlgItem(window, IDC_OPT_LAUNCH), SW_HIDE);
+            }
             if (ERROR_INSTALL_USEREXIT == s_setup.result)
             {
                 SetDlgItemTextW(window, IDC_HEADLINE, HEADLINE_CANCELLED);
@@ -1040,12 +1045,14 @@ static INT_PTR CALLBACK PageProcedure(HWND window, UINT message, WPARAM wordPara
         case IDC_OPT_DESKTOP:
         case IDC_OPT_OPENWITH:
         case IDC_OPT_SHELL:
-        case IDC_OPT_LAUNCH:
-            s_setup.options = 0;
+            s_setup.options &= OPTION_LAUNCH;
             if (BST_CHECKED == IsDlgButtonChecked(window, IDC_OPT_STARTMENU)) { s_setup.options |= OPTION_STARTMENU; }
             if (BST_CHECKED == IsDlgButtonChecked(window, IDC_OPT_DESKTOP)) { s_setup.options |= OPTION_DESKTOP; }
             if (BST_CHECKED == IsDlgButtonChecked(window, IDC_OPT_OPENWITH)) { s_setup.options |= OPTION_OPENWITH; }
             if (BST_CHECKED == IsDlgButtonChecked(window, IDC_OPT_SHELL)) { s_setup.options |= OPTION_SHELL; }
+            return TRUE;
+        case IDC_OPT_LAUNCH:
+            s_setup.options &= ~OPTION_LAUNCH;
             if (BST_CHECKED == IsDlgButtonChecked(window, IDC_OPT_LAUNCH)) { s_setup.options |= OPTION_LAUNCH; }
             return TRUE;
         case IDC_BROWSE:
@@ -1449,6 +1456,8 @@ static void CreateFonts(HWND frame)
     log_font.lfWeight = FW_NORMAL;
     (void)wcscpy_s(log_font.lfFaceName, COUNT_OF(log_font.lfFaceName), L"Segoe UI");
     s_setup.textFont = CreateFontIndirectW(&log_font);
+    log_font.lfWeight = FW_SEMIBOLD;
+    s_setup.boldFont  = CreateFontIndirectW(&log_font);
 }
 
 /*************************************************************************************************/
@@ -1749,19 +1758,16 @@ static void FillSummary(HWND page)
     const wchar_t* desktop;
     const wchar_t* open_with;
     const wchar_t* shell;
-    const wchar_t* launch;
 
     start_menu = OPTION_NO_STARTMENU;
     desktop    = OPTION_NO_DESKTOP;
     open_with  = OPTION_NO_OPENWITH;
     shell      = OPTION_NO_SHELL;
-    launch     = OPTION_NO_LAUNCH;
     if (0 != (s_setup.options & OPTION_STARTMENU)) { start_menu = OPTION_YES_STARTMENU; }
     if (0 != (s_setup.options & OPTION_DESKTOP)) { desktop = OPTION_YES_DESKTOP; }
     if (0 != (s_setup.options & OPTION_OPENWITH)) { open_with = OPTION_YES_OPENWITH; }
     if (0 != (s_setup.options & OPTION_SHELL)) { shell = OPTION_YES_SHELL; }
-    if (0 != (s_setup.options & OPTION_LAUNCH)) { launch = OPTION_YES_LAUNCH; }
-    (void)swprintf_s(summary, COUNT_OF(summary), SUMMARY_FORMAT, s_setup.folder, start_menu, desktop, open_with, shell, launch);
+    (void)swprintf_s(summary, COUNT_OF(summary), SUMMARY_FORMAT, s_setup.folder, start_menu, desktop, open_with, shell);
     SetDlgItemTextW(page, IDC_SUMMARY, summary);
     if (s_setup.isElevated)
     {
@@ -2121,6 +2127,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE previousInstance, PWSTR comman
     (void)DeleteFileW(s_setup.packagePath);
     if (NULL != s_setup.headlineFont) { DeleteObject(s_setup.headlineFont); }
     if (NULL != s_setup.textFont) { DeleteObject(s_setup.textFont); }
+    if (NULL != s_setup.boldFont) { DeleteObject(s_setup.boldFont); }
     if (NULL != s_setup.icon) { DestroyIcon(s_setup.icon); }
     if (NULL != s_setup.pageBrush) { DeleteObject(s_setup.pageBrush); }
     if (NULL != s_setup.wellBrush) { DeleteObject(s_setup.wellBrush); }
