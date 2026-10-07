@@ -1,4 +1,4 @@
-// CDS Editor setup: icon, the embedded package and license, the wizard dialogs. The banner and
+﻿// CDS Editor setup: icon, the embedded package and license, the wizard dialogs. The banner and
 // side images are painted at run time from the icon.
 // Dialog units follow the dialog font (Segoe UI 9), so pages scale with the system DPI.
 #include <windows.h>
@@ -104,13 +104,13 @@ FONT 8, "Segoe UI", 400, 0, 0x1
 BEGIN
     CONTROL         "", IDC_BANNER_IMAGE, "Static", SS_OWNERDRAW, 0, 0, 292, 35
     LTEXT           "Destination Folder", IDC_TITLE, 12, 5, 210, 14
-    LTEXT           "Click Next to install to the default folder or click Change to choose another.", IDC_DESCRIPTION, 20, 20, 222, 10
+    LTEXT           "Click Next to install here or Change to choose another folder.", IDC_DESCRIPTION, 20, 20, 222, 10
     CONTROL         "", IDC_BANNER_LINE, "Static", SS_ETCHEDHORZ, 0, 35, 292, 1
     LTEXT           "Install CDS Editor to:", IDC_FOLDER_LABEL, 16, 42, 210, 9
     EDITTEXT        IDC_FOLDER, 16, 54, 210, 12, ES_AUTOHSCROLL
     PUSHBUTTON      "&Change...", IDC_BROWSE, 232, 53, 43, 14
     GROUPBOX        "Files to be installed", IDC_GROUP_FILES, 16, 73, 259, 94
-    CONTROL         "", IDC_FILE_LIST, "SysListView32", LVS_REPORT | LVS_SINGLESEL | LVS_NOSORTHEADER | WS_TABSTOP | WS_BORDER, 23, 84, 245, 77
+    CONTROL         "", IDC_FILE_LIST, "SysTreeView32", TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | TVS_DISABLEDRAGDROP | WS_TABSTOP | WS_BORDER, 23, 84, 245, 77
 END
 
 // Ready: the summary

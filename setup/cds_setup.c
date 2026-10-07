@@ -90,15 +90,15 @@
 #define SUMMARY_SHORTCUTS_HEADING L"      Additional shortcuts:\r\n"
 #define SUMMARY_ASSOCIATIONS_HEADING L"      Windows Explorer:\r\n"
 #define SUMMARY_ITEM_PREFIX       L"            "
-#define LIST_COLUMN_NAME          L"Name"
-#define LIST_COLUMN_SIZE          L"Size"
-#define LIST_COLUMN_WHERE         L"Where"
+#define TREE_FILE_FORMAT          L"%s  (%s)"
+#define TREE_EXAMPLES_NAME        L"examples"
+#define TREE_SHORTCUT_NAME        L"CDS Editor"
+#define TREE_REGISTRY_NAME        L"Registry"
 #define WHERE_PROGRAM             L"Destination folder"
 #define WHERE_EXAMPLES            L"examples\\"
 #define WHERE_STARTMENU           L"Start menu"
 #define WHERE_DESKTOP             L"Desktop"
 #define WHERE_REGISTRY            L"Registry"
-#define ROW_SHORTCUT              L"Shortcut"
 #define ROW_OPENWITH              L"Open With list (.xml, .bin)"
 #define ROW_SHELL                 L"Explorer icons and menu command"
 #define GROUP_FILES_FORMAT        L"Files to be installed (%u files, %s)"
@@ -189,7 +189,8 @@ typedef struct Setup_s
     wchar_t   folder[MAX_PATH];            ///< Destination folder
     wchar_t   packagePath[MAX_PATH];       ///< Extracted MSI
     wchar_t   productCode[64];             ///< Installed product, when any
-    FileRow_t rows[MAX_FILE_ROWS];         ///< File grid rows
+    FileRow_t rows[MAX_FILE_ROWS];         ///< File rows
+    HTREEITEM folderItem;                  ///< Tree node of the destination folder, renamed as the folder box changes
     uint32_t  rowCount;                    ///< Rows filled
     uint32_t  fileCount;                   ///< Rows that are files
     uint64_t  totalBytes;                  ///< Bytes of the files
@@ -401,13 +402,38 @@ static void DrawImage(const DRAWITEMSTRUCT* item);
 
 /*************************************************************************************************/
 /**
- * \brief Fills the file grid of the folder page.
+ * \brief Fills the file tree of the folder page: the destination folder and its files, the
+ *  shortcuts, and the registry entries of the chosen tasks.
  *
  * \param[in] page   Folder page
  *
  * \retval    None
  */
-static void FillFileList(HWND page);
+static void FillFileTree(HWND page);
+
+/*************************************************************************************************/
+/**
+ * \brief Adds a node to the file tree.
+ *
+ * \param[in] tree     Tree view
+ * \param[in] parent   Parent node, or TVI_ROOT
+ * \param[in] text     Node text
+ * \param[in] icon     System image list index
+ *
+ * \retval    HTREEITEM   The node.
+ */
+static HTREEITEM AddTreeNode(HWND tree, HTREEITEM parent, const wchar_t* text, int icon);
+
+/*************************************************************************************************/
+/**
+ * \brief Looks up the shell icon of a file name or a folder in the system image list.
+ *
+ * \param[in] name       File name, used for its extension
+ * \param[in] isFolder   TRUE for a folder icon
+ *
+ * \retval    int        Image index, or -1.
+ */
+static int ShellIconIndex(const wchar_t* name, bool_t isFolder);
 
 /*************************************************************************************************/
 /**
@@ -902,6 +928,7 @@ static INT_PTR CALLBACK PageProcedure(HWND window, UINT message, WPARAM wordPara
     PAINTSTRUCT  paint;
     HDC          paint_context;
     LONG_PTR     style;
+    TVITEMW      tree_item;
     HRSRC   resource;
     HGLOBAL loaded;
     char*   bytes;
@@ -958,7 +985,7 @@ static INT_PTR CALLBACK PageProcedure(HWND window, UINT message, WPARAM wordPara
             break;
         case IDD_FOLDER:
             SetDlgItemTextW(window, IDC_FOLDER, s_setup.folder);
-            FillFileList(window);
+            FillFileTree(window);
             break;
         case IDD_READY:
             FillSummary(window);
@@ -1057,6 +1084,18 @@ static INT_PTR CALLBACK PageProcedure(HWND window, UINT message, WPARAM wordPara
             return TRUE;
         case IDC_BROWSE:
             BrowseFolder(window);
+            return TRUE;
+        case IDC_FOLDER:
+            if ((EN_CHANGE == HIWORD(wordParameter)) && (NULL != s_setup.folderItem))
+            {
+                // The tree's root follows the folder box
+                GetDlgItemTextW(window, IDC_FOLDER, text, COUNT_OF(text));
+                (void)memset(&tree_item, 0, sizeof(tree_item));
+                tree_item.mask    = TVIF_TEXT | TVIF_HANDLE;
+                tree_item.hItem   = s_setup.folderItem;
+                tree_item.pszText = text;
+                (void)TreeView_SetItem(GetDlgItem(window, IDC_FILE_LIST), &tree_item);
+            }
             return TRUE;
         case IDC_REPAIR:
             s_setup.mode = MODE_REPAIRING;
@@ -1203,7 +1242,7 @@ static void ThemePage(HWND page)
                 ShowWindow(child, SW_HIDE);
             }
         }
-        else if ((0 == wcscmp(class_name, L"Edit")) || (0 == wcscmp(class_name, WC_LISTVIEWW)))
+        else if ((0 == wcscmp(class_name, L"Edit")) || (0 == wcscmp(class_name, WC_LISTVIEWW)) || (0 == wcscmp(class_name, WC_TREEVIEWW)))
         {
             // The system frame is light whatever the theme; drop it and paint a dark one
             extended = GetWindowLongPtrW(child, GWL_EXSTYLE);
@@ -1211,6 +1250,12 @@ static void ThemePage(HWND page)
             SetWindowLongPtrW(child, GWL_EXSTYLE, extended & ~(LONG_PTR)(WS_EX_CLIENTEDGE | WS_EX_STATICEDGE));
             SetWindowPos(child, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
             (void)SetWindowTheme(child, THEME_DARK_CONTROLS, NULL);
+            if (0 == wcscmp(class_name, WC_TREEVIEWW))
+            {
+                (void)TreeView_SetBkColor(child, COLOR_DARK_WELL);
+                (void)TreeView_SetTextColor(child, COLOR_DARK_TEXT);
+                (void)TreeView_SetLineColor(child, COLOR_DARK_FRAME);
+            }
             if (0 == wcscmp(class_name, WC_LISTVIEWW))
             {
                 ListView_SetBkColor(child, COLOR_DARK_WELL);
@@ -1290,7 +1335,7 @@ static void PaintDarkChrome(HWND window, HDC deviceContext)
             (void)MoveToEx(deviceContext, area.left, area.top, NULL);
             (void)LineTo(deviceContext, area.right, area.top);
         }
-        else if (((0 == wcscmp(class_name, L"Edit")) && (0 == (style & ES_READONLY))) || (0 == wcscmp(class_name, WC_LISTVIEWW)) || ((0 == wcscmp(class_name, L"Edit")) && (0 != (style & WS_VSCROLL))))
+        else if (((0 == wcscmp(class_name, L"Edit")) && (0 == (style & ES_READONLY))) || (0 == wcscmp(class_name, WC_LISTVIEWW)) || (0 == wcscmp(class_name, WC_TREEVIEWW)) || ((0 == wcscmp(class_name, L"Edit")) && (0 != (style & WS_VSCROLL))))
         {
             (void)Rectangle(deviceContext, area.left - 1, area.top - 1, area.right + 1, area.bottom + 1);
         }
@@ -1662,91 +1707,130 @@ static void DrawImage(const DRAWITEMSTRUCT* item)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Three columns; the rows of the options the user turned off are left out.
+ *  The system image list supplies the shell's own icons; it is shared, so the tree must not
+ *  destroy it. Every node starts expanded.
  */
-static void FillFileList(HWND page)
+static void FillFileTree(HWND page)
 {
-    HWND     list;
-    LVCOLUMNW column;
-    LVITEMW  item;
-    RECT     bounds;
-    int      width;
-    uint32_t index;
-    uint32_t row;
-    wchar_t  size_text[32];
-    wchar_t  group[MAX_TEXT];
+    HWND         tree;
+    SHFILEINFOW  info;
+    HIMAGELIST   images;
+    HTREEITEM    examples;
+    HTREEITEM    start_menu;
+    HTREEITEM    desktop;
+    HTREEITEM    registry;
+    wchar_t      text[MAX_TEXT];
+    wchar_t      size_text[32];
+    wchar_t      group[MAX_TEXT];
+    uint32_t     index;
+    int          folder_icon;
+    int          registry_icon;
 
-    list = GetDlgItem(page, IDC_FILE_LIST);
-    ListView_SetExtendedListViewStyle(list, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
-    GetClientRect(list, &bounds);
-    width = (bounds.right - bounds.left) - GetSystemMetrics(SM_CXVSCROLL);
-    (void)memset(&column, 0, sizeof(column));
-    column.mask    = LVCF_TEXT | LVCF_WIDTH | LVCF_FMT;
-    column.fmt     = LVCFMT_LEFT;
-    column.cx      = (width * 54) / 100;
-    column.pszText = LIST_COLUMN_NAME;
-    (void)ListView_InsertColumn(list, 0, &column);
-    column.fmt     = LVCFMT_RIGHT;
-    column.cx      = (width * 15) / 100;
-    column.pszText = LIST_COLUMN_SIZE;
-    (void)ListView_InsertColumn(list, 1, &column);
-    column.fmt     = LVCFMT_LEFT;
-    column.cx      = width - column.cx - ((width * 54) / 100);
-    column.pszText = LIST_COLUMN_WHERE;
-    (void)ListView_InsertColumn(list, 2, &column);
-    row = 0;
+    tree   = GetDlgItem(page, IDC_FILE_LIST);
+    images = (HIMAGELIST)SHGetFileInfoW(L"folder", FILE_ATTRIBUTE_DIRECTORY, &info, sizeof(info), SHGFI_USEFILEATTRIBUTES | SHGFI_SYSICONINDEX | SHGFI_SMALLICON);
+    if (NULL != images)
+    {
+        (void)TreeView_SetImageList(tree, images, TVSIL_NORMAL);
+    }
+    folder_icon   = ShellIconIndex(L"folder", TRUE);
+    registry_icon = ShellIconIndex(L"entries.reg", FALSE);
+    (void)TreeView_DeleteAllItems(tree);
+    s_setup.folderItem = AddTreeNode(tree, TVI_ROOT, s_setup.folder, folder_icon);
+    examples           = NULL;
     for (index = 0; index < s_setup.rowCount; ++index)
     {
-        (void)memset(&item, 0, sizeof(item));
-        item.mask    = LVIF_TEXT;
-        item.iItem   = (int)row;
-        item.pszText = s_setup.rows[index].name;
-        (void)ListView_InsertItem(list, &item);
-        ListView_SetItemText(list, (int)row, 1, s_setup.rows[index].size);
-        ListView_SetItemText(list, (int)row, 2, s_setup.rows[index].where);
-        row += 1;
+        (void)swprintf_s(text, COUNT_OF(text), TREE_FILE_FORMAT, s_setup.rows[index].name, s_setup.rows[index].size);
+        if (0 == wcscmp(s_setup.rows[index].where, WHERE_EXAMPLES))
+        {
+            if (NULL == examples)
+            {
+                examples = AddTreeNode(tree, s_setup.folderItem, TREE_EXAMPLES_NAME, folder_icon);
+            }
+            (void)AddTreeNode(tree, examples, text, ShellIconIndex(s_setup.rows[index].name, FALSE));
+        }
+        else
+        {
+            (void)AddTreeNode(tree, s_setup.folderItem, text, ShellIconIndex(s_setup.rows[index].name, FALSE));
+        }
     }
     if (0 != (s_setup.options & OPTION_STARTMENU))
     {
-        (void)memset(&item, 0, sizeof(item));
-        item.mask = LVIF_TEXT; item.iItem = (int)row; item.pszText = ROW_SHORTCUT;
-        (void)ListView_InsertItem(list, &item);
-        ListView_SetItemText(list, (int)row, 1, L"-");
-        ListView_SetItemText(list, (int)row, 2, WHERE_STARTMENU);
-        row += 1;
+        start_menu = AddTreeNode(tree, TVI_ROOT, WHERE_STARTMENU, folder_icon);
+        (void)AddTreeNode(tree, start_menu, TREE_SHORTCUT_NAME, ShellIconIndex(L"shortcut.lnk", FALSE));
+        (void)TreeView_Expand(tree, start_menu, TVE_EXPAND);
     }
     if (0 != (s_setup.options & OPTION_DESKTOP))
     {
-        (void)memset(&item, 0, sizeof(item));
-        item.mask = LVIF_TEXT; item.iItem = (int)row; item.pszText = ROW_SHORTCUT;
-        (void)ListView_InsertItem(list, &item);
-        ListView_SetItemText(list, (int)row, 1, L"-");
-        ListView_SetItemText(list, (int)row, 2, WHERE_DESKTOP);
-        row += 1;
+        desktop = AddTreeNode(tree, TVI_ROOT, WHERE_DESKTOP, folder_icon);
+        (void)AddTreeNode(tree, desktop, TREE_SHORTCUT_NAME, ShellIconIndex(L"shortcut.lnk", FALSE));
+        (void)TreeView_Expand(tree, desktop, TVE_EXPAND);
     }
-    if (0 != (s_setup.options & OPTION_OPENWITH))
+    if (0 != (s_setup.options & (OPTION_OPENWITH | OPTION_SHELL)))
     {
-        (void)memset(&item, 0, sizeof(item));
-        item.mask = LVIF_TEXT; item.iItem = (int)row; item.pszText = ROW_OPENWITH;
-        (void)ListView_InsertItem(list, &item);
-        ListView_SetItemText(list, (int)row, 1, L"-");
-        ListView_SetItemText(list, (int)row, 2, WHERE_REGISTRY);
-        row += 1;
+        registry = AddTreeNode(tree, TVI_ROOT, TREE_REGISTRY_NAME, registry_icon);
+        if (0 != (s_setup.options & OPTION_OPENWITH))
+        {
+            (void)AddTreeNode(tree, registry, ROW_OPENWITH, registry_icon);
+        }
+        if (0 != (s_setup.options & OPTION_SHELL))
+        {
+            (void)AddTreeNode(tree, registry, ROW_SHELL, registry_icon);
+        }
+        (void)TreeView_Expand(tree, registry, TVE_EXPAND);
     }
-    if (0 != (s_setup.options & OPTION_SHELL))
+    if (NULL != examples)
     {
-        (void)memset(&item, 0, sizeof(item));
-        item.mask = LVIF_TEXT; item.iItem = (int)row; item.pszText = ROW_SHELL;
-        (void)ListView_InsertItem(list, &item);
-        ListView_SetItemText(list, (int)row, 1, L"-");
-        ListView_SetItemText(list, (int)row, 2, WHERE_REGISTRY);
-        row += 1;
+        (void)TreeView_Expand(tree, examples, TVE_EXPAND);
     }
-    // The last column takes whatever is left so the header has no empty cell
-    ListView_SetColumnWidth(list, 2, LVSCW_AUTOSIZE_USEHEADER);
+    (void)TreeView_Expand(tree, s_setup.folderItem, TVE_EXPAND);
+    (void)TreeView_EnsureVisible(tree, s_setup.folderItem);
     FormatSize(s_setup.totalBytes, size_text, COUNT_OF(size_text));
     (void)swprintf_s(group, COUNT_OF(group), GROUP_FILES_FORMAT, (unsigned)s_setup.fileCount, size_text);
     SetDlgItemTextW(page, IDC_GROUP_FILES, group);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  None
+ */
+static HTREEITEM AddTreeNode(HWND tree, HTREEITEM parent, const wchar_t* text, int icon)
+{
+    TVINSERTSTRUCTW insert;
+
+    (void)memset(&insert, 0, sizeof(insert));
+    insert.hParent             = parent;
+    insert.hInsertAfter        = TVI_LAST;
+    insert.item.mask           = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE;
+    insert.item.pszText        = (wchar_t*)text;
+    insert.item.iImage         = icon;
+    insert.item.iSelectedImage = icon;
+
+    return TreeView_InsertItem(tree, &insert);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Attributes stand in for the file, which need not exist.
+ */
+static int ShellIconIndex(const wchar_t* name, bool_t isFolder)
+{
+    SHFILEINFOW info;
+    DWORD       attributes;
+
+    attributes = FILE_ATTRIBUTE_NORMAL;
+    if (isFolder)
+    {
+        attributes = FILE_ATTRIBUTE_DIRECTORY;
+    }
+    (void)memset(&info, 0, sizeof(info));
+    if (0 == SHGetFileInfoW(name, attributes, &info, sizeof(info), SHGFI_USEFILEATTRIBUTES | SHGFI_SYSICONINDEX | SHGFI_SMALLICON))
+    {
+        return -1;
+    }
+
+    return info.iIcon;
 }
 
 /*************************************************************************************************/
@@ -2103,7 +2187,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE previousInstance, PWSTR comman
     is_elevated_run    = ParseElevatedArguments(GetCommandLineW());
     (void)CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
     controls.dwSize = sizeof(controls);
-    controls.dwICC  = ICC_LISTVIEW_CLASSES | ICC_PROGRESS_CLASS | ICC_STANDARD_CLASSES;
+    controls.dwICC  = ICC_LISTVIEW_CLASSES | ICC_TREEVIEW_CLASSES | ICC_PROGRESS_CLASS | ICC_STANDARD_CLASSES;
     (void)InitCommonControlsEx(&controls);
     if (FALSE == is_elevated_run)
     {
