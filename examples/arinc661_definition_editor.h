@@ -12,6 +12,7 @@
 extern "C"
 {
 #include "arinc661/arinc661_definition.h"
+#include "arinc661/arinc661_scene.h"
 }
 
 /*=================================================================================================
@@ -29,6 +30,10 @@ extern "C"
 #define ARINC661_DEFINITION_MAX_WIDGETS            (2048)
 #define ARINC661_DEFINITION_MAX_PROPERTIES         (16384)
 #define ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS     (8)
+#define ARINC661_DEFINITION_MAX_SCENE_COMMANDS     (65536)
+#define ARINC661_DEFINITION_MAX_SCENE_POINTS       (524288)
+#define ARINC661_DEFINITION_MAX_SCENE_TEXT_BYTES   (1048576)
+#define ARINC661_DEFINITION_NO_DOCUMENT            (UINT32_MAX)
 
 /*=================================================================================================
 ** 3.2 Types
@@ -38,8 +43,11 @@ extern "C"
 /**
  * \brief One open Definition File and its conversion workspace.
  */
+struct Arinc661_Definition_Editor_s;
+
 typedef struct Arinc661_Definition_Document_s
 {
+    struct Arinc661_Definition_Editor_s* owner;                                        ///< Editor holding this document.
     int32_t                 status;                                                   ///< Current status message.
     bool_t                  isLoaded;                                                 ///< TRUE after a successful read.
     bool_t                  isDirty;                                                  ///< TRUE when the loaded document has unsaved changes.
@@ -62,8 +70,16 @@ typedef struct Arinc661_Definition_Document_s
 /**
  * \brief File browser and fixed document slots for the editor.
  */
+struct Arinc661_Context_s;
+
 typedef struct Arinc661_Definition_Editor_s
 {
+    struct Arinc661_Context_s*       context;                                                     ///< Shared application context, or NULL.
+    FACEOE_Gfx_DrawList_t            drawList;                                                    ///< Scene draw list.
+    FACEOE_Gfx_Command_t             sceneCommands[ARINC661_DEFINITION_MAX_SCENE_COMMANDS];       ///< Scene command storage.
+    FACEOE_Gfx_Point_t               scenePoints[ARINC661_DEFINITION_MAX_SCENE_POINTS];           ///< Scene point storage.
+    char_t                           sceneText[ARINC661_DEFINITION_MAX_SCENE_TEXT_BYTES];         ///< Scene text storage.
+    Arinc661_Scene_Bounds_t          sceneBounds[ARINC661_DEFINITION_MAX_WIDGETS];                ///< Widget bounds of the last scene.
     int32_t                          status;                                                      ///< File browser status message.
     uint32_t                         activeDocumentIndex;                                         ///< Selected document slot.
     uint32_t                         requestedDocumentIndex;                                      ///< Tab to select after opening a file.
@@ -266,5 +282,91 @@ void Arinc661_Definition_MeasurePanes(const Arinc661_Definition_Editor_t* editor
  * \retval    FALSE       otherwise.
  */
 bool_t Arinc661_Definition_IsDefinitionFile(const byte_t* bytes, uint64_t byteCount);
+
+/*************************************************************************************************/
+/**
+ * \brief Attaches the shared application context.
+ *
+ * \param[in,out] editor    Editor state
+ * \param[in]     context   Context owned by the host
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_SetContext(Arinc661_Definition_Editor_t* editor, struct Arinc661_Context_s* context);
+
+/*************************************************************************************************/
+/**
+ * \brief Finds an open document by file name, ignoring case.
+ *
+ * \param[in] editor     Editor state
+ * \param[in] fileName   File name as shown on its tab
+ *
+ * \retval    uint32_t   Document slot, or ARINC661_DEFINITION_NO_DOCUMENT.
+ */
+uint32_t Arinc661_Definition_FindDocument(const Arinc661_Definition_Editor_t* editor, const char_t* fileName);
+
+/*************************************************************************************************/
+/**
+ * \brief Returns an open document's Definition File values.
+ *
+ * \param[in] editor          Editor state
+ * \param[in] documentIndex   Document slot
+ *
+ * \retval    const Arinc661_Definition_t*   Values, or NULL when the slot is empty.
+ */
+const Arinc661_Definition_t* Arinc661_Definition_Document(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Returns an open document's file name.
+ *
+ * \param[in] editor          Editor state
+ * \param[in] documentIndex   Document slot
+ *
+ * \retval    const char_t*   Name, or NULL when the slot is empty.
+ */
+const char_t* Arinc661_Definition_DocumentName(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads an open document's ApplicationId model property.
+ *
+ * \param[in]  editor          Editor state
+ * \param[in]  documentIndex   Document slot
+ * \param[out] applicationId   Value
+ *
+ * \retval     TRUE            if the property exists and is numeric.
+ * \retval     FALSE           otherwise.
+ */
+bool_t Arinc661_Definition_DocumentApplicationId(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, int64_t* applicationId);
+
+/*************************************************************************************************/
+/**
+ * \brief Selects a document's tab.
+ *
+ * \param[in,out] editor          Editor state
+ * \param[in]     documentIndex   Document slot
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_SelectDocument(Arinc661_Definition_Editor_t* editor, uint32_t documentIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Records every layer of an open document into a draw list, in layer order.
+ *
+ * \par Details:
+ *  The draw list's current transform maps 0.01 mm layer units to output units; hidden
+ *  widgets, closed pop-ups, names, and chips are left out, as on a CDS.
+ *
+ * \param[in]     editor          Editor state
+ * \param[in]     documentIndex   Document slot
+ * \param[in,out] drawList        Target draw list
+ * \param[in]     fontSize        Host font size in output units
+ *
+ * \retval        TRUE            if the document is open and at least one layer was recorded.
+ * \retval        FALSE           otherwise.
+ */
+bool_t Arinc661_Definition_RecordDocument(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, FACEOE_Gfx_DrawList_t* drawList, float32_t fontSize);
 
 #endif /* ARINC661_DEFINITION_EDITOR_H */

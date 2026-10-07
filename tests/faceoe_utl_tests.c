@@ -14,6 +14,8 @@
 
 void RunArinc661Tests(void);
 void RunFACEOEDisplayManagementTests(void);
+void RunFACEOEGfxTests(void);
+void RunArinc661SceneTests(void);
 
 /*************************************************************************************************/
 /**
@@ -547,5 +549,7 @@ int main(void)
     TestXmlReaderMarkupLimit();
     RunArinc661Tests();
     RunFACEOEDisplayManagementTests();
+    RunFACEOEGfxTests();
+    RunArinc661SceneTests();
     return 0;
 }

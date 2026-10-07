@@ -9,6 +9,7 @@
 **===============================================================================================*/
 
 #include "arinc661_configuration.h"
+#include "arinc661_context.h"
 #include "arinc661_definition_editor.h"
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -132,6 +133,7 @@ typedef struct WindowThreadState_s
     HGLRC                  presentContext;      ///< OpenGL context used by the presenter thread.
     Arinc661_Configuration_Editor_t* configurationEditor; ///< FACE display management configuration editor.
     Arinc661_Definition_Editor_t*    definitionEditor;    ///< ARINC 661 Definition File editor.
+    Arinc661_Context_t*              context;             ///< Shared application context across both editors.
     bool_t                           isDefinitionActive;  ///< TRUE while the Definition File section has the focus.
     bool_t                           hasEditors;          ///< TRUE once both editors exist.
     bool_t                           isFolderReadable;    ///< TRUE when the last scan could read the folder.
@@ -441,6 +443,11 @@ static void ClassifyFolderFile(const char_t* fileName, void* context)
         if (is_definition)
         {
             Arinc661_Configuration_AddDefinitionFile(window->configurationEditor, fileName);
+            if (window->context->definitionFileCount < ARINC661_CONTEXT_MAX_DEFINITION_FILES)
+            {
+                strncpy_s(window->context->definitionFiles[window->context->definitionFileCount], sizeof(window->context->definitionFiles[0]), fileName, _TRUNCATE);
+                window->context->definitionFileCount += 1;
+            }
         }
     }
 }
@@ -456,6 +463,7 @@ static void ScanFolder(WindowThreadState_t* window)
     window->fileCount    = 0;
     window->lastScanTime = ImGui::GetTime();
     Arinc661_Configuration_ClearDefinitionFiles(window->configurationEditor);
+    window->context->definitionFileCount = 0;
     Arinc661_Configuration_SetFolderPath(window->configurationEditor, window->folderPath);
     Arinc661_Definition_SetFolderPath(window->definitionEditor, window->folderPath);
     window->isFolderReadable = FALSE;
@@ -706,6 +714,7 @@ static void DrawPageHierarchy(WindowThreadState_t* window)
 static void DrawEditors(WindowThreadState_t* window)
 {
     const ImGuiViewport* viewport;
+    bool_t               is_definition_focused;
     const char_t*        status_text;
     ImVec2               table_size;
     float32_t            configuration_hierarchy_width;
@@ -716,6 +725,11 @@ static void DrawEditors(WindowThreadState_t* window)
     float32_t            inspector_width;
     float32_t            status_bar_height;
 
+    // Honour a cross-editor navigation request before drawing so the focused section follows it
+    if (Arinc661_Context_TakeFocusRequest(window->context, &is_definition_focused))
+    {
+        window->isDefinitionActive = is_definition_focused;
+    }
     DrawPageMenu(window);
     viewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos(viewport->WorkPos);
@@ -1181,6 +1195,8 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
     Arinc661_Configuration_Initialize(window->configurationEditor);
     window->definitionEditor = (Arinc661_Definition_Editor_t*)OS_CALLOC(sizeof(Arinc661_Definition_Editor_t));
     Arinc661_Definition_Initialize(window->definitionEditor);
+    window->context = (Arinc661_Context_t*)OS_CALLOC(sizeof(Arinc661_Context_t));
+    Arinc661_Context_Initialize(window->context, window->configurationEditor, window->definitionEditor);
     ScanFolder(window);
     window->hasEditors = TRUE;
     window->isInitialized = TRUE;

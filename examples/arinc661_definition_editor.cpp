@@ -13,6 +13,8 @@
 
 #include "arinc661_definition_editor.h"
 #define IMGUI_DEFINE_MATH_OPERATORS
+#include "arinc661_context.h"
+#include "arinc661_gfx_imgui.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 
@@ -118,6 +120,12 @@ extern "C"
 #define WIDGET_LABEL_FORMAT       ("%s (%s)")
 #define EXTENSION_LABEL_FORMAT    ("%s")
 #define LAYER_PREVIEW_FORMAT      ("Layer %s (%s x %s)")
+#define REFERENCES_SECTION_LABEL  ("Referenced By")
+#define REFERENCE_FORMAT          ("%s: application %lld, window %lld")
+#define SHOW_USER_APPLICATION_LABEL ("Show")
+#define ADOPT_APPLICATION_ID_LABEL ("Use its applicationId")
+#define APPLICATION_ID_MISMATCH_TOOLTIP ("ApplicationId differs from the user application's applicationId (ARINC 661 section 6.5.1.2, FACE H.3.1).")
+#define NO_REFERENCES_LABEL       ("No user application names this file; set a dFPath in a configuration.")
 
 #define DEFINITION_TABLE_ID  ("DefinitionProperties")
 #define LAYER_TABLE_ID       ("LayerProperties")
@@ -771,6 +779,7 @@ static void DrawModelProperties(Arinc661_Definition_Document_t* document, Arinc6
  * \param document   See definition
  */
 static void DrawDefinitionInspector(Arinc661_Definition_Document_t* document);
+static void DrawContextReferences(Arinc661_Definition_Document_t* document);
 
 /*************************************************************************************************/
 /**
@@ -1128,6 +1137,9 @@ static bool_t IsValidXmlFileName(const char_t* fileName)
  */
 static void ResetDocument(Arinc661_Definition_Document_t* document)
 {
+    Arinc661_Definition_Editor_t* owner_editor;
+
+    owner_editor = document->owner;
     document->status                     = STATUS_NONE;
     document->isLoaded                   = FALSE;
     document->isDirty                    = FALSE;
@@ -1144,6 +1156,7 @@ static void ResetDocument(Arinc661_Definition_Document_t* document)
     document->definition.propertyCount   = 0;
     document->definition.charsetEncoding = 0;
     document->definition.blockByteCount  = 0;
+    document->owner = owner_editor;
 }
 
 /*************************************************************************************************/
@@ -2912,8 +2925,84 @@ static void DrawDefinitionInspector(Arinc661_Definition_Document_t* document)
         MarkDocumentDirty(document, DrawParameterRow(document, ARINC661_PROPERTY_DEFINITION, 0, PROPERTY_APPLICATION_ID, PROPERTY_APPLICATION_ID, 0, &c_ushortParameter));
         ImGui::EndTable();
     }
+    DrawContextReferences(document);
     ImGui::Separator();
     DrawModelProperties(document, ARINC661_PROPERTY_DEFINITION, 0);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Lists every user application of the open configurations whose dFPath names this document,
+ *  flags ApplicationId mismatches against FACE applicationId, offers the known user
+ *  application identifiers for the ApplicationId property, and jumps to a user application.
+ */
+static void DrawContextReferences(Arinc661_Definition_Document_t* document)
+{
+    Arinc661_Context_t*                context;
+    Arinc661_Context_UserApplication_t application;
+    char_t                             label[HIERARCHY_LABEL_BYTES];
+    char_t                             value[ARINC661_MAX_PROPERTY_BYTES];
+    uint32_t                           property_index;
+    uint32_t                           application_index;
+    uint32_t                           reference_count;
+    int64_t                            application_id;
+    bool_t                             has_application_id;
+    bool_t                             is_match;
+
+    context = document->owner->context;
+    if (NULL != context)
+    {
+        ImGui::Separator();
+        ImGui::TextUnformatted(REFERENCES_SECTION_LABEL);
+        property_index     = FindOwnedProperty(document, ARINC661_PROPERTY_DEFINITION, 0, PROPERTY_APPLICATION_ID);
+        has_application_id = !!((INVALID_HIERARCHY_INDEX != property_index) && (0 < FACEOE_Utl_Scan_Int64(document->properties[property_index].value, &application_id)));
+        reference_count    = 0;
+        for (application_index = 0; Arinc661_Context_UserApplication(context, application_index, &application); ++application_index)
+        {
+            if (0 != _stricmp(application.dFPath, document->documentName))
+            {
+                continue;
+            }
+            reference_count += 1;
+            is_match = !!(has_application_id && (application.applicationId == application_id));
+            ImFormatString(label, sizeof(label), REFERENCE_FORMAT, application.documentName, (long long)application.applicationId, (long long)application.windowId);
+            if (FALSE == is_match)
+            {
+                ImGui::PushStyleColor(ImGuiCol_Text, INVALID_VALUE_COLOR);
+            }
+            ImGui::TextUnformatted(label);
+            if (FALSE == is_match)
+            {
+                ImGui::PopStyleColor();
+                if (ImGui::IsItemHovered())
+                {
+                    ImGui::SetTooltip("%s", APPLICATION_ID_MISMATCH_TOOLTIP);
+                }
+            }
+            ImGui::SameLine();
+            ImGui::PushID((int)application_index);
+            if (ImGui::SmallButton(SHOW_USER_APPLICATION_LABEL))
+            {
+                Arinc661_Context_ShowUserApplication(context, &application);
+            }
+            if (has_application_id && (FALSE == is_match))
+            {
+                ImGui::SameLine();
+                if (ImGui::SmallButton(ADOPT_APPLICATION_ID_LABEL))
+                {
+                    ImFormatString(value, sizeof(value), "%lld", (long long)application.applicationId);
+                    strcpy(document->properties[property_index].value, value);
+                    MarkDocumentDirty(document, TRUE);
+                }
+            }
+            ImGui::PopID();
+        }
+        if (0 == reference_count)
+        {
+            ImGui::TextDisabled("%s", NO_REFERENCES_LABEL);
+        }
+    }
 }
 
 /*************************************************************************************************/
@@ -3643,18 +3732,16 @@ static void ResolveWidgetArea(const Arinc661_Definition_Document_t* document, ui
 static void DrawScenePane(Arinc661_Definition_Document_t* editor)
 {
     const ImGuiStyle*        style;
-    const Arinc661_Widget_t* widget;
+    Arinc661_Definition_Editor_t* owner;
+    Arinc661_Scene_Options_t options;
+    FACEOE_Gfx_Transform_t   transform;
+    FACEOE_Gfx_Point_t       mouse;
     ImDrawList*              draw_list;
-    WidgetArea_t             area;
     ImVec2                   canvas_min;
     ImVec2                   canvas_size;
     ImVec2                   canvas_max;
     ImVec2                   layer_min;
-    ImVec2                   layer_max;
     ImVec2                   layer_size;
-    ImVec2                   widget_min;
-    ImVec2                   widget_max;
-    ImVec2                   mouse_position;
     char_t                   layer_label[HIERARCHY_LABEL_BYTES];
     const char_t*            width_text;
     const char_t*            height_text;
@@ -3662,16 +3749,14 @@ static void DrawScenePane(Arinc661_Definition_Document_t* editor)
     float32_t                layer_height;
     float32_t                label_height;
     float32_t                scale;
-    float32_t                hit_area;
-    float32_t                widget_area;
     uint32_t                 layer_index;
-    uint32_t                 widget_index;
-    uint32_t                 hit_index;
     uint32_t                 property_index;
+    uint32_t                 hit_index;
+    uint32_t                 bounds_index;
     bool_t                   has_layer;
     bool_t                   is_canvas_clicked;
-    bool_t                   is_selected;
 
+    owner = editor->owner;
     if (ImGui::BeginChild(SCENE_PANE_NAME, ImVec2(0.0f, 0.0f), PANE_FLAGS))
     {
         style     = &ImGui::GetStyle();
@@ -3698,12 +3783,7 @@ static void DrawScenePane(Arinc661_Definition_Document_t* editor)
         }
         else
         {
-            layer_width  = DEFAULT_LAYER_EXTENT;
-            layer_height = DEFAULT_LAYER_EXTENT;
-            (void)GetPropertyNumber(editor, ARINC661_PROPERTY_LAYER, layer_index, PROPERTY_WIDTH, &layer_width);
-            (void)GetPropertyNumber(editor, ARINC661_PROPERTY_LAYER, layer_index, PROPERTY_HEIGHT, &layer_height);
-            layer_width  = ImMax(layer_width, 1.0f);
-            layer_height = ImMax(layer_height, 1.0f);
+            Arinc661_Scene_LayerSize(&editor->definition, layer_index, &layer_width, &layer_height);
             width_text  = "";
             height_text = "";
             property_index = FindOwnedProperty(editor, ARINC661_PROPERTY_LAYER, layer_index, PROPERTY_WIDTH);
@@ -3724,55 +3804,50 @@ static void DrawScenePane(Arinc661_Definition_Document_t* editor)
             canvas_size.y = ImMax(canvas_size.y, label_height + 1.0f);
             canvas_max    = (canvas_min + canvas_size);
             is_canvas_clicked = ImGui::InvisibleButton(SCENE_CANVAS_ID, canvas_size);
-            mouse_position    = ImGui::GetMousePos();
             draw_list->AddRectFilled(canvas_min, canvas_max, SCENE_CANVAS_COLOR);
             // Fit the layer below its label while keeping its aspect ratio
             scale      = ImMin((canvas_size.x - (style->WindowPadding.x * 2.0f)) / layer_width, (canvas_size.y - label_height - (style->WindowPadding.y * 2.0f)) / layer_height);
             scale      = ImMax(scale, 0.0f);
             layer_size = ImVec2(layer_width * scale, layer_height * scale);
             layer_min  = ImVec2(canvas_min.x + ((canvas_size.x - layer_size.x) * 0.5f), canvas_min.y + label_height + ((canvas_size.y - label_height - layer_size.y) * 0.5f));
-            layer_max  = (layer_min + layer_size);
-            draw_list->AddRectFilled(layer_min, layer_max, SCENE_LAYER_COLOR);
-            draw_list->AddRect(layer_min, layer_max, SCENE_LAYER_BORDER_COLOR);
             draw_list->AddText(ImVec2(layer_min.x, canvas_min.y + style->WindowPadding.y * 0.5f), SCENE_TEXT_COLOR, layer_label);
-            hit_index = INVALID_HIERARCHY_INDEX;
-            hit_area  = 0.0f;
-            for (widget_index = 0; widget_index < editor->definition.widgetCount; ++widget_index)
+            // Record the layer through the scene library with the origin at its lower-left corner
+            memset(&transform, 0, sizeof(transform));
+            transform.a = scale;
+            transform.d = -scale;
+            transform.e = layer_min.x;
+            transform.f = (layer_min.y + layer_size.y);
+            FACEOE_Gfx_DrawList_Clear(&owner->drawList);
+            FACEOE_Gfx_DrawList_SetTransform(&owner->drawList, &transform);
+            memset(&options, 0, sizeof(options));
+            options.showsHidden       = TRUE;
+            options.showsNames        = TRUE;
+            options.showsNonGraphical = TRUE;
+            options.fillsLayerArea    = TRUE;
+            options.fontSize          = ImGui::GetFontSize();
+            options.bounds            = owner->sceneBounds;
+            options.boundsCapacity    = ARINC661_DEFINITION_MAX_WIDGETS;
+            Arinc661_Scene_DrawLayer(&editor->definition, layer_index, &owner->drawList, &options);
+            draw_list->PushClipRect(canvas_min, canvas_max, true);
+            Arinc661_Gfx_ImGui_Render(&owner->drawList, draw_list);
+            if (SELECTION_WIDGET == editor->selectedKind)
             {
-                widget = &editor->widgets[widget_index];
-                if (layer_index != widget->layerIndex)
+                for (bounds_index = 0; bounds_index < options.boundsCount; ++bounds_index)
                 {
-                    continue;
-                }
-                ResolveWidgetArea(editor, widget_index, &area);
-                if (FALSE == area.isValid)
-                {
-                    continue;
-                }
-                // Flip the vertical axis: layer units grow upward, screen pixels grow downward
-                widget_min  = ImVec2(layer_min.x + (area.x * scale), layer_max.y - ((area.y + area.height) * scale));
-                widget_max  = ImVec2(layer_min.x + ((area.x + area.width) * scale), layer_max.y - (area.y * scale));
-                is_selected = !!((SELECTION_WIDGET == editor->selectedKind) && (widget_index == editor->selectedIndex));
-                draw_list->AddRectFilled(widget_min, widget_max, SCENE_WIDGET_COLOR);
-                draw_list->AddRect(widget_min, widget_max, SCENE_WIDGET_BORDER_COLOR);
-                if (is_selected)
-                {
-                    draw_list->AddRectFilled(widget_min, widget_max, SCENE_SELECTION_OVERLAY_COLOR);
-                }
-                draw_list->AddText(widget_min + style->FramePadding, SCENE_TEXT_COLOR, widget->name);
-                widget_area = ((widget_max.x - widget_min.x) * (widget_max.y - widget_min.y));
-                if (is_canvas_clicked && (widget_min.x <= mouse_position.x) && (mouse_position.x <= widget_max.x) && (widget_min.y <= mouse_position.y) && (mouse_position.y <= widget_max.y))
-                {
-                    if ((INVALID_HIERARCHY_INDEX == hit_index) || (widget_area < hit_area))
+                    if (editor->selectedIndex == owner->sceneBounds[bounds_index].widgetIndex)
                     {
-                        hit_index = widget_index;
-                        hit_area  = widget_area;
+                        draw_list->AddRectFilled(ImVec2(owner->sceneBounds[bounds_index].minimum.x, owner->sceneBounds[bounds_index].minimum.y), ImVec2(owner->sceneBounds[bounds_index].maximum.x, owner->sceneBounds[bounds_index].maximum.y), SCENE_SELECTION_OVERLAY_COLOR);
+                        draw_list->AddRect(ImVec2(owner->sceneBounds[bounds_index].minimum.x, owner->sceneBounds[bounds_index].minimum.y), ImVec2(owner->sceneBounds[bounds_index].maximum.x, owner->sceneBounds[bounds_index].maximum.y), SCENE_TEXT_COLOR);
                     }
                 }
             }
+            draw_list->PopClipRect();
             if (is_canvas_clicked)
             {
-                if (INVALID_HIERARCHY_INDEX != hit_index)
+                mouse.x   = ImGui::GetMousePos().x;
+                mouse.y   = ImGui::GetMousePos().y;
+                hit_index = Arinc661_Scene_Pick(owner->sceneBounds, options.boundsCount, mouse);
+                if (ARINC661_SCENE_NO_WIDGET != hit_index)
                 {
                     editor->selectedKind  = SELECTION_WIDGET;
                     editor->selectedIndex = hit_index;
@@ -3975,6 +4050,11 @@ void Arinc661_Definition_Initialize(Arinc661_Definition_Editor_t* editor)
         document->definition.blockCapacity    = ARINC661_DEFINITION_MAX_BLOCK_BYTES;
         ResetDocument(document);
     }
+    for (document_index = 0; document_index < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS; ++document_index)
+    {
+        editor->documents[document_index].owner = editor;
+    }
+    FACEOE_Gfx_DrawList_Initialize(&editor->drawList, editor->sceneCommands, ARINC661_DEFINITION_MAX_SCENE_COMMANDS, editor->scenePoints, ARINC661_DEFINITION_MAX_SCENE_POINTS, editor->sceneText, ARINC661_DEFINITION_MAX_SCENE_TEXT_BYTES);
 }
 
 /*************************************************************************************************/
@@ -4273,4 +4353,150 @@ bool_t Arinc661_Definition_IsDefinitionFile(const byte_t* bytes, uint64_t byteCo
     }
 
     return is_definition;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Stores the pointer; the inspector consults it when drawing.
+ */
+void Arinc661_Definition_SetContext(Arinc661_Definition_Editor_t* editor, Arinc661_Context_t* context)
+{
+    LOGASSERT(NULL != editor);
+    editor->context = context;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Compares against each loaded document's tab name, ignoring case.
+ */
+uint32_t Arinc661_Definition_FindDocument(const Arinc661_Definition_Editor_t* editor, const char_t* fileName)
+{
+    uint32_t document_index;
+    uint32_t found;
+
+    LOGASSERT(NULL != editor);
+    LOGASSERT(NULL != fileName);
+    found = ARINC661_DEFINITION_NO_DOCUMENT;
+    for (document_index = 0; document_index < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS; ++document_index)
+    {
+        if (editor->documents[document_index].isLoaded && (0 == _stricmp(fileName, editor->documents[document_index].documentName)))
+        {
+            found = document_index;
+            break;
+        }
+    }
+
+    return found;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  NULL for an empty slot.
+ */
+const Arinc661_Definition_t* Arinc661_Definition_Document(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex)
+{
+    const Arinc661_Definition_t* definition;
+
+    LOGASSERT(NULL != editor);
+    definition = NULL;
+    if ((documentIndex < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS) && editor->documents[documentIndex].isLoaded)
+    {
+        definition = &editor->documents[documentIndex].definition;
+    }
+
+    return definition;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  NULL for an empty slot.
+ */
+const char_t* Arinc661_Definition_DocumentName(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex)
+{
+    const char_t* name;
+
+    LOGASSERT(NULL != editor);
+    name = NULL;
+    if ((documentIndex < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS) && editor->documents[documentIndex].isLoaded)
+    {
+        name = editor->documents[documentIndex].documentName;
+    }
+
+    return name;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Reads the ApplicationId model property of the a661_df element.
+ */
+bool_t Arinc661_Definition_DocumentApplicationId(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, int64_t* applicationId)
+{
+    const Arinc661_Definition_Document_t* document;
+    uint32_t                              property_index;
+    bool_t                                has_id;
+
+    LOGASSERT(NULL != editor);
+    LOGASSERT(NULL != applicationId);
+    has_id = FALSE;
+    if ((documentIndex < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS) && editor->documents[documentIndex].isLoaded)
+    {
+        document       = &editor->documents[documentIndex];
+        property_index = FindOwnedProperty(document, ARINC661_PROPERTY_DEFINITION, 0, PROPERTY_APPLICATION_ID);
+        if (INVALID_HIERARCHY_INDEX != property_index)
+        {
+            has_id = (0 < FACEOE_Utl_Scan_Int64(document->properties[property_index].value, applicationId));
+        }
+    }
+
+    return has_id;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The tab bar honours the request on its next draw.
+ */
+void Arinc661_Definition_SelectDocument(Arinc661_Definition_Editor_t* editor, uint32_t documentIndex)
+{
+    LOGASSERT(NULL != editor);
+    if ((documentIndex < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS) && editor->documents[documentIndex].isLoaded)
+    {
+        editor->activeDocumentIndex    = documentIndex;
+        editor->requestedDocumentIndex = documentIndex;
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Layers are recorded in order so later layers overdraw earlier ones, as in a window.
+ */
+bool_t Arinc661_Definition_RecordDocument(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, FACEOE_Gfx_DrawList_t* drawList, float32_t fontSize)
+{
+    const Arinc661_Definition_Document_t* document;
+    Arinc661_Scene_Options_t              options;
+    uint32_t                              layer_index;
+    bool_t                                has_layers;
+
+    LOGASSERT(NULL != editor);
+    LOGASSERT(NULL != drawList);
+    has_layers = FALSE;
+    if ((documentIndex < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS) && editor->documents[documentIndex].isLoaded)
+    {
+        document = &editor->documents[documentIndex];
+        memset(&options, 0, sizeof(options));
+        options.fontSize = fontSize;
+        for (layer_index = 0; layer_index < document->definition.layerCount; ++layer_index)
+        {
+            Arinc661_Scene_DrawLayer(&document->definition, layer_index, drawList, &options);
+            has_layers = TRUE;
+        }
+    }
+
+    return has_layers;
 }

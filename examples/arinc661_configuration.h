@@ -12,6 +12,7 @@
 extern "C"
 {
 #include "faceoe/faceoe_displaymanagement.h"
+#include "faceoe_gfx/faceoe_gfx_drawlist.h"
 }
 
 /*=================================================================================================
@@ -31,6 +32,9 @@ extern "C"
 #define ARINC661_CONFIGURATION_MAX_EXTERNAL_SOURCES   (1024)
 #define ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS     (8)
 #define ARINC661_CONFIGURATION_MAX_DEFINITION_FILES   (256)
+#define ARINC661_CONFIGURATION_MAX_SCENE_COMMANDS     (65536)
+#define ARINC661_CONFIGURATION_MAX_SCENE_POINTS       (524288)
+#define ARINC661_CONFIGURATION_MAX_SCENE_TEXT_BYTES   (1048576)
 
 /*=================================================================================================
 ** 3.2 Types
@@ -67,8 +71,15 @@ typedef struct Arinc661_Configuration_Document_s
 /**
  * \brief File browser and fixed document slots for the editor.
  */
+struct Arinc661_Context_s;
+
 typedef struct Arinc661_Configuration_Editor_s
 {
+    struct Arinc661_Context_s*          context;                                                        ///< Shared application context, or NULL.
+    FACEOE_Gfx_DrawList_t               drawList;                                                       ///< Draw list for Definition File previews.
+    FACEOE_Gfx_Command_t                sceneCommands[ARINC661_CONFIGURATION_MAX_SCENE_COMMANDS];       ///< Preview command storage.
+    FACEOE_Gfx_Point_t                  scenePoints[ARINC661_CONFIGURATION_MAX_SCENE_POINTS];           ///< Preview point storage.
+    char_t                              sceneText[ARINC661_CONFIGURATION_MAX_SCENE_TEXT_BYTES];         ///< Preview text storage.
     int32_t                             status;                                                         ///< File browser status message.
     uint32_t                            activeDocumentIndex;                                            ///< Selected document slot.
     uint32_t                            requestedDocumentIndex;                                         ///< Tab to select after opening a file.
@@ -282,5 +293,66 @@ void Arinc661_Configuration_ClearDefinitionFiles(Arinc661_Configuration_Editor_t
  * \retval        None
  */
 void Arinc661_Configuration_AddDefinitionFile(Arinc661_Configuration_Editor_t* editor, const char_t* fileName);
+
+/*************************************************************************************************/
+/**
+ * \brief Attaches the shared application context.
+ *
+ * \param[in,out] editor    Editor state
+ * \param[in]     context   Context owned by the host
+ *
+ * \retval        None
+ */
+void Arinc661_Configuration_SetContext(Arinc661_Configuration_Editor_t* editor, struct Arinc661_Context_s* context);
+
+/*************************************************************************************************/
+/**
+ * \brief Returns an open document's file name.
+ *
+ * \param[in] editor          Editor state
+ * \param[in] documentIndex   Document slot
+ *
+ * \retval    const char_t*   Name, or NULL when the slot is empty.
+ */
+const char_t* Arinc661_Configuration_DocumentName(const Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Counts an open document's user applications.
+ *
+ * \param[in] editor          Editor state
+ * \param[in] documentIndex   Document slot
+ *
+ * \retval    uint32_t   Count, zero for an empty slot.
+ */
+uint32_t Arinc661_Configuration_UserApplicationCount(const Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads one user application of an open document.
+ *
+ * \param[in]  editor             Editor state
+ * \param[in]  documentIndex      Document slot
+ * \param[in]  applicationIndex   Index below the count
+ * \param[out] applicationId      FACE applicationId
+ * \param[out] windowId           FACE window reference
+ * \param[out] dFPath             FACE dFPath; stays valid while the document stays open
+ *
+ * \retval     TRUE               if the user application exists.
+ * \retval     FALSE              otherwise.
+ */
+bool_t Arinc661_Configuration_UserApplication(const Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex, uint32_t applicationIndex, int64_t* applicationId, int64_t* windowId, const char_t** dFPath);
+
+/*************************************************************************************************/
+/**
+ * \brief Makes a document active and selects one of its user applications.
+ *
+ * \param[in,out] editor             Editor state
+ * \param[in]     documentIndex      Document slot
+ * \param[in]     applicationIndex   Index below the count
+ *
+ * \retval        None
+ */
+void Arinc661_Configuration_SelectUserApplication(Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex, uint32_t applicationIndex);
 
 #endif /* ARINC661_CONFIGURATION_H */

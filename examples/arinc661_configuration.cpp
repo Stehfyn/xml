@@ -13,6 +13,8 @@
 
 #include "arinc661_configuration.h"
 #define IMGUI_DEFINE_MATH_OPERATORS
+#include "arinc661_context.h"
+#include "arinc661_gfx_imgui.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 
@@ -153,6 +155,18 @@ extern "C"
 #define PER_UNIT_LABEL         ("Per Unit")
 #define WINDOW_ID_LABEL        ("Window ID")
 #define DF_PATH_LABEL          ("DF Path")
+#define DEFINITION_SECTION_LABEL      ("Definition File")
+#define SHOW_DEFINITION_LABEL         ("Show Definition File")
+#define DEFINITION_STATE_FORMAT       ("%u layers, %u widgets, ApplicationId %lld")
+#define DEFINITION_NO_ID_FORMAT       ("%u layers, %u widgets, no ApplicationId")
+#define DEFINITION_CLOSED_LABEL       ("In folder; open it to preview and check its ApplicationId.")
+#define DEFINITION_MISSING_LABEL      ("No valid Definition File of this name in the folder.")
+#define DEFINITION_EMPTY_LABEL        ("No Definition File chosen.")
+#define APPLICATION_ID_MISMATCH_LABEL ("ApplicationId mismatch: the Definition File carries a different identifier (ARINC 661 6.5.1.2).")
+#define ADOPT_DEFINITION_ID_LABEL     ("Use the Definition File's ApplicationId")
+#define WINDOW_NO_APPLICATION_LABEL   ("No user application targets this window.")
+#define WINDOW_APPLICATION_FORMAT     ("Application %lld: %s")
+#define SCENE_PIXELS_PER_MM_FALLBACK  (4.0f)
 #define STYLE_FILE_PATH_LABEL  ("Style File Path")
 #define MAP_SOURCE_LAYER_LABEL ("Map Source Layer")
 #define VISIBLE_LABEL          ("Visible")
@@ -186,6 +200,7 @@ extern "C"
 #define SCENE_TEXT_COLOR          (IM_COL32(240, 248, 255, 255))
 
 #define SCENE_SELECTION_OVERLAY_COLOR (IM_COL32(255, 255, 255, 40))
+#define INVALID_VALUE_COLOR           (ImVec4(1.0f, 0.4f, 0.4f, 1.0f))
 
 /*=================================================================================================
 ** 3.2 Types
@@ -772,6 +787,10 @@ static void DrawWindowInspector(Arinc661_Configuration_Document_t* editor);
  * \retval        None
  */
 static void DrawUserApplicationInspector(Arinc661_Configuration_Editor_t* editor, Arinc661_Configuration_Document_t* document);
+static void DrawWindowApplications(Arinc661_Configuration_Document_t* editor, const FACEOE_DisplayManagement_Window_t* window);
+static void DrawDefinitionState(Arinc661_Configuration_Editor_t* editor, Arinc661_Configuration_Document_t* document, FACEOE_DisplayManagement_UserApplication_t* application);
+static float32_t PixelsPerLayerUnit(const FACEOE_DisplayManagement_Screen_t* screen, const FACEOE_DisplayManagement_Window_t* window, bool_t isHorizontal);
+static void DrawWindowPreview(Arinc661_Configuration_Editor_t* editor, Arinc661_Configuration_Document_t* document, const FACEOE_DisplayManagement_Screen_t* screen, const FACEOE_DisplayManagement_Window_t* window, ImVec2 areaMin, ImVec2 areaMax, float32_t scale, ImDrawList* drawList);
 
 /*************************************************************************************************/
 /**
@@ -884,7 +903,7 @@ static void DrawInspectorPane(Arinc661_Configuration_Editor_t* editor, Arinc661_
  *
  * \retval        None
  */
-static void DrawScenePane(Arinc661_Configuration_Document_t* editor);
+static void DrawScenePane(Arinc661_Configuration_Editor_t* owner, Arinc661_Configuration_Document_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -2663,6 +2682,43 @@ static void DrawWindowInspector(Arinc661_Configuration_Document_t* editor)
         MarkDocumentDirty(editor, DrawUnitField(PER_UNIT_LABEL, &window->scalingFactor.perUnit));
         ImGui::EndTable();
     }
+    DrawWindowApplications(editor, window);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Lists the user applications whose window attribute names this window, with their
+ *  Definition Files, and selects one on click.
+ */
+static void DrawWindowApplications(Arinc661_Configuration_Document_t* editor, const FACEOE_DisplayManagement_Window_t* window)
+{
+    char_t   label[FACEOE_DISPLAYMANAGEMENT_MAX_PATH_BYTES + LABEL_FORMAT_BYTES];
+    uint32_t application_index;
+    uint32_t count;
+
+    ImGui::Separator();
+    ImGui::TextUnformatted(USER_APPLICATION_SECTION_LABEL);
+    count = 0;
+    for (application_index = 0; application_index < editor->configuration.userApplicationCount; ++application_index)
+    {
+        if (editor->userApplications[application_index].window == window->id)
+        {
+            count += 1;
+            ImFormatString(label, sizeof(label), WINDOW_APPLICATION_FORMAT, (long long)editor->userApplications[application_index].applicationId, editor->userApplications[application_index].dFPath);
+            ImGui::PushID((int)application_index);
+            if (ImGui::Selectable(label))
+            {
+                editor->selectedKind  = SELECTION_USER_APPLICATION;
+                editor->selectedIndex = application_index;
+            }
+            ImGui::PopID();
+        }
+    }
+    if (0 == count)
+    {
+        ImGui::TextDisabled("%s", WINDOW_NO_APPLICATION_LABEL);
+    }
 }
 
 /*************************************************************************************************/
@@ -2687,6 +2743,70 @@ static void DrawUserApplicationInspector(Arinc661_Configuration_Editor_t* editor
         MarkDocumentDirty(document, DrawBooleanField(MAP_SOURCE_LAYER_LABEL, &application->mapSourceLayer));
         MarkDocumentDirty(document, DrawBooleanField(VISIBLE_LABEL, &application->visible));
         ImGui::EndTable();
+    }
+    DrawDefinitionState(editor, document, application);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Asks the context what it knows about the user application's Definition File: presence in
+ *  the folder, whether it is open, its layer and widget counts, and whether its ApplicationId
+ *  agrees with the FACE applicationId. Offers to open it and to adopt its identifier.
+ */
+static void DrawDefinitionState(Arinc661_Configuration_Editor_t* editor, Arinc661_Configuration_Document_t* document, FACEOE_DisplayManagement_UserApplication_t* application)
+{
+    Arinc661_Context_Definition_t definition;
+    char_t                        text[LABEL_FORMAT_BYTES * 2];
+
+    if (NULL != editor->context)
+    {
+        ImGui::Separator();
+        ImGui::TextUnformatted(DEFINITION_SECTION_LABEL);
+        if ('\0' == application->dFPath[0])
+        {
+            ImGui::TextDisabled("%s", DEFINITION_EMPTY_LABEL);
+        }
+        else if (FALSE == Arinc661_Context_FindDefinition(editor->context, application->dFPath, &definition))
+        {
+            ImGui::PushStyleColor(ImGuiCol_Text, INVALID_VALUE_COLOR);
+            ImGui::TextWrapped("%s", DEFINITION_MISSING_LABEL);
+            ImGui::PopStyleColor();
+        }
+        else
+        {
+            if (definition.isOpen)
+            {
+                if (definition.hasApplicationId)
+                {
+                    ImFormatString(text, sizeof(text), DEFINITION_STATE_FORMAT, (unsigned)definition.layerCount, (unsigned)definition.widgetCount, (long long)definition.applicationId);
+                }
+                else
+                {
+                    ImFormatString(text, sizeof(text), DEFINITION_NO_ID_FORMAT, (unsigned)definition.layerCount, (unsigned)definition.widgetCount);
+                }
+                ImGui::TextWrapped("%s", text);
+                if (definition.hasApplicationId && (definition.applicationId != application->applicationId))
+                {
+                    ImGui::PushStyleColor(ImGuiCol_Text, INVALID_VALUE_COLOR);
+                    ImGui::TextWrapped("%s", APPLICATION_ID_MISMATCH_LABEL);
+                    ImGui::PopStyleColor();
+                    if (ImGui::SmallButton(ADOPT_DEFINITION_ID_LABEL))
+                    {
+                        application->applicationId = definition.applicationId;
+                        MarkDocumentDirty(document, TRUE);
+                    }
+                }
+            }
+            else
+            {
+                ImGui::TextWrapped("%s", DEFINITION_CLOSED_LABEL);
+            }
+            if (ImGui::SmallButton(SHOW_DEFINITION_LABEL))
+            {
+                Arinc661_Context_ShowDefinition(editor->context, application->dFPath);
+            }
+        }
     }
 }
 
@@ -3321,7 +3441,7 @@ static void DrawInspectorPane(Arinc661_Configuration_Editor_t* editor, Arinc661_
  * \par Details:
  *  Fits the combined screen widths and tallest screen inside the available canvas, selects clicked geometry, and draws the selection overlay.
  */
-static void DrawScenePane(Arinc661_Configuration_Document_t* editor)
+static void DrawScenePane(Arinc661_Configuration_Editor_t* owner, Arinc661_Configuration_Document_t* editor)
 {
     const ImGuiStyle*            style;
     const FACEOE_DisplayManagement_Screen_t* screen;
@@ -3504,6 +3624,7 @@ static void DrawScenePane(Arinc661_Configuration_Document_t* editor)
                                 }
 
                                 draw_list->AddRectFilled(area_min, area_max, SCENE_WINDOW_COLOR);
+                                DrawWindowPreview(owner, editor, screen, window, area_min, area_max, scale, draw_list);
                                 draw_list->AddRect(area_min, area_max, SCENE_WINDOW_BORDER_COLOR);
                                 if ('\0' != window->name[0])
                                 {
@@ -3545,6 +3666,121 @@ static void DrawScenePane(Arinc661_Configuration_Document_t* editor)
         }
     }
     ImGui::EndChild();
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  FACE H.3.2: a window's scalingFactor relates baseUnit to perUnit; when it relates pixels
+ *  to millimetres or inches it gives pixels per 0.01 mm directly. Otherwise the screen's
+ *  pixelSize over its physicalDimensions gives the density. With neither, a fallback density
+ *  keeps the preview visible.
+ */
+static float32_t PixelsPerLayerUnit(const FACEOE_DisplayManagement_Screen_t* screen, const FACEOE_DisplayManagement_Window_t* window, bool_t isHorizontal)
+{
+    float32_t factor;
+    float32_t pixels_per_mm;
+    float32_t physical;
+    float32_t pixels;
+
+    pixels_per_mm = 0.0f;
+    factor        = window->scalingFactor.xScale;
+    if (FALSE == isHorizontal)
+    {
+        factor = window->scalingFactor.yScale;
+    }
+    if (0.0f < factor)
+    {
+        if ((FACEOE_DISPLAYMANAGEMENT_UNIT_PIXEL == window->scalingFactor.baseUnit) && (FACEOE_DISPLAYMANAGEMENT_UNIT_MM == window->scalingFactor.perUnit))
+        {
+            pixels_per_mm = factor;
+        }
+        else if ((FACEOE_DISPLAYMANAGEMENT_UNIT_PIXEL == window->scalingFactor.baseUnit) && (FACEOE_DISPLAYMANAGEMENT_UNIT_INCH == window->scalingFactor.perUnit))
+        {
+            pixels_per_mm = (factor / 25.4f);
+        }
+        else if ((FACEOE_DISPLAYMANAGEMENT_UNIT_MM == window->scalingFactor.baseUnit) && (FACEOE_DISPLAYMANAGEMENT_UNIT_PIXEL == window->scalingFactor.perUnit))
+        {
+            pixels_per_mm = (1.0f / factor);
+        }
+        else if ((FACEOE_DISPLAYMANAGEMENT_UNIT_INCH == window->scalingFactor.baseUnit) && (FACEOE_DISPLAYMANAGEMENT_UNIT_PIXEL == window->scalingFactor.perUnit))
+        {
+            pixels_per_mm = (1.0f / (factor * 25.4f));
+        }
+    }
+    if ((0.0f >= pixels_per_mm) && (NULL != screen))
+    {
+        pixels   = (float32_t)screen->pixelSize.width;
+        physical = (float32_t)screen->physicalDimensions.width;
+        if (FALSE == isHorizontal)
+        {
+            pixels   = (float32_t)screen->pixelSize.height;
+            physical = (float32_t)screen->physicalDimensions.height;
+        }
+        if ((0.0f < pixels) && (0.0f < physical))
+        {
+            if (FACEOE_DISPLAYMANAGEMENT_UNIT_MM == screen->physicalDimensions.units)
+            {
+                pixels_per_mm = (pixels / physical);
+            }
+            else if (FACEOE_DISPLAYMANAGEMENT_UNIT_INCH == screen->physicalDimensions.units)
+            {
+                pixels_per_mm = (pixels / (physical * 25.4f));
+            }
+        }
+    }
+    if (0.0f >= pixels_per_mm)
+    {
+        pixels_per_mm = SCENE_PIXELS_PER_MM_FALLBACK;
+    }
+
+    return (pixels_per_mm / 100.0f);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Every user application targeting the window has its open Definition File recorded with
+ *  the layer origin at the window's lower-left corner, scaled by the window's pixel density
+ *  and the scene scale, clipped to the window. Files that are not open draw nothing, so the
+ *  preview shows only what the editor knows.
+ */
+static void DrawWindowPreview(Arinc661_Configuration_Editor_t* editor, Arinc661_Configuration_Document_t* document, const FACEOE_DisplayManagement_Screen_t* screen, const FACEOE_DisplayManagement_Window_t* window, ImVec2 areaMin, ImVec2 areaMax, float32_t scale, ImDrawList* drawList)
+{
+    const FACEOE_DisplayManagement_UserApplication_t* application;
+    FACEOE_Gfx_Transform_t                            transform;
+    FACEOE_Gfx_Point_t                                minimum;
+    FACEOE_Gfx_Point_t                                maximum;
+    uint32_t                                          application_index;
+
+    if (NULL != editor->context)
+    {
+        minimum.x = areaMin.x;
+        minimum.y = areaMin.y;
+        maximum.x = areaMax.x;
+        maximum.y = areaMax.y;
+        for (application_index = 0; application_index < document->configuration.userApplicationCount; ++application_index)
+        {
+            application = &document->userApplications[application_index];
+            if ((application->window != window->id) || ('\0' == application->dFPath[0]) || (FALSE == application->visible))
+            {
+                continue;
+            }
+            (void)memset(&transform, 0, sizeof(transform));
+            transform.a = (PixelsPerLayerUnit(screen, window, TRUE) * scale);
+            transform.d = (-PixelsPerLayerUnit(screen, window, FALSE) * scale);
+            transform.e = areaMin.x;
+            transform.f = areaMax.y;
+            FACEOE_Gfx_DrawList_Clear(&editor->drawList);
+            FACEOE_Gfx_DrawList_SetTransform(&editor->drawList, &transform);
+            if (Arinc661_Context_RecordDefinition(editor->context, application->dFPath, &editor->drawList, ImGui::GetFontSize()))
+            {
+                drawList->PushClipRect(ImVec2(minimum.x, minimum.y), ImVec2(maximum.x, maximum.y), true);
+                Arinc661_Gfx_ImGui_Render(&editor->drawList, drawList);
+                drawList->PopClipRect();
+            }
+        }
+    }
 }
 
 /*************************************************************************************************/
@@ -3697,7 +3933,7 @@ static void DrawPanes(Arinc661_Configuration_Editor_t* editor)
         ImGui::TableSetColumnIndex(INSPECTOR_PANE_COLUMN);
         DrawInspectorPane(editor, document);
         ImGui::TableSetColumnIndex(SCENE_PANE_COLUMN_IDX);
-        DrawScenePane(document);
+        DrawScenePane(editor, document);
         ImGui::EndTable();
     }
     ImGui::PopID();
@@ -3768,6 +4004,8 @@ void Arinc661_Configuration_Initialize(Arinc661_Configuration_Editor_t* editor)
         document->configuration.hasXmlDeclaration       = FALSE;
         document->configuration.schemaLocation[0]       = '\0';
     }
+    editor->context = NULL;
+    FACEOE_Gfx_DrawList_Initialize(&editor->drawList, editor->sceneCommands, ARINC661_CONFIGURATION_MAX_SCENE_COMMANDS, editor->scenePoints, ARINC661_CONFIGURATION_MAX_SCENE_POINTS, editor->sceneText, ARINC661_CONFIGURATION_MAX_SCENE_TEXT_BYTES);
 }
 
 /*************************************************************************************************/
@@ -3952,7 +4190,7 @@ void Arinc661_Configuration_DrawScene(Arinc661_Configuration_Editor_t* editor)
         document = &editor->documents[editor->activeDocumentIndex];
     }
     ImGui::PushID(document);
-    DrawScenePane(document);
+    DrawScenePane(editor, document);
     ImGui::PopID();
 }
 
@@ -4041,5 +4279,98 @@ void Arinc661_Configuration_AddDefinitionFile(Arinc661_Configuration_Editor_t* e
     {
         ImStrncpy(editor->definitionFiles[editor->definitionFileCount], fileName, sizeof(editor->definitionFiles[0]));
         editor->definitionFileCount += 1;
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Stores the pointer; the inspector and scene consult it when drawing.
+ */
+void Arinc661_Configuration_SetContext(Arinc661_Configuration_Editor_t* editor, Arinc661_Context_t* context)
+{
+    LOGASSERT(NULL != editor);
+    editor->context = context;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  NULL for an empty slot.
+ */
+const char_t* Arinc661_Configuration_DocumentName(const Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex)
+{
+    const char_t* name;
+
+    LOGASSERT(NULL != editor);
+    name = NULL;
+    if ((documentIndex < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS) && editor->documents[documentIndex].isLoaded)
+    {
+        name = editor->documents[documentIndex].documentName;
+    }
+
+    return name;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Zero for an empty slot.
+ */
+uint32_t Arinc661_Configuration_UserApplicationCount(const Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex)
+{
+    uint32_t count;
+
+    LOGASSERT(NULL != editor);
+    count = 0;
+    if ((documentIndex < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS) && editor->documents[documentIndex].isLoaded)
+    {
+        count = editor->documents[documentIndex].configuration.userApplicationCount;
+    }
+
+    return count;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Reads straight from the document's user application array.
+ */
+bool_t Arinc661_Configuration_UserApplication(const Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex, uint32_t applicationIndex, int64_t* applicationId, int64_t* windowId, const char_t** dFPath)
+{
+    const FACEOE_DisplayManagement_UserApplication_t* application;
+    bool_t                                            is_found;
+
+    LOGASSERT(NULL != editor);
+    LOGASSERT(NULL != applicationId);
+    LOGASSERT(NULL != windowId);
+    LOGASSERT(NULL != dFPath);
+    is_found = FALSE;
+    if (applicationIndex < Arinc661_Configuration_UserApplicationCount(editor, documentIndex))
+    {
+        application      = &editor->documents[documentIndex].userApplications[applicationIndex];
+        (*applicationId) = application->applicationId;
+        (*windowId)      = application->window;
+        (*dFPath)        = application->dFPath;
+        is_found         = TRUE;
+    }
+
+    return is_found;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The tab bar honours the document request on its next draw.
+ */
+void Arinc661_Configuration_SelectUserApplication(Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex, uint32_t applicationIndex)
+{
+    LOGASSERT(NULL != editor);
+    if (applicationIndex < Arinc661_Configuration_UserApplicationCount(editor, documentIndex))
+    {
+        editor->activeDocumentIndex                    = documentIndex;
+        editor->requestedDocumentIndex                 = documentIndex;
+        editor->documents[documentIndex].selectedKind  = SELECTION_USER_APPLICATION;
+        editor->documents[documentIndex].selectedIndex = applicationIndex;
     }
 }

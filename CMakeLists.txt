@@ -45,11 +45,19 @@ add_library(faceoe_utl STATIC
 target_link_libraries(faceoe_utl PUBLIC os)
 target_include_directories(faceoe_utl PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
+add_library(faceoe_gfx STATIC
+    src/faceoe_gfx/faceoe_gfx_drawlist.c
+    include/faceoe_gfx/faceoe_gfx_drawlist.h)
+target_link_libraries(faceoe_gfx PUBLIC os)
+target_include_directories(faceoe_gfx PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+
 add_library(arinc661 STATIC
     src/arinc661/arinc661_definition.c
     src/arinc661/arinc661_definition_binary.c
-    include/arinc661/arinc661_definition.h)
-target_link_libraries(arinc661 PUBLIC faceoe_utl)
+    src/arinc661/arinc661_scene.c
+    include/arinc661/arinc661_definition.h
+    include/arinc661/arinc661_scene.h)
+target_link_libraries(arinc661 PUBLIC faceoe_utl faceoe_gfx)
 target_include_directories(arinc661 PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 add_library(faceoe STATIC
@@ -61,6 +69,8 @@ target_include_directories(faceoe PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 add_executable(unit_tests
     tests/faceoe_utl_tests.c
     tests/arinc661_definition_tests.c
+    tests/arinc661_scene_tests.c
+    tests/faceoe_gfx_tests.c
     tests/faceoe_displaymanagement_tests.c)
 target_link_libraries(unit_tests PRIVATE faceoe_utl arinc661 faceoe)
 
@@ -87,13 +97,17 @@ if(WIN32)
         examples/arinc661_configuration.cpp
         examples/arinc661_configuration.h
         examples/arinc661_definition_editor.cpp
-        examples/arinc661_definition_editor.h)
+        examples/arinc661_definition_editor.h
+        examples/arinc661_context.cpp
+        examples/arinc661_context.h
+        examples/arinc661_gfx_imgui.cpp
+        examples/arinc661_gfx_imgui.h)
     target_link_libraries(arinc661_editor PRIVATE faceoe arinc661 imgui opengl32 gdi32 dwmapi)
     set_target_properties(arinc661_editor PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
-    add_executable(arinc661_definition_editor_tests tests/arinc661_definition_editor_tests.cpp)
+    add_executable(arinc661_definition_editor_tests tests/arinc661_definition_editor_tests.cpp examples/arinc661_gfx_imgui.cpp examples/arinc661_context.cpp examples/arinc661_configuration.cpp)
     target_include_directories(arinc661_definition_editor_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/examples")
-    target_link_libraries(arinc661_definition_editor_tests PRIVATE arinc661 imgui)
+    target_link_libraries(arinc661_definition_editor_tests PRIVATE arinc661 faceoe imgui)
     add_test(NAME arinc661_definition_editor_tests COMMAND arinc661_definition_editor_tests)
 endif()
 
