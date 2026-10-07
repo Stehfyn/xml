@@ -43,7 +43,7 @@ END
 // Frame: the window every page lives in. Pages fill the area above the bottom line.
 // Heights follow the dialog font: text 8-10, check boxes 10, edits 12, buttons 14 units.
 IDD_FRAME DIALOGEX 0, 0, 292, 203
-STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX
+STYLE DS_SETFONT | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_THICKFRAME
 CAPTION "CDS Editor Setup"
 FONT 8, "Segoe UI", 400, 0, 0x1
 BEGIN

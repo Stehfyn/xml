@@ -76,6 +76,14 @@
 #define THEME_DARK_HEADER         L"DarkMode_ItemsView"
 #define HEADER_SUBCLASS_ID        (1)
 #define CHECK_BOX_GAP             (3)
+#define ANCHOR_LEFT               (1u << 0)
+#define ANCHOR_TOP                (1u << 1)
+#define ANCHOR_RIGHT              (1u << 2)
+#define ANCHOR_BOTTOM             (1u << 3)
+#define ANCHOR_ALL                (ANCHOR_LEFT | ANCHOR_TOP | ANCHOR_RIGHT | ANCHOR_BOTTOM)
+#define PROP_ORIGIN               L"CdsSetupOrigin"
+#define PROP_SIZE                 L"CdsSetupSize"
+#define PROP_CLIENT               L"CdsSetupClient"
 #define HEADLINE_POINTS           (11)
 #define WM_APP_PROGRESS           (WM_APP + 1)
 #define WM_APP_ACTION             (WM_APP + 2)
@@ -160,6 +168,13 @@ typedef enum Mode_e
     MODE_REMOVING
 } Mode_t;
 
+/** How a control follows its window's size. */
+typedef struct Anchor_s
+{
+    int      id;      ///< Control
+    uint32_t anchors; ///< ANCHOR_* bits: a set edge keeps its distance from that side
+} Anchor_t;
+
 /** One row of the file grid. */
 typedef struct FileRow_s
 {
@@ -191,6 +206,7 @@ typedef struct Setup_s
     wchar_t   productCode[64];             ///< Installed product, when any
     FileRow_t rows[MAX_FILE_ROWS];         ///< File rows
     HTREEITEM folderItem;                  ///< Tree node of the destination folder, renamed as the folder box changes
+    SIZE      minimumFrame;                ///< Frame window size as the template made it
     uint32_t  rowCount;                    ///< Rows filled
     uint32_t  fileCount;                   ///< Rows that are files
     uint64_t  totalBytes;                  ///< Bytes of the files
@@ -311,6 +327,36 @@ static INT_PTR CALLBACK FrameProcedure(HWND window, UINT message, WPARAM wordPar
  * \brief Page dialog procedure shared by every page; the page is told apart by its resource id.
  */
 static INT_PTR CALLBACK PageProcedure(HWND window, UINT message, WPARAM wordParameter, LPARAM longParameter);
+
+/*************************************************************************************************/
+/**
+ * \brief Remembers every child's place and the client size, for the layout on resize.
+ *
+ * \param[in] window   Frame or page
+ *
+ * \retval    None
+ */
+static void RememberLayout(HWND window);
+
+/*************************************************************************************************/
+/**
+ * \brief Moves and sizes the children after the window changed size, by their anchors.
+ *
+ * \param[in] window   Frame or page
+ *
+ * \retval    None
+ */
+static void ApplyLayout(HWND window);
+
+/*************************************************************************************************/
+/**
+ * \brief Looks up a control's anchors.
+ *
+ * \param[in] id   Control
+ *
+ * \retval    uint32_t   ANCHOR_* bits; left and top when the control is not listed.
+ */
+static uint32_t AnchorsOf(int id);
 
 /*************************************************************************************************/
 /**
@@ -762,6 +808,7 @@ static INT_PTR CALLBACK FrameProcedure(HWND window, UINT message, WPARAM wordPar
 {
     PAINTSTRUCT paint;
     HDC         paint_context;
+    RECT        frame_area;
     BOOL        on;
     int32_t     percent;
     wchar_t*    action;
@@ -771,6 +818,10 @@ static INT_PTR CALLBACK FrameProcedure(HWND window, UINT message, WPARAM wordPar
     case WM_INITDIALOG:
         s_setup.frame = window;
         CreateFonts(window);
+        RememberLayout(window);
+        GetWindowRect(window, &frame_area);
+        s_setup.minimumFrame.cx = (frame_area.right - frame_area.left);
+        s_setup.minimumFrame.cy = (frame_area.bottom - frame_area.top);
         // Focus cues appear once the keyboard is used, as in every other dialog
         SendMessageW(window, WM_CHANGEUISTATE, MAKEWPARAM(UIS_SET, UISF_HIDEFOCUS | UISF_HIDEACCEL), 0);
         SendMessageW(window, WM_SETICON, ICON_BIG, (LPARAM)LoadIconW(s_setup.module, MAKEINTRESOURCEW(IDI_SETUP)));
@@ -820,6 +871,22 @@ static INT_PTR CALLBACK FrameProcedure(HWND window, UINT message, WPARAM wordPar
             return TRUE;
         }
         break;
+    case WM_GETMINMAXINFO:
+        if (0 < s_setup.minimumFrame.cx)
+        {
+            ((MINMAXINFO*)longParameter)->ptMinTrackSize.x = s_setup.minimumFrame.cx;
+            ((MINMAXINFO*)longParameter)->ptMinTrackSize.y = s_setup.minimumFrame.cy;
+        }
+        return TRUE;
+    case WM_SIZE:
+        ApplyLayout(window);
+        if (NULL != s_setup.page)
+        {
+            GetWindowRect(GetDlgItem(window, IDC_PAGE_AREA), &frame_area);
+            MapWindowPoints(NULL, window, (POINT*)&frame_area, 2);
+            SetWindowPos(s_setup.page, NULL, frame_area.left, frame_area.top, frame_area.right - frame_area.left, frame_area.bottom - frame_area.top, SWP_NOZORDER | SWP_NOACTIVATE);
+        }
+        return TRUE;
     case WM_COMMAND:
         switch (LOWORD(wordParameter))
         {
@@ -1029,7 +1096,11 @@ static INT_PTR CALLBACK PageProcedure(HWND window, UINT message, WPARAM wordPara
         default:
             break;
         }
+        RememberLayout(window);
         ThemePage(window);
+        return TRUE;
+    case WM_SIZE:
+        ApplyLayout(window);
         return TRUE;
     case WM_DRAWITEM:
         DrawImage((const DRAWITEMSTRUCT*)longParameter);
@@ -1114,6 +1185,153 @@ static INT_PTR CALLBACK PageProcedure(HWND window, UINT message, WPARAM wordPara
     }
 
     return FALSE;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The table lists what stretches or follows the far edges; everything else stays put.
+ */
+static uint32_t AnchorsOf(int id)
+{
+    static const Anchor_t c_anchors[] =
+    {
+        {IDC_PAGE_AREA, ANCHOR_ALL},
+        {IDC_BOTTOM_LINE, ANCHOR_LEFT | ANCHOR_RIGHT | ANCHOR_BOTTOM},
+        {IDC_BACK, ANCHOR_RIGHT | ANCHOR_BOTTOM},
+        {IDC_NEXT, ANCHOR_RIGHT | ANCHOR_BOTTOM},
+        {IDCANCEL, ANCHOR_RIGHT | ANCHOR_BOTTOM},
+        {IDC_SIDE_IMAGE, ANCHOR_ALL},
+        {IDC_BANNER_IMAGE, ANCHOR_LEFT | ANCHOR_TOP | ANCHOR_RIGHT},
+        {IDC_BANNER_LINE, ANCHOR_LEFT | ANCHOR_TOP | ANCHOR_RIGHT},
+        {IDC_HEADLINE, ANCHOR_LEFT | ANCHOR_TOP | ANCHOR_RIGHT},
+        {IDC_BODY, ANCHOR_LEFT | ANCHOR_TOP | ANCHOR_RIGHT},
+        {IDC_LICENSE_TEXT, ANCHOR_ALL},
+        {IDC_ACCEPT, ANCHOR_LEFT | ANCHOR_RIGHT | ANCHOR_BOTTOM},
+        {IDC_FOLDER, ANCHOR_LEFT | ANCHOR_TOP | ANCHOR_RIGHT},
+        {IDC_BROWSE, ANCHOR_TOP | ANCHOR_RIGHT},
+        {IDC_GROUP_FILES, ANCHOR_ALL},
+        {IDC_FILE_LIST, ANCHOR_ALL},
+        {IDC_SUMMARY, ANCHOR_ALL},
+        {IDC_PROGRESS_ACTION, ANCHOR_LEFT | ANCHOR_TOP | ANCHOR_RIGHT},
+        {IDC_PROGRESS_BAR, ANCHOR_LEFT | ANCHOR_TOP | ANCHOR_RIGHT},
+        {IDC_OPT_OPENWITH_NOTE, ANCHOR_LEFT | ANCHOR_TOP | ANCHOR_RIGHT},
+        {IDC_OPT_SHELL_NOTE, ANCHOR_LEFT | ANCHOR_TOP | ANCHOR_RIGHT},
+        {IDC_REPAIR_NOTE, ANCHOR_LEFT | ANCHOR_TOP | ANCHOR_RIGHT},
+        {IDC_REMOVE_NOTE, ANCHOR_LEFT | ANCHOR_TOP | ANCHOR_RIGHT},
+    };
+    uint32_t index;
+
+    for (index = 0; index < COUNT_OF(c_anchors); ++index)
+    {
+        if (c_anchors[index].id == id)
+        {
+            return c_anchors[index].anchors;
+        }
+    }
+
+    return ANCHOR_LEFT | ANCHOR_TOP;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Origins and sizes go into window properties so the layout needs no table per page.
+ */
+static void RememberLayout(HWND window)
+{
+    HWND child;
+    RECT client;
+    RECT area;
+
+    GetClientRect(window, &client);
+    (void)SetPropW(window, PROP_CLIENT, (HANDLE)(UINT_PTR)MAKELONG(client.right, client.bottom));
+    child = GetWindow(window, GW_CHILD);
+    while (NULL != child)
+    {
+        GetWindowRect(child, &area);
+        MapWindowPoints(NULL, window, (POINT*)&area, 2);
+        (void)SetPropW(child, PROP_ORIGIN, (HANDLE)(UINT_PTR)MAKELONG(area.left, area.top));
+        (void)SetPropW(child, PROP_SIZE, (HANDLE)(UINT_PTR)MAKELONG(area.right - area.left, area.bottom - area.top));
+        child = GetWindow(child, GW_HWNDNEXT);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  A control anchored on both sides of an axis stretches; one anchored on the far side moves.
+ */
+static void ApplyLayout(HWND window)
+{
+    HWND     child;
+    HDWP     positions;
+    RECT     client;
+    uint32_t anchors;
+    LONG     original_width;
+    LONG     original_height;
+    LONG     origin;
+    LONG     size;
+    int      delta_x;
+    int      delta_y;
+    int      x;
+    int      y;
+    int      width;
+    int      height;
+
+    original_width  = (LONG)LOWORD((UINT_PTR)GetPropW(window, PROP_CLIENT));
+    original_height = (LONG)HIWORD((UINT_PTR)GetPropW(window, PROP_CLIENT));
+    if ((0 == original_width) || (0 == original_height))
+    {
+        return;
+    }
+    GetClientRect(window, &client);
+    delta_x   = (int)(client.right - original_width);
+    delta_y   = (int)(client.bottom - original_height);
+    positions = BeginDeferWindowPos(32);
+    child     = GetWindow(window, GW_CHILD);
+    while (NULL != child)
+    {
+        origin  = (LONG)(UINT_PTR)GetPropW(child, PROP_ORIGIN);
+        size    = (LONG)(UINT_PTR)GetPropW(child, PROP_SIZE);
+        anchors = AnchorsOf(GetDlgCtrlID(child));
+        x       = (int)(short)LOWORD(origin);
+        y       = (int)(short)HIWORD(origin);
+        width   = (int)(short)LOWORD(size);
+        height  = (int)(short)HIWORD(size);
+        if (0 != (anchors & ANCHOR_RIGHT))
+        {
+            if (0 != (anchors & ANCHOR_LEFT))
+            {
+                width += delta_x;
+            }
+            else
+            {
+                x += delta_x;
+            }
+        }
+        if (0 != (anchors & ANCHOR_BOTTOM))
+        {
+            if (0 != (anchors & ANCHOR_TOP))
+            {
+                height += delta_y;
+            }
+            else
+            {
+                y += delta_y;
+            }
+        }
+        if (NULL != positions)
+        {
+            positions = DeferWindowPos(positions, child, NULL, x, y, width, height, SWP_NOZORDER | SWP_NOACTIVATE);
+        }
+        child = GetWindow(child, GW_HWNDNEXT);
+    }
+    if (NULL != positions)
+    {
+        (void)EndDeferWindowPos(positions);
+    }
+    InvalidateRect(window, NULL, TRUE);
 }
 
 /*************************************************************************************************/
@@ -1583,8 +1801,8 @@ static INT_PTR ControlColor(UINT message, HDC deviceContext, HWND control)
  * \par Details:
  *  The banner is the page colour with a dark brand block and the icon at the right; the side
  *  panel is a vertical gradient from the brand dark to a deep blue, the icon, the product name,
- *  and the three bars of the icon. Everything is scaled from the control's own size, so the
- *  art is crisp at any DPI without bitmaps.
+ *  and the three bars of the icon. Measures are pixels at the frame's DPI, so a larger window
+ *  gains content space while the art keeps its size.
  */
 static void DrawImage(const DRAWITEMSTRUCT* item)
 {
@@ -1594,12 +1812,13 @@ static void DrawImage(const DRAWITEMSTRUCT* item)
     RECT          block;
     HBRUSH        brush;
     HFONT         name_font;
-    HFONT         previous_font;
+    HGDIOBJ       previous_font;
     LOGFONTW      log_font;
     COLORREF      page;
     int           height;
     int           width;
     int           icon_size;
+    int           left;
     int           bar;
     int           bar_widths[3];
     int           bar_index;
@@ -1619,9 +1838,9 @@ static void DrawImage(const DRAWITEMSTRUCT* item)
     DeleteObject(brush);
     if (is_side)
     {
-        // Gradient strip on the left third
-        block        = area;
-        block.right  = area.left + (width * 164) / 493;
+        // Gradient strip on the left
+        block             = area;
+        block.right       = area.left + MulDiv(150, (int)s_setup.dpi, 96);
         vertices[0].x     = block.left;
         vertices[0].y     = block.top;
         vertices[0].Red   = (COLOR16)(24 << 8);
@@ -1637,15 +1856,16 @@ static void DrawImage(const DRAWITEMSTRUCT* item)
         rectangle.UpperLeft  = 0;
         rectangle.LowerRight = 1;
         (void)GradientFill(item->hDC, vertices, 2, &rectangle, 1, GRADIENT_FILL_RECT_V);
-        brush = CreateSolidBrush(RGB(66, 150, 250));
+        brush       = CreateSolidBrush(RGB(66, 150, 250));
         block.left  = block.right;
-        block.right = block.left + MulDiv(3, width, 493);
+        block.right = block.left + MulDiv(3, (int)s_setup.dpi, 96);
         FillRect(item->hDC, &block, brush);
         DeleteObject(brush);
-        icon_size = MulDiv(88, width, 493);
-        (void)DrawIconEx(item->hDC, area.left + MulDiv(38, width, 493), area.top + MulDiv(36, height, 312), s_setup.icon, icon_size, icon_size, 0, NULL, DI_NORMAL);
+        left      = area.left + MulDiv(32, (int)s_setup.dpi, 96);
+        icon_size = MulDiv(80, (int)s_setup.dpi, 96);
+        (void)DrawIconEx(item->hDC, left, area.top + MulDiv(30, (int)s_setup.dpi, 96), s_setup.icon, icon_size, icon_size, 0, NULL, DI_NORMAL);
         (void)memset(&log_font, 0, sizeof(log_font));
-        log_font.lfHeight  = -MulDiv(17, height, 312);
+        log_font.lfHeight  = -MulDiv(16, (int)s_setup.dpi, 96);
         log_font.lfWeight  = FW_SEMIBOLD;
         log_font.lfQuality = CLEARTYPE_QUALITY;
         (void)wcscpy_s(log_font.lfFaceName, COUNT_OF(log_font.lfFaceName), L"Segoe UI Semibold");
@@ -1653,28 +1873,28 @@ static void DrawImage(const DRAWITEMSTRUCT* item)
         previous_font = SelectObject(item->hDC, name_font);
         SetBkMode(item->hDC, TRANSPARENT);
         SetTextColor(item->hDC, RGB(235, 238, 242));
-        TextOutW(item->hDC, area.left + MulDiv(38, width, 493), area.top + MulDiv(136, height, 312), L"CDS Editor", 10);
+        TextOutW(item->hDC, left, area.top + MulDiv(122, (int)s_setup.dpi, 96), L"CDS Editor", 10);
         (void)SelectObject(item->hDC, previous_font);
         DeleteObject(name_font);
-        log_font.lfHeight = -MulDiv(12, height, 312);
+        log_font.lfHeight = -MulDiv(11, (int)s_setup.dpi, 96);
         log_font.lfWeight = FW_NORMAL;
         (void)wcscpy_s(log_font.lfFaceName, COUNT_OF(log_font.lfFaceName), L"Segoe UI");
         name_font     = CreateFontIndirectW(&log_font);
         previous_font = SelectObject(item->hDC, name_font);
         SetTextColor(item->hDC, RGB(170, 190, 210));
-        TextOutW(item->hDC, area.left + MulDiv(38, width, 493), area.top + MulDiv(160, height, 312), L"ARINC 661 / FACE", 16);
+        TextOutW(item->hDC, left, area.top + MulDiv(145, (int)s_setup.dpi, 96), L"ARINC 661 / FACE", 16);
         (void)SelectObject(item->hDC, previous_font);
         DeleteObject(name_font);
-        bar_widths[0] = 88;
-        bar_widths[1] = 62;
-        bar_widths[2] = 40;
+        bar_widths[0] = 80;
+        bar_widths[1] = 56;
+        bar_widths[2] = 36;
         for (bar_index = 0; bar_index < 3; ++bar_index)
         {
-            bar          = area.top + MulDiv(196 + (bar_index * 16), height, 312);
-            block.left   = area.left + MulDiv(38, width, 493);
-            block.right  = block.left + MulDiv(bar_widths[bar_index], width, 493);
+            bar          = area.top + MulDiv(178 + (bar_index * 15), (int)s_setup.dpi, 96);
+            block.left   = left;
+            block.right  = left + MulDiv(bar_widths[bar_index], (int)s_setup.dpi, 96);
             block.top    = bar;
-            block.bottom = bar + MulDiv(7, height, 312);
+            block.bottom = bar + MulDiv(6, (int)s_setup.dpi, 96);
             if (0 == bar_index)
             {
                 brush = CreateSolidBrush(RGB(66, 150, 250));
@@ -1689,19 +1909,20 @@ static void DrawImage(const DRAWITEMSTRUCT* item)
     }
     else
     {
-        // Brand block with the icon at the right, a hairline under the banner
+        // Brand block with the icon at the right
         block       = area;
-        block.left  = area.right - MulDiv(88, width, 493);
+        block.left  = area.right - MulDiv(80, (int)s_setup.dpi, 96);
         brush       = CreateSolidBrush(RGB(24, 28, 34));
         FillRect(item->hDC, &block, brush);
         DeleteObject(brush);
         brush       = CreateSolidBrush(RGB(66, 150, 250));
-        block.right = block.left + MulDiv(3, width, 493);
+        block.right = block.left + MulDiv(3, (int)s_setup.dpi, 96);
         FillRect(item->hDC, &block, brush);
         DeleteObject(brush);
-        icon_size = MulDiv(36, height, 58);
-        (void)DrawIconEx(item->hDC, area.right - MulDiv(63, width, 493), area.top + ((height - icon_size) / 2), s_setup.icon, icon_size, icon_size, 0, NULL, DI_NORMAL);
+        icon_size = MulDiv(32, (int)s_setup.dpi, 96);
+        (void)DrawIconEx(item->hDC, area.right - MulDiv(56, (int)s_setup.dpi, 96), area.top + ((height - icon_size) / 2), s_setup.icon, icon_size, icon_size, 0, NULL, DI_NORMAL);
     }
+    (void)width;
 }
 
 /*************************************************************************************************/
