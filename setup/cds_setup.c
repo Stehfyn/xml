@@ -85,19 +85,23 @@
 #define MAX_TEXT                  (512)
 #define MAX_PROPERTIES            (1024)
 #define FILE_QUERY                L"SELECT `FileName`, `FileSize`, `Directory_` FROM `File`, `Component` WHERE `File`.`Component_` = `Component`.`Component`"
-#define SUMMARY_FORMAT            L"Folder\r\n    %s\r\n\r\nOptions\r\n    %s\r\n    %s\r\n    %s\r\n    %s"
+#define SUMMARY_FOLDER_FORMAT     L"Destination location:\r\n      %s\r\n"
+#define SUMMARY_TASKS_HEADING     L"\r\nAdditional tasks:\r\n"
+#define SUMMARY_SHORTCUTS_HEADING L"      Additional shortcuts:\r\n"
+#define SUMMARY_ASSOCIATIONS_HEADING L"      Windows Explorer:\r\n"
+#define SUMMARY_ITEM_PREFIX       L"            "
 #define LIST_COLUMN_NAME          L"Name"
 #define LIST_COLUMN_SIZE          L"Size"
 #define LIST_COLUMN_WHERE         L"Where"
-#define WHERE_PROGRAM             L"Program folder"
+#define WHERE_PROGRAM             L"Destination folder"
 #define WHERE_EXAMPLES            L"examples\\"
 #define WHERE_STARTMENU           L"Start menu"
 #define WHERE_DESKTOP             L"Desktop"
 #define WHERE_REGISTRY            L"Registry"
-#define ROW_SHORTCUT              L"CDS Editor shortcut"
-#define ROW_OPENWITH              L"Open With entries"
-#define ROW_SHELL                 L"Explorer badges and menu"
-#define GROUP_FILES_FORMAT        L"Setup adds (%u files, %s)"
+#define ROW_SHORTCUT              L"Shortcut"
+#define ROW_OPENWITH              L"Open With list (.xml, .bin)"
+#define ROW_SHELL                 L"Explorer icons and menu command"
+#define GROUP_FILES_FORMAT        L"Files to be installed (%u files, %s)"
 #define NEXT_LABEL                L"&Next >"
 #define INSTALL_LABEL             L"&Install"
 #define REPAIR_LABEL              L"&Repair"
@@ -109,24 +113,20 @@
 #define TITLE_REMOVING            L"Removing CDS Editor"
 #define DESCRIPTION_REPAIRING     L"Please wait while the Setup Wizard repairs CDS Editor."
 #define DESCRIPTION_REMOVING      L"Please wait while the Setup Wizard removes CDS Editor."
-#define HEADLINE_REMOVED          L"CDS Editor has been removed"
-#define BODY_REMOVED              L"Click Finish to exit the Setup Wizard.\r\n\r\nYour Definition Files and configurations were left in place."
-#define HEADLINE_FAILED           L"Setup did not complete"
-#define BODY_FAILED_FORMAT        L"Windows Installer reported error %lu.\r\n\r\nNothing was changed, or the change was rolled back. Click Finish to exit."
-#define HEADLINE_CANCELLED        L"Setup was cancelled"
-#define BODY_CANCELLED            L"No changes were made. Click Finish to exit the Setup Wizard."
-#define ASK_CANCEL_TEXT           L"Cancel CDS Editor Setup?"
+#define HEADLINE_REMOVED          L"Completed the CDS Editor Setup Wizard"
+#define BODY_REMOVED              L"Click the Finish button to exit the Setup Wizard."
+#define HEADLINE_FAILED           L"CDS Editor Setup Wizard ended prematurely"
+#define BODY_FAILED_FORMAT        L"CDS Editor Setup Wizard ended prematurely because of an error (%lu). Your system has not been modified. To install this program at a later time, run Setup Wizard again.\r\n\r\nClick the Finish button to exit the Setup Wizard."
+#define HEADLINE_CANCELLED        L"CDS Editor Setup Wizard was interrupted"
+#define BODY_CANCELLED            L"CDS Editor setup was interrupted. Your system has not been modified. To install this program at a later time, run Setup Wizard again.\r\n\r\nClick the Finish button to exit the Setup Wizard."
+#define ASK_CANCEL_TEXT           L"Are you sure you want to cancel CDS Editor installation?"
 #define ASK_CANCEL_TITLE          L"CDS Editor Setup"
 #define ELEVATE_FAILED_TEXT       L"Setup needs permission to make changes to this computer."
 #define VERSION_FORMAT            L"Version %S"
-#define OPTION_YES_STARTMENU      L"Start menu shortcut"
-#define OPTION_NO_STARTMENU       L"No Start menu shortcut"
-#define OPTION_YES_DESKTOP        L"Desktop shortcut"
-#define OPTION_NO_DESKTOP         L"No desktop shortcut"
-#define OPTION_YES_OPENWITH       L"Open With entries for .xml and .bin"
-#define OPTION_NO_OPENWITH        L"No Open With entries"
-#define OPTION_YES_SHELL          L"Explorer badges and context menu"
-#define OPTION_NO_SHELL           L"No Explorer badges or context menu"
+#define OPTION_YES_STARTMENU      L"Create a Start menu shortcut\r\n"
+#define OPTION_YES_DESKTOP        L"Create a desktop shortcut\r\n"
+#define OPTION_YES_OPENWITH       L"Add CDS Editor to the Open With list of all .xml and .bin files\r\n"
+#define OPTION_YES_SHELL          L"Show icons for Definition Files and configurations in Explorer\r\n"
 #define PROPERTIES_FORMAT         L"INSTALLFOLDER=\"%s\" ADDLOCAL=%s REBOOT=ReallySuppress"
 #define FEATURES_MAIN             L"Main"
 #define FEATURE_STARTMENU         L",StartMenu"
@@ -1129,6 +1129,7 @@ static void UpdateButtons(void)
     cancel = GetDlgItem(s_setup.frame, IDCANCEL);
     SetWindowTextW(next, NEXT_LABEL);
     SetWindowTextW(cancel, CANCEL_LABEL);
+    Button_SetElevationRequiredState(next, FALSE);
     EnableWindow(back, (BOOL)((PAGE_WELCOME < s_setup.pageId) && (s_setup.pageId <= PAGE_READY)));
     EnableWindow(next, TRUE);
     EnableWindow(cancel, TRUE);
@@ -1140,6 +1141,8 @@ static void UpdateButtons(void)
         break;
     case PAGE_READY:
         SetWindowTextW(next, INSTALL_LABEL);
+        // The shield says an elevation prompt follows
+        Button_SetElevationRequiredState(next, (BOOL)(FALSE == s_setup.isElevated));
         break;
     case PAGE_PROGRESS:
         EnableWindow(next, FALSE);
@@ -1753,26 +1756,30 @@ static void FillFileList(HWND page)
  */
 static void FillSummary(HWND page)
 {
-    wchar_t        summary[MAX_TEXT * 2];
-    const wchar_t* start_menu;
-    const wchar_t* desktop;
-    const wchar_t* open_with;
-    const wchar_t* shell;
+    wchar_t summary[MAX_TEXT * 2];
+    bool_t  has_shortcuts;
+    bool_t  has_associations;
 
-    start_menu = OPTION_NO_STARTMENU;
-    desktop    = OPTION_NO_DESKTOP;
-    open_with  = OPTION_NO_OPENWITH;
-    shell      = OPTION_NO_SHELL;
-    if (0 != (s_setup.options & OPTION_STARTMENU)) { start_menu = OPTION_YES_STARTMENU; }
-    if (0 != (s_setup.options & OPTION_DESKTOP)) { desktop = OPTION_YES_DESKTOP; }
-    if (0 != (s_setup.options & OPTION_OPENWITH)) { open_with = OPTION_YES_OPENWITH; }
-    if (0 != (s_setup.options & OPTION_SHELL)) { shell = OPTION_YES_SHELL; }
-    (void)swprintf_s(summary, COUNT_OF(summary), SUMMARY_FORMAT, s_setup.folder, start_menu, desktop, open_with, shell);
-    SetDlgItemTextW(page, IDC_SUMMARY, summary);
-    if (s_setup.isElevated)
+    has_shortcuts    = (bool_t)(0 != (s_setup.options & (OPTION_STARTMENU | OPTION_DESKTOP)));
+    has_associations = (bool_t)(0 != (s_setup.options & (OPTION_OPENWITH | OPTION_SHELL)));
+    (void)swprintf_s(summary, COUNT_OF(summary), SUMMARY_FOLDER_FORMAT, s_setup.folder);
+    if (has_shortcuts || has_associations)
     {
-        ShowWindow(GetDlgItem(page, IDC_BODY), SW_HIDE);
+        (void)wcscat_s(summary, COUNT_OF(summary), SUMMARY_TASKS_HEADING);
     }
+    if (has_shortcuts)
+    {
+        (void)wcscat_s(summary, COUNT_OF(summary), SUMMARY_SHORTCUTS_HEADING);
+        if (0 != (s_setup.options & OPTION_STARTMENU)) { (void)wcscat_s(summary, COUNT_OF(summary), SUMMARY_ITEM_PREFIX OPTION_YES_STARTMENU); }
+        if (0 != (s_setup.options & OPTION_DESKTOP)) { (void)wcscat_s(summary, COUNT_OF(summary), SUMMARY_ITEM_PREFIX OPTION_YES_DESKTOP); }
+    }
+    if (has_associations)
+    {
+        (void)wcscat_s(summary, COUNT_OF(summary), SUMMARY_ASSOCIATIONS_HEADING);
+        if (0 != (s_setup.options & OPTION_OPENWITH)) { (void)wcscat_s(summary, COUNT_OF(summary), SUMMARY_ITEM_PREFIX OPTION_YES_OPENWITH); }
+        if (0 != (s_setup.options & OPTION_SHELL)) { (void)wcscat_s(summary, COUNT_OF(summary), SUMMARY_ITEM_PREFIX OPTION_YES_SHELL); }
+    }
+    SetDlgItemTextW(page, IDC_SUMMARY, summary);
 }
 
 /*************************************************************************************************/
