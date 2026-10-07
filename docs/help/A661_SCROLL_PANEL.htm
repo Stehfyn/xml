@@ -1,0 +1,32 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>A661_SCROLL_PANEL</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:1.5em;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:4px 6px;vertical-align:top;font-size:0.95em}th{background:#eee;text-align:left}.cat{color:#666}</style></head><body><h1>A661_SCROLL_PANEL <small>(ScrollPanel)</small></h1>
+<p class="cat">Categories: Container, Graphical representation, Interactive</p>
+<p>A scroll container is composed of two elements: Frame, at fixed location. This region is defined by the parameters PosX, PosY, SizeX, SizeY. Sheet, larger than the Frame, at a variable location with respect to the Frame. This region is defined by the variables FrameX, FrameY, SizeXsheet, SizeYsheet. The sheet X/Y location is expressed in terms of the distance from the Sheet origin to the Frame origin, as shown in Figure 3.3.36. The scrolling function is allowed by DeltaX, DeltaY parameters, which provide to the CDS the displacement of the sheet to apply when a crew member initiates an action with the scroll controls. The type of scroll controls provided are implementation dependent. The scrolling function is also subject to boundaries specified through BoundX, BoundY, SizeXbound, SizeYbound parameters accessible by the UA at run time. These coordinates refer to the sheet location. The CDS should provide scroll controls (scroll bars and/or scroll buttons, according to the implementation dependent style guide). Typically, this is based on the relative size of the frame and the sheet. For instance, if X size of the frame is smaller than the X size of the sheet, the CDS should set a horizontal scroll control. Two parameters are available to allow the UA to choose from a variety of positions according to the implementation dependent style guide. The children of the ScrollPanel widget are positioned relative to the origin of the sheet. Frame Sheet Scroll Boundary Parent PosX BoundX FrameX PosY BoundY FrameY The direction of the arrows in the figure above indicates the sign of the parameter. In this case all the parameters are positive.</p>
+<table><tr><th>Parameter</th><th>Change</th><th>Description</th></tr>
+<tr><td>WidgetIdent</td><td>D</td><td>Unique identifier of the widget</td></tr>
+<tr><td>ParentIdent</td><td>D</td><td>Identifier of the immediate container of the widget</td></tr>
+<tr><td>Visible</td><td>DR</td><td>Visibility of the widget</td></tr>
+<tr><td>StyleSet</td><td>DR</td><td>Reference to predefined graphical characteristics inside CDS</td></tr>
+<tr><td>Enable</td><td>DR</td><td>Ability of the widget to be interactive</td></tr>
+<tr><td>PosX</td><td>DR</td><td>The X position of the widget reference point</td></tr>
+<tr><td>PosY</td><td>DR</td><td>The Y position of the widget reference point</td></tr>
+<tr><td>SizeX</td><td>DR</td><td>The X dimension size (width) of the widget</td></tr>
+<tr><td>SizeY</td><td>DR</td><td>The Y dimension size (height) of the widget</td></tr>
+<tr><td>LineDeltaX</td><td>DR</td><td>Increment/Decrement to apply to FrameX when line scroll controls are enabled.</td></tr>
+<tr><td>LineDeltaY</td><td>DR</td><td>Increment/Decrement to apply to FrameY when line scroll controls are enabled.</td></tr>
+<tr><td>PageDeltaX</td><td>DR</td><td>Increment/Decrement to apply to FrameX when page scroll controls are enabled.</td></tr>
+<tr><td>PageDeltaY</td><td>DR</td><td>Increment/Decrement to apply to FrameY when page scroll controls are enabled.</td></tr>
+<tr><td>HomeX</td><td>DR</td><td>A predefined X location for the sheet. The CDS may set FrameX to this value in certain implementation dependent conditions.</td></tr>
+<tr><td>HomeY</td><td>DR</td><td>A predefined Y location for the sheet. The CDS may set FrameY to this value in certain implementation dependent conditions.</td></tr>
+<tr><td>FrameX</td><td>DR</td><td>Specifies the sheet X location as the distance from the left edge of the sheet to the left edge of the frame.</td></tr>
+<tr><td>FrameY</td><td>DR</td><td>Specifies the sheet Y location as the distance from the bottom edge of the sheet to the bottom edge of the frame.</td></tr>
+<tr><td>SizeXsheet</td><td>DR</td><td>X dimension size of the sheet</td></tr>
+<tr><td>SizeYsheet</td><td>DR</td><td>Y dimension size of the sheet</td></tr>
+<tr><td>BoundX</td><td>DR</td><td>Scroll Boundary Origin co-ordinate on x axis.</td></tr>
+<tr><td>BoundY</td><td>DR</td><td>Scroll Boundary Origin co-ordinate on y axis.</td></tr>
+<tr><td>SizeXbound</td><td>DR</td><td>X dimension size of the Scroll boundary</td></tr>
+<tr><td>SizeYbound</td><td>DR</td><td>Y dimension size of the Scroll boundary</td></tr>
+<tr><td>FlagReportFramePos</td><td>D</td><td>If True, CDS will report changes of the sheet location following crew member actions.</td></tr>
+<tr><td>HorizontalScroll</td><td>DR</td><td>Absent/Top/Bottom/Left/Right</td></tr>
+<tr><td>VerticalScroll</td><td>DR</td><td>Absent/Left/Right/Top/Bottom</td></tr>
+<tr><td>EntryValidation</td><td>R</td><td>Indicator notifying the CDS that the UA has completed processing the entry or selection event. This flag also indicates the results of that processing. A661_FALSE A661_TRUE</td></tr>
+</table></body></html>

@@ -418,4 +418,30 @@ const char_t* Arinc661_ConstantName(uint32_t constantIndex);
  */
 uint32_t Arinc661_ConstantValue(uint32_t constantIndex);
 
+/*************************************************************************************************/
+/**
+ * \brief Arinc661_type help.
+ *
+ * \param type          Widget or extension type name
+ * \param description   Description
+ * \param categories    Categories
+ * \param restriction   Restriction
+ *
+ * \retval TRUE   if the type has a section.
+ * \retval FALSE  otherwise.
+ */
+bool_t Arinc661_TypeHelp(const char_t* type, const char_t** description, const char_t** categories, const char_t** restriction);
+
+/*************************************************************************************************/
+/**
+ * \brief Arinc661_parameter help.
+ *
+ * \param type            Widget or extension type name
+ * \param parameterName   Parameter name
+ * \param change          Change
+ *
+ * \retval const char_t*   Description, or an empty string.
+ */
+const char_t* Arinc661_ParameterHelp(const char_t* type, const char_t* parameterName, const char_t** change);
+
 #endif /* ARINC661_DEFINITION_H */

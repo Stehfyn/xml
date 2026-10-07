@@ -10,6 +10,11 @@ static const char_t c_decimalDigits[]  = "0123456789";
 static const char_t c_lowerHexDigits[] = "0123456789abcdef";
 static const char_t c_upperHexDigits[] = "0123456789ABCDEF";
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Append character.
+ */
 static void AppendCharacter(Os_MessageBuilder_t* pMessage, int character)
 {
     if (NULL != pMessage->stream)
@@ -27,6 +32,11 @@ static void AppendCharacter(Os_MessageBuilder_t* pMessage, int character)
     }
 }
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Append digits.
+ */
 static void AppendDigits(Os_MessageBuilder_t* pMessage, uint64_t value, uint32_t base, uint32_t minimumDigits, const char_t* pDigits)
 {
     char_t digits[64];
@@ -49,6 +59,11 @@ static void AppendDigits(Os_MessageBuilder_t* pMessage, uint64_t value, uint32_t
     }
 }
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Starts a message in the builder's own storage.
+ */
 void Os_MessageBuilder_Begin(Os_MessageBuilder_t* pMessage, FILE* pStream)
 {
     pMessage->stream    = pStream;
@@ -63,6 +78,11 @@ void Os_MessageBuilder_Begin(Os_MessageBuilder_t* pMessage, FILE* pStream)
 #endif
 }
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Starts a message in a caller buffer.
+ */
 void Os_MessageBuilder_BeginBuffer(Os_MessageBuilder_t* pMessage, char_t* pBuffer, size_t capacity)
 {
     pMessage->stream    = NULL;
@@ -76,6 +96,11 @@ void Os_MessageBuilder_BeginBuffer(Os_MessageBuilder_t* pMessage, char_t* pBuffe
     }
 }
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Terminates the message and returns it.
+ */
 void Os_MessageBuilder_End(Os_MessageBuilder_t* pMessage)
 {
     if (NULL != pMessage->stream)
@@ -89,6 +114,11 @@ void Os_MessageBuilder_End(Os_MessageBuilder_t* pMessage)
     }
 }
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Appends a string.
+ */
 void Os_MessageBuilder_AppendString(Os_MessageBuilder_t* pMessage, const char_t* pString)
 {
     if (NULL != pMessage->stream)
@@ -105,6 +135,11 @@ void Os_MessageBuilder_AppendString(Os_MessageBuilder_t* pMessage, const char_t*
     }
 }
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Appends a wide string converted to UTF-8.
+ */
 void Os_MessageBuilder_AppendWideString(Os_MessageBuilder_t* pMessage, const wchar_t* pString)
 {
     uint32_t code_point;
@@ -156,6 +191,11 @@ void Os_MessageBuilder_AppendWideString(Os_MessageBuilder_t* pMessage, const wch
     }
 }
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Appends a signed integer in decimal.
+ */
 void Os_MessageBuilder_AppendInt(Os_MessageBuilder_t* pMessage, int64_t value)
 {
     uint64_t magnitude;
@@ -169,11 +209,21 @@ void Os_MessageBuilder_AppendInt(Os_MessageBuilder_t* pMessage, int64_t value)
     Os_MessageBuilder_AppendUint(pMessage, magnitude);
 }
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Appends an unsigned integer in decimal.
+ */
 void Os_MessageBuilder_AppendUint(Os_MessageBuilder_t* pMessage, uint64_t value)
 {
     AppendDigits(pMessage, value, 10, 1, c_decimalDigits);
 }
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Appends an unsigned integer in hexadecimal.
+ */
 void Os_MessageBuilder_AppendHex(Os_MessageBuilder_t* pMessage, uint64_t value, uint32_t minimumDigits, bool_t uppercase)
 {
     const char_t* digits;
@@ -186,12 +236,22 @@ void Os_MessageBuilder_AppendHex(Os_MessageBuilder_t* pMessage, uint64_t value, 
     AppendDigits(pMessage, value, 16, minimumDigits, digits);
 }
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Appends a pointer value.
+ */
 void Os_MessageBuilder_AppendPointer(Os_MessageBuilder_t* pMessage, const void* pValue)
 {
     Os_MessageBuilder_AppendString(pMessage, "0x");
     Os_MessageBuilder_AppendHex(pMessage, (uint64_t)(uintptr_t)pValue, (uint32_t)(2u * sizeof(uintptr_t)), FALSE);
 }
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Appends a floating-point number.
+ */
 void Os_MessageBuilder_AppendFloat(Os_MessageBuilder_t* pMessage, float value)
 {
     double   scaled;

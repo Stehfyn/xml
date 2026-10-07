@@ -154,6 +154,7 @@ typedef struct Scene_s
     float32_t                    layerWidth;
     float32_t                    layerHeight;
     uint32_t                     chipCount;
+    FACEOE_Gfx_Transform_t       base;
     uint32_t*                    first;
     uint32_t*                    count;
     uint32_t*                    order;
@@ -217,43 +218,556 @@ static uint32_t s_order[SCENE_MAX_PROPERTIES];
 ** 3.5 Static function prototypes
 **===============================================================================================*/
 
+/*************************************************************************************************/
+/**
+ * \brief Maps a widget type name to its kind.
+ *
+ * \param type   Widget or extension type name
+ *
+ * \retval Kind_t   Kind, or KIND_UNKNOWN.
+ */
 static Kind_t KindOf(const char_t* type);
+
+/*************************************************************************************************/
+/**
+ * \brief Groups property indices by widget with a counting sort so lookups stay local.
+ *
+ * \param scene   Scene
+ *
+ * \retval None
+ */
 static void IndexProperties(Scene_t* scene);
+
+/*************************************************************************************************/
+/**
+ * \brief Returns the n-th same-named property value of a widget, or NULL.
+ *
+ * \param scene         Scene
+ * \param widgetIndex   Widget array index
+ * \param name          Property or element name
+ * \param occurrence    Index among same-named properties
+ *
+ * \retval const char_t*   Value, or NULL.
+ */
 static const char_t* Value(const Scene_t* scene, uint32_t widgetIndex, const char_t* name, uint32_t occurrence);
+
+/*************************************************************************************************/
+/**
+ * \brief Counts the same-named properties of a widget.
+ *
+ * \param scene         Scene
+ * \param widgetIndex   Widget array index
+ * \param name          Property or element name
+ *
+ * \retval uint32_t   Number of same-named properties.
+ */
 static uint32_t Occurrences(const Scene_t* scene, uint32_t widgetIndex, const char_t* name);
+
+/*************************************************************************************************/
+/**
+ * \brief Returns a widget's first same-named property value, or an empty string.
+ *
+ * \param scene         Scene
+ * \param widgetIndex   Widget array index
+ * \param name          Property or element name
+ *
+ * \retval const char_t*   Value, or an empty string.
+ */
+static const char_t* Text(const Scene_t* scene, uint32_t widgetIndex, const char_t* name);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads a decimal or a constant name as a number.
+ *
+ * \param text     Text
+ * \param number   Number
+ *
+ * \retval TRUE   if the text is a decimal or a known constant.
+ * \retval FALSE  otherwise.
+ */
 static bool_t ScanNumber(const char_t* text, float32_t* number);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads a widget's first same-named property as a number.
+ *
+ * \param scene         Scene
+ * \param widgetIndex   Widget array index
+ * \param name          Property or element name
+ * \param number        Number
+ *
+ * \retval TRUE   if the property exists and is numeric.
+ * \retval FALSE  otherwise.
+ */
 static bool_t Number(const Scene_t* scene, uint32_t widgetIndex, const char_t* name, float32_t* number);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads a number with a fallback.
+ *
+ * \param scene         Scene
+ * \param widgetIndex   Widget array index
+ * \param name          Property or element name
+ * \param fallback      Fallback
+ *
+ * \retval float32_t   Value, or the fallback.
+ */
 static float32_t NumberOr(const Scene_t* scene, uint32_t widgetIndex, const char_t* name, float32_t fallback);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads the n-th same-named property as a number with a fallback.
+ *
+ * \param scene         Scene
+ * \param widgetIndex   Widget array index
+ * \param name          Property or element name
+ * \param occurrence    Index among same-named properties
+ * \param fallback      Fallback
+ *
+ * \retval float32_t   Value, or the fallback.
+ */
 static float32_t NumberAt(const Scene_t* scene, uint32_t widgetIndex, const char_t* name, uint32_t occurrence, float32_t fallback);
+
+/*************************************************************************************************/
+/**
+ * \brief Tests the first same-named property against a constant.
+ *
+ * \param scene          Scene
+ * \param widgetIndex    Widget array index
+ * \param name           Property or element name
+ * \param constantName   Constant name
+ *
+ * \retval TRUE   if the property equals the constant.
+ * \retval FALSE  otherwise.
+ */
 static bool_t Is(const Scene_t* scene, uint32_t widgetIndex, const char_t* name, const char_t* constantName);
+
+/*************************************************************************************************/
+/**
+ * \brief Tests whether a property equals a constant, by name or by value.
+ *
+ * \param scene          Scene
+ * \param widgetIndex    Widget array index
+ * \param name           Property or element name
+ * \param occurrence     Index among same-named properties
+ * \param constantName   Constant name
+ *
+ * \retval TRUE   if the property equals the constant.
+ * \retval FALSE  otherwise.
+ */
 static bool_t IsAt(const Scene_t* scene, uint32_t widgetIndex, const char_t* name, uint32_t occurrence, const char_t* constantName);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads a widget's WidgetIdent, or -1.
+ *
+ * \param scene         Scene
+ * \param widgetIndex   Widget array index
+ *
+ * \retval int64_t   WidgetIdent, or -1 when missing.
+ */
 static int64_t Ident(const Scene_t* scene, uint32_t widgetIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Applies the inherited alpha to a colour.
+ *
+ * \param color   Colour
+ * \param alpha   Alpha
+ *
+ * \retval FACEOE_Gfx_Color_t   Colour with its alpha scaled.
+ */
 static FACEOE_Gfx_Color_t Fade(FACEOE_Gfx_Color_t color, float32_t alpha);
+
+/*************************************************************************************************/
+/**
+ * \brief Resolves a widget's ColorIndex through the palette.
+ *
+ * \param scene         Scene
+ * \param widgetIndex   Widget array index
+ * \param alpha         Alpha
+ *
+ * \retval FACEOE_Gfx_Color_t   Palette colour for the ColorIndex, faded.
+ */
 static FACEOE_Gfx_Color_t IndexColor(const Scene_t* scene, uint32_t widgetIndex, float32_t alpha);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads a widget's reference point and size, or takes them from the container's layout.
+ *
+ * \param scene         Scene
+ * \param widgetIndex   Widget array index
+ * \param layout        Layout
+ * \param x             X in layer units
+ * \param y             Y in layer units
+ * \param width         Width
+ * \param height        Height
+ *
+ * \retval None
+ */
 static void Rect(const Scene_t* scene, uint32_t widgetIndex, const Layout_t* layout, float32_t* x, float32_t* y, float32_t* width, float32_t* height);
+
+/*************************************************************************************************/
+/**
+ * \brief Grows output bounds by a mapped local point.
+ *
+ * \param scene    Scene
+ * \param bounds   Bounds
+ * \param x        X in layer units
+ * \param y        Y in layer units
+ *
+ * \retval None
+ */
 static void Extend(const Scene_t* scene, Bounds_t* bounds, float32_t x, float32_t y);
+
+/*************************************************************************************************/
+/**
+ * \brief Grows output bounds by a local box.
+ *
+ * \param scene    Scene
+ * \param bounds   Bounds
+ * \param x        X in layer units
+ * \param y        Y in layer units
+ * \param width    Width
+ * \param height   Height
+ *
+ * \retval None
+ */
 static void ExtendBox(const Scene_t* scene, Bounds_t* bounds, float32_t x, float32_t y, float32_t width, float32_t height);
+
+/*************************************************************************************************/
+/**
+ * \brief Picks a font size that fits a local height, in output units.
+ *
+ * \param scene    Scene
+ * \param height   Height
+ *
+ * \retval float32_t   Font size in output units.
+ */
 static float32_t FontFor(const Scene_t* scene, float32_t height);
+
+/*************************************************************************************************/
+/**
+ * \brief Converts an Alignment constant to box alignments.
+ *
+ * \param scene         Scene
+ * \param widgetIndex   Widget array index
+ * \param name          Property or element name
+ * \param horizontal    Horizontal
+ * \param vertical      Vertical
+ *
+ * \retval None
+ */
 static void AlignOf(const Scene_t* scene, uint32_t widgetIndex, const char_t* name, FACEOE_Gfx_Align_t* horizontal, FACEOE_Gfx_Align_t* vertical);
+
+/*************************************************************************************************/
+/**
+ * \brief Records text in a local box with a font that fits the box.
+ *
+ * \param scene        Scene
+ * \param x            X in layer units
+ * \param y            Y in layer units
+ * \param width        Width
+ * \param height       Height
+ * \param text         Text
+ * \param horizontal   Horizontal
+ * \param vertical     Vertical
+ * \param radians      Radians
+ * \param color        Colour
+ *
+ * \retval None
+ */
 static void BoxText(const Scene_t* scene, float32_t x, float32_t y, float32_t width, float32_t height, const char_t* text, FACEOE_Gfx_Align_t horizontal, FACEOE_Gfx_Align_t vertical, float32_t radians, FACEOE_Gfx_Color_t color);
+
+/*************************************************************************************************/
+/**
+ * \brief Records a filled, outlined local box and grows the bounds.
+ *
+ * \param scene    Scene
+ * \param x        X in layer units
+ * \param y        Y in layer units
+ * \param width    Width
+ * \param height   Height
+ * \param fill     Fill
+ * \param border   Border
+ * \param alpha    Alpha
+ * \param bounds   Bounds
+ *
+ * \retval None
+ */
 static void Frame(const Scene_t* scene, float32_t x, float32_t y, float32_t width, float32_t height, FACEOE_Gfx_Color_t fill, FACEOE_Gfx_Color_t border, float32_t alpha, Bounds_t* bounds);
+
+/*************************************************************************************************/
+/**
+ * \brief Records a dashed local box and grows the bounds.
+ *
+ * \param scene    Scene
+ * \param x        X in layer units
+ * \param y        Y in layer units
+ * \param width    Width
+ * \param height   Height
+ * \param color    Colour
+ * \param alpha    Alpha
+ * \param bounds   Bounds
+ *
+ * \retval None
+ */
 static void Dashed(const Scene_t* scene, float32_t x, float32_t y, float32_t width, float32_t height, FACEOE_Gfx_Color_t color, float32_t alpha, Bounds_t* bounds);
+
+/*************************************************************************************************/
+/**
+ * \brief Records a reference-point marker: a circle, a cross, and a heading tick.
+ *
+ * \param scene     Scene
+ * \param x         X in layer units
+ * \param y         Y in layer units
+ * \param radians   Radians
+ * \param color     Colour
+ * \param alpha     Alpha
+ * \param bounds    Bounds
+ *
+ * \retval None
+ */
 static void Marker(const Scene_t* scene, float32_t x, float32_t y, float32_t radians, FACEOE_Gfx_Color_t color, float32_t alpha, Bounds_t* bounds);
+
+/*************************************************************************************************/
+/**
+ * \brief Records a picture or source placeholder: a box with diagonals and a caption.
+ *
+ * \param scene     Scene
+ * \param x         X in layer units
+ * \param y         Y in layer units
+ * \param width     Width
+ * \param height    Height
+ * \param caption   Caption
+ * \param alpha     Alpha
+ * \param bounds    Bounds
+ *
+ * \retval None
+ */
 static void Placeholder(const Scene_t* scene, float32_t x, float32_t y, float32_t width, float32_t height, const char_t* caption, float32_t alpha, Bounds_t* bounds);
+
+/*************************************************************************************************/
+/**
+ * \brief Records a scrollbar on the side named by a Top/Bottom/Left/Right property.
+ *
+ * \param scene         Scene
+ * \param widgetIndex   Widget array index
+ * \param name          Property or element name
+ * \param x             X in layer units
+ * \param y             Y in layer units
+ * \param width         Width
+ * \param height        Height
+ * \param fraction      Fraction
+ * \param start         Start
+ * \param alpha         Alpha
+ *
+ * \retval None
+ */
 static void Scrollbar(const Scene_t* scene, uint32_t widgetIndex, const char_t* name, float32_t x, float32_t y, float32_t width, float32_t height, float32_t fraction, float32_t start, float32_t alpha);
+
+/*************************************************************************************************/
+/**
+ * \brief Records a chip for a widget without geometry along the layer's left edge.
+ *
+ * \param scene         Scene
+ * \param widgetIndex   Widget array index
+ * \param alpha         Alpha
+ * \param bounds        Bounds
+ *
+ * \retval None
+ */
 static void Chip(Scene_t* scene, uint32_t widgetIndex, float32_t alpha, Bounds_t* bounds);
+
+/*************************************************************************************************/
+/**
+ * \brief Counts the extensions attached to a widget.
+ *
+ * \param scene         Scene
+ * \param widgetIndex   Widget array index
+ *
+ * \retval uint32_t   Number of extensions attached to the widget.
+ */
 static uint32_t ExtensionCount(const Scene_t* scene, uint32_t widgetIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Reports the widget's bounds and labels it with its name and extension count.
+ *
+ * \param scene         Scene
+ * \param widgetIndex   Widget array index
+ * \param bounds        Bounds
+ * \param alpha         Alpha
+ *
+ * \retval None
+ */
 static void Record(Scene_t* scene, uint32_t widgetIndex, const Bounds_t* bounds, float32_t alpha);
+
+/*************************************************************************************************/
+/**
+ * \brief Records a button face with an optional picture or symbol box beside its label.
+ *
+ * \param scene          Scene
+ * \param widgetIndex    Widget array index
+ * \param layout         Layout
+ * \param label          Row label
+ * \param iconName       Icon name
+ * \param iconPosition   Icon position
+ * \param alpha          Alpha
+ * \param bounds         Bounds
+ * \param x              X in layer units
+ * \param y              Y in layer units
+ * \param width          Width
+ * \param height         Height
+ *
+ * \retval None
+ */
 static void Button(const Scene_t* scene, uint32_t widgetIndex, const Layout_t* layout, const char_t* label, const char_t* iconName, const char_t* iconPosition, float32_t alpha, Bounds_t* bounds, float32_t* x, float32_t* y, float32_t* width, float32_t* height);
+
+/*************************************************************************************************/
+/**
+ * \brief Records the rows of a list from a string array, highlighting the selected entry.
+ *
+ * \param scene         Scene
+ * \param widgetIndex   Widget array index
+ * \param arrayName     Array name
+ * \param enableName    Enable name
+ * \param first         First
+ * \param count         Count
+ * \param selected      Selected
+ * \param x             X in layer units
+ * \param y             Y in layer units
+ * \param width         Width
+ * \param height        Height
+ * \param align         Align
+ * \param alpha         Alpha
+ *
+ * \retval None
+ */
 static void EntryRows(const Scene_t* scene, uint32_t widgetIndex, const char_t* arrayName, const char_t* enableName, uint32_t first, uint32_t count, uint32_t selected, float32_t x, float32_t y, float32_t width, float32_t height, FACEOE_Gfx_Align_t align, float32_t alpha);
+
+/*************************************************************************************************/
+/**
+ * \brief Records a formatted numeric field with its legend: EditBoxNumeric, BCD, and NumericReadout.
+ *
+ * \param scene         Scene
+ * \param widgetIndex   Widget array index
+ * \param layout        Layout
+ * \param radians       Radians
+ * \param alpha         Alpha
+ * \param bounds        Bounds
+ *
+ * \retval None
+ */
 static void NumericBox(const Scene_t* scene, uint32_t widgetIndex, const Layout_t* layout, float32_t radians, float32_t alpha, Bounds_t* bounds);
+
+/*************************************************************************************************/
+/**
+ * \brief Records a graphics primitive: GpLine, GpLinePolar, GpArcCircle, GpArcEllipse, GpCrown, GpRectangle, GpTriangle, GpPolyline, GpTriangleFan, GpTriangleStrip.
+ *
+ * \param scene         Scene
+ * \param widgetIndex   Widget array index
+ * \param kind          Kind
+ * \param alpha         Alpha
+ * \param bounds        Bounds
+ *
+ * \retval None
+ */
 static void DrawGp(const Scene_t* scene, uint32_t widgetIndex, Kind_t kind, float32_t alpha, Bounds_t* bounds);
+
+/*************************************************************************************************/
+/**
+ * \brief Records a slider: track, major and minor ticks, labels, and the thumb at Value.
+ *
+ * \param scene         Scene
+ * \param widgetIndex   Widget array index
+ * \param layout        Layout
+ * \param alpha         Alpha
+ * \param bounds        Bounds
+ *
+ * \retval None
+ */
 static void DrawSlider(const Scene_t* scene, uint32_t widgetIndex, const Layout_t* layout, float32_t alpha, Bounds_t* bounds);
+
+/*************************************************************************************************/
+/**
+ * \brief Records a tree: entries indented by their ParentArray depth, collapsed under closed parents.
+ *
+ * \param scene         Scene
+ * \param widgetIndex   Widget array index
+ * \param layout        Layout
+ * \param alpha         Alpha
+ * \param bounds        Bounds
+ *
+ * \retval None
+ */
 static void DrawTree(const Scene_t* scene, uint32_t widgetIndex, const Layout_t* layout, float32_t alpha, Bounds_t* bounds);
+
+/*************************************************************************************************/
+/**
+ * \brief Records a MapBoundary: sections of arc, vertical, or horizontal lines around the origin.
+ *
+ * \param scene         Scene
+ * \param widgetIndex   Widget array index
+ * \param alpha         Alpha
+ * \param bounds        Bounds
+ *
+ * \retval None
+ */
 static void DrawMapBoundary(const Scene_t* scene, uint32_t widgetIndex, float32_t alpha, Bounds_t* bounds);
+
+/*************************************************************************************************/
+/**
+ * \brief Records a MapGrid: CountX by CountY cells of IncrementX by IncrementY, offset so the cell at (OffsetX, OffsetY) sits on the display reference point.
+ *
+ * \param scene         Scene
+ * \param widgetIndex   Widget array index
+ * \param alpha         Alpha
+ * \param bounds        Bounds
+ *
+ * \retval None
+ */
 static void DrawMapGrid(const Scene_t* scene, uint32_t widgetIndex, float32_t alpha, Bounds_t* bounds);
+
+/*************************************************************************************************/
+/**
+ * \brief Records a TabbedPanelGroup: a tab strip on TabPosition with one tab per TabbedPanel child, and the content area the active child fills.
+ *
+ * \param scene         Scene
+ * \param widgetIndex   Widget array index
+ * \param layout        Layout
+ * \param alpha         Alpha
+ * \param bounds        Bounds
+ * \param children      Children
+ *
+ * \retval None
+ */
 static void DrawTabbedGroup(const Scene_t* scene, uint32_t widgetIndex, const Layout_t* layout, float32_t alpha, Bounds_t* bounds, Children_t* children);
+
+/*************************************************************************************************/
+/**
+ * \brief Records one widget by its Creation Structure, then its children through the policy its kind imposes.
+ *
+ * \param scene         Scene
+ * \param widgetIndex   Widget array index
+ * \param alpha         Alpha
+ * \param layout        Layout
+ *
+ * \retval None
+ */
 static void DrawWidget(Scene_t* scene, uint32_t widgetIndex, float32_t alpha, const Layout_t* layout);
+
+/*************************************************************************************************/
+/**
+ * \brief Records a container's children in array order under its policy.
+ *
+ * \param scene         Scene
+ * \param widgetIndex   Widget array index
+ * \param alpha         Alpha
+ * \param children      Children
+ *
+ * \retval None
+ */
 static void DrawChildren(Scene_t* scene, uint32_t widgetIndex, float32_t alpha, Children_t* children);
 
 /*=================================================================================================
@@ -294,7 +808,7 @@ static void IndexProperties(Scene_t* scene)
     uint32_t                     running;
 
     definition = scene->definition;
-    for (widget_index = 0; widget_index <= definition->widgetCount; ++widget_index)
+    for (widget_index = 0; widget_index < definition->widgetCount; ++widget_index)
     {
         s_count[widget_index] = 0;
     }
@@ -375,6 +889,23 @@ static uint32_t Occurrences(const Scene_t* scene, uint32_t widgetIndex, const ch
     }
 
     return seen;
+}
+
+/*************************************************************************************************/
+/**
+ * \brief Returns a widget's first same-named property value, or an empty string.
+ */
+static const char_t* Text(const Scene_t* scene, uint32_t widgetIndex, const char_t* name)
+{
+    const char_t* value;
+
+    value = Value(scene, widgetIndex, name, 0);
+    if (NULL == value)
+    {
+        value = "";
+    }
+
+    return value;
 }
 
 /*************************************************************************************************/
@@ -823,7 +1354,7 @@ static void Chip(Scene_t* scene, uint32_t widgetIndex, float32_t alpha, Bounds_t
         if (FACEOE_Gfx_DrawList_PushTransform(scene->drawList))
         {
             // Place chips in layer space regardless of the container's transform
-            FACEOE_Gfx_DrawList_SetTransform(scene->drawList, &scene->drawList->transforms[0]);
+            FACEOE_Gfx_DrawList_SetTransform(scene->drawList, &scene->base);
             (void)snprintf(text, sizeof(text), "%s  %s", widget->name, widget->type);
             Frame(scene, x, y, SCENE_CHIP_WIDTH, SCENE_CHIP_HEIGHT, COLOR_CHIP, COLOR_CHIP_BORDER, alpha, bounds);
             BoxText(scene, x + SCENE_PAD, y, SCENE_CHIP_WIDTH - (2.0f * SCENE_PAD), SCENE_CHIP_HEIGHT, text, FACEOE_GFX_ALIGN_START, FACEOE_GFX_ALIGN_CENTER, 0.0f, Fade(COLOR_TEXT, alpha));
@@ -928,7 +1459,7 @@ static void Button(const Scene_t* scene, uint32_t widgetIndex, const Layout_t* l
             icon_size = (*width);
         }
         icon_size *= 0.6f;
-        (void)snprintf(caption, sizeof(caption), "%s", Value(scene, widgetIndex, iconName, 0));
+        (void)snprintf(caption, sizeof(caption), "%s", Text(scene, widgetIndex, iconName));
         if (Is(scene, widgetIndex, iconPosition, "A661_LEFT"))
         {
             Placeholder(scene, (*x) + SCENE_PAD, (*y) + (((*height) - icon_size) * 0.5f), icon_size, icon_size, caption, alpha, bounds);
@@ -1320,6 +1851,8 @@ static void DrawSlider(const Scene_t* scene, uint32_t widgetIndex, const Layout_
 
     Rect(scene, widgetIndex, layout, &x, &y, &width, &height);
     Frame(scene, x, y, width, height, COLOR_CONTAINER, COLOR_BORDER, alpha, bounds);
+    track_x        = (x + (width * 0.5f));
+    track_y        = (y + (height * 0.5f));
     minimum        = NumberOr(scene, widgetIndex, "MinValue", 0.0f);
     maximum        = NumberOr(scene, widgetIndex, "MaxValue", 100.0f);
     value          = NumberOr(scene, widgetIndex, "Value", minimum);
@@ -2066,12 +2599,12 @@ static void DrawWidget(Scene_t* scene, uint32_t widgetIndex, float32_t alpha, co
             case KIND_EXTERNAL_SOURCE:
             case KIND_MAP_EXTERNAL_SOURCE:
                 Rect(scene, widgetIndex, layout, &x, &y, &width, &height);
-                (void)snprintf(caption, sizeof(caption), "Source %s", Value(scene, widgetIndex, "SourceReference", 0));
+                (void)snprintf(caption, sizeof(caption), "Source %s", Text(scene, widgetIndex, "SourceReference"));
                 Placeholder(scene, x, y, width, height, caption, alpha, &bounds);
                 break;
             case KIND_PICTURE:
                 Rect(scene, widgetIndex, layout, &x, &y, &width, &height);
-                (void)snprintf(caption, sizeof(caption), "Picture %s", Value(scene, widgetIndex, "PictureReference", 0));
+                (void)snprintf(caption, sizeof(caption), "Picture %s", Text(scene, widgetIndex, "PictureReference"));
                 Placeholder(scene, x, y, width, height, caption, alpha, &bounds);
                 break;
             case KIND_PICTURE_ANIMATED:
@@ -2084,7 +2617,7 @@ static void DrawWidget(Scene_t* scene, uint32_t widgetIndex, float32_t alpha, co
                 y     = NumberOr(scene, widgetIndex, "PosY", 0.0f);
                 angle = (NumberOr(scene, widgetIndex, "RotationAngle", 0.0f) * SCENE_DEGREES);
                 Marker(scene, x, y, angle, IndexColor(scene, widgetIndex, 1.0f), alpha, &bounds);
-                (void)snprintf(caption, sizeof(caption), "Symbol %s", Value(scene, widgetIndex, "SymbolReference", 0));
+                (void)snprintf(caption, sizeof(caption), "Symbol %s", Text(scene, widgetIndex, "SymbolReference"));
                 BoxText(scene, x + SCENE_MARKER_RADIUS, y - SCENE_MARKER_RADIUS, SCENE_CHIP_WIDTH, SCENE_MARKER_RADIUS, caption, FACEOE_GFX_ALIGN_START, FACEOE_GFX_ALIGN_CENTER, 0.0f, Fade(COLOR_TEXT, alpha));
                 break;
             case KIND_SYMBOL_ANIMATED:
@@ -2193,12 +2726,12 @@ static void DrawWidget(Scene_t* scene, uint32_t widgetIndex, float32_t alpha, co
                 if (Is(scene, widgetIndex, "PicturePosition", "A661_RIGHT"))
                 {
                     area_x = (x + width - box - SCENE_PAD);
-                    BoxText(scene, x + SCENE_PAD, y, width - box - (3.0f * SCENE_PAD), height, Value(scene, widgetIndex, "LabelString", 0), FACEOE_GFX_ALIGN_START, FACEOE_GFX_ALIGN_CENTER, 0.0f, Fade(COLOR_TEXT, alpha));
+                    BoxText(scene, x + SCENE_PAD, y, width - box - (3.0f * SCENE_PAD), height, Text(scene, widgetIndex, "LabelString"), FACEOE_GFX_ALIGN_START, FACEOE_GFX_ALIGN_CENTER, 0.0f, Fade(COLOR_TEXT, alpha));
                 }
                 else
                 {
                     area_x = (x + SCENE_PAD);
-                    BoxText(scene, x + box + (2.0f * SCENE_PAD), y, width - box - (3.0f * SCENE_PAD), height, Value(scene, widgetIndex, "LabelString", 0), FACEOE_GFX_ALIGN_START, FACEOE_GFX_ALIGN_CENTER, 0.0f, Fade(COLOR_TEXT, alpha));
+                    BoxText(scene, x + box + (2.0f * SCENE_PAD), y, width - box - (3.0f * SCENE_PAD), height, Text(scene, widgetIndex, "LabelString"), FACEOE_GFX_ALIGN_START, FACEOE_GFX_ALIGN_CENTER, 0.0f, Fade(COLOR_TEXT, alpha));
                 }
                 FACEOE_Gfx_DrawList_StrokeRectangle(scene->drawList, area_x, y + ((height - box) * 0.5f), box, box, Fade(COLOR_BUTTON_BORDER, alpha), SCENE_THIN);
                 if (Is(scene, widgetIndex, "CheckButtonState", "A661_SELECTED"))
@@ -2464,6 +2997,7 @@ void Arinc661_Scene_DrawLayer(const Arinc661_Definition_t* definition, uint32_t 
     scene.options     = options;
     scene.layerIndex  = layerIndex;
     options->boundsCount = 0;
+    scene.base           = (*FACEOE_Gfx_DrawList_Transform(drawList));
     IndexProperties(&scene);
     Arinc661_Scene_LayerSize(definition, layerIndex, &scene.layerWidth, &scene.layerHeight);
     if (options->fillsLayerArea)
@@ -2632,6 +3166,12 @@ void Arinc661_Scene_FormatNumber(const char_t* format, float64_t value, char_t* 
         symbol = format[index];
         if ('.' == symbol)
         {
+            // Emit integer digits that found no slot before the point
+            for (digit_index = 0; (0 == integer_slots) && (digit_index < integer_length) && (out < (capacity - 1)); ++digit_index)
+            {
+                text[out] = integer_digits[digit_index];
+                out += 1;
+            }
             is_past_point = TRUE;
             text[out]     = '.';
             out += 1;
@@ -2678,7 +3218,7 @@ void Arinc661_Scene_FormatNumber(const char_t* format, float64_t value, char_t* 
                 consumed_integer += 1;
                 if ((0 == digit_index) && (integer_slots < integer_length))
                 {
-                    while (((integer_length - integer_slots) > 0) && (digit_index < (integer_length - integer_slots)) && (out < (capacity - 1)))
+                    while ((digit_index < (integer_length - integer_slots)) && (out < (capacity - 1)))
                     {
                         text[out] = integer_digits[digit_index];
                         has_nonzero_integer = TRUE;
@@ -2686,12 +3226,8 @@ void Arinc661_Scene_FormatNumber(const char_t* format, float64_t value, char_t* 
                         digit_index += 1;
                     }
                 }
-                digit_index = (consumed_integer - 1) + (integer_length - integer_slots);
-                if (integer_slots < integer_length)
-                {
-                    digit_index = (integer_length - integer_slots) + (consumed_integer - 1);
-                }
-                digit = '0';
+                digit_index = (integer_length - integer_slots) + (consumed_integer - 1);
+                digit       = '0';
                 if (digit_index < integer_length)
                 {
                     digit = integer_digits[digit_index];
@@ -2716,6 +3252,15 @@ void Arinc661_Scene_FormatNumber(const char_t* format, float64_t value, char_t* 
         else
         {
             text[out] = symbol;
+            out += 1;
+        }
+    }
+    if ((0 == integer_slots) && (FALSE == has_point) && (0 < integer_length) && (out < (capacity - 1)))
+    {
+        // Emit the integer digits a slot-less format left out
+        for (digit_index = 0; (digit_index < integer_length) && (out < (capacity - 1)); ++digit_index)
+        {
+            text[out] = integer_digits[digit_index];
             out += 1;
         }
     }

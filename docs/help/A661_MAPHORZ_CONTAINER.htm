@@ -1,0 +1,15 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>A661_MAPHORZ_CONTAINER</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:1.5em;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:4px 6px;vertical-align:top;font-size:0.95em}th{background:#eee;text-align:left}.cat{color:#666}</style></head><body><h1>A661_MAPHORZ_CONTAINER <small>(MapHorz_Container)</small></h1>
+<p class="cat">Categories: Container, Map management</p>
+<p>The MapHorz_Container is used to position a set of non-interactive widgets on a map using real world coordinates (e.g., Lat/Lng). The X and Y parameters provide this real world position data. Their interpretation is dependent on the MapDataFormat. The screen location resulting from the projection of the X and Y parameters defines the origin of the MapHorz_Container&#x27;s children. The position and size of the children are still defined in hundredth of millimeters. The MapHorz_Container rotates its children about the point resulting from the projection of the X and Y parameters. The MapHorz_Container rotates its children according to the Orientation parameter and the Orientation parameter of the ancestor MapHorz. The MapHorz_Container scales its children according to the widgets Range and ScreenRange parameters as well as the Range and ScreenRange parameters of the ancestor MapHorz. Behavior of this widget before the X, Y, Orientation, Range, and ScreenRange parameters are received is implementation dependent. The MapHorz_Container sends events to its owner to indicate when its children widgets are onscreen or offscreen. This is calculated based on the Range parameter.</p>
+<p><b>Restriction:</b> A MapHorz_Container must be in a MapHorz_Source container.</p>
+<table><tr><th>Parameter</th><th>Change</th><th>Description</th></tr>
+<tr><td>WidgetIdent</td><td>D</td><td>Unique identifier of the widget</td></tr>
+<tr><td>ParentIdent</td><td>D</td><td>Identifier of the immediate container of the widget</td></tr>
+<tr><td>Visible</td><td>DR</td><td>Visibility of the widget</td></tr>
+<tr><td>X</td><td>R</td><td>Dependent on MapDataFormat See Table 3.3.24-2b</td></tr>
+<tr><td>Y</td><td>R</td><td>Dependent on MapDataFormat See Table 3.3.24-2b</td></tr>
+<tr><td>Orientation</td><td>R</td><td>Angle between True North and the positive y-axis of the children at the origin of the children (see Reference coordinate system, positive direction: counter-clockwise).</td></tr>
+<tr><td>MapSynchronizationNumber</td><td>R</td><td>See Section 3.2.8.4</td></tr>
+<tr><td>Range</td><td>R</td><td>Geo-referenced range expressed in nm</td></tr>
+<tr><td>ScreenRange</td><td>R</td><td>Distance in screen units (hundredth of mm) equivalent to range MapHorz_Container Creation Structures are defined in Table 3.8.4-2.</td></tr>
+</table></body></html>

@@ -1,0 +1,16 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>A661_MAPVERT_ITEMLIST</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:1.5em;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:4px 6px;vertical-align:top;font-size:0.95em}th{background:#eee;text-align:left}.cat{color:#666}</style></head><body><h1>A661_MAPVERT_ITEMLIST <small>(MapVert_ItemList)</small></h1>
+<p class="cat">Categories: Map management, Graphical Representation, Interactive, Text string</p>
+<p>The MapVert_ItemList is equivalent to the MapHorz_ItemList for vertical displays. A MapVert_ItemList contains a list of Items to be drawn. This list is of fixed size specified through the maximum number of Items. The type of each Item inside the MapVert_ItemList can be modified at run-time, which makes the list dynamic. A set of parameters is associated with each type of Item (refer to Section 3.3.22.2.1, Item Structure). One or several items can be modified through a SetParameter command with BufferOfItems or BlockedBufferOfItems as Parameter_Ident. An item should be modified in its entirety. For instance, the X coordinate of a symbol item cannot be changed by itself. Insert and delete operations are not allowed on the list. However, one specific type of Item is NOT_USED. The Item with the NOT_USED type will be ignored, i.e., is they will have no effect on the processing of following items. Section 3.4.5.1 describes the standardized items and their functionality. Section 3.4.5.2 describes the A661_ParameterStructure to address the Items.</p>
+<p><b>Restriction:</b> A MapVert_ItemList must be in a MapVert_Source container. MapVert_ItemList Parameters is defined in Table 3.4.5-1.</p>
+<table><tr><th>Parameter</th><th>Change</th><th>Description</th></tr>
+<tr><td>WidgetIdent</td><td>D</td><td>Unique identifier of the widget</td></tr>
+<tr><td>ParentIdent</td><td>D</td><td>Identifier of the immediate container of the widget</td></tr>
+<tr><td>Visible</td><td>DR</td><td>Visibility of the widget</td></tr>
+<tr><td>Enable</td><td>DR</td><td>Ability of the widget to be interactive</td></tr>
+<tr><td>MaxNumberOfItem</td><td>D</td><td>Maximum number of items that the UA can address under the MapVert_ItemList.</td></tr>
+<tr><td>MaxItemSize</td><td>D</td><td>Hint provided by the UA that indicates to the CDS what is the expected maximum size in 32-bit words of an item this MapVert_ItemList may contain. If set to 0, no hint is provided. Refer to Section 3.4.5.2.1.</td></tr>
+<tr><td>BufferOfItems</td><td>R</td><td>Buffer of the Map Items</td></tr>
+<tr><td>MapSynchronizationNumber</td><td>R</td><td>See Section 3.2.8.4</td></tr>
+<tr><td>EntryValidation</td><td>R</td><td>Indicator notifying the CDS that the UA has completed processing the entry or selection event. This flag also indicates the results of that processing. A661_FALSE A661_TRUE</td></tr>
+<tr><td>BlockedBufferOfItems</td><td>R</td><td>Buffer of map items that can span multiple messages in order to make an atomic update to a map item list that cannot fit in a single message.</td></tr>
+</table></body></html>

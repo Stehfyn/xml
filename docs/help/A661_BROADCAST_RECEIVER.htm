@@ -1,0 +1,11 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>A661_BROADCAST_RECEIVER</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:1.5em;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:4px 6px;vertical-align:top;font-size:0.95em}th{background:#eee;text-align:left}.cat{color:#666}</style></head><body><h1>A661_BROADCAST_RECEIVER <small>(BroadcastReceiver)</small></h1>
+<p>The objective of this widget is to provide a means for broadcasting one value to different widgets in one layer. For example, it is possible by using this widget to send only one ColorIndex value and broadcast it to several widgets, which will all change their Color according to this same value. The data structure to send depends of the type of parameter to broadcast, defined by the ParameterIdent parameter (see Table 4.6-8 - Parameter Types). The list of widgets where to send the value of this parameter is also fixed at definition time through the WidgetStructure parameter. For each widget in the WidgetStructure, the CDS will perform a set on the widget parameter of ID ParameterIdent. The widgets referenced in this BroadcastReceiver widget must be defined in the Definition File before the BroadcastReceiver widget.</p>
+<p><b>Restriction:</b> - The BroadcastReceiver can only be the child of a layer ParameterIdent must be run-time modifiable for all target widgetsBroadcastReceiver</p>
+<table><tr><th>Parameter</th><th>Change</th><th>Description</th></tr>
+<tr><td>WidgetIdent</td><td>D</td><td>Unique identifier of the widget.</td></tr>
+<tr><td>ParentIdent</td><td>D</td><td>Identifier of the immediate container of the widget. The only possible parent of the BroadcastReceiver is the layer, therefore ParentIdent Value: 0</td></tr>
+<tr><td>NumberOfFields</td><td>D</td><td>Number of fields in the structure</td></tr>
+<tr><td>ParameterIdent</td><td>D</td><td>The ParameterIdent used for the BroadcastReceiver.</td></tr>
+<tr><td>WidgetStructure</td><td>D</td><td>List of WidgetIdent for the value to be sent by the UA through the BroadcastReceiver. The number of widgets is defined by the NumberOfFields. The size of this parameter, in bytes, is 2 * NumberOfFields</td></tr>
+<tr><td>BroadcastData</td><td>R</td><td>The data which has to be broadcast</td></tr>
+</table></body></html>

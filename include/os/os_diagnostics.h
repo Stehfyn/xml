@@ -45,7 +45,16 @@
 void Os_Diagnostics_Initialize(void);
 
 #if defined(_WIN32)
-/** Run an executable entry point behind a logging SEH boundary; never open a dialog. */
+/*************************************************************************************************/
+/**
+ * \brief Runs the diagnostics self-check.
+ *
+ * \param int    Int
+ * \param argc   Argc
+ * \param argv   Argv
+ *
+ * \retval int   Zero on success, non-zero on failure.
+ */
 int Os_Diagnostics_Run(int (*entry)(int, char_t**), int argc, char_t** argv);
 #endif
 

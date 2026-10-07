@@ -1,0 +1,22 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>A661_PAGING_CONTAINER</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:1.5em;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:4px 6px;vertical-align:top;font-size:0.95em}th{background:#eee;text-align:left}.cat{color:#666}</style></head><body><h1>A661_PAGING_CONTAINER <small>(PagingContainer)</small></h1>
+<p class="cat">Categories: Container, Graphical Representation, Interactive</p>
+<p>The PagingContainer provides a means for the CDS to manage the exclusive display of its children one at a time, whereas existing widgets, such as the MutuallyExclusiveContainer, requires this to be managed by the UA. Switching between children is performed through UA command or capturing inputs from user interaction. The PagingContainer provides a mechanism to cycle through a series of graphical representations or textual data at runtime, as a means of driving animations or providing graphical feedback to the user. A UA can make a child visible in the container by setting the VisibleChild parameter. Only the widget in the container that has the WidgetIdent that matches the VisibleChild will be processed for display. The visibility of the child is controlled by the child&#x27;s Visible parameter and is not changed by changing the VisibleChild parameter. For a child in the container to be visible the VisibleChild must be set to the child&#x27;s WidgetIdent and the Visible parameter for the widget must be True. Normal rules for visibility and enabling of an ancestor widget apply to the PagingContainer. The contained widgets are positioned with respect to the PosX and PosY of the PagingContainer. Its size is only used for determining if inputs fall within the region of display space to be interactive for the PagingContainer. Both the UA and the user can cause the VisibleChild parameter to change. User interaction can be achieved through any mechanism that results in the interpretation of an increment or decrement of the child position index, based upon the order of the children in the layer definition. According to this new position, VisibleChild is updated with the corresponding child&#x27;s WidgetIdent.</p>
+<table><tr><th>Parameter</th><th>Change</th><th>Description</th></tr>
+<tr><td>WidgetIdent</td><td>D</td><td>Unique identifier of the widget.</td></tr>
+<tr><td>ParentIdent</td><td>D</td><td>Identifier of the immediate container of the widget.</td></tr>
+<tr><td>Enable</td><td>DR</td><td>Ability of the widget to be interactive.</td></tr>
+<tr><td>Visible</td><td>DR</td><td>Visibility of the widget.</td></tr>
+<tr><td>StyleSet</td><td>DR</td><td>Reference to predefined graphical characteristics inside CDS.</td></tr>
+<tr><td>PosX</td><td>DR</td><td>The X start position of the rectangle (lower left corner).</td></tr>
+<tr><td>PosY</td><td>DR</td><td>The Y start position of the rectangle (lower left corner).</td></tr>
+<tr><td>SizeX</td><td>DR</td><td>The width of the rectangle.</td></tr>
+<tr><td>SizeY</td><td>DR</td><td>The height of the rectangle.</td></tr>
+<tr><td>Anonymous</td><td>D</td><td>Ability to be modified at run-time by the UA.</td></tr>
+<tr><td>WrappingType</td><td>DR</td><td>Defines what type of wrapping is allowed (i.e., max to min, min to max, both, none)</td></tr>
+<tr><td>PagingControlPosition</td><td>DR</td><td>Defines the location of the PagingControls</td></tr>
+<tr><td>FinePageDelta</td><td>DR</td><td>Fine increment step for modification of the visible child.</td></tr>
+<tr><td>CoarsePageDelta</td><td>DR</td><td>Coarse increment step for modification of the visible child.</td></tr>
+<tr><td>VisibleChild</td><td>DR</td><td>Identifier of the widget to be made visible. A value of 0 means that no widget is visible.</td></tr>
+<tr><td>ReportVisibleChild</td><td>D</td><td>If True, CDS will report changes of the visible child ident (A661_EVT_VISIBLE_CHILD).</td></tr>
+<tr><td>EntryValidation</td><td>R</td><td>Indicator notifying the CDS that the UA has completed processing the entry or selection event. This flag also indicates the results of that processing. A661_FALSE A661_TRUE</td></tr>
+</table></body></html>

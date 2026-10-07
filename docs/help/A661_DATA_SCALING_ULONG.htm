@@ -1,0 +1,15 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>A661_DATA_SCALING_ULONG</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:1.5em;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:4px 6px;vertical-align:top;font-size:0.95em}th{background:#eee;text-align:left}.cat{color:#666}</style></head><body><h1>A661_DATA_SCALING_ULONG <small>(DataScalingULong)</small></h1>
+<p>The objective of this widget is to provide a means for scaling one ulong value for one widget parameter. The widget referenced in this DataScalingULong widget must be defined in the Definition File before the DataScalingULong widget. The algorithm for this widget is defined below: - If (EndValue = StartValue) then scale = 0 - Else scale = (Value - StartValue) / (EndValue - StartValue) ParamValue = StartScaledValue + (EndScaledValue - StartScaledValue) * scale ParamValue is cast to ulong and clamped to the ulong range. If (Clamping) then: - If (ParamValue &lt; StartScaledValue) then ParamValue = StartScaledValue - Else if (ParamValue &gt; EndScaledValue) then ParamValue = EndScaledValue</p>
+<p><b>Restriction:</b> - The DataScalingULong can only be the child of a layer - The DataScalingULong cannot refer to a &quot;Definition Only&quot; parameter - The referred parameter type must be ulong</p>
+<table><tr><th>Parameter</th><th>Change</th><th>Description</th></tr>
+<tr><td>WidgetIdent</td><td>D</td><td>Unique identifier of the widget.</td></tr>
+<tr><td>ParentIdent</td><td>D</td><td>Identifier of the immediate container of the widget. The only possible parent of the DataScalingULong is the layer; therefore, ParentIdent Value: 0</td></tr>
+<tr><td>TargetWidgetID</td><td>D</td><td>Widget ID for which the parameter should be scaled</td></tr>
+<tr><td>TargetParameterID</td><td>D</td><td>ParameterID for the widget which should be scaled. Its type should be Long</td></tr>
+<tr><td>Clamping</td><td>DR</td><td>Determine if the parameter is clamped to its [StartScaledValue, EndScaledValue] range</td></tr>
+<tr><td>StartValue</td><td>DR</td><td>Start value of the parameter (corresponding to a scale of 0)</td></tr>
+<tr><td>EndValue</td><td>DR</td><td>End value of the parameter (corresponding to a scale of 1)</td></tr>
+<tr><td>StartScaledValue</td><td>DR</td><td>Start value of the parameter after scaling (corresponding to a scale of 0)</td></tr>
+<tr><td>EndScaledValue</td><td>DR</td><td>End value of the parameter after scaling (corresponding to a scale of 1)</td></tr>
+<tr><td>Value</td><td>R</td><td>Value</td></tr>
+</table></body></html>

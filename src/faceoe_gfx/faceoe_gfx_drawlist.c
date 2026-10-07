@@ -43,11 +43,86 @@
 ** 3.5 Static function prototypes
 **===============================================================================================*/
 
+/*************************************************************************************************/
+/**
+ * \brief Returns the top of the transform stack.
+ *
+ * \param drawList   Target draw list
+ *
+ * \retval FACEOE_Gfx_Transform_t*   Top of the transform stack.
+ */
 static FACEOE_Gfx_Transform_t* CurrentTransform(FACEOE_Gfx_DrawList_t* drawList);
+
+/*************************************************************************************************/
+/**
+ * \brief Maps the points through the current transform and appends a command.
+ *
+ * \param drawList   Target draw list
+ * \param kind       Kind
+ * \param points     Points
+ * \param count      Count
+ *
+ * \retval FACEOE_Gfx_Command_t*   New command, or NULL when storage is exhausted.
+ */
 static FACEOE_Gfx_Command_t* AppendCommand(FACEOE_Gfx_DrawList_t* drawList, FACEOE_Gfx_CommandKind_t kind, const FACEOE_Gfx_Point_t* points, uint32_t count);
+
+/*************************************************************************************************/
+/**
+ * \brief Samples an elliptical arc counter-clockwise from the start to the end angle.
+ *
+ * \param centerX        Center x
+ * \param centerY        Center y
+ * \param radiusX        Radius x
+ * \param radiusY        Radius y
+ * \param startRadians   Start radians
+ * \param endRadians     End radians
+ * \param points         Points
+ * \param capacity       Bytes available
+ *
+ * \retval uint32_t   Points written.
+ */
 static uint32_t ArcPoints(float32_t centerX, float32_t centerY, float32_t radiusX, float32_t radiusY, float32_t startRadians, float32_t endRadians, FACEOE_Gfx_Point_t* points, uint32_t capacity);
+
+/*************************************************************************************************/
+/**
+ * \brief Fills the four corners of a local box.
+ *
+ * \param x        X in layer units
+ * \param y        Y in layer units
+ * \param width    Width
+ * \param height   Height
+ * \param points   Points
+ *
+ * \retval None
+ */
 static void BoxPoints(float32_t x, float32_t y, float32_t width, float32_t height, FACEOE_Gfx_Point_t* points);
+
+/*************************************************************************************************/
+/**
+ * \brief rief Maps a local box and returns its axis-aligned bounds as two points.
+ *
+ * \param drawList   Target draw list
+ * \param x          X in layer units
+ * \param y          Y in layer units
+ * \param width      Width
+ * \param height     Height
+ * \param box        Box
+ *
+ * \retval None
+ */
 static void MappedBox(const FACEOE_Gfx_DrawList_t* drawList, float32_t x, float32_t y, float32_t width, float32_t height, FACEOE_Gfx_Point_t* box);
+
+/*************************************************************************************************/
+/**
+ * \brief rief Appends a command whose points are already in output units.
+ *
+ * \param drawList   Target draw list
+ * \param kind       Kind
+ * \param points     Points
+ * \param count      Count
+ *
+ * \retval FACEOE_Gfx_Command_t*   New command, or NULL when storage is exhausted.
+ */
 static FACEOE_Gfx_Command_t* AppendMappedCommand(FACEOE_Gfx_DrawList_t* drawList, FACEOE_Gfx_CommandKind_t kind, const FACEOE_Gfx_Point_t* points, uint32_t count);
 
 /*=================================================================================================
@@ -156,7 +231,8 @@ static void BoxPoints(float32_t x, float32_t y, float32_t width, float32_t heigh
 
 /*************************************************************************************************/
 /**
- * rief Maps a local box and returns its axis-aligned bounds as two points.
+ * \par Details:
+ *  Mapped box.
  */
 static void MappedBox(const FACEOE_Gfx_DrawList_t* drawList, float32_t x, float32_t y, float32_t width, float32_t height, FACEOE_Gfx_Point_t* box)
 {
@@ -193,7 +269,8 @@ static void MappedBox(const FACEOE_Gfx_DrawList_t* drawList, float32_t x, float3
 
 /*************************************************************************************************/
 /**
- * rief Appends a command whose points are already in output units.
+ * \par Details:
+ *  Append mapped command.
  */
 static FACEOE_Gfx_Command_t* AppendMappedCommand(FACEOE_Gfx_DrawList_t* drawList, FACEOE_Gfx_CommandKind_t kind, const FACEOE_Gfx_Point_t* points, uint32_t count)
 {

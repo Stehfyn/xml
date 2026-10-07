@@ -14,7 +14,9 @@
 #include "arinc661_configuration.h"
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "arinc661_context.h"
+#include "arinc661_definition_editor.h"
 #include "arinc661_gfx_imgui.h"
+#include "arinc661_icons.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 
@@ -26,6 +28,7 @@ extern "C"
 }
 
 #include <inttypes.h>
+#include <stdlib.h>
 #include <limits.h>
 #include <string.h>
 
@@ -167,6 +170,62 @@ extern "C"
 #define WINDOW_NO_APPLICATION_LABEL   ("No user application targets this window.")
 #define WINDOW_APPLICATION_FORMAT     ("Application %lld: %s")
 #define SCENE_PIXELS_PER_MM_FALLBACK  (4.0f)
+#define SCREEN_CHOICE_FORMAT          ("Screen %" PRId64)
+#define LAYOUT_WINDOWS_LABEL          ("Windows In This Layout")
+#define LAYOUT_NO_WINDOWS_LABEL       ("No windows yet; add one below.")
+#define ADD_WINDOW_HERE_LABEL         ("Add window to this layout")
+#define LAYOUT_WINDOW_FORMAT          ("Window %" PRId64 " %s (%" PRId64 " x %" PRId64 " at %" PRId64 ", %" PRId64 ")")
+#define LAYOUT_CHOICE_FORMAT          ("Layout %" PRId64 " on screen %" PRId64)
+#define LAYOUT_LABEL                  ("Layout")
+#define SCREEN_LABEL                  ("Screen")
+#define SCREEN_LAYOUTS_LABEL          ("Layouts On This Screen")
+#define ADD_LAYOUT_HERE_LABEL         ("Add layout to this screen")
+#define LAYOUT_ITEM_FORMAT            ("Layout %" PRId64 " (%u windows)")
+#define SCENE_HINT_LABEL              ("Drag: move window | Corners: resize | Arrows: nudge (Shift x10) | Del: remove | Right-click: add | Double-click a previewed widget: edit it")
+#define SCENE_HINT_COLOR              (IM_COL32(180, 190, 200, 200))
+#define SCENE_HANDLE_COLOR            (IM_COL32(255, 255, 255, 230))
+#define SCENE_LABEL_BACK_COLOR        (IM_COL32(0, 0, 0, 90))
+#define HANDLE_HALF_SIZE              (5.0f)
+#define DRAG_THRESHOLD                (3.0f)
+#define DRAG_NONE                     (0)
+#define DRAG_MOVE                     (1)
+#define DRAG_BOTTOM_LEFT              (2)
+#define DRAG_BOTTOM_RIGHT             (3)
+#define DRAG_TOP_LEFT                 (4)
+#define DRAG_TOP_RIGHT                (5)
+#define SCENE_POPUP_ID                ("##scene add")
+#define ADD_SCREEN_MENU_LABEL         ("Add screen")
+#define ADD_LAYOUT_MENU_LABEL         ("Add layout to this screen")
+#define ADD_WINDOW_MENU_LABEL         ("Add window here")
+#define ADD_APPLICATION_MENU_LABEL    ("Add user application for this window")
+#define CREATE_DEFINITION_LABEL       ("Create Definition File for this application")
+#define APPLICATION_TREE_FORMAT       ("User Application %" PRId64 " -> %s")
+#define APPLICATION_NO_FILE_FORMAT    ("User Application %" PRId64)
+#define DEFINITION_CLOSED_NODE_FORMAT ("%s (not open; click to open)")
+#define DEFINITION_MISSING_NODE_FORMAT ("%s (not in folder)")
+#define LAYERS_SECTION_LABEL          ("Layers Of The Definition File")
+#define LAYER_ROW_FORMAT              ("Layer %s %s: %.0f x %.0f (0.01 mm)")
+#define LAYER_FIT_WARNING             ("  exceeds window")
+#define BREADCRUMB_SCREEN_FORMAT      ("%s > screen %" PRId64)
+#define BREADCRUMB_LAYOUT_FORMAT      ("%s > screen %" PRId64 " > layout %" PRId64)
+#define BREADCRUMB_WINDOW_FORMAT      ("%s > screen %" PRId64 " > layout %" PRId64 " > window %" PRId64 " %s")
+#define BREADCRUMB_APPLICATION_FORMAT ("%s > application %" PRId64 " > window %" PRId64 " > %s")
+#define PREVIEW_HINT_LABEL            ("Double-click a widget in the preview to edit it in the Definition File.")
+#define REMOVE_MENU_LABEL             ("Remove")
+#define DUPLICATE_MENU_LABEL          ("Duplicate")
+#define ELEMENT_SCREEN                ("Screen")
+#define ELEMENT_LAYOUT                ("Layout")
+#define ELEMENT_WINDOW                ("Window")
+#define ELEMENT_USER_APPLICATION      ("UserApplication")
+#define TOOL_ADD_SCREEN_LABEL         ("Add screen")
+#define TOOL_ADD_LAYOUT_LABEL         ("Add layout to the selected screen")
+#define TOOL_ADD_WINDOW_LABEL         ("Add window to the selected layout")
+#define TOOL_ADD_APPLICATION_LABEL    ("Add user application for the selected window")
+#define TOOL_DUPLICATE_LABEL          ("Duplicate selection")
+#define TOOL_DELETE_LABEL             ("Delete selection")
+#define EMPTY_SCREEN_BUTTON_LABEL     ("Add the first screen")
+#define SHORTCUT_CTRL_D               ("Ctrl+D")
+#define SHORTCUT_DEL                  ("Del")
 #define STYLE_FILE_PATH_LABEL  ("Style File Path")
 #define MAP_SOURCE_LAYER_LABEL ("Map Source Layer")
 #define VISIBLE_LABEL          ("Visible")
@@ -787,9 +846,242 @@ static void DrawWindowInspector(Arinc661_Configuration_Document_t* editor);
  * \retval        None
  */
 static void DrawUserApplicationInspector(Arinc661_Configuration_Editor_t* editor, Arinc661_Configuration_Document_t* document);
+
+/*************************************************************************************************/
+/**
+ * \brief Lists the user applications whose window attribute names this window, with their Definition Files, and selects one on click.
+ *
+ * \param editor   Editor state
+ * \param window   Window
+ *
+ * \retval None
+ */
 static void DrawWindowApplications(Arinc661_Configuration_Document_t* editor, const FACEOE_DisplayManagement_Window_t* window);
+
+/*************************************************************************************************/
+/**
+ * \brief Copies the five arrays' used parts and the counts into one heap block.
+ *
+ * \param document   Document
+ *
+ * \retval void*   Heap block holding the snapshot; the caller frees it.
+ */
+static void* TakeSnapshot(const Arinc661_Configuration_Document_t* document);
+
+/*************************************************************************************************/
+/**
+ * \brief Copies a snapshot back and recomputes the derived screen extents.
+ *
+ * \param document   Document
+ * \param snapshot   Model snapshot
+ *
+ * \retval None
+ */
+static void RestoreSnapshot(Arinc661_Configuration_Document_t* document, const void* snapshot);
+
+/*************************************************************************************************/
+/**
+ * \brief Counts and used arrays must match; the selection is ignored.
+ *
+ * \param document   Document
+ * \param snapshot   Model snapshot
+ *
+ * \retval TRUE   if the model equals the snapshot.
+ * \retval FALSE  otherwise.
+ */
+static bool_t SnapshotMatches(const Arinc661_Configuration_Document_t* document, const void* snapshot);
+
+/*************************************************************************************************/
+/**
+ * \brief Frees every snapshot.
+ *
+ * \param document   Document
+ *
+ * \retval None
+ */
+static void ClearHistory(Arinc661_Configuration_Document_t* document);
+
+/*************************************************************************************************/
+/**
+ * \brief Once per frame: a changed model turns the shadow into an undo step and drops the redo stack.
+ *
+ * \param document   Document
+ *
+ * \retval None
+ */
+static void CommitHistory(Arinc661_Configuration_Document_t* document);
+
+/*************************************************************************************************/
+/**
+ * \brief The current state moves to the redo stack; the newest undo step becomes the model.
+ *
+ * \param document   Document
+ *
+ * \retval None
+ */
+static void UndoDocument(Arinc661_Configuration_Document_t* document);
+
+/*************************************************************************************************/
+/**
+ * \brief Mirror of UndoDocument.
+ *
+ * \param document   Document
+ *
+ * \retval None
+ */
+static void RedoDocument(Arinc661_Configuration_Document_t* document);
+
+/*************************************************************************************************/
+/**
+ * \brief Removes the selected element through the same paths the hierarchy uses.
+ *
+ * \param document   Document
+ *
+ * \retval None
+ */
+static void RemoveSelection(Arinc661_Configuration_Document_t* document);
+
+/*************************************************************************************************/
+/**
+ * \brief A window copy keeps the geometry and layout with a fresh id, offset by a tenth of its size so it is visible; a user application copy keeps its window and paths with a fresh applicationId.
+ *
+ * \param document   Document
+ *
+ * \retval None
+ */
+static void DuplicateSelection(Arinc661_Configuration_Document_t* document);
+
+/*************************************************************************************************/
+/**
+ * \brief Combo over the document's screens, shown by id.
+ *
+ * \param document      Document
+ * \param label         Row label
+ * \param screenIndex   Screen array index
+ *
+ * \retval TRUE   if the value changed.
+ * \retval FALSE  otherwise.
+ */
+static bool_t DrawScreenChoiceField(const Arinc661_Configuration_Document_t* document, const char_t* label, uint32_t* screenIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Combo over the document's layouts, each shown with its screen.
+ *
+ * \param document      Document
+ * \param label         Row label
+ * \param layoutIndex   Layout array index
+ *
+ * \retval TRUE   if the value changed.
+ * \retval FALSE  otherwise.
+ */
+static bool_t DrawLayoutChoiceField(const Arinc661_Configuration_Document_t* document, const char_t* label, uint32_t* layoutIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Icon row above the canvas: add screen, layout, window, user application, then duplicate and delete for the selection.
+ *
+ * \param owner      Editor owning the document
+ * \param document   Document
+ *
+ * \retval None
+ */
+static void DrawSceneToolbar(Arinc661_Configuration_Editor_t* owner, Arinc661_Configuration_Document_t* document);
+
+/*************************************************************************************************/
+/**
+ * \brief Direct manipulation of windows on the scene: press on a window selects it and starts a move; press on a corner handle of the selected window starts a resize; the arrow keys nudge; Delete removes the selection; a right-click opens a menu to add elements where the cursor is.
+ *
+ * \param owner             Editor owning the document
+ * \param document          Document
+ * \param hitScreen         Screen under the cursor
+ * \param hitWindow         Window under the cursor
+ * \param windowMin         Screen top-left of the selected window
+ * \param windowMax         Screen bottom-right of the selected window
+ * \param hasWindowArea     TRUE when a window is selected and drawn
+ * \param scale             Screen pixels per layer unit
+ * \param drawList          Target draw list
+ * \param isCanvasHovered   TRUE while the mouse is over the canvas
+ * \param hintPosition      Where the hint line is drawn
+ *
+ * \retval None
+ */
+static void DrawSceneInteraction(Arinc661_Configuration_Editor_t* owner, Arinc661_Configuration_Document_t* document, uint32_t hitScreen, uint32_t hitWindow, ImVec2 windowMin, ImVec2 windowMax, bool_t hasWindowArea, float32_t scale, ImDrawList* drawList, bool_t isCanvasHovered, ImVec2 hintPosition);
+
+/*************************************************************************************************/
+/**
+ * \brief Asks the context what it knows about the user application's Definition File: presence in the folder, whether it is open, its layer and widget counts, and whether its ApplicationId agrees with the FACE applicationId.
+ *
+ * \param editor        Editor state
+ * \param document      Document
+ * \param application   User application
+ *
+ * \retval None
+ */
+static void CreateDefinitionForSelection(Arinc661_Configuration_Editor_t* editor, Arinc661_Configuration_Document_t* document);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws a user application's Definition File tree under its hierarchy node.
+ *
+ * \param[in,out] document      Document being edited
+ * \param[in]     application   The user application
+ *
+ * \retval        None
+ */
+static void DrawEmbeddedDefinition(Arinc661_Configuration_Document_t* document, const FACEOE_DisplayManagement_UserApplication_t* application);
+
+/*************************************************************************************************/
+/**
+ * \brief Lists the layers of the user application's open Definition File with fit checks.
+ *
+ * \param[in,out] editor        Editor state
+ * \param[in]     document      Document being edited
+ * \param[in]     application   The user application
+ *
+ * \retval        None
+ */
+static void DrawDefinitionLayers(Arinc661_Configuration_Editor_t* editor, const Arinc661_Configuration_Document_t* document, const FACEOE_DisplayManagement_UserApplication_t* application);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws what the context knows about the user application's Definition File.
+ *
+ * \param[in,out] editor        Editor state
+ * \param[in,out] document      Document being edited
+ * \param[in,out] application   The user application
+ *
+ * \retval        None
+ */
 static void DrawDefinitionState(Arinc661_Configuration_Editor_t* editor, Arinc661_Configuration_Document_t* document, FACEOE_DisplayManagement_UserApplication_t* application);
+
+/*************************************************************************************************/
+/**
+ * \brief FACE H.3.2: a window's scalingFactor relates baseUnit to perUnit; when it relates pixels to millimetres or inches it gives pixels per 0.01 mm directly.
+ *
+ * \param screen         Screen
+ * \param window         Window
+ * \param isHorizontal   TRUE for the X axis
+ *
+ * \retval float32_t   Screen pixels per 0.01 mm along the axis.
+ */
 static float32_t PixelsPerLayerUnit(const FACEOE_DisplayManagement_Screen_t* screen, const FACEOE_DisplayManagement_Window_t* window, bool_t isHorizontal);
+
+/*************************************************************************************************/
+/**
+ * \brief Every user application targeting the window has its open Definition File recorded with the layer origin at the window's lower-left corner, scaled by the window's pixel density and the scene scale, clipped to the window.
+ *
+ * \param editor     Editor state
+ * \param document   Document
+ * \param screen     Screen
+ * \param window     Window
+ * \param areaMin    Screen top-left of the window area
+ * \param areaMax    Screen bottom-right of the window area
+ * \param scale      Screen pixels per layer unit
+ * \param drawList   Target draw list
+ *
+ * \retval None
+ */
 static void DrawWindowPreview(Arinc661_Configuration_Editor_t* editor, Arinc661_Configuration_Document_t* document, const FACEOE_DisplayManagement_Screen_t* screen, const FACEOE_DisplayManagement_Window_t* window, ImVec2 areaMin, ImVec2 areaMax, float32_t scale, ImDrawList* drawList);
 
 /*************************************************************************************************/
@@ -1148,6 +1440,7 @@ static void LoadConfigurationFile(Arinc661_Configuration_Editor_t* editor, const
         else
         {
             document = &editor->documents[available_index];
+            ClearHistory(document);
             document->isLoaded            = FALSE;
             document->isDirty             = FALSE;
             document->selectedKind        = SELECTION_NONE;
@@ -1249,6 +1542,7 @@ static void CreateDocument(Arinc661_Configuration_Editor_t* editor)
     else
     {
         document = &editor->documents[available_index];
+        ClearHistory(document);
         document->status              = STATUS_NEW_DOCUMENT;
         document->isLoaded            = TRUE;
         document->isDirty             = TRUE;
@@ -2194,6 +2488,7 @@ static void DrawHierarchy(Arinc661_Configuration_Document_t* editor)
     uint32_t                              remove_application_index;
     bool_t                                is_screen_open;
     bool_t                                is_layout_open;
+    bool_t                       is_open;
 
     add_layout_screen_index  = INVALID_HIERARCHY_INDEX;
     add_window_layout_index  = INVALID_HIERARCHY_INDEX;
@@ -2306,7 +2601,19 @@ static void DrawHierarchy(Arinc661_Configuration_Document_t* editor)
             flags |= ImGuiTreeNodeFlags_Selected;
         }
         ImGui::PushID(application);
-        (void)ImGui::TreeNodeEx(USER_APPLICATION_NODE_ID, flags, USER_APPLICATION_LABEL_FORMAT, application->applicationId);
+        flags = HIERARCHY_BRANCH_FLAGS;
+        if ((SELECTION_USER_APPLICATION == editor->selectedKind) && (application_index == editor->selectedIndex))
+        {
+            flags |= ImGuiTreeNodeFlags_Selected;
+        }
+        if ('\0' != application->dFPath[0])
+        {
+            is_open = ImGui::TreeNodeEx(USER_APPLICATION_NODE_ID, flags, APPLICATION_TREE_FORMAT, application->applicationId, application->dFPath);
+        }
+        else
+        {
+            is_open = ImGui::TreeNodeEx(USER_APPLICATION_NODE_ID, flags, APPLICATION_NO_FILE_FORMAT, application->applicationId);
+        }
         if (ImGui::IsItemClicked())
         {
             editor->selectedKind  = SELECTION_USER_APPLICATION;
@@ -2316,6 +2623,11 @@ static void DrawHierarchy(Arinc661_Configuration_Document_t* editor)
         if (DrawRemoveButton(REMOVE_USER_APPLICATION_LABEL, row_height))
         {
             remove_application_index = application_index;
+        }
+        if (is_open)
+        {
+            DrawEmbeddedDefinition(editor, application);
+            ImGui::TreePop();
         }
         ImGui::PopID();
     }
@@ -2586,6 +2898,11 @@ static void MarkDocumentDirty(Arinc661_Configuration_Document_t* editor, bool_t 
  */
 static void DrawScreenInspector(Arinc661_Configuration_Document_t* editor)
 {
+    char_t   layout_label[LABEL_FORMAT_BYTES];
+    uint32_t layout_index;
+    uint32_t window_index;
+    uint32_t window_count;
+    uint32_t layout_count;
     FACEOE_DisplayManagement_Screen_t* screen;
     bool_t                 has_width_changed;
     bool_t                 has_height_changed;
@@ -2593,7 +2910,7 @@ static void DrawScreenInspector(Arinc661_Configuration_Document_t* editor)
 
     screen = &editor->screens[editor->selectedIndex];
 
-    ImGui::TextUnformatted(SCREEN_SECTION_LABEL);
+    ImGui::SeparatorText(SCREEN_SECTION_LABEL);
     if (BeginPropertyTable(SCREEN_TABLE_ID))
     {
         MarkDocumentDirty(editor, DrawIdentifierField(editor, SELECTION_SCREEN, 0, editor->selectedIndex, &screen->id));
@@ -2623,6 +2940,40 @@ static void DrawScreenInspector(Arinc661_Configuration_Document_t* editor)
         MarkDocumentDirty(editor, DrawUnitField(UNITS_LABEL, &screen->physicalDimensions.units));
         ImGui::EndTable();
     }
+    ImGui::Separator();
+    ImGui::SeparatorText(SCREEN_LAYOUTS_LABEL);
+    layout_count = 0;
+    for (layout_index = 0; layout_index < editor->configuration.layoutCount; ++layout_index)
+    {
+        if (editor->layouts[layout_index].screenIndex == editor->selectedIndex)
+        {
+            layout_count += 1;
+            window_count = 0;
+            for (window_index = 0; window_index < editor->configuration.windowCount; ++window_index)
+            {
+                if (editor->windows[window_index].layoutIndex == layout_index)
+                {
+                    window_count += 1;
+                }
+            }
+            ImFormatString(layout_label, sizeof(layout_label), LAYOUT_ITEM_FORMAT, editor->layouts[layout_index].id, (unsigned)window_count);
+            ImGui::PushID((int)layout_index);
+            if (ImGui::Selectable(layout_label))
+            {
+                editor->selectedKind  = SELECTION_LAYOUT;
+                editor->selectedIndex = layout_index;
+            }
+            ImGui::PopID();
+        }
+    }
+    if (0 == layout_count)
+    {
+        ImGui::TextDisabled("%s", LAYOUT_NO_WINDOWS_LABEL);
+    }
+    if (ImGui::SmallButton(ADD_LAYOUT_HERE_LABEL))
+    {
+        AddLayout(editor, editor->selectedIndex);
+    }
 }
 
 /*************************************************************************************************/
@@ -2633,14 +2984,44 @@ static void DrawScreenInspector(Arinc661_Configuration_Document_t* editor)
 static void DrawLayoutInspector(Arinc661_Configuration_Document_t* editor)
 {
     FACEOE_DisplayManagement_Layout_t* layout;
+    char_t                             label[FACEOE_DISPLAYMANAGEMENT_MAX_NAME_BYTES + (2 * LABEL_FORMAT_BYTES)];
+    uint32_t                           window_index;
+    uint32_t                           count;
 
     layout = &editor->layouts[editor->selectedIndex];
 
-    ImGui::TextUnformatted(LAYOUT_SECTION_LABEL);
+    ImGui::SeparatorText(LAYOUT_SECTION_LABEL);
     if (BeginPropertyTable(LAYOUT_TABLE_ID))
     {
         MarkDocumentDirty(editor, DrawIdentifierField(editor, SELECTION_LAYOUT, layout->screenIndex, editor->selectedIndex, &layout->id));
+        MarkDocumentDirty(editor, DrawScreenChoiceField(editor, SCREEN_LABEL, &layout->screenIndex));
         ImGui::EndTable();
+    }
+    ImGui::Separator();
+    ImGui::SeparatorText(LAYOUT_WINDOWS_LABEL);
+    count = 0;
+    for (window_index = 0; window_index < editor->configuration.windowCount; ++window_index)
+    {
+        if (editor->windows[window_index].layoutIndex == editor->selectedIndex)
+        {
+            count += 1;
+            ImFormatString(label, sizeof(label), LAYOUT_WINDOW_FORMAT, editor->windows[window_index].id, editor->windows[window_index].name, editor->windows[window_index].pixelArea.width, editor->windows[window_index].pixelArea.height, editor->windows[window_index].pixelArea.x, editor->windows[window_index].pixelArea.y);
+            ImGui::PushID((int)window_index);
+            if (ImGui::Selectable(label))
+            {
+                editor->selectedKind  = SELECTION_WINDOW;
+                editor->selectedIndex = window_index;
+            }
+            ImGui::PopID();
+        }
+    }
+    if (0 == count)
+    {
+        ImGui::TextDisabled("%s", LAYOUT_NO_WINDOWS_LABEL);
+    }
+    if (ImGui::SmallButton(ADD_WINDOW_HERE_LABEL))
+    {
+        AddWindow(editor, editor->selectedIndex);
     }
 }
 
@@ -2655,11 +3036,12 @@ static void DrawWindowInspector(Arinc661_Configuration_Document_t* editor)
 
     window = &editor->windows[editor->selectedIndex];
 
-    ImGui::TextUnformatted(WINDOW_SECTION_LABEL);
+    ImGui::SeparatorText(WINDOW_SECTION_LABEL);
     if (BeginPropertyTable(WINDOW_TABLE_ID))
     {
         MarkDocumentDirty(editor, DrawIdentifierField(editor, SELECTION_WINDOW, 0, editor->selectedIndex, &window->id));
         MarkDocumentDirty(editor, DrawTextField(NAME_LABEL, window->name, sizeof(window->name)));
+        MarkDocumentDirty(editor, DrawLayoutChoiceField(editor, LAYOUT_LABEL, &window->layoutIndex));
         ImGui::EndTable();
     }
     ImGui::Separator();
@@ -2698,7 +3080,7 @@ static void DrawWindowApplications(Arinc661_Configuration_Document_t* editor, co
     uint32_t count;
 
     ImGui::Separator();
-    ImGui::TextUnformatted(USER_APPLICATION_SECTION_LABEL);
+    ImGui::SeparatorText(USER_APPLICATION_SECTION_LABEL);
     count = 0;
     for (application_index = 0; application_index < editor->configuration.userApplicationCount; ++application_index)
     {
@@ -2732,7 +3114,7 @@ static void DrawUserApplicationInspector(Arinc661_Configuration_Editor_t* editor
 
     application = &document->userApplications[document->selectedIndex];
 
-    ImGui::TextUnformatted(USER_APPLICATION_SECTION_LABEL);
+    ImGui::SeparatorText(USER_APPLICATION_SECTION_LABEL);
     if (BeginPropertyTable(USER_APPLICATION_TABLE_ID))
     {
         MarkDocumentDirty(document, DrawIdentifierField(document, SELECTION_USER_APPLICATION, 0, document->selectedIndex, &application->applicationId));
@@ -2745,6 +3127,126 @@ static void DrawUserApplicationInspector(Arinc661_Configuration_Editor_t* editor
         ImGui::EndTable();
     }
     DrawDefinitionState(editor, document, application);
+    DrawDefinitionLayers(editor, document, application);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  An open file shows its whole layer and widget tree, editable in place: a click inside
+ *  selects in the Definition File editor and moves the focus there. A closed file in the
+ *  folder opens on click; an unknown name is reported.
+ */
+static void DrawEmbeddedDefinition(Arinc661_Configuration_Document_t* document, const FACEOE_DisplayManagement_UserApplication_t* application)
+{
+    Arinc661_Context_t*           context;
+    Arinc661_Context_Definition_t definition;
+    char_t                        label[FACEOE_DISPLAYMANAGEMENT_MAX_PATH_BYTES + LABEL_FORMAT_BYTES];
+
+    context = document->owner->context;
+    if ((NULL != context) && ('\0' != application->dFPath[0]))
+    {
+        if (FALSE == Arinc661_Context_FindDefinition(context, application->dFPath, &definition))
+        {
+            ImFormatString(label, sizeof(label), DEFINITION_MISSING_NODE_FORMAT, application->dFPath);
+            ImGui::PushStyleColor(ImGuiCol_Text, INVALID_VALUE_COLOR);
+            ImGui::BulletText("%s", label);
+            ImGui::PopStyleColor();
+        }
+        else if (FALSE == definition.isOpen)
+        {
+            ImFormatString(label, sizeof(label), DEFINITION_CLOSED_NODE_FORMAT, application->dFPath);
+            if (ImGui::Selectable(label))
+            {
+                Arinc661_Definition_LoadFile(context->definitionEditor, application->dFPath);
+            }
+        }
+        else
+        {
+            if (Arinc661_Definition_DrawDocumentHierarchy(context->definitionEditor, definition.documentIndex))
+            {
+                context->isDefinitionFocused = TRUE;
+                context->hasFocusRequest     = TRUE;
+            }
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Each layer row shows its id, name, and size against the window; a click selects the
+ *  layer in the Definition File editor.
+ */
+static void DrawDefinitionLayers(Arinc661_Configuration_Editor_t* editor, const Arinc661_Configuration_Document_t* document, const FACEOE_DisplayManagement_UserApplication_t* application)
+{
+    Arinc661_Context_Definition_t definition;
+    const char_t*                 layer_id;
+    const char_t*                 layer_name;
+    char_t                        label[LABEL_FORMAT_BYTES * 3];
+    float32_t                     layer_width;
+    float32_t                     layer_height;
+    float32_t                     units_per_pixel_x;
+    float32_t                     units_per_pixel_y;
+    int64_t                       pixel_width;
+    int64_t                       pixel_height;
+    uint32_t                      layer_index;
+    bool_t                        has_window;
+    bool_t                        is_too_big;
+
+    if ((NULL != editor->context) && Arinc661_Context_FindDefinition(editor->context, application->dFPath, &definition) && definition.isOpen)
+    {
+        ImGui::SeparatorText(LAYERS_SECTION_LABEL);
+        has_window = Arinc661_Configuration_Window(editor, (uint32_t)(document - editor->documents), application->window, NULL, &pixel_width, &pixel_height, &units_per_pixel_x, &units_per_pixel_y);
+        for (layer_index = 0; Arinc661_Definition_LayerAt(editor->context->definitionEditor, definition.documentIndex, layer_index, &layer_id, &layer_name, &layer_width, &layer_height); ++layer_index)
+        {
+            ImFormatString(label, sizeof(label), LAYER_ROW_FORMAT, layer_id, layer_name, (float64_t)layer_width, (float64_t)layer_height);
+            is_too_big = !!(has_window && ((layer_width > ((float32_t)pixel_width * units_per_pixel_x * 1.001f)) || (layer_height > ((float32_t)pixel_height * units_per_pixel_y * 1.001f))));
+            if (is_too_big)
+            {
+                ImStrncpy(&label[strlen(label)], LAYER_FIT_WARNING, (int)(sizeof(label) - strlen(label)));
+                ImGui::PushStyleColor(ImGuiCol_Text, INVALID_VALUE_COLOR);
+            }
+            ImGui::PushID((int)layer_index);
+            if (ImGui::Selectable(label))
+            {
+                Arinc661_Definition_SelectLayer(editor->context->definitionEditor, definition.documentIndex, layer_index);
+                editor->context->isDefinitionFocused = TRUE;
+                editor->context->hasFocusRequest     = TRUE;
+            }
+            ImGui::PopID();
+            if (is_too_big)
+            {
+                ImGui::PopStyleColor();
+            }
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Hands the selected user application to the context, which creates a Definition File named
+ *  after its dFPath with its applicationId and a layer sized to its window.
+ */
+static void CreateDefinitionForSelection(Arinc661_Configuration_Editor_t* editor, Arinc661_Configuration_Document_t* document)
+{
+    Arinc661_Context_UserApplication_t application;
+    uint32_t                           document_index;
+
+    document_index = (uint32_t)(document - editor->documents);
+    (void)memset(&application, 0, sizeof(application));
+    application.documentIndex    = document_index;
+    application.applicationIndex = document->selectedIndex;
+    application.documentName     = document->documentName;
+    application.applicationId    = document->userApplications[document->selectedIndex].applicationId;
+    application.windowId         = document->userApplications[document->selectedIndex].window;
+    application.dFPath           = document->userApplications[document->selectedIndex].dFPath;
+    if (Arinc661_Context_CreateDefinitionFor(editor->context, &application) && ('\0' == document->userApplications[document->selectedIndex].dFPath[0]))
+    {
+        ImFormatString(document->userApplications[document->selectedIndex].dFPath, sizeof(document->userApplications[document->selectedIndex].dFPath), "application_%lld.xml", (long long)application.applicationId);
+        document->isDirty = TRUE;
+    }
 }
 
 /*************************************************************************************************/
@@ -2762,16 +3264,24 @@ static void DrawDefinitionState(Arinc661_Configuration_Editor_t* editor, Arinc66
     if (NULL != editor->context)
     {
         ImGui::Separator();
-        ImGui::TextUnformatted(DEFINITION_SECTION_LABEL);
+        ImGui::SeparatorText(DEFINITION_SECTION_LABEL);
         if ('\0' == application->dFPath[0])
         {
             ImGui::TextDisabled("%s", DEFINITION_EMPTY_LABEL);
+            if (ImGui::SmallButton(CREATE_DEFINITION_LABEL))
+            {
+                CreateDefinitionForSelection(editor, document);
+            }
         }
         else if (FALSE == Arinc661_Context_FindDefinition(editor->context, application->dFPath, &definition))
         {
             ImGui::PushStyleColor(ImGuiCol_Text, INVALID_VALUE_COLOR);
             ImGui::TextWrapped("%s", DEFINITION_MISSING_LABEL);
             ImGui::PopStyleColor();
+            if (ImGui::SmallButton(CREATE_DEFINITION_LABEL))
+            {
+                CreateDefinitionForSelection(editor, document);
+            }
         }
         else
         {
@@ -3385,7 +3895,7 @@ static void DrawStatusBar(const Arinc661_Configuration_Editor_t* editor)
  */
 static void DrawHierarchyPane(Arinc661_Configuration_Document_t* editor)
 {
-    if (ImGui::BeginChild(HIERARCHY_PANE_NAME, ImVec2(0.0f, 0.0f), PANE_FLAGS))
+    if (ImGui::BeginChild(HIERARCHY_PANE_NAME, ImVec2(0.0f, 0.0f), PANE_FLAGS, ImGuiWindowFlags_HorizontalScrollbar))
     {
         ImGui::TextUnformatted(HIERARCHY_PANE_NAME);
         ImGui::Separator();
@@ -3406,6 +3916,7 @@ static void DrawInspectorPane(Arinc661_Configuration_Editor_t* editor, Arinc661_
 {
     if (ImGui::BeginChild(INSPECTOR_PANE_NAME, ImVec2(0.0f, 0.0f), PANE_FLAGS))
     {
+        ImGui::PushTextWrapPos(0.0f);
         ImGui::TextUnformatted(INSPECTOR_PANE_NAME);
         ImGui::Separator();
 
@@ -3432,6 +3943,7 @@ static void DrawInspectorPane(Arinc661_Configuration_Editor_t* editor, Arinc661_
                 ImGui::TextWrapped("%s", SELECT_ITEM_PROMPT);
             }
         }
+        ImGui::PopTextWrapPos();
     }
     ImGui::EndChild();
 }
@@ -3491,13 +4003,36 @@ static void DrawScenePane(Arinc661_Configuration_Editor_t* owner, Arinc661_Confi
     bool_t                       is_screen_label_hit;
     bool_t                       is_screen_hit;
     bool_t                       is_window_hit;
+    bool_t                       is_canvas_hovered;
+    uint32_t                     hover_screen;
+    uint32_t                     hover_window;
 
+    ImVec2                       handle_min;
+    ImVec2                       handle_max;
+    bool_t                       has_handles;
+
+    selected_window_min      = ImVec2(0.0f, 0.0f);
+    selected_window_max      = ImVec2(0.0f, 0.0f);
+    has_selected_window_area = FALSE;
+    handle_min               = ImVec2(0.0f, 0.0f);
+    handle_max               = ImVec2(0.0f, 0.0f);
+    has_handles              = FALSE;
     if (ImGui::BeginChild(SCENE_PANE_NAME, ImVec2(0.0f, 0.0f), PANE_FLAGS))
     {
         style     = &ImGui::GetStyle();
         draw_list = ImGui::GetWindowDrawList();
 
-        ImGui::TextUnformatted(SCENE_PANE_NAME);
+        if (editor->isLoaded)
+        {
+            DrawSceneToolbar(owner, editor);
+            ImGui::PushStyleColor(ImGuiCol_Text, SCENE_HINT_COLOR);
+            ImGui::TextWrapped("%s", SCENE_HINT_LABEL);
+            ImGui::PopStyleColor();
+        }
+        else
+        {
+            ImGui::TextUnformatted(SCENE_PANE_NAME);
+        }
         ImGui::Separator();
 
         if (FALSE == editor->isLoaded)
@@ -3507,6 +4042,10 @@ static void DrawScenePane(Arinc661_Configuration_Editor_t* owner, Arinc661_Confi
         else if (0 == editor->configuration.screenCount)
         {
             ImGui::TextWrapped("%s", EMPTY_SCENE_LABEL);
+            if (ImGui::Button(EMPTY_SCREEN_BUTTON_LABEL))
+            {
+                AddScreen(editor);
+            }
         }
         else if (0 == editor->drawableScreenCount)
         {
@@ -3520,7 +4059,7 @@ static void DrawScenePane(Arinc661_Configuration_Editor_t* owner, Arinc661_Confi
 
             content_size = (canvas_size - (style->WindowPadding + style->WindowPadding));
             content_size.x -= (style->ItemSpacing.x * (float32_t)(editor->drawableScreenCount - 1));
-            content_size.y -= label_height;
+            content_size.y -= 0.0f;
 
             has_canvas_width  = (0.0f < content_size.x);
             has_canvas_height = (0.0f < content_size.y);
@@ -3531,8 +4070,12 @@ static void DrawScenePane(Arinc661_Configuration_Editor_t* owner, Arinc661_Confi
             }
             else
             {
+                owner->previewBoundsCount = 0;
                 (void)ImGui::InvisibleButton(SCENE_CANVAS_ID, canvas_size);
-                is_canvas_clicked = ImGui::IsItemClicked();
+                is_canvas_clicked = ImGui::IsItemActivated();
+                is_canvas_hovered = ImGui::IsItemHovered();
+                hover_screen      = ARINC661_CONFIGURATION_MAX_SCREENS;
+                hover_window      = ARINC661_CONFIGURATION_MAX_WINDOWS;
                 if (is_canvas_clicked)
                 {
                     editor->selectedKind  = SELECTION_NONE;
@@ -3548,7 +4091,7 @@ static void DrawScenePane(Arinc661_Configuration_Editor_t* owner, Arinc661_Confi
                 unused_height = (content_size.y - (editor->maximumScreenHeight * scale));
 
                 screen_position = (canvas_min + style->WindowPadding);
-                screen_position.y += (label_height + (unused_height / 2.0f));
+                screen_position.y += (unused_height / 2.0f);
                 for (screen_index = 0; screen_index < editor->configuration.screenCount; ++screen_index)
                 {
                     screen             = &editor->screens[screen_index];
@@ -3566,12 +4109,15 @@ static void DrawScenePane(Arinc661_Configuration_Editor_t* owner, Arinc661_Confi
                         ImFormatString(screen_label, sizeof(screen_label), fmt, screen->id, screen->pixelSize.width, screen->pixelSize.height);
                         screen_label_size       = ImGui::CalcTextSize(screen_label);
                         screen_label_position   = screen_min;
-                        screen_label_position.y = (screen_label_position.y - (screen_label_size.y + style->ItemSpacing.y));
                         is_screen_body_hit      = FALSE;
+                        if (ImRect(screen_min, screen_max).Contains(mouse_position))
+                        {
+                            hover_screen = screen_index;
+                        }
                         if (is_canvas_clicked)
                         {
                             is_screen_body_hit  = ImRect(screen_min, screen_max).Contains(mouse_position);
-                            is_screen_label_hit = ImRect(screen_label_position, (screen_label_position + screen_label_size)).Contains(mouse_position);
+                            is_screen_label_hit = FALSE;
                             is_screen_hit       = !!(is_screen_body_hit || is_screen_label_hit);
                             if (is_screen_hit)
                             {
@@ -3579,8 +4125,13 @@ static void DrawScenePane(Arinc661_Configuration_Editor_t* owner, Arinc661_Confi
                                 editor->selectedIndex = screen_index;
                             }
                         }
-                        draw_list->AddText(screen_label_position, SCENE_TEXT_COLOR, screen_label);
                         draw_list->PushClipRect(screen_min, screen_max, TRUE);
+                        draw_list->AddRectFilled(screen_min, ImVec2(screen_max.x, screen_min.y + screen_label_size.y + style->FramePadding.y), SCENE_LABEL_BACK_COLOR);
+                        draw_list->AddText(ImVec2(screen_min.x + style->FramePadding.x, screen_min.y + (style->FramePadding.y * 0.5f)), SCENE_TEXT_COLOR, screen_label);
+                        if (ImRect(screen_min, ImVec2(screen_max.x, screen_min.y + screen_label_size.y + style->FramePadding.y)).Contains(mouse_position) && ((screen_max.x - screen_min.x) < (screen_label_size.x + (2.0f * style->FramePadding.x))))
+                        {
+                            ImGui::SetTooltip("%s", screen_label);
+                        }
                         has_selected_window_area = FALSE;
                         for (window_index = 0; window_index < editor->configuration.windowCount; ++window_index)
                         {
@@ -3608,6 +4159,10 @@ static void DrawScenePane(Arinc661_Configuration_Editor_t* owner, Arinc661_Confi
                                         editor->selectedIndex = window_index;
                                     }
                                 }
+                                if (ImRect(area_min, area_max).Contains(mouse_position))
+                                {
+                                    hover_window = window_index;
+                                }
                                 is_selected_layout_window = FALSE;
                                 if (SELECTION_LAYOUT == editor->selectedKind)
                                 {
@@ -3620,6 +4175,9 @@ static void DrawScenePane(Arinc661_Configuration_Editor_t* owner, Arinc661_Confi
                                         selected_window_min      = area_min;
                                         selected_window_max      = area_max;
                                         has_selected_window_area = TRUE;
+                                        handle_min               = area_min;
+                                        handle_max               = area_max;
+                                        has_handles              = TRUE;
                                     }
                                 }
 
@@ -3636,7 +4194,13 @@ static void DrawScenePane(Arinc661_Configuration_Editor_t* owner, Arinc661_Confi
                                     fmt = WINDOW_PREVIEW_FORMAT;
                                     ImFormatString(window_label, sizeof(window_label), fmt, window->id, window->pixelArea.width, window->pixelArea.height);
                                 }
-                                draw_list->AddText((area_min + style->FramePadding), SCENE_TEXT_COLOR, window_label);
+                                draw_list->PushClipRect(ImVec2(ImMax(area_min.x, screen_min.x), ImMax(area_min.y, screen_min.y)), ImVec2(ImMin(area_max.x, screen_max.x), ImMin(area_max.y, screen_max.y)), TRUE);
+                                draw_list->AddText(ImVec2(area_min.x + style->FramePadding.x, area_max.y - ImGui::GetTextLineHeight() - style->FramePadding.y), SCENE_TEXT_COLOR, window_label);
+                                draw_list->PopClipRect();
+                                if (ImRect(area_min, area_max).Contains(mouse_position) && ((area_max.x - area_min.x) < (ImGui::CalcTextSize(window_label).x + (2.0f * style->FramePadding.x))))
+                                {
+                                    ImGui::SetTooltip("%s", window_label);
+                                }
                                 if (is_selected_layout_window)
                                 {
                                     draw_list->AddRectFilled(area_min, area_max, SCENE_SELECTION_OVERLAY_COLOR);
@@ -3661,11 +4225,691 @@ static void DrawScenePane(Arinc661_Configuration_Editor_t* owner, Arinc661_Confi
                         screen_position.x = (screen_max.x + style->ItemSpacing.x);
                     }
                 }
+                DrawSceneInteraction(owner, editor, hover_screen, hover_window, handle_min, handle_max, has_handles, scale, draw_list, is_canvas_hovered, ImVec2(canvas_min.x + style->WindowPadding.x, canvas_max.y - label_height));
+                // A double-click on a previewed widget opens it in the Definition File editor
+                if (is_canvas_hovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && (NULL != owner->context))
+                {
+                    FACEOE_Gfx_Point_t pick_point;
+                    uint32_t           pick_index;
+                    uint32_t           pick_slot;
+
+                    pick_point.x = mouse_position.x;
+                    pick_point.y = mouse_position.y;
+                    pick_index   = Arinc661_Scene_Pick(owner->previewBounds, owner->previewBoundsCount, pick_point);
+                    if (ARINC661_SCENE_NO_WIDGET != pick_index)
+                    {
+                        for (pick_slot = 0; pick_slot < owner->previewBoundsCount; ++pick_slot)
+                        {
+                            if (owner->previewBounds[pick_slot].widgetIndex == pick_index)
+                            {
+                                Arinc661_Definition_SelectWidget(owner->context->definitionEditor, owner->previewDocuments[pick_slot], pick_index);
+                                owner->context->isDefinitionFocused = TRUE;
+                                owner->context->hasFocusRequest     = TRUE;
+                                break;
+                            }
+                        }
+                    }
+                }
                 draw_list->PopClipRect();
             }
         }
     }
     ImGui::EndChild();
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Copies the five arrays' used parts and the counts into one heap block.
+ */
+static void* TakeSnapshot(const Arinc661_Configuration_Document_t* document)
+{
+    byte_t*  block;
+    byte_t*  cursor;
+    size_t   screen_bytes;
+    size_t   layout_bytes;
+    size_t   window_bytes;
+    size_t   application_bytes;
+    size_t   source_bytes;
+    uint32_t counts[6];
+
+    screen_bytes      = ((size_t)document->configuration.screenCount * sizeof(FACEOE_DisplayManagement_Screen_t));
+    layout_bytes      = ((size_t)document->configuration.layoutCount * sizeof(FACEOE_DisplayManagement_Layout_t));
+    window_bytes      = ((size_t)document->configuration.windowCount * sizeof(FACEOE_DisplayManagement_Window_t));
+    application_bytes = ((size_t)document->configuration.userApplicationCount * sizeof(FACEOE_DisplayManagement_UserApplication_t));
+    source_bytes      = ((size_t)document->configuration.externalSourceCount * sizeof(FACEOE_DisplayManagement_ExternalSource_t));
+    block             = (byte_t*)malloc(sizeof(counts) + screen_bytes + layout_bytes + window_bytes + application_bytes + source_bytes);
+    LOGASSERT(NULL != block);
+    counts[0] = document->configuration.screenCount;
+    counts[1] = document->configuration.layoutCount;
+    counts[2] = document->configuration.windowCount;
+    counts[3] = document->configuration.userApplicationCount;
+    counts[4] = document->configuration.externalSourceCount;
+    counts[5] = (uint32_t)document->selectedKind | ((uint32_t)document->selectedIndex << 8);
+    cursor = block;
+    (void)memcpy(cursor, counts, sizeof(counts));
+    cursor += sizeof(counts);
+    (void)memcpy(cursor, document->screens, screen_bytes);
+    cursor += screen_bytes;
+    (void)memcpy(cursor, document->layouts, layout_bytes);
+    cursor += layout_bytes;
+    (void)memcpy(cursor, document->windows, window_bytes);
+    cursor += window_bytes;
+    (void)memcpy(cursor, document->userApplications, application_bytes);
+    cursor += application_bytes;
+    (void)memcpy(cursor, document->externalSources, source_bytes);
+
+    return block;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Copies a snapshot back and recomputes the derived screen extents.
+ */
+static void RestoreSnapshot(Arinc661_Configuration_Document_t* document, const void* snapshot)
+{
+    const byte_t* cursor;
+    uint32_t      counts[6];
+    size_t        screen_bytes;
+    size_t        layout_bytes;
+    size_t        window_bytes;
+    size_t        application_bytes;
+    size_t        source_bytes;
+
+    cursor = (const byte_t*)snapshot;
+    (void)memcpy(counts, cursor, sizeof(counts));
+    cursor += sizeof(counts);
+    screen_bytes      = ((size_t)counts[0] * sizeof(FACEOE_DisplayManagement_Screen_t));
+    layout_bytes      = ((size_t)counts[1] * sizeof(FACEOE_DisplayManagement_Layout_t));
+    window_bytes      = ((size_t)counts[2] * sizeof(FACEOE_DisplayManagement_Window_t));
+    application_bytes = ((size_t)counts[3] * sizeof(FACEOE_DisplayManagement_UserApplication_t));
+    source_bytes      = ((size_t)counts[4] * sizeof(FACEOE_DisplayManagement_ExternalSource_t));
+    (void)memcpy(document->screens, cursor, screen_bytes);
+    cursor += screen_bytes;
+    (void)memcpy(document->layouts, cursor, layout_bytes);
+    cursor += layout_bytes;
+    (void)memcpy(document->windows, cursor, window_bytes);
+    cursor += window_bytes;
+    (void)memcpy(document->userApplications, cursor, application_bytes);
+    cursor += application_bytes;
+    (void)memcpy(document->externalSources, cursor, source_bytes);
+    document->configuration.screenCount          = counts[0];
+    document->configuration.layoutCount          = counts[1];
+    document->configuration.windowCount          = counts[2];
+    document->configuration.userApplicationCount = counts[3];
+    document->configuration.externalSourceCount  = counts[4];
+    document->selectedKind                       = (int32_t)(counts[5] & 0xFFU);
+    document->selectedIndex                      = (counts[5] >> 8);
+    document->isDirty                            = TRUE;
+    UpdatePreviewMeasurements(document);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Counts and used arrays must match; the selection is ignored.
+ */
+static bool_t SnapshotMatches(const Arinc661_Configuration_Document_t* document, const void* snapshot)
+{
+    const byte_t* cursor;
+    uint32_t      counts[6];
+    size_t        screen_bytes;
+    size_t        layout_bytes;
+    size_t        window_bytes;
+    size_t        application_bytes;
+    size_t        source_bytes;
+    bool_t        is_same;
+
+    cursor = (const byte_t*)snapshot;
+    (void)memcpy(counts, cursor, sizeof(counts));
+    cursor += sizeof(counts);
+    is_same = !!((counts[0] == document->configuration.screenCount) && (counts[1] == document->configuration.layoutCount) && (counts[2] == document->configuration.windowCount) &&
+                 (counts[3] == document->configuration.userApplicationCount) && (counts[4] == document->configuration.externalSourceCount));
+    if (is_same)
+    {
+        screen_bytes      = ((size_t)counts[0] * sizeof(FACEOE_DisplayManagement_Screen_t));
+        layout_bytes      = ((size_t)counts[1] * sizeof(FACEOE_DisplayManagement_Layout_t));
+        window_bytes      = ((size_t)counts[2] * sizeof(FACEOE_DisplayManagement_Window_t));
+        application_bytes = ((size_t)counts[3] * sizeof(FACEOE_DisplayManagement_UserApplication_t));
+        source_bytes      = ((size_t)counts[4] * sizeof(FACEOE_DisplayManagement_ExternalSource_t));
+        is_same = !!((0 == memcmp(document->screens, cursor, screen_bytes)) && (0 == memcmp(document->layouts, cursor + screen_bytes, layout_bytes)) &&
+                     (0 == memcmp(document->windows, cursor + screen_bytes + layout_bytes, window_bytes)) &&
+                     (0 == memcmp(document->userApplications, cursor + screen_bytes + layout_bytes + window_bytes, application_bytes)) &&
+                     (0 == memcmp(document->externalSources, cursor + screen_bytes + layout_bytes + window_bytes + application_bytes, source_bytes)));
+    }
+
+    return is_same;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Frees every snapshot.
+ */
+static void ClearHistory(Arinc661_Configuration_Document_t* document)
+{
+    uint32_t index;
+
+    for (index = 0; index < document->undoCount; ++index)
+    {
+        free(document->undoStack[index]);
+    }
+    for (index = 0; index < document->redoCount; ++index)
+    {
+        free(document->redoStack[index]);
+    }
+    free(document->shadow);
+    document->shadow    = NULL;
+    document->undoCount = 0;
+    document->redoCount = 0;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Once per frame: a changed model turns the shadow into an undo step and drops the redo stack.
+ */
+static void CommitHistory(Arinc661_Configuration_Document_t* document)
+{
+    if (document->isLoaded)
+    {
+        if (NULL == document->shadow)
+        {
+            document->shadow = TakeSnapshot(document);
+        }
+        else if (FALSE == SnapshotMatches(document, document->shadow))
+        {
+            if (ARINC661_CONFIGURATION_MAX_HISTORY == document->undoCount)
+            {
+                free(document->undoStack[0]);
+                (void)memmove(&document->undoStack[0], &document->undoStack[1], (ARINC661_CONFIGURATION_MAX_HISTORY - 1) * sizeof(document->undoStack[0]));
+                document->undoCount -= 1;
+            }
+            document->undoStack[document->undoCount] = document->shadow;
+            document->undoCount += 1;
+            while (0 < document->redoCount)
+            {
+                document->redoCount -= 1;
+                free(document->redoStack[document->redoCount]);
+            }
+            document->shadow = TakeSnapshot(document);
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The current state moves to the redo stack; the newest undo step becomes the model.
+ */
+static void UndoDocument(Arinc661_Configuration_Document_t* document)
+{
+    CommitHistory(document);
+    if (0 < document->undoCount)
+    {
+        if (ARINC661_CONFIGURATION_MAX_HISTORY == document->redoCount)
+        {
+            free(document->redoStack[0]);
+            (void)memmove(&document->redoStack[0], &document->redoStack[1], (ARINC661_CONFIGURATION_MAX_HISTORY - 1) * sizeof(document->redoStack[0]));
+            document->redoCount -= 1;
+        }
+        document->redoStack[document->redoCount] = document->shadow;
+        document->redoCount += 1;
+        document->undoCount -= 1;
+        document->shadow = document->undoStack[document->undoCount];
+        RestoreSnapshot(document, document->shadow);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Mirror of UndoDocument.
+ */
+static void RedoDocument(Arinc661_Configuration_Document_t* document)
+{
+    CommitHistory(document);
+    if (0 < document->redoCount)
+    {
+        document->undoStack[document->undoCount] = document->shadow;
+        document->undoCount += 1;
+        document->redoCount -= 1;
+        document->shadow = document->redoStack[document->redoCount];
+        RestoreSnapshot(document, document->shadow);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Removes the selected element through the same paths the hierarchy uses.
+ */
+static void RemoveSelection(Arinc661_Configuration_Document_t* document)
+{
+    switch (document->selectedKind)
+    {
+        case SELECTION_SCREEN:
+            if (document->selectedIndex < document->configuration.screenCount)
+            {
+                RemoveScreen(document, document->selectedIndex);
+            }
+            break;
+        case SELECTION_LAYOUT:
+            if (document->selectedIndex < document->configuration.layoutCount)
+            {
+                RemoveLayout(document, document->selectedIndex);
+            }
+            break;
+        case SELECTION_WINDOW:
+            if (document->selectedIndex < document->configuration.windowCount)
+            {
+                RemoveWindow(document, document->selectedIndex);
+            }
+            break;
+        case SELECTION_USER_APPLICATION:
+            if (document->selectedIndex < document->configuration.userApplicationCount)
+            {
+                RemoveUserApplication(document, document->selectedIndex);
+            }
+            break;
+        default:
+            break;
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  A window copy keeps the geometry and layout with a fresh id, offset by a tenth of its
+ *  size so it is visible; a user application copy keeps its window and paths with a fresh
+ *  applicationId.
+ */
+static void DuplicateSelection(Arinc661_Configuration_Document_t* document)
+{
+    FACEOE_DisplayManagement_Window_t          window;
+    FACEOE_DisplayManagement_UserApplication_t application;
+    int64_t                                    id;
+
+    if ((SELECTION_WINDOW == document->selectedKind) && (document->selectedIndex < document->configuration.windowCount))
+    {
+        window = document->windows[document->selectedIndex];
+        AddWindow(document, window.layoutIndex);
+        if ((SELECTION_WINDOW == document->selectedKind) && (document->selectedIndex < document->configuration.windowCount))
+        {
+            id                                        = document->windows[document->selectedIndex].id;
+            document->windows[document->selectedIndex] = window;
+            document->windows[document->selectedIndex].id = id;
+            document->windows[document->selectedIndex].pixelArea.x += (window.pixelArea.width / 10);
+            document->windows[document->selectedIndex].pixelArea.y += (window.pixelArea.height / 10);
+            document->isDirty = TRUE;
+        }
+    }
+    else if ((SELECTION_USER_APPLICATION == document->selectedKind) && (document->selectedIndex < document->configuration.userApplicationCount))
+    {
+        application = document->userApplications[document->selectedIndex];
+        AddUserApplication(document);
+        if ((SELECTION_USER_APPLICATION == document->selectedKind) && (document->selectedIndex < document->configuration.userApplicationCount))
+        {
+            id                                                   = document->userApplications[document->selectedIndex].applicationId;
+            document->userApplications[document->selectedIndex] = application;
+            document->userApplications[document->selectedIndex].applicationId = id;
+            document->isDirty = TRUE;
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Combo over the document's screens, shown by id.
+ */
+static bool_t DrawScreenChoiceField(const Arinc661_Configuration_Document_t* document, const char_t* label, uint32_t* screenIndex)
+{
+    char_t   preview[LABEL_FORMAT_BYTES];
+    char_t   item[LABEL_FORMAT_BYTES];
+    uint32_t index;
+    bool_t   has_changed;
+
+    has_changed = FALSE;
+    ImGui::TableNextRow();
+    ImGui::TableSetColumnIndex(0);
+    ImGui::TextUnformatted(label);
+    ImGui::TableSetColumnIndex(1);
+    ImGui::PushID(label);
+    ImGui::SetNextItemWidth(-1.0f);
+    preview[0] = '\0';
+    if ((*screenIndex) < document->configuration.screenCount)
+    {
+        ImFormatString(preview, sizeof(preview), SCREEN_CHOICE_FORMAT, document->screens[*screenIndex].id);
+    }
+    if (ImGui::BeginCombo("##screen", preview))
+    {
+        for (index = 0; index < document->configuration.screenCount; ++index)
+        {
+            ImFormatString(item, sizeof(item), SCREEN_CHOICE_FORMAT, document->screens[index].id);
+            if (ImGui::Selectable(item, index == (*screenIndex)))
+            {
+                (*screenIndex) = index;
+                has_changed    = TRUE;
+            }
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::PopID();
+
+    return has_changed;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Combo over the document's layouts, each shown with its screen.
+ */
+static bool_t DrawLayoutChoiceField(const Arinc661_Configuration_Document_t* document, const char_t* label, uint32_t* layoutIndex)
+{
+    char_t   preview[LABEL_FORMAT_BYTES];
+    char_t   item[LABEL_FORMAT_BYTES];
+    uint32_t index;
+    int64_t  screen_id;
+    bool_t   has_changed;
+
+    has_changed = FALSE;
+    ImGui::TableNextRow();
+    ImGui::TableSetColumnIndex(0);
+    ImGui::TextUnformatted(label);
+    ImGui::TableSetColumnIndex(1);
+    ImGui::PushID(label);
+    ImGui::SetNextItemWidth(-1.0f);
+    preview[0] = '\0';
+    if ((*layoutIndex) < document->configuration.layoutCount)
+    {
+        screen_id = -1;
+        if (document->layouts[*layoutIndex].screenIndex < document->configuration.screenCount)
+        {
+            screen_id = document->screens[document->layouts[*layoutIndex].screenIndex].id;
+        }
+        ImFormatString(preview, sizeof(preview), LAYOUT_CHOICE_FORMAT, document->layouts[*layoutIndex].id, screen_id);
+    }
+    if (ImGui::BeginCombo("##layout", preview))
+    {
+        for (index = 0; index < document->configuration.layoutCount; ++index)
+        {
+            screen_id = -1;
+            if (document->layouts[index].screenIndex < document->configuration.screenCount)
+            {
+                screen_id = document->screens[document->layouts[index].screenIndex].id;
+            }
+            ImFormatString(item, sizeof(item), LAYOUT_CHOICE_FORMAT, document->layouts[index].id, screen_id);
+            if (ImGui::Selectable(item, index == (*layoutIndex)))
+            {
+                (*layoutIndex) = index;
+                has_changed    = TRUE;
+            }
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::PopID();
+
+    return has_changed;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Icon row above the canvas: add screen, layout, window, user application, then duplicate
+ *  and delete for the selection.
+ */
+static void DrawSceneToolbar(Arinc661_Configuration_Editor_t* owner, Arinc661_Configuration_Document_t* document)
+{
+    bool_t has_selection;
+
+    has_selection = (SELECTION_NONE != document->selectedKind);
+    if (Arinc661_Icons_Button(ARINC661_ICON_SCREEN, TOOL_ADD_SCREEN_LABEL, NULL, TRUE, FALSE))
+    {
+        Arinc661_Configuration_AddScreen(owner);
+    }
+    if (Arinc661_Icons_Button(ARINC661_ICON_LAYOUT, TOOL_ADD_LAYOUT_LABEL, NULL, TRUE, FALSE))
+    {
+        Arinc661_Configuration_AddLayout(owner);
+    }
+    if (Arinc661_Icons_Button(ARINC661_ICON_WINDOW, TOOL_ADD_WINDOW_LABEL, NULL, TRUE, FALSE))
+    {
+        Arinc661_Configuration_AddWindow(owner);
+    }
+    if (Arinc661_Icons_Button(ARINC661_ICON_APPLICATION, TOOL_ADD_APPLICATION_LABEL, NULL, TRUE, FALSE))
+    {
+        Arinc661_Configuration_AddUserApplication(owner);
+    }
+    Arinc661_Icons_Gap();
+    if (Arinc661_Icons_Button(ARINC661_ICON_DUPLICATE, TOOL_DUPLICATE_LABEL, SHORTCUT_CTRL_D, has_selection, FALSE))
+    {
+        DuplicateSelection(document);
+    }
+    if (Arinc661_Icons_Button(ARINC661_ICON_DELETE, TOOL_DELETE_LABEL, SHORTCUT_DEL, has_selection, FALSE))
+    {
+        RemoveSelection(document);
+    }
+    ImGui::NewLine();
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Direct manipulation of windows on the scene: press on a window selects it and starts a
+ *  move; press on a corner handle of the selected window starts a resize; the arrow keys
+ *  nudge; Delete removes the selection; a right-click opens a menu to add elements where
+ *  the cursor is. Screen pixels grow downward on both sides, so only the scale differs.
+ */
+static void DrawSceneInteraction(Arinc661_Configuration_Editor_t* owner, Arinc661_Configuration_Document_t* document, uint32_t hitScreen, uint32_t hitWindow, ImVec2 windowMin, ImVec2 windowMax, bool_t hasWindowArea, float32_t scale, ImDrawList* drawList, bool_t isCanvasHovered, ImVec2 hintPosition)
+{
+    FACEOE_DisplayManagement_Window_t* window;
+    ImVec2                             mouse;
+    ImVec2                             corners[4];
+    float32_t                          delta_x;
+    float32_t                          delta_y;
+    int64_t                            step;
+    int64_t                            width;
+    int64_t                            height;
+    uint32_t                           corner;
+    uint32_t                           layout_index;
+    int32_t                            hover_mode;
+
+    mouse      = ImGui::GetMousePos();
+    hover_mode = DRAG_NONE;
+    if (hasWindowArea)
+    {
+        corners[0] = ImVec2(windowMin.x, windowMax.y);
+        corners[1] = ImVec2(windowMax.x, windowMax.y);
+        corners[2] = ImVec2(windowMin.x, windowMin.y);
+        corners[3] = ImVec2(windowMax.x, windowMin.y);
+        for (corner = 0; corner < 4; ++corner)
+        {
+            drawList->AddRectFilled(corners[corner] - ImVec2(HANDLE_HALF_SIZE, HANDLE_HALF_SIZE), corners[corner] + ImVec2(HANDLE_HALF_SIZE, HANDLE_HALF_SIZE), SCENE_HANDLE_COLOR);
+            if ((ImFabs(mouse.x - corners[corner].x) <= HANDLE_HALF_SIZE) && (ImFabs(mouse.y - corners[corner].y) <= HANDLE_HALF_SIZE))
+            {
+                hover_mode = (DRAG_BOTTOM_LEFT + (int32_t)corner);
+            }
+        }
+    }
+    if (isCanvasHovered && (DRAG_NONE != hover_mode))
+    {
+        if ((DRAG_BOTTOM_LEFT == hover_mode) || (DRAG_TOP_RIGHT == hover_mode))
+        {
+            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNESW);
+        }
+        else
+        {
+            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
+        }
+    }
+    if (ImGui::IsItemActivated())
+    {
+        owner->dragMode   = DRAG_NONE;
+        owner->hasDragged = FALSE;
+        owner->dragStartX = mouse.x;
+        owner->dragStartY = mouse.y;
+        owner->dragScale  = scale;
+        if ((DRAG_NONE != hover_mode) && (SELECTION_WINDOW == document->selectedKind))
+        {
+            owner->dragMode   = hover_mode;
+            owner->dragWindow = document->selectedIndex;
+        }
+        else if (hitWindow < document->configuration.windowCount)
+        {
+            owner->dragMode   = DRAG_MOVE;
+            owner->dragWindow = hitWindow;
+        }
+        if (DRAG_NONE != owner->dragMode)
+        {
+            window                  = &document->windows[owner->dragWindow];
+            owner->dragOriginX      = window->pixelArea.x;
+            owner->dragOriginY      = window->pixelArea.y;
+            owner->dragOriginWidth  = window->pixelArea.width;
+            owner->dragOriginHeight = window->pixelArea.height;
+        }
+    }
+    if (ImGui::IsItemActive() && (DRAG_NONE != owner->dragMode) && (owner->dragWindow < document->configuration.windowCount) && (0.0f < owner->dragScale))
+    {
+        // Window y grows upward from the screen's bottom edge, as the scene draws it
+        delta_x = ((mouse.x - owner->dragStartX) / owner->dragScale);
+        delta_y = (-(mouse.y - owner->dragStartY) / owner->dragScale);
+        if ((DRAG_THRESHOLD <= ImFabs(mouse.x - owner->dragStartX)) || (DRAG_THRESHOLD <= ImFabs(mouse.y - owner->dragStartY)))
+        {
+            owner->hasDragged = TRUE;
+        }
+        if (owner->hasDragged)
+        {
+            window = &document->windows[owner->dragWindow];
+            if (DRAG_MOVE == owner->dragMode)
+            {
+                window->pixelArea.x = (owner->dragOriginX + (int64_t)ImFloor(delta_x + 0.5f));
+                window->pixelArea.y = (owner->dragOriginY + (int64_t)ImFloor(delta_y + 0.5f));
+            }
+            else
+            {
+                width  = owner->dragOriginWidth;
+                height = owner->dragOriginHeight;
+                if ((DRAG_BOTTOM_RIGHT == owner->dragMode) || (DRAG_TOP_RIGHT == owner->dragMode))
+                {
+                    width = ImMax((int64_t)1, owner->dragOriginWidth + (int64_t)ImFloor(delta_x + 0.5f));
+                }
+                else
+                {
+                    width               = ImMax((int64_t)1, owner->dragOriginWidth - (int64_t)ImFloor(delta_x + 0.5f));
+                    window->pixelArea.x = (owner->dragOriginX + (owner->dragOriginWidth - width));
+                }
+                if ((DRAG_TOP_LEFT == owner->dragMode) || (DRAG_TOP_RIGHT == owner->dragMode))
+                {
+                    height = ImMax((int64_t)1, owner->dragOriginHeight + (int64_t)ImFloor(delta_y + 0.5f));
+                }
+                else
+                {
+                    height              = ImMax((int64_t)1, owner->dragOriginHeight - (int64_t)ImFloor(delta_y + 0.5f));
+                    window->pixelArea.y = (owner->dragOriginY + (owner->dragOriginHeight - height));
+                }
+                window->pixelArea.width  = width;
+                window->pixelArea.height = height;
+            }
+            MarkDocumentDirty(document, TRUE);
+        }
+    }
+    if (ImGui::IsItemDeactivated())
+    {
+        owner->dragMode = DRAG_NONE;
+    }
+    if (ImGui::IsWindowFocused() && (FALSE == ImGui::IsAnyItemActive()) && (SELECTION_WINDOW == document->selectedKind) && (document->selectedIndex < document->configuration.windowCount))
+    {
+        step = 1;
+        if (ImGui::GetIO().KeyShift)
+        {
+            step = 10;
+        }
+        window = &document->windows[document->selectedIndex];
+        if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow))
+        {
+            window->pixelArea.x -= step;
+            MarkDocumentDirty(document, TRUE);
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_RightArrow))
+        {
+            window->pixelArea.x += step;
+            MarkDocumentDirty(document, TRUE);
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_UpArrow))
+        {
+            window->pixelArea.y += step;
+            MarkDocumentDirty(document, TRUE);
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_DownArrow))
+        {
+            window->pixelArea.y -= step;
+            MarkDocumentDirty(document, TRUE);
+        }
+    }
+    if (ImGui::IsWindowFocused() && (FALSE == ImGui::IsAnyItemActive()) && ImGui::IsKeyPressed(ImGuiKey_Delete))
+    {
+        RemoveSelection(document);
+    }
+    if (isCanvasHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+    {
+        ImGui::OpenPopup(SCENE_POPUP_ID);
+    }
+    if (ImGui::BeginPopup(SCENE_POPUP_ID))
+    {
+        if (ImGui::MenuItem(ADD_SCREEN_MENU_LABEL))
+        {
+            AddScreen(document);
+        }
+        if (ImGui::MenuItem(ADD_LAYOUT_MENU_LABEL, NULL, false, hitScreen < document->configuration.screenCount))
+        {
+            AddLayout(document, hitScreen);
+        }
+        layout_index = ARINC661_CONFIGURATION_MAX_LAYOUTS;
+        if (hitWindow < document->configuration.windowCount)
+        {
+            layout_index = document->windows[hitWindow].layoutIndex;
+        }
+        else if (hitScreen < document->configuration.screenCount)
+        {
+            for (corner = 0; corner < document->configuration.layoutCount; ++corner)
+            {
+                if (document->layouts[corner].screenIndex == hitScreen)
+                {
+                    layout_index = corner;
+                    break;
+                }
+            }
+        }
+        if (ImGui::MenuItem(ADD_WINDOW_MENU_LABEL, NULL, false, layout_index < document->configuration.layoutCount))
+        {
+            AddWindow(document, layout_index);
+        }
+        if (ImGui::MenuItem(ADD_APPLICATION_MENU_LABEL, NULL, false, hitWindow < document->configuration.windowCount))
+        {
+            AddUserApplication(document);
+            if ((SELECTION_USER_APPLICATION == document->selectedKind) && (document->selectedIndex < document->configuration.userApplicationCount))
+            {
+                document->userApplications[document->selectedIndex].window = document->windows[hitWindow].id;
+            }
+        }
+        if (hitWindow < document->configuration.windowCount)
+        {
+            ImGui::Separator();
+            if (ImGui::MenuItem(DUPLICATE_MENU_LABEL))
+            {
+                document->selectedKind  = SELECTION_WINDOW;
+                document->selectedIndex = hitWindow;
+                DuplicateSelection(document);
+            }
+            if (ImGui::MenuItem(REMOVE_MENU_LABEL))
+            {
+                RemoveWindow(document, hitWindow);
+            }
+        }
+        ImGui::EndPopup();
+    }
+    (void)hintPosition;
 }
 
 /*************************************************************************************************/
@@ -3752,6 +4996,9 @@ static void DrawWindowPreview(Arinc661_Configuration_Editor_t* editor, Arinc661_
     FACEOE_Gfx_Point_t                                minimum;
     FACEOE_Gfx_Point_t                                maximum;
     uint32_t                                          application_index;
+    uint32_t                                          document_index;
+    uint32_t                                          bounds_count;
+    uint32_t                                          bounds_index;
 
     if (NULL != editor->context)
     {
@@ -3773,11 +5020,21 @@ static void DrawWindowPreview(Arinc661_Configuration_Editor_t* editor, Arinc661_
             transform.f = areaMax.y;
             FACEOE_Gfx_DrawList_Clear(&editor->drawList);
             FACEOE_Gfx_DrawList_SetTransform(&editor->drawList, &transform);
-            if (Arinc661_Context_RecordDefinition(editor->context, application->dFPath, &editor->drawList, ImGui::GetFontSize()))
+            document_index = Arinc661_Definition_FindDocument(editor->context->definitionEditor, application->dFPath);
+            if (ARINC661_DEFINITION_NO_DOCUMENT != document_index)
             {
-                drawList->PushClipRect(ImVec2(minimum.x, minimum.y), ImVec2(maximum.x, maximum.y), true);
-                Arinc661_Gfx_ImGui_Render(&editor->drawList, drawList);
-                drawList->PopClipRect();
+                bounds_count = 0;
+                if (Arinc661_Definition_RecordDocumentBounds(editor->context->definitionEditor, document_index, &editor->drawList, ImGui::GetFontSize(), &editor->previewBounds[editor->previewBoundsCount], ARINC661_CONFIGURATION_MAX_PREVIEW_BOUNDS - editor->previewBoundsCount, &bounds_count))
+                {
+                    for (bounds_index = 0; bounds_index < bounds_count; ++bounds_index)
+                    {
+                        editor->previewDocuments[editor->previewBoundsCount + bounds_index] = document_index;
+                    }
+                    editor->previewBoundsCount += bounds_count;
+                    drawList->PushClipRect(ImVec2(minimum.x, minimum.y), ImVec2(maximum.x, maximum.y), true);
+                    Arinc661_Gfx_ImGui_Render(&editor->drawList, drawList);
+                    drawList->PopClipRect();
+                }
             }
         }
     }
@@ -3950,6 +5207,7 @@ static void DrawPanes(Arinc661_Configuration_Editor_t* editor)
  */
 void Arinc661_Configuration_Initialize(Arinc661_Configuration_Editor_t* editor)
 {
+    uint32_t owner_index;
     Arinc661_Configuration_Document_t* document;
     uint32_t                           document_index;
 
@@ -4005,6 +5263,10 @@ void Arinc661_Configuration_Initialize(Arinc661_Configuration_Editor_t* editor)
         document->configuration.schemaLocation[0]       = '\0';
     }
     editor->context = NULL;
+    for (owner_index = 0; owner_index < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS; ++owner_index)
+    {
+        editor->documents[owner_index].owner = editor;
+    }
     FACEOE_Gfx_DrawList_Initialize(&editor->drawList, editor->sceneCommands, ARINC661_CONFIGURATION_MAX_SCENE_COMMANDS, editor->scenePoints, ARINC661_CONFIGURATION_MAX_SCENE_POINTS, editor->sceneText, ARINC661_CONFIGURATION_MAX_SCENE_TEXT_BYTES);
 }
 
@@ -4040,6 +5302,7 @@ void Arinc661_Configuration_DrawEditor(Arinc661_Configuration_Editor_t* editor)
         DrawStatusBar(editor);
     }
     ImGui::End();
+    Arinc661_Configuration_EndFrame(editor);
 }
 
 /*************************************************************************************************/
@@ -4159,6 +5422,7 @@ bool_t Arinc661_Configuration_HasActiveDocument(const Arinc661_Configuration_Edi
  */
 void Arinc661_Configuration_DrawDocumentTabs(Arinc661_Configuration_Editor_t* editor)
 {
+
     DrawDocumentTabs(editor);
 }
 
@@ -4372,5 +5636,514 @@ void Arinc661_Configuration_SelectUserApplication(Arinc661_Configuration_Editor_
         editor->requestedDocumentIndex                 = documentIndex;
         editor->documents[documentIndex].selectedKind  = SELECTION_USER_APPLICATION;
         editor->documents[documentIndex].selectedIndex = applicationIndex;
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Acts on the active document.
+ */
+void Arinc661_Configuration_Undo(Arinc661_Configuration_Editor_t* editor)
+{
+    LOGASSERT(NULL != editor);
+    if (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex)
+    {
+        UndoDocument(&editor->documents[editor->activeDocumentIndex]);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Acts on the active document.
+ */
+void Arinc661_Configuration_Redo(Arinc661_Configuration_Editor_t* editor)
+{
+    LOGASSERT(NULL != editor);
+    if (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex)
+    {
+        RedoDocument(&editor->documents[editor->activeDocumentIndex]);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Uncommitted changes of the current frame count as undoable.
+ */
+void Arinc661_Configuration_History(const Arinc661_Configuration_Editor_t* editor, bool_t* canUndo, bool_t* canRedo)
+{
+    const Arinc661_Configuration_Document_t* document;
+
+    LOGASSERT(NULL != editor);
+    LOGASSERT(NULL != canUndo);
+    LOGASSERT(NULL != canRedo);
+    (*canUndo) = FALSE;
+    (*canRedo) = FALSE;
+    if (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex)
+    {
+        document   = &editor->documents[editor->activeDocumentIndex];
+        (*canUndo) = !!((0 < document->undoCount) || ((NULL != document->shadow) && (FALSE == SnapshotMatches(document, document->shadow))));
+        (*canRedo) = (0 < document->redoCount);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Acts on the active document.
+ */
+void Arinc661_Configuration_DeleteSelection(Arinc661_Configuration_Editor_t* editor)
+{
+    LOGASSERT(NULL != editor);
+    if (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex)
+    {
+        RemoveSelection(&editor->documents[editor->activeDocumentIndex]);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Acts on the active document.
+ */
+void Arinc661_Configuration_DuplicateSelection(Arinc661_Configuration_Editor_t* editor)
+{
+    LOGASSERT(NULL != editor);
+    if (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex)
+    {
+        DuplicateSelection(&editor->documents[editor->activeDocumentIndex]);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Acts on the active document.
+ */
+void Arinc661_Configuration_AddScreen(Arinc661_Configuration_Editor_t* editor)
+{
+    LOGASSERT(NULL != editor);
+    if ((INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex) && editor->documents[editor->activeDocumentIndex].isLoaded)
+    {
+        AddScreen(&editor->documents[editor->activeDocumentIndex]);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Creates a screen first when the document has none.
+ */
+void Arinc661_Configuration_AddLayout(Arinc661_Configuration_Editor_t* editor)
+{
+    Arinc661_Configuration_Document_t* document;
+    uint32_t                           screen_index;
+
+    LOGASSERT(NULL != editor);
+    if ((INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex) && editor->documents[editor->activeDocumentIndex].isLoaded)
+    {
+        document = &editor->documents[editor->activeDocumentIndex];
+        if (0 == document->configuration.screenCount)
+        {
+            AddScreen(document);
+        }
+        screen_index = 0;
+        if ((SELECTION_SCREEN == document->selectedKind) && (document->selectedIndex < document->configuration.screenCount))
+        {
+            screen_index = document->selectedIndex;
+        }
+        else if ((SELECTION_LAYOUT == document->selectedKind) && (document->selectedIndex < document->configuration.layoutCount))
+        {
+            screen_index = document->layouts[document->selectedIndex].screenIndex;
+        }
+        else if ((SELECTION_WINDOW == document->selectedKind) && (document->selectedIndex < document->configuration.windowCount) && (document->windows[document->selectedIndex].layoutIndex < document->configuration.layoutCount))
+        {
+            screen_index = document->layouts[document->windows[document->selectedIndex].layoutIndex].screenIndex;
+        }
+        if (screen_index < document->configuration.screenCount)
+        {
+            AddLayout(document, screen_index);
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Creates a screen and a layout first when the document has none.
+ */
+void Arinc661_Configuration_AddWindow(Arinc661_Configuration_Editor_t* editor)
+{
+    Arinc661_Configuration_Document_t* document;
+    uint32_t                           layout_index;
+    uint32_t                           index;
+
+    LOGASSERT(NULL != editor);
+    if ((INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex) && editor->documents[editor->activeDocumentIndex].isLoaded)
+    {
+        document = &editor->documents[editor->activeDocumentIndex];
+        if (0 == document->configuration.layoutCount)
+        {
+            Arinc661_Configuration_AddLayout(editor);
+        }
+        layout_index = 0;
+        if ((SELECTION_LAYOUT == document->selectedKind) && (document->selectedIndex < document->configuration.layoutCount))
+        {
+            layout_index = document->selectedIndex;
+        }
+        else if ((SELECTION_WINDOW == document->selectedKind) && (document->selectedIndex < document->configuration.windowCount))
+        {
+            layout_index = document->windows[document->selectedIndex].layoutIndex;
+        }
+        else if ((SELECTION_SCREEN == document->selectedKind) && (document->selectedIndex < document->configuration.screenCount))
+        {
+            for (index = 0; index < document->configuration.layoutCount; ++index)
+            {
+                if (document->layouts[index].screenIndex == document->selectedIndex)
+                {
+                    layout_index = index;
+                    break;
+                }
+            }
+        }
+        if (layout_index < document->configuration.layoutCount)
+        {
+            AddWindow(document, layout_index);
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The new user application targets the selected window when one is selected.
+ */
+void Arinc661_Configuration_AddUserApplication(Arinc661_Configuration_Editor_t* editor)
+{
+    Arinc661_Configuration_Document_t* document;
+    int64_t                            window_id;
+    bool_t                             has_window;
+
+    LOGASSERT(NULL != editor);
+    if ((INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex) && editor->documents[editor->activeDocumentIndex].isLoaded)
+    {
+        document   = &editor->documents[editor->activeDocumentIndex];
+        has_window = !!((SELECTION_WINDOW == document->selectedKind) && (document->selectedIndex < document->configuration.windowCount));
+        window_id  = 0;
+        if (has_window)
+        {
+            window_id = document->windows[document->selectedIndex].id;
+        }
+        AddUserApplication(document);
+        if (has_window && (SELECTION_USER_APPLICATION == document->selectedKind) && (document->selectedIndex < document->configuration.userApplicationCount))
+        {
+            document->userApplications[document->selectedIndex].window = window_id;
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Names follow FACE H.3 element names.
+ */
+const char_t* Arinc661_Configuration_SelectedElement(const Arinc661_Configuration_Editor_t* editor)
+{
+    const Arinc661_Configuration_Document_t* document;
+    const char_t*                            element;
+
+    LOGASSERT(NULL != editor);
+    element = NULL;
+    if ((INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex) && editor->documents[editor->activeDocumentIndex].isLoaded)
+    {
+        document = &editor->documents[editor->activeDocumentIndex];
+        switch (document->selectedKind)
+        {
+            case SELECTION_SCREEN:           element = ELEMENT_SCREEN; break;
+            case SELECTION_LAYOUT:           element = ELEMENT_LAYOUT; break;
+            case SELECTION_WINDOW:           element = ELEMENT_WINDOW; break;
+            case SELECTION_USER_APPLICATION: element = ELEMENT_USER_APPLICATION; break;
+            default:                         break;
+        }
+    }
+
+    return element;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Turns the changes of the frame into one undo step per changed document.
+ */
+void Arinc661_Configuration_EndFrame(Arinc661_Configuration_Editor_t* editor)
+{
+    uint32_t document_index;
+
+    LOGASSERT(NULL != editor);
+    for (document_index = 0; document_index < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS; ++document_index)
+    {
+        CommitHistory(&editor->documents[document_index]);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Density comes from the window's scalingFactor or its screen, as the preview uses it.
+ */
+bool_t Arinc661_Configuration_Window(const Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex, int64_t windowId, uint32_t* windowIndex, int64_t* pixelWidth, int64_t* pixelHeight, float32_t* unitsPerPixelX, float32_t* unitsPerPixelY)
+{
+    const Arinc661_Configuration_Document_t*  document;
+    const FACEOE_DisplayManagement_Window_t*  window;
+    const FACEOE_DisplayManagement_Screen_t*  screen;
+    uint32_t                                  index;
+    float32_t                                 pixels_per_unit;
+    bool_t                                    is_found;
+
+    LOGASSERT(NULL != editor);
+    is_found = FALSE;
+    if ((documentIndex < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS) && editor->documents[documentIndex].isLoaded)
+    {
+        document = &editor->documents[documentIndex];
+        for (index = 0; index < document->configuration.windowCount; ++index)
+        {
+            window = &document->windows[index];
+            if (window->id == windowId)
+            {
+                screen = NULL;
+                if ((window->layoutIndex < document->configuration.layoutCount) && (document->layouts[window->layoutIndex].screenIndex < document->configuration.screenCount))
+                {
+                    screen = &document->screens[document->layouts[window->layoutIndex].screenIndex];
+                }
+                if (NULL != windowIndex)
+                {
+                    (*windowIndex) = index;
+                }
+                if (NULL != pixelWidth)
+                {
+                    (*pixelWidth) = window->pixelArea.width;
+                }
+                if (NULL != pixelHeight)
+                {
+                    (*pixelHeight) = window->pixelArea.height;
+                }
+                if (NULL != unitsPerPixelX)
+                {
+                    pixels_per_unit   = PixelsPerLayerUnit(screen, window, TRUE);
+                    (*unitsPerPixelX) = (1.0f / pixels_per_unit);
+                }
+                if (NULL != unitsPerPixelY)
+                {
+                    pixels_per_unit   = PixelsPerLayerUnit(screen, window, FALSE);
+                    (*unitsPerPixelY) = (1.0f / pixels_per_unit);
+                }
+                is_found = TRUE;
+                break;
+            }
+        }
+    }
+
+    return is_found;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Zero for an empty slot.
+ */
+uint32_t Arinc661_Configuration_WindowCount(const Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex)
+{
+    uint32_t count;
+
+    LOGASSERT(NULL != editor);
+    count = 0;
+    if ((documentIndex < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS) && editor->documents[documentIndex].isLoaded)
+    {
+        count = editor->documents[documentIndex].configuration.windowCount;
+    }
+
+    return count;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Reads straight from the window array.
+ */
+bool_t Arinc661_Configuration_WindowAt(const Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex, uint32_t windowIndex, int64_t* windowId, const char_t** name)
+{
+    bool_t is_found;
+
+    LOGASSERT(NULL != editor);
+    LOGASSERT(NULL != windowId);
+    LOGASSERT(NULL != name);
+    is_found = FALSE;
+    if (windowIndex < Arinc661_Configuration_WindowCount(editor, documentIndex))
+    {
+        (*windowId) = editor->documents[documentIndex].windows[windowIndex].id;
+        (*name)     = editor->documents[documentIndex].windows[windowIndex].name;
+        is_found    = TRUE;
+    }
+
+    return is_found;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The tab bar honours the document request on its next draw.
+ */
+void Arinc661_Configuration_SelectWindow(Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex, uint32_t windowIndex)
+{
+    LOGASSERT(NULL != editor);
+    if (windowIndex < Arinc661_Configuration_WindowCount(editor, documentIndex))
+    {
+        editor->activeDocumentIndex                    = documentIndex;
+        editor->requestedDocumentIndex                 = documentIndex;
+        editor->documents[documentIndex].selectedKind  = SELECTION_WINDOW;
+        editor->documents[documentIndex].selectedIndex = windowIndex;
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Uses the ordinary add path, then overwrites the seeded values.
+ */
+bool_t Arinc661_Configuration_AddUserApplicationFor(Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex, int64_t applicationId, int64_t windowId, const char_t* dFPath)
+{
+    Arinc661_Configuration_Document_t*          document;
+    FACEOE_DisplayManagement_UserApplication_t* application;
+    bool_t                                      is_added;
+
+    LOGASSERT(NULL != editor);
+    LOGASSERT(NULL != dFPath);
+    is_added = FALSE;
+    if ((documentIndex < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS) && editor->documents[documentIndex].isLoaded)
+    {
+        document = &editor->documents[documentIndex];
+        AddUserApplication(document);
+        if ((SELECTION_USER_APPLICATION == document->selectedKind) && (document->selectedIndex < document->configuration.userApplicationCount))
+        {
+            application                = &document->userApplications[document->selectedIndex];
+            application->applicationId = applicationId;
+            application->window        = windowId;
+            ImStrncpy(application->dFPath, dFPath, sizeof(application->dFPath));
+            application->visible           = TRUE;
+            editor->activeDocumentIndex    = documentIndex;
+            editor->requestedDocumentIndex = documentIndex;
+            document->isDirty              = TRUE;
+            is_added                       = TRUE;
+        }
+    }
+
+    return is_added;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Walks every open document; changed documents become dirty.
+ */
+uint32_t Arinc661_Configuration_RepointDefinition(Arinc661_Configuration_Editor_t* editor, const char_t* previousName, const char_t* newName)
+{
+    Arinc661_Configuration_Document_t* document;
+    uint32_t                           document_index;
+    uint32_t                           application_index;
+    uint32_t                           count;
+
+    LOGASSERT(NULL != editor);
+    LOGASSERT(NULL != previousName);
+    LOGASSERT(NULL != newName);
+    count = 0;
+    for (document_index = 0; document_index < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS; ++document_index)
+    {
+        document = &editor->documents[document_index];
+        if (document->isLoaded)
+        {
+            for (application_index = 0; application_index < document->configuration.userApplicationCount; ++application_index)
+            {
+                if (0 == ImStricmp(document->userApplications[application_index].dFPath, previousName))
+                {
+                    ImStrncpy(document->userApplications[application_index].dFPath, newName, sizeof(document->userApplications[application_index].dFPath));
+                    document->isDirty = TRUE;
+                    count += 1;
+                }
+            }
+        }
+    }
+
+    return count;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Configuration, then the selected screen, layout, window, or user application.
+ */
+void Arinc661_Configuration_SelectionText(const Arinc661_Configuration_Editor_t* editor, char_t* text, uint32_t capacity)
+{
+    const Arinc661_Configuration_Document_t* document;
+    const FACEOE_DisplayManagement_Window_t* window;
+    const FACEOE_DisplayManagement_Layout_t* layout;
+    int64_t                                  screen_id;
+    int64_t                                  layout_id;
+
+    LOGASSERT(NULL != editor);
+    LOGASSERT(NULL != text);
+    text[0] = '\0';
+    if ((INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex) && editor->documents[editor->activeDocumentIndex].isLoaded)
+    {
+        document = &editor->documents[editor->activeDocumentIndex];
+        switch (document->selectedKind)
+        {
+            case SELECTION_SCREEN:
+                if (document->selectedIndex < document->configuration.screenCount)
+                {
+                    ImFormatString(text, capacity, BREADCRUMB_SCREEN_FORMAT, document->documentName, document->screens[document->selectedIndex].id);
+                }
+                break;
+            case SELECTION_LAYOUT:
+                if (document->selectedIndex < document->configuration.layoutCount)
+                {
+                    layout    = &document->layouts[document->selectedIndex];
+                    screen_id = -1;
+                    if (layout->screenIndex < document->configuration.screenCount)
+                    {
+                        screen_id = document->screens[layout->screenIndex].id;
+                    }
+                    ImFormatString(text, capacity, BREADCRUMB_LAYOUT_FORMAT, document->documentName, screen_id, layout->id);
+                }
+                break;
+            case SELECTION_WINDOW:
+                if (document->selectedIndex < document->configuration.windowCount)
+                {
+                    window    = &document->windows[document->selectedIndex];
+                    screen_id = -1;
+                    layout_id = -1;
+                    if (window->layoutIndex < document->configuration.layoutCount)
+                    {
+                        layout    = &document->layouts[window->layoutIndex];
+                        layout_id = layout->id;
+                        if (layout->screenIndex < document->configuration.screenCount)
+                        {
+                            screen_id = document->screens[layout->screenIndex].id;
+                        }
+                    }
+                    ImFormatString(text, capacity, BREADCRUMB_WINDOW_FORMAT, document->documentName, screen_id, layout_id, window->id, window->name);
+                }
+                break;
+            case SELECTION_USER_APPLICATION:
+                if (document->selectedIndex < document->configuration.userApplicationCount)
+                {
+                    ImFormatString(text, capacity, BREADCRUMB_APPLICATION_FORMAT, document->documentName, document->userApplications[document->selectedIndex].applicationId, document->userApplications[document->selectedIndex].window, document->userApplications[document->selectedIndex].dFPath);
+                }
+                break;
+            default:
+                ImFormatString(text, capacity, "%s", document->documentName);
+                break;
+        }
     }
 }

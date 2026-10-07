@@ -205,7 +205,64 @@ int main(void)
         }
     }
 
+    /* Duplicating a container copies its subtree and extensions with fresh idents after the source */
+    document->definition.widgetCount   = 0;
+    document->definition.propertyCount = 0;
+    document->definition.layerCount    = 0;
+    AddLayer(document);
+    AddWidget(document, 0, INVALID_HIERARCHY_INDEX, FALSE);                 /* 0: panel */
+    AddWidget(document, 0, 0, FALSE);                                       /* 1: child */
+    AddWidget(document, 0, 0, TRUE);                                        /* extension at 1, child moves to 2 */
+    AddWidget(document, 0, 2, FALSE);                                       /* 3: grandchild */
+    assert(4 == document->definition.widgetCount);
+    assert(4 == DuplicateWidget(document, 0));
+    assert(8 == document->definition.widgetCount);
+    assert(INVALID_HIERARCHY_INDEX == document->widgets[4].parentWidgetIndex);
+    assert(TRUE == document->widgets[5].isExtension);
+    assert(4 == document->widgets[5].parentWidgetIndex);
+    assert(4 == document->widgets[6].parentWidgetIndex);
+    assert(6 == document->widgets[7].parentWidgetIndex);
+    assert(0 == strcmp("A661_PANEL", document->widgets[4].type));
+    assert(NULL != strstr(document->widgets[4].name, "copy"));
+    assert(CountOwned(document, ARINC661_PROPERTY_WIDGET, 0) == CountOwned(document, ARINC661_PROPERTY_WIDGET, 4));
+    assert(CountOwned(document, ARINC661_PROPERTY_WIDGET, 3) == CountOwned(document, ARINC661_PROPERTY_WIDGET, 7));
+    assert(0 != strcmp(document->properties[FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, 0, PROPERTY_WIDGET_IDENT)].value, document->properties[FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, 4, PROPERTY_WIDGET_IDENT)].value));
+    assert(0 < Arinc661_WriteDefinitionBinary(&document->definition, document->outputBuffer, sizeof(document->outputBuffer)));
 
+    /* Moving the grandchild (3) under the copied panel (4) re-parents it and keeps its properties */
+    assert(MoveWidgetSubtree(document, 3, 0, 4));
+    assert(8 == document->definition.widgetCount);
+    assert(SELECTION_WIDGET == document->selectedKind);
+    assert(document->widgets[document->selectedIndex].parentWidgetIndex == 3);  /* panel copy shifted down to 3 after the removal */
+    assert(SubtreeEnd(document, 0) == 3);
+    assert(0 < Arinc661_WriteDefinitionBinary(&document->definition, document->outputBuffer, sizeof(document->outputBuffer)));
+    /* Moving a container onto its own descendant is refused */
+    assert(FALSE == MoveWidgetSubtree(document, 3, 0, document->selectedIndex));
+    /* Moving a top-level panel to the layer is a no-op */
+    assert(FALSE == MoveWidgetSubtree(document, 0, 0, INVALID_HIERARCHY_INDEX));
+
+    /* History: each committed change is one undo step; undo and redo restore the arrays */
+    ClearHistory(document);
+    CommitHistory(document);
+    assert(0 == document->undoCount);
+    AddWidget(document, 0, INVALID_HIERARCHY_INDEX, FALSE);
+    CommitHistory(document);
+    assert(1 == document->undoCount);
+    assert(9 == document->definition.widgetCount);
+    UndoDocument(document);
+    assert(8 == document->definition.widgetCount);
+    assert(0 == document->undoCount);
+    assert(1 == document->redoCount);
+    RedoDocument(document);
+    assert(9 == document->definition.widgetCount);
+    assert(1 == document->undoCount);
+    assert(0 == document->redoCount);
+    UndoDocument(document);
+    AddWidget(document, 0, INVALID_HIERARCHY_INDEX, FALSE);
+    CommitHistory(document);
+    assert(0 == document->redoCount);
+    ClearHistory(document);
+    assert(NULL == document->shadow);
 
     return 0;
 }

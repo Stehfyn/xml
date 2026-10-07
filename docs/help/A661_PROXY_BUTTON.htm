@@ -1,0 +1,11 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>A661_PROXY_BUTTON</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:1.5em;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:4px 6px;vertical-align:top;font-size:0.95em}th{background:#eee;text-align:left}.cat{color:#666}</style></head><body><h1>A661_PROXY_BUTTON <small>(ProxyButton)</small></h1>
+<p class="cat">Categories: Interactive</p>
+<p>The ProxyButton directs a physical button press as a select event to the target widget. If the target widget is visible and enabled at the time of the physical button press, it will respond in the same way as if the user had selected the widget. The CDS will supply a list of unique identifiers for the selection keys available in the system. A common use for this feature is a bezel line select soft key. If the target widget ID is 0, then the select event is sent directly to the UA. ARINC 661 UALD Proxy Button ID #3 ID #0 User Application ARINC 661 UALD Button Widget ID #5 Button Link Button Press Proxy Button Widget Link ID #3 ID #5 User Application A661_EVT_SELECTION Cursor Control Device Select Select Select Physical Button ID #3 Physical Button ID #3 Select Button Link A661_EVT_SELECTION Button Press</p>
+<p><b>Restriction:</b> - The result of assigning more than one ProxyButton widget to a single key will cause events to be sent to multiple widgets when that key is pressed - If an undefined target widget ID is set ,the A661_ERR_SET_ABORTED may be sent to the application - If the ProxyButton is in a container or layer that is disabled or not visible, then the ProxyButton is disabled. When the ProxyButton is disabled, the ProxyButton will not pass events from physical buttons</p>
+<table><tr><th>Parameter</th><th>Change</th><th>Description</th></tr>
+<tr><td>WidgetIdent</td><td>D</td><td>Unique identifier of the widget</td></tr>
+<tr><td>ParentIdent</td><td>D</td><td>Identifier of the immediate container of the widget</td></tr>
+<tr><td>Enable</td><td>DR</td><td>Ability of the widget to be interactive</td></tr>
+<tr><td>DedicatedKeyIdent</td><td>D</td><td>The unique identifier of the dedicated CDS key</td></tr>
+<tr><td>TargetWidgetIdent</td><td>DR</td><td>Identifier of the widget to receive the select event</td></tr>
+</table></body></html>

@@ -1,0 +1,13 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>A661_MAPHORZ_VERTEXBUFFER</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:1.5em;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:4px 6px;vertical-align:top;font-size:0.95em}th{background:#eee;text-align:left}.cat{color:#666}</style></head><body><h1>A661_MAPHORZ_VERTEXBUFFER <small>(MapHorz_VertexBuffer)</small></h1>
+<p class="cat">Categories: Map management</p>
+<p>A MapHorz_VertexBuffer widget contains vertex data to be used by vertex-array based rendering of graphical primitives. MapItems may reference vertex data contained within these widgets to render geometry. Vertices are referenced either sequentially or via a sequence of indices. Subject to the overall limits of the MapHorz_VertexBuffer widget, the contents of the MapHorz_VertexBuffer may be replaced by setting parameters with new vertex data. A single command replaces the vertex data of the entire widget. The command is of variable length, but it always specifies the entire addressable length and contents of the widget. When the map it drawn, the vertex data should be transformed as required to satisfy the MapSource projection.</p>
+<p><b>Restriction:</b> A MapHorz_VertexBuffer must be in a MapHorz_Source container that is also the same container as any MapItemList items that reference it. A MapHorz_Source contains a CDS defined fixed amount of memory allocation for MapHorz_VertexBuffer widgets. The number and maximum size of MapHorz_VertexBuffer widgets are established at definition time, and are not runtime modifiable. UAs use the set of MapHorz_VertexBuffer widgets to populate map data, using strategies such as having a static set of vertices that is not changed or swapping dynamic vertex data for updates using the MapSynchronizationNumber parameter.</p>
+<table><tr><th>Parameter</th><th>Change</th><th>Description</th></tr>
+<tr><td>WidgetIdent</td><td>D</td><td>Unique identifier of the widget.</td></tr>
+<tr><td>ParentIdent</td><td>D</td><td>Identifier of the immediate container of the widget.</td></tr>
+<tr><td>Anonymous</td><td>D</td><td>Ability to be modified at run-time by the UA.</td></tr>
+<tr><td>MaxNumberOfVertices</td><td>D</td><td>The maximum number of vertices to be defined for the widget.</td></tr>
+<tr><td>NumberOfVertices</td><td>DR</td><td>The number of vertices currently defined for the widget.</td></tr>
+<tr><td>BufferOfVertices</td><td>DR</td><td>The array of vertices as (X, Y) pairs.</td></tr>
+<tr><td>MapSynchronizationNumber</td><td>R</td><td>See Section 3.2.8.4.</td></tr>
+</table></body></html>

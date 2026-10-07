@@ -1,0 +1,28 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>A661_SLIDER</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:1.5em;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:4px 6px;vertical-align:top;font-size:0.95em}th{background:#eee;text-align:left}.cat{color:#666}</style></head><body><h1>A661_SLIDER <small>(Slider)</small></h1>
+<p class="cat">Categories: Graphical Representation, Interactive</p>
+<p>0.5 1.5 2.5 3.5 4.5 5.5 MajorTickInterval/MinorTickMultiple MajorTickInterval Value-Range Max Value MajorTick Reference Thumb (MajorTickInterval/MinorTickMultiple)/LsbMultiple A Slider allows the crewmember to select a value between the range of MIN_VALUE and MAX VALUE. The Slider can be displayed in either the horizontal or vertical axis. The mapping of the value-range to the slider depends on the orientation, for example when the slider is horizontal the value-range can either be LEFT TO RIGHT or RIGHT TO LEFT. The Orientation specifies direction of increasing values. When the UA sets the Value to something that is not a multiple of the LSB value the behavior is implementation dependent The event is reported on upon selection by a crewmember with a &quot;click&quot; or keyboard selection. The CDS would then move the thumb to the click position. In the diagram above, the following values are used: - MajorTickReference = 0.5 - MajorTickInterval = 1.0 - MinorTickMultiple = 3 - LsbMultiple = 2</p>
+<p><b>Restriction:</b> MAX_VALUE must be greater than the MIN_VALUE.</p>
+<table><tr><th>Parameter</th><th>Change</th><th>Description</th></tr>
+<tr><td>WidgetIdent</td><td>D</td><td>Unique identifier of the widget.</td></tr>
+<tr><td>ParentIdent</td><td>D</td><td>Identifier of the immediate container of the widget.</td></tr>
+<tr><td>Visible</td><td>DR</td><td>Visibility of the widget</td></tr>
+<tr><td>Enable</td><td>DR</td><td>Ability of the widget to be interactive</td></tr>
+<tr><td>StyleSet</td><td>DR</td><td>Reference to predefined graphical characteristics inside CDS</td></tr>
+<tr><td>PosX</td><td>DR</td><td>The X position of the widget reference point</td></tr>
+<tr><td>PosY</td><td>DR</td><td>The Y position of the widget reference point</td></tr>
+<tr><td>SizeX</td><td>DR</td><td>The X dimension size (width) of the widget</td></tr>
+<tr><td>SizeY</td><td>DR</td><td>The Y dimension size (height) of the widget</td></tr>
+<tr><td>NextFocusedWidget</td><td>DR</td><td>Widget ident of next widget to be focused. See Section 3.1.3.5.</td></tr>
+<tr><td>AutomaticFocusMotion</td><td>DR</td><td>Automatic motion of the focus on widget specified in NextFocusedWidget parameter</td></tr>
+<tr><td>MinValue</td><td>DR</td><td>Minimum value of the scroll bar</td></tr>
+<tr><td>MaxValue</td><td>DR</td><td>Maximum value of the scroll bar</td></tr>
+<tr><td>Value</td><td>DR</td><td>Current value of the Slider</td></tr>
+<tr><td>MajorTickInterval</td><td>DR</td><td>Value between each MAJOR tick mark. MajorTickInterval cannot be zero.</td></tr>
+<tr><td>ShowMajorLabels</td><td>DR</td><td>If TRUE the values for each MAJOR tick are shown.</td></tr>
+<tr><td>Alignment</td><td>DR</td><td>Specifies where the ticks and labels are drawn with relation to the slider. A661_LEFT A661_RIGHT A661_CENTER A661_TOP A661_BOTTOM</td></tr>
+<tr><td>Orientation</td><td>DR</td><td>Specifies the orientation of the Slider either vertical or horizontal. It also specifies which way the value-range of the slider is oriented. A661_BOTTOM_TO_TOP - Vertical A661_TOP_TO_BOTTOM - Vertical A661_LEFT_TO_RIGHT - Horizontal A661_RIGHT_TO_LEFT - Horizontal</td></tr>
+<tr><td>LsbMultiple</td><td>DR</td><td>This specifies the number of intervals between discrete positions for the thumb within the Minor Tick.</td></tr>
+<tr><td>MinorTickMultiple</td><td>DR</td><td>Specifies the number of Minor Tick intervals between two Major Ticks.</td></tr>
+<tr><td>MajorTickReference</td><td>DR</td><td>Holds the value where the major tick starts.</td></tr>
+<tr><td>EntryValidation</td><td>R</td><td>Indicator notifying the CDS that the UA has completed processing the entry or selection event. This flag also indicates the results of that processing. A661_FALSE A661_TRUE</td></tr>
+</table></body></html>

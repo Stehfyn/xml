@@ -14,7 +14,9 @@
 #include "arinc661_definition_editor.h"
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "arinc661_context.h"
+#include "arinc661_configuration.h"
 #include "arinc661_gfx_imgui.h"
+#include "arinc661_icons.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 
@@ -27,6 +29,7 @@ extern "C"
 }
 
 #include <inttypes.h>
+#include <stdlib.h>
 #include <limits.h>
 #include <string.h>
 
@@ -121,11 +124,80 @@ extern "C"
 #define EXTENSION_LABEL_FORMAT    ("%s")
 #define LAYER_PREVIEW_FORMAT      ("Layer %s (%s x %s)")
 #define REFERENCES_SECTION_LABEL  ("Referenced By")
+#define ABOUT_FORMAT              ("About %s")
+#define CATEGORIES_FORMAT         ("Categories: %s")
+#define RESTRICTION_FORMAT        ("Restriction: %s")
+#define CHANGE_FORMAT             ("[%s] %s")
+#define HELP_WRAP_WIDTH           (420.0f)
+#define ADD_POPUP_ID              ("##add widget")
+#define ADD_FILTER_HINT           ("Filter widget types")
+#define ADD_HERE_FORMAT           ("Add widget at (%d, %d) in %s")
+#define ADD_EXTENSION_TO_FORMAT   ("Add extension to %s")
+#define DUPLICATE_LABEL           ("Duplicate")
+#define REMOVE_LABEL              ("Remove")
+#define ADD_CHILD_WIDGET_LABEL    ("Add child widget")
+#define ADD_EXTENSION_MENU_LABEL  ("Add extension")
+#define SCENE_HINT_LABEL          ("Drag: move | Corners: resize | Arrows: nudge (Shift x10) | Del: remove | Right-click: add | Wheel: zoom | Middle/Space-drag: pan | F: fit | G: grid | S: snap")
+#define SCENE_ZOOM_FORMAT         ("%.0f%%")
+#define SNAP_UNITS                (100.0f)
+#define GRID_UNITS                (100.0f)
+#define GRID_MAJOR_EVERY          (10)
+#define ZOOM_MIN                  (0.1f)
+#define ZOOM_MAX                  (40.0f)
+#define ZOOM_WHEEL_FACTOR         (1.15f)
+#define SCENE_GRID_COLOR          (IM_COL32(255, 255, 255, 14))
+#define SCENE_GRID_MAJOR_COLOR    (IM_COL32(255, 255, 255, 36))
+#define DROP_PAYLOAD_ID           ("A661_WIDGET")
+#define COPY_SUFFIX               (" copy")
+#define NUDGE_STEP                (10.0f)
+#define NUDGE_FAST_STEP           (100.0f)
+#define HANDLE_HALF_SIZE          (5.0f)
+#define DRAG_THRESHOLD            (3.0f)
+#define ADD_LIST_HEIGHT           (260.0f)
+#define DRAG_NONE                 (0)
+#define DRAG_MOVE                 (1)
+#define DRAG_BOTTOM_LEFT          (2)
+#define DRAG_BOTTOM_RIGHT         (3)
+#define DRAG_TOP_LEFT             (4)
+#define DRAG_TOP_RIGHT            (5)
+#define SCENE_HANDLE_COLOR        (IM_COL32(255, 255, 255, 230))
+#define SCENE_HOVER_COLOR         (IM_COL32(255, 255, 255, 120))
+#define TOOL_ZOOM_IN_LABEL        ("Zoom in")
+#define TOOL_ZOOM_OUT_LABEL       ("Zoom out")
+#define TOOL_FIT_LABEL            ("Fit layer")
+#define TOOL_GRID_LABEL           ("Millimetre grid")
+#define TOOL_SNAP_LABEL           ("Snap to millimetre")
+#define TOOL_ADD_LAYER_LABEL      ("Add layer")
+#define TOOL_ADD_WIDGET_LABEL     ("Add widget to the selection")
+#define TOOL_ADD_EXTENSION_LABEL  ("Add extension to the selected widget")
+#define TOOL_DUPLICATE_LABEL      ("Duplicate selection")
+#define TOOL_DELETE_LABEL         ("Delete selection")
+#define TOOL_LAYER_COMBO_ID       ("##layer")
+#define TOOL_LAYER_FORMAT         ("Layer %s: %s")
+#define TOOL_NO_LAYER_LABEL       ("No layers")
+#define EMPTY_LAYER_BUTTON_LABEL  ("Add the first layer")
+#define EMPTY_WIDGET_HINT_LABEL   ("Right-click the layer to add a widget, or use the + buttons above.")
+#define ZOOM_STEP_FACTOR          (1.25f)
+#define SHORTCUT_WHEEL            ("Wheel")
+#define SHORTCUT_F                ("F")
+#define SHORTCUT_G                ("G")
+#define SHORTCUT_S                ("S")
+#define SHORTCUT_CTRL_D           ("Ctrl+D")
+#define SHORTCUT_DEL              ("Del")
+#define SCENE_HINT_COLOR          (IM_COL32(180, 190, 200, 200))
 #define REFERENCE_FORMAT          ("%s: application %lld, window %lld")
 #define SHOW_USER_APPLICATION_LABEL ("Show")
 #define ADOPT_APPLICATION_ID_LABEL ("Use its applicationId")
 #define APPLICATION_ID_MISMATCH_TOOLTIP ("ApplicationId differs from the user application's applicationId (ARINC 661 section 6.5.1.2, FACE H.3.1).")
-#define NO_REFERENCES_LABEL       ("No user application names this file; set a dFPath in a configuration.")
+#define NO_REFERENCES_LABEL       ("No user application names this file; set a dFPath in a configuration, or create one here.")
+#define CREATE_APPLICATION_LABEL  ("Create user application")
+#define CONFIGURATION_COMBO_ID    ("##configuration")
+#define WINDOW_COMBO_ID           ("##window")
+#define NO_CONFIGURATION_LABEL    ("Open or create a configuration first.")
+#define WINDOW_CHOICE_FORMAT      ("Window %lld (%s)")
+#define FRAME_LABEL_BYTES         (160)
+#define SCENE_FRAME_COLOR         (IM_COL32(255, 200, 80, 200))
+#define SCENE_FRAME_DASH          (6.0f)
 
 #define DEFINITION_TABLE_ID  ("DefinitionProperties")
 #define LAYER_TABLE_ID       ("LayerProperties")
@@ -281,7 +353,25 @@ typedef struct HierarchyRequest_s
     uint32_t addWidgetLayerIndex;     ///< Layer receiving a new widget, or INVALID_HIERARCHY_INDEX
     uint32_t addWidgetParentIndex;    ///< Parent of the new widget, or INVALID_HIERARCHY_INDEX for a layer child
     uint32_t addExtensionParentIndex; ///< Widget receiving a new extension, or INVALID_HIERARCHY_INDEX
+    uint32_t duplicateWidgetIndex;    ///< Widget to duplicate with its subtree, or INVALID_HIERARCHY_INDEX
 } HierarchyRequest_t;
+
+/*************************************************************************************************/
+/**
+ * \brief Model snapshot header; the layer, widget, and property arrays follow it in memory.
+ */
+typedef struct Snapshot_s
+{
+    uint32_t layerCount;        ///< Layers stored
+    uint32_t widgetCount;       ///< Widgets stored
+    uint32_t propertyCount;     ///< Properties stored
+    int32_t  selectedKind;      ///< Selection at the time
+    uint32_t selectedIndex;     ///< Selection index at the time
+    uint32_t libraryVersion;    ///< Definition File library version
+    uint32_t supplementVersion; ///< Definition File supplement version
+    uint32_t charsetEncoding;   ///< Definition File charset encoding
+    char_t   name[ARINC661_MAX_NAME_BYTES]; ///< Definition File name
+} Snapshot_t;
 
 /*************************************************************************************************/
 /**
@@ -337,7 +427,9 @@ static const Arinc661_Parameter_t c_ulongParameter  = {NULL, ARINC661_PARAMETER_
 /**
  * \brief Keeps all status bar messages in one place.
  *
- * \param status   See definition
+ * \param status   Status code
+ *
+ * \retval const char_t*   Zero-terminated status text.
  */
 static const char_t* EditorStatusToString(int32_t status);
 
@@ -372,8 +464,11 @@ static bool_t GetXmlFilePath(Arinc661_Definition_Editor_t* editor, const char_t*
 /**
  * \brief Compares the end of the filename with the extension, ignoring case.
  *
- * \param fileName    See definition
- * \param extension   See definition
+ * \param fileName    File name inside the folder
+ * \param extension   File extension including the dot
+ *
+ * \retval TRUE   if the name ends with the extension, ignoring case.
+ * \retval FALSE  otherwise.
  */
 static bool_t HasExtension(const char_t* fileName, const char_t* extension);
 
@@ -381,7 +476,10 @@ static bool_t HasExtension(const char_t* fileName, const char_t* extension);
 /**
  * \brief Keeps a new file inside its selected folder and requires the XML or binary extension.
  *
- * \param fileName   See definition
+ * \param fileName   File name inside the folder
+ *
+ * \retval TRUE   if the name is a plain file name with an accepted extension.
+ * \retval FALSE  otherwise.
  */
 static bool_t IsValidXmlFileName(const char_t* fileName);
 
@@ -389,7 +487,9 @@ static bool_t IsValidXmlFileName(const char_t* fileName);
 /**
  * \brief Clears every count and selection while keeping the storage pointers and capacities.
  *
- * \param document   See definition
+ * \param document   Document being edited
+ *
+ * \retval None
  */
 static void ResetDocument(Arinc661_Definition_Document_t* document);
 
@@ -397,8 +497,10 @@ static void ResetDocument(Arinc661_Definition_Document_t* document);
 /**
  * \brief Preserves an open document's edits when the selected path matches its stored path.
  *
- * \param editor     See definition
- * \param fileName   See definition
+ * \param editor     Editor state
+ * \param fileName   File name inside the folder
+ *
+ * \retval None
  */
 static void LoadDefinitionFile(Arinc661_Definition_Editor_t* editor, const char_t* fileName);
 
@@ -406,7 +508,9 @@ static void LoadDefinitionFile(Arinc661_Definition_Editor_t* editor, const char_
 /**
  * \brief Starts an empty, dirty document in one initialized slot.
  *
- * \param editor   See definition
+ * \param editor   Editor state
+ *
+ * \retval None
  */
 static void CreateDocument(Arinc661_Definition_Editor_t* editor);
 
@@ -414,7 +518,9 @@ static void CreateDocument(Arinc661_Definition_Editor_t* editor);
 /**
  * \brief Writes the binary form for a .bin path and the XML form otherwise, so Save As can * convert between the two.
  *
- * \param editor   See definition
+ * \param editor   Editor state
+ *
+ * \retval None
  */
 static void SaveLoadedDocument(Arinc661_Definition_Document_t* editor);
 
@@ -454,10 +560,12 @@ static void FindMatchingFile(const char_t* fileName, void* context);
 /**
  * \brief Returns the first property of one model with the given name.
  *
- * \param document     See definition
- * \param owner        See definition
- * \param ownerIndex   See definition
- * \param name         See definition
+ * \param document     Document being edited
+ * \param owner        Owning model kind
+ * \param ownerIndex   Layer or widget array index; zero for the Definition File
+ * \param name         Property name
+ *
+ * \retval uint32_t   Property array index, or INVALID_HIERARCHY_INDEX.
  */
 static uint32_t FindOwnedProperty(const Arinc661_Definition_Document_t* document, Arinc661_PropertyOwner_t owner, uint32_t ownerIndex, const char_t* name);
 
@@ -465,11 +573,14 @@ static uint32_t FindOwnedProperty(const Arinc661_Definition_Document_t* document
 /**
  * \brief Reads a numeric property such as PosX; the scan must consume the whole value.
  *
- * \param document     See definition
- * \param owner        See definition
- * \param ownerIndex   See definition
- * \param name         See definition
- * \param value        See definition
+ * \param document     Document being edited
+ * \param owner        Owning model kind
+ * \param ownerIndex   Layer or widget array index; zero for the Definition File
+ * \param name         Property name
+ * \param value        Value edited in place
+ *
+ * \retval TRUE   if the property exists and is numeric.
+ * \retval FALSE  otherwise.
  */
 static bool_t GetPropertyNumber(const Arinc661_Definition_Document_t* document, Arinc661_PropertyOwner_t owner, uint32_t ownerIndex, const char_t* name, float32_t* value);
 
@@ -477,11 +588,14 @@ static bool_t GetPropertyNumber(const Arinc661_Definition_Document_t* document, 
 /**
  * \brief Appends at the end of the property array, which keeps the order of each model's * existing properties.
  *
- * \param document     See definition
- * \param owner        See definition
- * \param ownerIndex   See definition
- * \param name         See definition
- * \param value        See definition
+ * \param document     Document being edited
+ * \param owner        Owning model kind
+ * \param ownerIndex   Layer or widget array index; zero for the Definition File
+ * \param name         Property name
+ * \param value        Value edited in place
+ *
+ * \retval TRUE   if the property was added.
+ * \retval FALSE  when the property array is full.
  */
 static bool_t AppendProperty(Arinc661_Definition_Document_t* document, Arinc661_PropertyOwner_t owner, uint32_t ownerIndex, const char_t* name, const char_t* value);
 
@@ -489,8 +603,10 @@ static bool_t AppendProperty(Arinc661_Definition_Document_t* document, Arinc661_
 /**
  * \brief Closes the gap left by the removed property.
  *
- * \param document        See definition
- * \param propertyIndex   See definition
+ * \param document        Document being edited
+ * \param propertyIndex   Property array index
+ *
+ * \retval None
  */
 static void RemovePropertyAt(Arinc661_Definition_Document_t* document, uint32_t propertyIndex);
 
@@ -498,11 +614,13 @@ static void RemovePropertyAt(Arinc661_Definition_Document_t* document, uint32_t 
 /**
  * \brief Returns the property at the given position among one model's properties of that name, * which is the array element index for array parameters.
  *
- * \param document     See definition
- * \param owner        See definition
- * \param ownerIndex   See definition
- * \param name         See definition
- * \param occurrence   See definition
+ * \param document     Document being edited
+ * \param owner        Owning model kind
+ * \param ownerIndex   Layer or widget array index; zero for the Definition File
+ * \param name         Property name
+ * \param occurrence   Index among same-named properties
+ *
+ * \retval uint32_t   Property array index, or INVALID_HIERARCHY_INDEX.
  */
 static uint32_t FindOwnedPropertyAt(const Arinc661_Definition_Document_t* document, Arinc661_PropertyOwner_t owner, uint32_t ownerIndex, const char_t* name, uint32_t occurrence);
 
@@ -510,9 +628,11 @@ static uint32_t FindOwnedPropertyAt(const Arinc661_Definition_Document_t* docume
 /**
  * \brief Chooses the value a new property of this parameter starts with: A661_TRUE when the * table lists it, otherwise the first listed constant, zero for numbers, an empty string * for text, and zero digits for fixed bytes.
  *
- * \param parameter   See definition
- * \param value       See definition
- * \param capacity    See definition
+ * \param parameter   Creation Structure parameter
+ * \param value       Value edited in place
+ * \param capacity    Bytes available in value
+ *
+ * \retval None
  */
 static void DefaultParameterValue(const Arinc661_Parameter_t* parameter, char_t* value, uint32_t capacity);
 
@@ -520,7 +640,9 @@ static void DefaultParameterValue(const Arinc661_Parameter_t* parameter, char_t*
 /**
  * \brief Counts uppercase hexadecimal digits; a value with any other character, or an odd * count, is not a byte string.
  *
- * \param value   See definition
+ * \param value   Value edited in place
+ *
+ * \retval uint32_t   Number of bytes the hexadecimal text encodes, or INVALID_HIERARCHY_INDEX when malformed.
  */
 static uint32_t HexByteCount(const char_t* value);
 
@@ -528,8 +650,11 @@ static uint32_t HexByteCount(const char_t* value);
 /**
  * \brief Applies the same acceptance rules as the binary writer: an integer parameter takes a * decimal number in its range or a section 4.6 constant name whose value fits; a decimal * parameter takes a number within its range; byte parameters take hexadecimal digits of * the right length; strings take anything.
  *
- * \param parameter   See definition
- * \param value       See definition
+ * \param parameter   Creation Structure parameter
+ * \param value       Value edited in place
+ *
+ * \retval TRUE   if the binary writer would accept the value.
+ * \retval FALSE  otherwise.
  */
 static bool_t IsParameterValueValid(const Arinc661_Parameter_t* parameter, const char_t* value);
 
@@ -537,8 +662,11 @@ static bool_t IsParameterValueValid(const Arinc661_Parameter_t* parameter, const
 /**
  * \brief Makes a widget's properties match its type's Creation Structure: properties that name * no parameter are dropped (WidgetIdent is kept on widgets), every missing single * parameter is added with its default, a kept value that no longer fits its parameter * kind is reseeded, and every array is sized to its count.
  *
- * \param document      See definition
- * \param widgetIndex   See definition
+ * \param document      Document being edited
+ * \param widgetIndex   Widget array index
+ *
+ * \retval TRUE   if any property was added, removed, or reseeded.
+ * \retval FALSE  otherwise.
  */
 static bool_t ConformParameters(Arinc661_Definition_Document_t* document, uint32_t widgetIndex);
 
@@ -546,9 +674,12 @@ static bool_t ConformParameters(Arinc661_Definition_Document_t* document, uint32
 /**
  * \brief Follows parent links from the candidate toward its layer.
  *
- * \param document        See definition
- * \param widgetIndex     See definition
- * \param ancestorIndex   See definition
+ * \param document        Document being edited
+ * \param widgetIndex     Widget array index
+ * \param ancestorIndex   Candidate ancestor widget index
+ *
+ * \retval TRUE   if the widget sits under the ancestor.
+ * \retval FALSE  otherwise.
  */
 static bool_t IsDescendant(const Arinc661_Definition_Document_t* document, uint32_t widgetIndex, uint32_t ancestorIndex);
 
@@ -556,8 +687,10 @@ static bool_t IsDescendant(const Arinc661_Definition_Document_t* document, uint3
 /**
  * \brief Returns the array index following the last descendant of a widget, which is where a * new child keeps parents before children and extensions directly after their widget.
  *
- * \param document      See definition
- * \param widgetIndex   See definition
+ * \param document      Document being edited
+ * \param widgetIndex   Widget array index
+ *
+ * \retval uint32_t   Index one past the last descendant.
  */
 static uint32_t SubtreeEnd(const Arinc661_Definition_Document_t* document, uint32_t widgetIndex);
 
@@ -565,8 +698,11 @@ static uint32_t SubtreeEnd(const Arinc661_Definition_Document_t* document, uint3
 /**
  * \brief Opens a widget slot at insertIndex and renumbers every parent link and property * owner at or beyond it.
  *
- * \param document      See definition
- * \param insertIndex   See definition
+ * \param document      Document being edited
+ * \param insertIndex   Index the new widget takes
+ *
+ * \retval TRUE   if a slot was opened.
+ * \retval FALSE  when the widget array is full.
  */
 static bool_t InsertWidgetAt(Arinc661_Definition_Document_t* document, uint32_t insertIndex);
 
@@ -574,8 +710,10 @@ static bool_t InsertWidgetAt(Arinc661_Definition_Document_t* document, uint32_t 
 /**
  * \brief Returns one more than the largest WidgetIdent in the layer, starting at one.
  *
- * \param document     See definition
- * \param layerIndex   See definition
+ * \param document     Document being edited
+ * \param layerIndex   Layer array index
+ *
+ * \retval int64_t   Lowest unused WidgetIdent in the layer.
  */
 static int64_t NextWidgetIdent(const Arinc661_Definition_Document_t* document, uint32_t layerIndex);
 
@@ -583,7 +721,9 @@ static int64_t NextWidgetIdent(const Arinc661_Definition_Document_t* document, u
 /**
  * \brief A new layer takes the next LayerId and the default 10000 by 10000 extent.
  *
- * \param document   See definition
+ * \param document   Document being edited
+ *
+ * \retval None
  */
 static void AddLayer(Arinc661_Definition_Document_t* document);
 
@@ -591,10 +731,12 @@ static void AddLayer(Arinc661_Definition_Document_t* document);
 /**
  * \brief A widget goes after its parent's subtree, or at the end of the array for a direct * layer child; an extension goes directly after its widget and any earlier extensions, * as the binary form requires.
  *
- * \param document      See definition
- * \param layerIndex    See definition
- * \param parentIndex   See definition
- * \param isExtension   See definition
+ * \param document      Document being edited
+ * \param layerIndex    Layer array index
+ * \param parentIndex   Parent widget index, or INVALID_HIERARCHY_INDEX for a layer child
+ * \param isExtension   TRUE for an extension type
+ *
+ * \retval None
  */
 static void AddWidget(Arinc661_Definition_Document_t* document, uint32_t layerIndex, uint32_t parentIndex, bool_t isExtension);
 
@@ -602,8 +744,10 @@ static void AddWidget(Arinc661_Definition_Document_t* document, uint32_t layerIn
 /**
  * \brief Removes a widget with its descendants and extensions, drops their properties, and * renumbers the surviving parent links and property owners.
  *
- * \param document      See definition
- * \param widgetIndex   See definition
+ * \param document      Document being edited
+ * \param widgetIndex   Widget array index
+ *
+ * \retval None
  */
 static void RemoveWidgetSubtree(Arinc661_Definition_Document_t* document, uint32_t widgetIndex);
 
@@ -611,8 +755,10 @@ static void RemoveWidgetSubtree(Arinc661_Definition_Document_t* document, uint32
 /**
  * \brief Removes the layer's widgets first, then the layer and its properties, then renumbers * later layers.
  *
- * \param document     See definition
- * \param layerIndex   See definition
+ * \param document     Document being edited
+ * \param layerIndex   Layer array index
+ *
+ * \retval None
  */
 static void RemoveLayer(Arinc661_Definition_Document_t* document, uint32_t layerIndex);
 
@@ -632,10 +778,12 @@ static bool_t DrawRemoveButton(const char_t* label, float32_t rowHeight);
 /**
  * \brief Draws the widgets of one parent and recurses into each widget's children and * extensions.
  *
- * \param document      See definition
- * \param layerIndex    See definition
- * \param parentIndex   See definition
- * \param request       See definition
+ * \param document      Document being edited
+ * \param layerIndex    Layer array index
+ * \param parentIndex   Parent widget index, or INVALID_HIERARCHY_INDEX for a layer child
+ * \param request       Request recorded during traversal
+ *
+ * \retval None
  */
 static void DrawWidgetNodes(Arinc661_Definition_Document_t* document, uint32_t layerIndex, uint32_t parentIndex, HierarchyRequest_t* request);
 
@@ -643,7 +791,9 @@ static void DrawWidgetNodes(Arinc661_Definition_Document_t* document, uint32_t l
 /**
  * \brief Shows the Definition File root, its layers, and each layer's widget tree, then applies * the one request recorded during traversal.
  *
- * \param document   See definition
+ * \param document   Document being edited
+ *
+ * \retval None
  */
 static void DrawHierarchy(Arinc661_Definition_Document_t* document);
 
@@ -651,7 +801,10 @@ static void DrawHierarchy(Arinc661_Definition_Document_t* document);
 /**
  * \brief All inspector groups use the same property and value columns.
  *
- * \param name   See definition
+ * \param name   Property name
+ *
+ * \retval TRUE   if the table is open and rows may follow.
+ * \retval FALSE  otherwise.
  */
 static bool_t BeginPropertyTable(const char_t* name);
 
@@ -672,8 +825,11 @@ static bool_t DrawTextField(const char_t* label, char_t* value, uint32_t capacit
 /**
  * \brief Edits an unsigned 32-bit value in a property row.
  *
- * \param label   See definition
- * \param value   See definition
+ * \param label   Row label
+ * \param value   Value edited in place
+ *
+ * \retval TRUE   if the value changed.
+ * \retval FALSE  otherwise.
  */
 static bool_t DrawUnsignedField(const char_t* label, uint32_t* value);
 
@@ -681,8 +837,11 @@ static bool_t DrawUnsignedField(const char_t* label, uint32_t* value);
 /**
  * \brief Offers no encoding and the three Table 4.6-13 encodings; the index is the value.
  *
- * \param label   See definition
- * \param value   See definition
+ * \param label   Row label
+ * \param value   Value edited in place
+ *
+ * \retval TRUE   if the value changed.
+ * \retval FALSE  otherwise.
  */
 static bool_t DrawCharsetField(const char_t* label, uint32_t* value);
 
@@ -701,10 +860,13 @@ static void MarkDocumentDirty(Arinc661_Definition_Document_t* editor, bool_t has
 /**
  * \brief Tells whether a property is edited by a typed row elsewhere in the inspector, so the * generic table only shows what the schema does not cover.
  *
- * \param document     See definition
- * \param owner        See definition
- * \param ownerIndex   See definition
- * \param name         See definition
+ * \param document     Document being edited
+ * \param owner        Owning model kind
+ * \param ownerIndex   Layer or widget array index; zero for the Definition File
+ * \param name         Property name
+ *
+ * \retval TRUE   if the Creation Structure names the property.
+ * \retval FALSE  otherwise.
  */
 static bool_t IsSchemaProperty(const Arinc661_Definition_Document_t* document, Arinc661_PropertyOwner_t owner, uint32_t ownerIndex, const char_t* name);
 
@@ -712,9 +874,12 @@ static bool_t IsSchemaProperty(const Arinc661_Definition_Document_t* document, A
 /**
  * \brief Edits one value in place according to the parameter kind: a combo over the listed * constants, a ranged integer, a decimal, or text.
  *
- * \param parameter   See definition
- * \param value       See definition
- * \param capacity    See definition
+ * \param parameter   Creation Structure parameter
+ * \param value       Value edited in place
+ * \param capacity    Bytes available in value
+ *
+ * \retval TRUE   if the value changed.
+ * \retval FALSE  otherwise.
  */
 static bool_t DrawParameterValue(const Arinc661_Parameter_t* parameter, char_t* value, uint32_t capacity);
 
@@ -722,13 +887,16 @@ static bool_t DrawParameterValue(const Arinc661_Parameter_t* parameter, char_t* 
 /**
  * \brief Draws one labeled row for a parameter value held by a property, or by a scratch buffer * when the property does not exist yet; an edit of a missing value creates the property.
  *
- * \param document       See definition
- * \param owner          See definition
- * \param ownerIndex     See definition
- * \param label          See definition
- * \param propertyName   See definition
- * \param occurrence     See definition
- * \param parameter      See definition
+ * \param document       Document being edited
+ * \param owner          Owning model kind
+ * \param ownerIndex     Layer or widget array index; zero for the Definition File
+ * \param label          Row label
+ * \param propertyName   Property name
+ * \param occurrence     Index among same-named properties
+ * \param parameter      Creation Structure parameter
+ *
+ * \retval TRUE   if the value changed.
+ * \retval FALSE  otherwise.
  */
 static bool_t DrawParameterRow(Arinc661_Definition_Document_t* document, Arinc661_PropertyOwner_t owner, uint32_t ownerIndex, const char_t* label, const char_t* propertyName, uint32_t occurrence, const Arinc661_Parameter_t* parameter);
 
@@ -736,9 +904,12 @@ static bool_t DrawParameterRow(Arinc661_Definition_Document_t* document, Arinc66
 /**
  * \brief Grows or shrinks an array's properties to its count parameter times the elements per * entry, so the binary form and the rows shown always agree.
  *
- * \param document      See definition
- * \param widgetIndex   See definition
- * \param parameter     See definition
+ * \param document      Document being edited
+ * \param widgetIndex   Widget array index
+ * \param parameter     Creation Structure parameter
+ *
+ * \retval TRUE   if properties were added or removed.
+ * \retval FALSE  otherwise.
  */
 static bool_t SyncArrayLength(Arinc661_Definition_Document_t* document, uint32_t widgetIndex, const Arinc661_Parameter_t* parameter);
 
@@ -746,8 +917,10 @@ static bool_t SyncArrayLength(Arinc661_Definition_Document_t* document, uint32_t
 /**
  * \brief Draws every Creation Structure parameter of the widget's type: single values as one * row each, arrays as one row per element after syncing their length to the count.
  *
- * \param document      See definition
- * \param widgetIndex   See definition
+ * \param document      Document being edited
+ * \param widgetIndex   Widget array index
+ *
+ * \retval None
  */
 static void DrawParameterTable(Arinc661_Definition_Document_t* document, uint32_t widgetIndex);
 
@@ -755,10 +928,13 @@ static void DrawParameterTable(Arinc661_Definition_Document_t* document, uint32_
 /**
  * \brief Offers every widget type, or every extension type, known to the binary form.
  *
- * \param label         See definition
- * \param type          See definition
- * \param capacity      See definition
- * \param isExtension   See definition
+ * \param label         Row label
+ * \param type          Type name edited in place
+ * \param capacity      Bytes available in value
+ * \param isExtension   TRUE for an extension type
+ *
+ * \retval TRUE   if the type changed.
+ * \retval FALSE  otherwise.
  */
 static bool_t DrawTypeField(const char_t* label, char_t* type, uint32_t capacity, bool_t isExtension);
 
@@ -766,9 +942,11 @@ static bool_t DrawTypeField(const char_t* label, char_t* type, uint32_t capacity
 /**
  * \brief Lists one model's properties as editable name and value rows, each with a remove * button, followed by an add row.
  *
- * \param document     See definition
- * \param owner        See definition
- * \param ownerIndex   See definition
+ * \param document     Document being edited
+ * \param owner        Owning model kind
+ * \param ownerIndex   Layer or widget array index; zero for the Definition File
+ *
+ * \retval None
  */
 static void DrawModelProperties(Arinc661_Definition_Document_t* document, Arinc661_PropertyOwner_t owner, uint32_t ownerIndex);
 
@@ -776,16 +954,316 @@ static void DrawModelProperties(Arinc661_Definition_Document_t* document, Arinc6
 /**
  * \brief Edits the a661_df attributes, the charset encoding, and the root model.
  *
- * \param document   See definition
+ * \param document   Document being edited
+ *
+ * \retval None
  */
 static void DrawDefinitionInspector(Arinc661_Definition_Document_t* document);
+
+/*************************************************************************************************/
+/**
+ * \brief Shows the specification's description, categories, and restriction of a type, wrapped.
+ *
+ * \param type   Widget or extension type name
+ *
+ * \retval None
+ */
+static void DrawTypeHelp(const char_t* type);
+
+/*************************************************************************************************/
+/**
+ * \brief Hovering a parameter name shows the Parameters table row: the change flag and the description from the type's section.
+ *
+ * \param document       Document
+ * \param owner          Editor owning the document
+ * \param ownerIndex     Owner array index
+ * \param propertyName   Property name
+ *
+ * \retval None
+ */
+static void DrawParameterTooltip(const Arinc661_Definition_Document_t* document, Arinc661_PropertyOwner_t owner, uint32_t ownerIndex, const char_t* propertyName);
+
+/*************************************************************************************************/
+/**
+ * \brief Table 3.2.3.1: the widgets that can be a parent.
+ *
+ * \param type   Widget or extension type name
+ *
+ * \retval TRUE   if the type can be a parent.
+ * \retval FALSE  otherwise.
+ */
+static bool_t IsContainerType(const char_t* type);
+
+/*************************************************************************************************/
+/**
+ * \brief Writes an integer value into an existing property, or appends it.
+ *
+ * \param document     Document
+ * \param owner        Editor owning the document
+ * \param ownerIndex   Owner array index
+ * \param name         Property or element name
+ * \param value        Value
+ *
+ * \retval None
+ */
+static void SetPropertyNumber(Arinc661_Definition_Document_t* document, Arinc661_PropertyOwner_t owner, uint32_t ownerIndex, const char_t* name, float32_t value);
+
+/*************************************************************************************************/
+/**
+ * \brief Sums PosX and PosY from the widget up through its containers, skipping containers without a reference point as section 3.2.3 says.
+ *
+ * \param document      Document
+ * \param widgetIndex   Widget array index
+ * \param x             X in layer units
+ * \param y             Y in layer units
+ *
+ * \retval None
+ */
+static void AbsoluteOrigin(const Arinc661_Definition_Document_t* document, uint32_t widgetIndex, float32_t* x, float32_t* y);
+
+/*************************************************************************************************/
+/**
+ * \brief Copies the widget, its extensions, and its descendants directly after the source subtree, remapping parents into the copy and giving every copied widget a fresh WidgetIdent.
+ *
+ * \param document      Document
+ * \param widgetIndex   Widget array index
+ *
+ * \retval uint32_t   Index of the copied root, or INVALID_HIERARCHY_INDEX when out of room.
+ */
+static uint32_t DuplicateWidget(Arinc661_Definition_Document_t* document, uint32_t widgetIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Removes whatever is selected and selects its parent.
+ *
+ * \param document   Document
+ *
+ * \retval None
+ */
+static void RemoveSelection(Arinc661_Definition_Document_t* document);
+
+/*************************************************************************************************/
+/**
+ * \brief Right-click menu shared by hierarchy nodes and the scene: add a child, add an extension, duplicate, or remove.
+ *
+ * \param document      Document
+ * \param widgetIndex   Widget array index
+ * \param request       Hierarchy request to fill
+ *
+ * \retval None
+ */
+static void DrawWidgetContextMenu(Arinc661_Definition_Document_t* document, uint32_t widgetIndex, HierarchyRequest_t* request);
+
+/*************************************************************************************************/
+/**
+ * \brief The pop-up opened by a right-click on the scene: a filter box, the matching widget types with their descriptions as tooltips, and the actions on the widget under the cursor.
+ *
+ * \param document   Document
+ *
+ * \retval None
+ */
+static void DrawAddPopup(Arinc661_Definition_Document_t* document);
+
+/*************************************************************************************************/
+/**
+ * \brief Rounds to whole millimetres when snapping is on.
+ *
+ * \param editor   Editor state
+ * \param value    Value
+ *
+ * \retval float32_t   Value rounded to whole millimetres when snapping is on.
+ */
+static float32_t Snap(const Arinc661_Definition_Editor_t* editor, float32_t value);
+
+/*************************************************************************************************/
+/**
+ * \brief Millimetre lines, with every tenth line stronger, drawn only when a millimetre spans at least a few pixels so the grid never turns into a wall.
+ *
+ * \param drawList   Target draw list
+ * \param layerMin   Screen top-left of the layer
+ * \param layerMax   Screen bottom-right of the layer
+ * \param scale      Screen pixels per layer unit
+ * \param clipMin    Clip rectangle top-left
+ * \param clipMax    Clip rectangle bottom-right
+ *
+ * \retval None
+ */
+static void DrawGrid(ImDrawList* drawList, ImVec2 layerMin, ImVec2 layerMax, float32_t scale, ImVec2 clipMin, ImVec2 clipMax);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws a dashed rectangle in screen space.
+ *
+ * \param[in,out] drawList   Target draw list
+ * \param[in]     minimum    Top-left corner
+ * \param[in]     maximum    Bottom-right corner
+ * \param[in]     color      Line colour
+ *
+ * \retval        None
+ */
+static void DrawDashedScreenRect(ImDrawList* drawList, ImVec2 minimum, ImVec2 maximum, ImU32 color);
+
+/*************************************************************************************************/
+/**
+ * \brief Re-parents a widget with its subtree and extensions: the subtree is copied after the new parent's subtree with parents remapped, then the original is removed.
+ *
+ * \param document      Document
+ * \param widgetIndex   Widget array index
+ * \param newLayer      Layer the subtree moves to
+ * \param newParent     New parent widget, or INVALID_HIERARCHY_INDEX
+ *
+ * \retval TRUE   if the widget moved.
+ * \retval FALSE  otherwise.
+ */
+static bool_t MoveWidgetSubtree(Arinc661_Definition_Document_t* document, uint32_t widgetIndex, uint32_t newLayer, uint32_t newParent);
+
+/*************************************************************************************************/
+/**
+ * \brief Icon row above the canvas: zoom, fit, grid, snap, then add layer, add widget, add extension, duplicate, delete, and a combo choosing the layer shown.
+ *
+ * \param document     Document
+ * \param layerIndex   Layer array index
+ *
+ * \retval None
+ */
+/*************************************************************************************************/
+/**
+ * \brief Returns a layer's LayerId property text.
+ *
+ * \param[in] document     Document being edited
+ * \param[in] layerIndex   Layer array index
+ *
+ * \retval    const char_t*   LayerId text, or an empty string.
+ */
+static const char_t* LayerIdText(const Arinc661_Definition_Document_t* document, uint32_t layerIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws the icon row above the scene canvas and the layer chooser.
+ *
+ * \param[in,out] document     Document being edited
+ * \param[in,out] layerIndex   Layer shown; updated by the chooser
+ *
+ * \retval        None
+ */
+static void DrawSceneToolbar(Arinc661_Definition_Document_t* document, uint32_t* layerIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Direct manipulation on the scene canvas.
+ *
+ * \param document          Document
+ * \param layerIndex        Layer array index
+ * \param layerMin          Screen top-left of the layer
+ * \param layerMax          Screen bottom-right of the layer
+ * \param scale             Screen pixels per layer unit
+ * \param drawList          Target draw list
+ * \param isCanvasHovered   TRUE while the mouse is over the canvas
+ *
+ * \retval None
+ */
+static void DrawSceneInteraction(Arinc661_Definition_Document_t* document, uint32_t layerIndex, ImVec2 layerMin, ImVec2 layerMax, float32_t scale, ImDrawList* drawList, bool_t isCanvasHovered);
+
+/*************************************************************************************************/
+/**
+ * \brief Copies the used parts of the model into one heap block.
+ *
+ * \param document   Document
+ *
+ * \retval void*   Heap block holding the snapshot; the caller frees it.
+ */
+static void* TakeSnapshot(const Arinc661_Definition_Document_t* document);
+
+/*************************************************************************************************/
+/**
+ * \brief Copies a snapshot back over the model, selection included.
+ *
+ * \param document   Document
+ * \param snapshot   Model snapshot
+ *
+ * \retval None
+ */
+static void RestoreSnapshot(Arinc661_Definition_Document_t* document, const void* snapshot);
+
+/*************************************************************************************************/
+/**
+ * \brief Compares the counts, the header fields, and the used arrays; the selection is ignored so selecting alone never makes an undo step.
+ *
+ * \param document   Document
+ * \param snapshot   Model snapshot
+ *
+ * \retval TRUE   if the model equals the snapshot.
+ * \retval FALSE  otherwise.
+ */
+static bool_t SnapshotMatches(const Arinc661_Definition_Document_t* document, const void* snapshot);
+
+/*************************************************************************************************/
+/**
+ * \brief Frees every snapshot.
+ *
+ * \param document   Document
+ *
+ * \retval None
+ */
+static void ClearHistory(Arinc661_Definition_Document_t* document);
+
+/*************************************************************************************************/
+/**
+ * \brief Called once per frame: when the model differs from the shadow, the shadow becomes an undo step, the redo stack is dropped, and a fresh shadow is taken.
+ *
+ * \param document   Document
+ *
+ * \retval None
+ */
+static void CommitHistory(Arinc661_Definition_Document_t* document);
+
+/*************************************************************************************************/
+/**
+ * \brief The current state moves to the redo stack; the newest undo step becomes the model and the shadow.
+ *
+ * \param document   Document
+ *
+ * \retval None
+ */
+static void UndoDocument(Arinc661_Definition_Document_t* document);
+
+/*************************************************************************************************/
+/**
+ * \brief Mirror of UndoDocument.
+ *
+ * \param document   Document
+ *
+ * \retval None
+ */
+static void RedoDocument(Arinc661_Definition_Document_t* document);
+
+/*************************************************************************************************/
+/**
+ * \brief Lists every user application of the open configurations whose dFPath names this document, flags ApplicationId mismatches against FACE applicationId, offers the known user application identifiers for the ApplicationId property, and jumps to a user application.
+ *
+ * \param document   Document
+ *
+ * \retval None
+ */
 static void DrawContextReferences(Arinc661_Definition_Document_t* document);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws the configuration and window choice and the button creating a user application.
+ *
+ * \param[in,out] document   Document being edited
+ *
+ * \retval        None
+ */
+static void DrawCreateApplication(Arinc661_Definition_Document_t* document);
 
 /*************************************************************************************************/
 /**
  * \brief Edits the layer name and its model.
  *
- * \param document   See definition
+ * \param document   Document being edited
+ *
+ * \retval None
  */
 static void DrawLayerInspector(Arinc661_Definition_Document_t* document);
 
@@ -793,7 +1271,9 @@ static void DrawLayerInspector(Arinc661_Definition_Document_t* document);
 /**
  * \brief Edits the widget or extension type, the widget name, and the model.
  *
- * \param document   See definition
+ * \param document   Document being edited
+ *
+ * \retval None
  */
 static void DrawWidgetInspector(Arinc661_Definition_Document_t* document);
 
@@ -801,8 +1281,10 @@ static void DrawWidgetInspector(Arinc661_Definition_Document_t* document);
 /**
  * \brief Lists XML and binary Definition Files; a selected name is loaded through the folder path.
  *
- * \param fileName   See definition
- * \param context    See definition
+ * \param fileName   File name inside the folder
+ * \param context    Caller context passed through the enumeration
+ *
+ * \retval None
  */
 static void DrawXmlFileEntry(const char_t* fileName, void* context);
 
@@ -831,8 +1313,10 @@ static void DrawFileControls(Arinc661_Definition_Editor_t* editor);
 /**
  * \brief Frees the slot and moves the active tab to another loaded document, if any.
  *
- * \param editor          See definition
- * \param documentIndex   See definition
+ * \param editor          Editor state
+ * \param documentIndex   Document slot
+ *
+ * \retval None
  */
 static void CloseDocument(Arinc661_Definition_Editor_t* editor, uint32_t documentIndex);
 
@@ -890,7 +1374,9 @@ static void DrawHierarchyPane(Arinc661_Definition_Document_t* editor);
 /**
  * \brief Dispatches to the inspector for the selected entity.
  *
- * \param editor   See definition
+ * \param editor   Editor state
+ *
+ * \retval None
  */
 static void DrawInspectorPane(Arinc661_Definition_Document_t* editor);
 
@@ -898,9 +1384,11 @@ static void DrawInspectorPane(Arinc661_Definition_Document_t* editor);
 /**
  * \brief Sums PosX and PosY through the container chain, since section 3.1.3 positions a widget * relative to its parent's lower-left corner.
  *
- * \param document      See definition
- * \param widgetIndex   See definition
- * \param area          See definition
+ * \param document      Document being edited
+ * \param widgetIndex   Widget array index
+ * \param area          Resolved area output
+ *
+ * \retval None
  */
 static void ResolveWidgetArea(const Arinc661_Definition_Document_t* document, uint32_t widgetIndex, WidgetArea_t* area);
 
@@ -908,7 +1396,9 @@ static void ResolveWidgetArea(const Arinc661_Definition_Document_t* document, ui
 /**
  * \brief Draws the selected layer, or the layer owning the selected widget, scaled to fit the * pane with its origin at the lower-left corner as in section 3.1.3.
  *
- * \param editor   See definition
+ * \param editor   Editor state
+ *
+ * \retval None
  */
 static void DrawScenePane(Arinc661_Definition_Document_t* editor);
 
@@ -926,9 +1416,11 @@ static void ClampPaneResize(float32_t minimumHierarchyWidth);
 /**
  * \brief Sizes the hierarchy to its widest row and the inspector to its label and value columns.
  *
- * \param editor           See definition
- * \param hierarchyWidth   See definition
- * \param inspectorWidth   See definition
+ * \param editor           Editor state
+ * \param hierarchyWidth   Minimum hierarchy width output
+ * \param inspectorWidth   Inspector width output
+ *
+ * \retval None
  */
 static void MeasurePaneWidths(const Arinc661_Definition_Document_t* editor, float32_t* hierarchyWidth, float32_t* inspectorWidth);
 
@@ -1140,6 +1632,7 @@ static void ResetDocument(Arinc661_Definition_Document_t* document)
     Arinc661_Definition_Editor_t* owner_editor;
 
     owner_editor = document->owner;
+    ClearHistory(document);
     document->status                     = STATUS_NONE;
     document->isLoaded                   = FALSE;
     document->isDirty                    = FALSE;
@@ -2151,6 +2644,1211 @@ static void RemoveLayer(Arinc661_Definition_Document_t* document, uint32_t layer
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  Copies the used parts of the model into one heap block.
+ */
+static void* TakeSnapshot(const Arinc661_Definition_Document_t* document)
+{
+    Snapshot_t* snapshot;
+    byte_t*     cursor;
+    size_t      layer_bytes;
+    size_t      widget_bytes;
+    size_t      property_bytes;
+
+    layer_bytes    = ((size_t)document->definition.layerCount * sizeof(Arinc661_Layer_t));
+    widget_bytes   = ((size_t)document->definition.widgetCount * sizeof(Arinc661_Widget_t));
+    property_bytes = ((size_t)document->definition.propertyCount * sizeof(Arinc661_Property_t));
+    snapshot       = (Snapshot_t*)malloc(sizeof(Snapshot_t) + layer_bytes + widget_bytes + property_bytes);
+    LOGASSERT(NULL != snapshot);
+    snapshot->layerCount        = document->definition.layerCount;
+    snapshot->widgetCount       = document->definition.widgetCount;
+    snapshot->propertyCount     = document->definition.propertyCount;
+    snapshot->selectedKind      = document->selectedKind;
+    snapshot->selectedIndex     = document->selectedIndex;
+    snapshot->libraryVersion    = document->definition.libraryVersion;
+    snapshot->supplementVersion = document->definition.supplementVersion;
+    snapshot->charsetEncoding   = document->definition.charsetEncoding;
+    (void)memcpy(snapshot->name, document->definition.name, sizeof(snapshot->name));
+    cursor = (byte_t*)(snapshot + 1);
+    (void)memcpy(cursor, document->layers, layer_bytes);
+    cursor += layer_bytes;
+    (void)memcpy(cursor, document->widgets, widget_bytes);
+    cursor += widget_bytes;
+    (void)memcpy(cursor, document->properties, property_bytes);
+
+    return snapshot;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Copies a snapshot back over the model, selection included.
+ */
+static void RestoreSnapshot(Arinc661_Definition_Document_t* document, const void* snapshot)
+{
+    const Snapshot_t* header;
+    const byte_t*     cursor;
+    size_t            layer_bytes;
+    size_t            widget_bytes;
+    size_t            property_bytes;
+
+    header         = (const Snapshot_t*)snapshot;
+    layer_bytes    = ((size_t)header->layerCount * sizeof(Arinc661_Layer_t));
+    widget_bytes   = ((size_t)header->widgetCount * sizeof(Arinc661_Widget_t));
+    property_bytes = ((size_t)header->propertyCount * sizeof(Arinc661_Property_t));
+    cursor         = (const byte_t*)(header + 1);
+    (void)memcpy(document->layers, cursor, layer_bytes);
+    cursor += layer_bytes;
+    (void)memcpy(document->widgets, cursor, widget_bytes);
+    cursor += widget_bytes;
+    (void)memcpy(document->properties, cursor, property_bytes);
+    document->definition.layerCount        = header->layerCount;
+    document->definition.widgetCount       = header->widgetCount;
+    document->definition.propertyCount     = header->propertyCount;
+    document->definition.libraryVersion    = header->libraryVersion;
+    document->definition.supplementVersion = header->supplementVersion;
+    document->definition.charsetEncoding   = header->charsetEncoding;
+    (void)memcpy(document->definition.name, header->name, sizeof(document->definition.name));
+    document->selectedKind  = header->selectedKind;
+    document->selectedIndex = header->selectedIndex;
+    document->isDirty       = TRUE;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Compares the counts, the header fields, and the used arrays; the selection is ignored so
+ *  selecting alone never makes an undo step.
+ */
+static bool_t SnapshotMatches(const Arinc661_Definition_Document_t* document, const void* snapshot)
+{
+    const Snapshot_t* header;
+    const byte_t*     cursor;
+    size_t            layer_bytes;
+    size_t            widget_bytes;
+    size_t            property_bytes;
+    bool_t            is_same;
+
+    header  = (const Snapshot_t*)snapshot;
+    is_same = !!((header->layerCount == document->definition.layerCount) && (header->widgetCount == document->definition.widgetCount) && (header->propertyCount == document->definition.propertyCount) &&
+                 (header->libraryVersion == document->definition.libraryVersion) && (header->supplementVersion == document->definition.supplementVersion) && (header->charsetEncoding == document->definition.charsetEncoding) &&
+                 (0 == memcmp(header->name, document->definition.name, sizeof(header->name))));
+    if (is_same)
+    {
+        layer_bytes    = ((size_t)header->layerCount * sizeof(Arinc661_Layer_t));
+        widget_bytes   = ((size_t)header->widgetCount * sizeof(Arinc661_Widget_t));
+        property_bytes = ((size_t)header->propertyCount * sizeof(Arinc661_Property_t));
+        cursor         = (const byte_t*)(header + 1);
+        is_same        = !!((0 == memcmp(document->layers, cursor, layer_bytes)) && (0 == memcmp(document->widgets, cursor + layer_bytes, widget_bytes)) && (0 == memcmp(document->properties, cursor + layer_bytes + widget_bytes, property_bytes)));
+    }
+
+    return is_same;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Frees every snapshot.
+ */
+static void ClearHistory(Arinc661_Definition_Document_t* document)
+{
+    uint32_t index;
+
+    for (index = 0; index < document->undoCount; ++index)
+    {
+        free(document->undoStack[index]);
+    }
+    for (index = 0; index < document->redoCount; ++index)
+    {
+        free(document->redoStack[index]);
+    }
+    free(document->shadow);
+    document->shadow    = NULL;
+    document->undoCount = 0;
+    document->redoCount = 0;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Called once per frame: when the model differs from the shadow, the shadow becomes an undo
+ *  step, the redo stack is dropped, and a fresh shadow is taken. The oldest step goes when
+ *  the stack is full.
+ */
+static void CommitHistory(Arinc661_Definition_Document_t* document)
+{
+    if (document->isLoaded)
+    {
+        if (NULL == document->shadow)
+        {
+            document->shadow = TakeSnapshot(document);
+        }
+        else if (FALSE == SnapshotMatches(document, document->shadow))
+        {
+            if (ARINC661_DEFINITION_MAX_HISTORY == document->undoCount)
+            {
+                free(document->undoStack[0]);
+                (void)memmove(&document->undoStack[0], &document->undoStack[1], (ARINC661_DEFINITION_MAX_HISTORY - 1) * sizeof(document->undoStack[0]));
+                document->undoCount -= 1;
+            }
+            document->undoStack[document->undoCount] = document->shadow;
+            document->undoCount += 1;
+            while (0 < document->redoCount)
+            {
+                document->redoCount -= 1;
+                free(document->redoStack[document->redoCount]);
+            }
+            document->shadow = TakeSnapshot(document);
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The current state moves to the redo stack; the newest undo step becomes the model and
+ *  the shadow.
+ */
+static void UndoDocument(Arinc661_Definition_Document_t* document)
+{
+    CommitHistory(document);
+    if (0 < document->undoCount)
+    {
+        if (ARINC661_DEFINITION_MAX_HISTORY == document->redoCount)
+        {
+            free(document->redoStack[0]);
+            (void)memmove(&document->redoStack[0], &document->redoStack[1], (ARINC661_DEFINITION_MAX_HISTORY - 1) * sizeof(document->redoStack[0]));
+            document->redoCount -= 1;
+        }
+        document->redoStack[document->redoCount] = document->shadow;
+        document->redoCount += 1;
+        document->undoCount -= 1;
+        document->shadow = document->undoStack[document->undoCount];
+        RestoreSnapshot(document, document->shadow);
+        document->status = STATUS_NONE;
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Mirror of UndoDocument.
+ */
+static void RedoDocument(Arinc661_Definition_Document_t* document)
+{
+    CommitHistory(document);
+    if (0 < document->redoCount)
+    {
+        document->undoStack[document->undoCount] = document->shadow;
+        document->undoCount += 1;
+        document->redoCount -= 1;
+        document->shadow = document->redoStack[document->redoCount];
+        RestoreSnapshot(document, document->shadow);
+        document->status = STATUS_NONE;
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Table 3.2.3.1: the widgets that can be a parent.
+ */
+static bool_t IsContainerType(const char_t* type)
+{
+    static const char_t* const c_containers[] =
+    {
+        "A661_ANIMATION_GROUP", "A661_BASIC_CONTAINER", "A661_BLINKING_CONTAINER", "A661_FRAMING_REFRESH_CONTAINER", "A661_MAP_BOUNDARY", "A661_MAPHORZ",
+        "A661_MAPHORZ_CONTAINER", "A661_MAPHORZ_PANEL", "A661_MAPHORZ_SOURCE", "A661_MAPVERT", "A661_MAPVERT_CONTAINER", "A661_MAPVERT_PANEL", "A661_MAPVERT_SOURCE",
+        "A661_MASK_CONTAINER", "A661_MENU_BAR", "A661_MUTUALLY_EXCLUSIVE_CONTAINER", "A661_NO_SERVICE_MONITOR", "A661_PAGING_CONTAINER", "A661_PANEL", "A661_POP_UP_PANEL",
+        "A661_RADIO_BOX", "A661_ROTATION_CONTAINER", "A661_SCALE_CONTAINER", "A661_SCROLL_PANEL", "A661_SHUFFLE_TO_FIT_CONTAINER", "A661_SIZE_TO_FIT_CONTAINER",
+        "A661_TABBED_PANEL", "A661_TABBED_PANEL_GROUP", "A661_TRANSLATION_CONTAINER", "A661_WATCHDOG_CONTAINER"
+    };
+    uint32_t index;
+    bool_t   is_container;
+
+    is_container = FALSE;
+    for (index = 0; index < (sizeof(c_containers) / sizeof(c_containers[0])); ++index)
+    {
+        if (0 == strcmp(type, c_containers[index]))
+        {
+            is_container = TRUE;
+            break;
+        }
+    }
+
+    return is_container;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Writes an integer value into an existing property, or appends it.
+ */
+static void SetPropertyNumber(Arinc661_Definition_Document_t* document, Arinc661_PropertyOwner_t owner, uint32_t ownerIndex, const char_t* name, float32_t value)
+{
+    char_t   text[INTEGER_TEXT_BYTES];
+    uint32_t property_index;
+
+    ImFormatString(text, sizeof(text), "%" PRId64, (int64_t)ImFloor(value + 0.5f));
+    property_index = FindOwnedProperty(document, owner, ownerIndex, name);
+    if (INVALID_HIERARCHY_INDEX != property_index)
+    {
+        ImStrncpy(document->properties[property_index].value, text, sizeof(document->properties[property_index].value));
+    }
+    else
+    {
+        (void)AppendProperty(document, owner, ownerIndex, name, text);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Sums PosX and PosY from the widget up through its containers, skipping containers
+ *  without a reference point as section 3.2.3 says.
+ */
+static void AbsoluteOrigin(const Arinc661_Definition_Document_t* document, uint32_t widgetIndex, float32_t* x, float32_t* y)
+{
+    float32_t position_x;
+    float32_t position_y;
+    uint32_t  index;
+    uint32_t  depth;
+
+    (*x)  = 0.0f;
+    (*y)  = 0.0f;
+    index = widgetIndex;
+    for (depth = 0; (INVALID_HIERARCHY_INDEX != index) && (depth < document->definition.widgetCount); ++depth)
+    {
+        if (GetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, index, PROPERTY_POS_X, &position_x) && GetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, index, PROPERTY_POS_Y, &position_y))
+        {
+            (*x) += position_x;
+            (*y) += position_y;
+        }
+        index = document->widgets[index].parentWidgetIndex;
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Copies the widget, its extensions, and its descendants directly after the source
+ *  subtree, remapping parents into the copy and giving every copied widget a fresh
+ *  WidgetIdent. The copy of the root is selected.
+ *
+ * \retval uint32_t   Index of the copied root, or INVALID_HIERARCHY_INDEX when out of room.
+ */
+static uint32_t DuplicateWidget(Arinc661_Definition_Document_t* document, uint32_t widgetIndex)
+{
+    char_t   text[INTEGER_TEXT_BYTES];
+    uint32_t source_end;
+    uint32_t source_count;
+    uint32_t source;
+    uint32_t destination;
+    uint32_t property_index;
+    uint32_t property_count;
+    uint32_t parent;
+    uint32_t root_copy;
+    bool_t   has_room;
+
+    source_end   = SubtreeEnd(document, widgetIndex);
+    source_count = (source_end - widgetIndex);
+    has_room     = ((document->definition.widgetCount + source_count) <= ARINC661_DEFINITION_MAX_WIDGETS);
+    root_copy    = INVALID_HIERARCHY_INDEX;
+    if (has_room)
+    {
+        property_count = 0;
+        for (property_index = 0; property_index < document->definition.propertyCount; ++property_index)
+        {
+            if ((ARINC661_PROPERTY_WIDGET == document->properties[property_index].owner) && (widgetIndex <= document->properties[property_index].ownerIndex) && (document->properties[property_index].ownerIndex < source_end))
+            {
+                property_count += 1;
+            }
+        }
+        has_room = ((document->definition.propertyCount + property_count + source_count) <= ARINC661_DEFINITION_MAX_PROPERTIES);
+    }
+    if (has_room)
+    {
+        // Sources sit before the insertion point, so their indices stay put while copies are appended
+        for (source = widgetIndex; source < source_end; ++source)
+        {
+            destination = (source_end + (source - widgetIndex));
+            if (FALSE == InsertWidgetAt(document, destination))
+            {
+                break;
+            }
+            document->widgets[destination] = document->widgets[source];
+            parent                         = document->widgets[source].parentWidgetIndex;
+            if ((widgetIndex <= parent) && (parent < source_end))
+            {
+                document->widgets[destination].parentWidgetIndex = (source_end + (parent - widgetIndex));
+            }
+            if (source == widgetIndex)
+            {
+                root_copy = destination;
+                if (FALSE == document->widgets[destination].isExtension)
+                {
+                    if ((strlen(document->widgets[destination].name) + strlen(COPY_SUFFIX)) < sizeof(document->widgets[destination].name))
+                    {
+                        strcat(document->widgets[destination].name, COPY_SUFFIX);
+                    }
+                }
+            }
+            property_count = document->definition.propertyCount;
+            for (property_index = 0; property_index < property_count; ++property_index)
+            {
+                if ((ARINC661_PROPERTY_WIDGET == document->properties[property_index].owner) && (source == document->properties[property_index].ownerIndex))
+                {
+                    if (0 == strcmp(PROPERTY_WIDGET_IDENT, document->properties[property_index].name))
+                    {
+                        ImFormatString(text, sizeof(text), "%" PRId64, NextWidgetIdent(document, document->widgets[source].layerIndex));
+                        (void)AppendProperty(document, ARINC661_PROPERTY_WIDGET, destination, PROPERTY_WIDGET_IDENT, text);
+                    }
+                    else
+                    {
+                        (void)AppendProperty(document, ARINC661_PROPERTY_WIDGET, destination, document->properties[property_index].name, document->properties[property_index].value);
+                    }
+                }
+            }
+        }
+        if (INVALID_HIERARCHY_INDEX != root_copy)
+        {
+            document->selectedKind  = SELECTION_WIDGET;
+            document->selectedIndex = root_copy;
+            document->isDirty       = TRUE;
+            document->status        = STATUS_WIDGET_ADDED;
+        }
+    }
+    else
+    {
+        document->status = STATUS_WIDGET_ADD_FAILED;
+    }
+
+    return root_copy;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Removes whatever is selected and selects its parent.
+ */
+static void RemoveSelection(Arinc661_Definition_Document_t* document)
+{
+    uint32_t parent_index;
+
+    if ((SELECTION_WIDGET == document->selectedKind) && (document->selectedIndex < document->definition.widgetCount))
+    {
+        parent_index            = document->widgets[document->selectedIndex].parentWidgetIndex;
+        document->status        = STATUS_WIDGET_REMOVED;
+        if (document->widgets[document->selectedIndex].isExtension)
+        {
+            document->status = STATUS_EXTENSION_REMOVED;
+        }
+        RemoveWidgetSubtree(document, document->selectedIndex);
+        document->selectedKind  = SELECTION_LAYER;
+        document->selectedIndex = 0;
+        if (INVALID_HIERARCHY_INDEX != parent_index)
+        {
+            document->selectedKind  = SELECTION_WIDGET;
+            document->selectedIndex = parent_index;
+        }
+        document->isDirty = TRUE;
+    }
+    else if ((SELECTION_LAYER == document->selectedKind) && (document->selectedIndex < document->definition.layerCount))
+    {
+        RemoveLayer(document, document->selectedIndex);
+        document->selectedKind  = SELECTION_DEFINITION;
+        document->selectedIndex = 0;
+        document->isDirty       = TRUE;
+        document->status        = STATUS_LAYER_REMOVED;
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Shows the specification's description, categories, and restriction of a type, wrapped.
+ */
+static void DrawTypeHelp(const char_t* type)
+{
+    const char_t* description;
+    const char_t* categories;
+    const char_t* restriction;
+    char_t        label[LABEL_FORMAT_BYTES + ARINC661_MAX_NAME_BYTES];
+
+    if (Arinc661_TypeHelp(type, &description, &categories, &restriction))
+    {
+        ImFormatString(label, sizeof(label), ABOUT_FORMAT, type);
+        if (ImGui::CollapsingHeader(label, ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            ImGui::PushTextWrapPos(0.0f);
+            ImGui::TextUnformatted(description);
+            if ('\0' != categories[0])
+            {
+                ImGui::TextDisabled(CATEGORIES_FORMAT, categories);
+            }
+            if ('\0' != restriction[0])
+            {
+                ImGui::TextDisabled(RESTRICTION_FORMAT, restriction);
+            }
+            ImGui::PopTextWrapPos();
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Hovering a parameter name shows the Parameters table row: the change flag and the
+ *  description from the type's section.
+ */
+static void DrawParameterTooltip(const Arinc661_Definition_Document_t* document, Arinc661_PropertyOwner_t owner, uint32_t ownerIndex, const char_t* propertyName)
+{
+    const char_t* description;
+    const char_t* change;
+    const char_t* type;
+
+    if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort))
+    {
+        type = "";
+        if (ARINC661_PROPERTY_WIDGET == owner)
+        {
+            type = document->widgets[ownerIndex].type;
+        }
+        description = Arinc661_ParameterHelp(type, propertyName, &change);
+        if ('\0' != description[0])
+        {
+            ImGui::BeginTooltip();
+            ImGui::PushTextWrapPos(HELP_WRAP_WIDTH);
+            ImGui::Text(CHANGE_FORMAT, change, description);
+            ImGui::PopTextWrapPos();
+            ImGui::EndTooltip();
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Right-click menu shared by hierarchy nodes and the scene: add a child, add an extension,
+ *  duplicate, or remove.
+ */
+static void DrawWidgetContextMenu(Arinc661_Definition_Document_t* document, uint32_t widgetIndex, HierarchyRequest_t* request)
+{
+    const Arinc661_Widget_t* widget;
+
+    widget = &document->widgets[widgetIndex];
+    if (FALSE == widget->isExtension)
+    {
+        if (ImGui::MenuItem(ADD_CHILD_WIDGET_LABEL, NULL, false, IsContainerType(widget->type)))
+        {
+            request->addWidgetLayerIndex  = widget->layerIndex;
+            request->addWidgetParentIndex = widgetIndex;
+        }
+        if (ImGui::MenuItem(ADD_EXTENSION_MENU_LABEL))
+        {
+            request->addExtensionParentIndex = widgetIndex;
+        }
+    }
+    if (ImGui::MenuItem(DUPLICATE_LABEL))
+    {
+        request->duplicateWidgetIndex = widgetIndex;
+    }
+    if (ImGui::MenuItem(REMOVE_LABEL))
+    {
+        request->removeWidgetIndex = widgetIndex;
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The pop-up opened by a right-click on the scene: a filter box, the matching widget types
+ *  with their descriptions as tooltips, and the actions on the widget under the cursor.
+ *  Choosing a type adds the widget to the container under the cursor at that point.
+ */
+static void DrawAddPopup(Arinc661_Definition_Document_t* document)
+{
+    Arinc661_Definition_Editor_t* owner;
+    HierarchyRequest_t            request;
+    const char_t*                 type_name;
+    const char_t*                 description;
+    const char_t*                 categories;
+    const char_t*                 restriction;
+    const char_t*                 parent_name;
+    char_t                        label[LABEL_FORMAT_BYTES + (2 * ARINC661_MAX_NAME_BYTES)];
+    char_t                        lower_type[ARINC661_MAX_NAME_BYTES];
+    char_t                        lower_filter[ARINC661_DEFINITION_MAX_FILTER_BYTES];
+    float32_t                     parent_x;
+    float32_t                     parent_y;
+    uint32_t                      type_index;
+    uint32_t                      new_index;
+    uint32_t                      character;
+    bool_t                        is_match;
+
+    owner = document->owner;
+    if (ImGui::BeginPopup(ADD_POPUP_ID))
+    {
+        (void)memset(&request, 0xFF, sizeof(request));
+        parent_name = document->layers[owner->addLayer].name;
+        if (INVALID_HIERARCHY_INDEX != owner->addParent)
+        {
+            parent_name = document->widgets[owner->addParent].name;
+        }
+        ImFormatString(label, sizeof(label), ADD_HERE_FORMAT, (int)owner->addX, (int)owner->addY, parent_name);
+        ImGui::TextDisabled("%s", label);
+        if (ImGui::IsWindowAppearing())
+        {
+            ImGui::SetKeyboardFocusHere();
+        }
+        ImGui::SetNextItemWidth(-1.0f);
+        (void)ImGui::InputTextWithHint("##filter", ADD_FILTER_HINT, owner->addFilter, sizeof(owner->addFilter));
+        for (character = 0; character < sizeof(lower_filter); ++character)
+        {
+            lower_filter[character] = (char_t)ImToUpper(owner->addFilter[character]);
+            if ('\0' == owner->addFilter[character])
+            {
+                break;
+            }
+        }
+        if (ImGui::BeginChild("##types", ImVec2(HELP_WRAP_WIDTH, ADD_LIST_HEIGHT), ImGuiChildFlags_Borders))
+        {
+            for (type_index = 0; type_index < Arinc661_TypeCount(FALSE); ++type_index)
+            {
+                type_name = Arinc661_TypeName(FALSE, type_index);
+                for (character = 0; character < sizeof(lower_type); ++character)
+                {
+                    lower_type[character] = (char_t)ImToUpper(type_name[character]);
+                    if ('\0' == type_name[character])
+                    {
+                        break;
+                    }
+                }
+                is_match = !!(('\0' == lower_filter[0]) || (NULL != strstr(lower_type, lower_filter)));
+                if (is_match)
+                {
+                    if (ImGui::Selectable(type_name))
+                    {
+                        AddWidget(document, owner->addLayer, owner->addParent, FALSE);
+                        if ((SELECTION_WIDGET == document->selectedKind) && (0 == strcmp(DEFAULT_WIDGET_TYPE, document->widgets[document->selectedIndex].type)))
+                        {
+                            new_index = document->selectedIndex;
+                            ImStrncpy(document->widgets[new_index].type, type_name, sizeof(document->widgets[new_index].type));
+                            (void)ConformParameters(document, new_index);
+                            // Place the reference point at the clicked spot, relative to the container's origin
+                            parent_x = 0.0f;
+                            parent_y = 0.0f;
+                            if (INVALID_HIERARCHY_INDEX != owner->addParent)
+                            {
+                                AbsoluteOrigin(document, owner->addParent, &parent_x, &parent_y);
+                            }
+                            if (INVALID_HIERARCHY_INDEX != FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, new_index, PROPERTY_POS_X))
+                            {
+                                SetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, new_index, PROPERTY_POS_X, owner->addX - parent_x);
+                                SetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, new_index, PROPERTY_POS_Y, owner->addY - parent_y);
+                            }
+                        }
+                        ImGui::CloseCurrentPopup();
+                    }
+                    if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) && Arinc661_TypeHelp(type_name, &description, &categories, &restriction))
+                    {
+                        ImGui::BeginTooltip();
+                        ImGui::PushTextWrapPos(HELP_WRAP_WIDTH);
+                        ImGui::TextUnformatted(description);
+                        ImGui::TextDisabled(CATEGORIES_FORMAT, categories);
+                        ImGui::PopTextWrapPos();
+                        ImGui::EndTooltip();
+                    }
+                }
+            }
+        }
+        ImGui::EndChild();
+        if ((INVALID_HIERARCHY_INDEX != owner->addHit) && (owner->addHit < document->definition.widgetCount))
+        {
+            ImGui::Separator();
+            ImFormatString(label, sizeof(label), WIDGET_LABEL_FORMAT, document->widgets[owner->addHit].name, document->widgets[owner->addHit].type);
+            ImGui::TextDisabled("%s", label);
+            DrawWidgetContextMenu(document, owner->addHit, &request);
+            if (INVALID_HIERARCHY_INDEX != request.removeWidgetIndex)
+            {
+                document->selectedKind  = SELECTION_WIDGET;
+                document->selectedIndex = request.removeWidgetIndex;
+                RemoveSelection(document);
+                ImGui::CloseCurrentPopup();
+            }
+            else if (INVALID_HIERARCHY_INDEX != request.duplicateWidgetIndex)
+            {
+                (void)DuplicateWidget(document, request.duplicateWidgetIndex);
+                ImGui::CloseCurrentPopup();
+            }
+            else if (INVALID_HIERARCHY_INDEX != request.addExtensionParentIndex)
+            {
+                AddWidget(document, document->widgets[request.addExtensionParentIndex].layerIndex, request.addExtensionParentIndex, TRUE);
+                ImGui::CloseCurrentPopup();
+            }
+            else if (INVALID_HIERARCHY_INDEX != request.addWidgetLayerIndex)
+            {
+                AddWidget(document, request.addWidgetLayerIndex, request.addWidgetParentIndex, FALSE);
+                ImGui::CloseCurrentPopup();
+            }
+        }
+        ImGui::EndPopup();
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Rounds to whole millimetres when snapping is on.
+ */
+static float32_t Snap(const Arinc661_Definition_Editor_t* editor, float32_t value)
+{
+    if (editor->isSnapping)
+    {
+        value = (ImFloor((value / SNAP_UNITS) + 0.5f) * SNAP_UNITS);
+    }
+
+    return value;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Walks each edge in dash-length steps.
+ */
+static void DrawDashedScreenRect(ImDrawList* drawList, ImVec2 minimum, ImVec2 maximum, ImU32 color)
+{
+    float32_t position;
+
+    for (position = minimum.x; position < maximum.x; position += (2.0f * SCENE_FRAME_DASH))
+    {
+        drawList->AddLine(ImVec2(position, minimum.y), ImVec2(ImMin(position + SCENE_FRAME_DASH, maximum.x), minimum.y), color, 1.5f);
+        drawList->AddLine(ImVec2(position, maximum.y), ImVec2(ImMin(position + SCENE_FRAME_DASH, maximum.x), maximum.y), color, 1.5f);
+    }
+    for (position = minimum.y; position < maximum.y; position += (2.0f * SCENE_FRAME_DASH))
+    {
+        drawList->AddLine(ImVec2(minimum.x, position), ImVec2(minimum.x, ImMin(position + SCENE_FRAME_DASH, maximum.y)), color, 1.5f);
+        drawList->AddLine(ImVec2(maximum.x, position), ImVec2(maximum.x, ImMin(position + SCENE_FRAME_DASH, maximum.y)), color, 1.5f);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Millimetre lines, with every tenth line stronger, drawn only when a millimetre spans at
+ *  least a few pixels so the grid never turns into a wall.
+ */
+static void DrawGrid(ImDrawList* drawList, ImVec2 layerMin, ImVec2 layerMax, float32_t scale, ImVec2 clipMin, ImVec2 clipMax)
+{
+    float32_t pitch;
+    float32_t position;
+    ImU32     color;
+    int32_t   line;
+
+    pitch = (GRID_UNITS * scale);
+    if (4.0f <= pitch)
+    {
+        for (line = 0, position = layerMin.x; position <= layerMax.x; ++line, position += pitch)
+        {
+            color = SCENE_GRID_COLOR;
+            if (0 == (line % GRID_MAJOR_EVERY))
+            {
+                color = SCENE_GRID_MAJOR_COLOR;
+            }
+            if ((clipMin.x <= position) && (position <= clipMax.x))
+            {
+                drawList->AddLine(ImVec2(position, ImMax(layerMin.y, clipMin.y)), ImVec2(position, ImMin(layerMax.y, clipMax.y)), color);
+            }
+        }
+        // Count rows from the bottom edge, where the layer origin is
+        for (line = 0, position = layerMax.y; layerMin.y <= position; ++line, position -= pitch)
+        {
+            color = SCENE_GRID_COLOR;
+            if (0 == (line % GRID_MAJOR_EVERY))
+            {
+                color = SCENE_GRID_MAJOR_COLOR;
+            }
+            if ((clipMin.y <= position) && (position <= clipMax.y))
+            {
+                drawList->AddLine(ImVec2(ImMax(layerMin.x, clipMin.x), position), ImVec2(ImMin(layerMax.x, clipMax.x), position), color);
+            }
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Re-parents a widget with its subtree and extensions: the subtree is copied after the
+ *  new parent's subtree with parents remapped, then the original is removed. Dropping a
+ *  widget onto itself or one of its descendants is refused. PosX and PosY are kept, so the
+ *  widget keeps its offset relative to its new container.
+ *
+ * \retval TRUE    if the widget moved.
+ * \retval FALSE   otherwise.
+ */
+static bool_t MoveWidgetSubtree(Arinc661_Definition_Document_t* document, uint32_t widgetIndex, uint32_t newLayer, uint32_t newParent)
+{
+    uint32_t source_end;
+    uint32_t source_count;
+    uint32_t insert_at;
+    uint32_t source;
+    uint32_t destination;
+    uint32_t parent;
+    uint32_t property_index;
+    uint32_t property_count;
+    uint32_t root_copy;
+    bool_t   is_allowed;
+
+    is_allowed = !!((widgetIndex != newParent) && ((INVALID_HIERARCHY_INDEX == newParent) || (FALSE == IsDescendant(document, newParent, widgetIndex))));
+    if (is_allowed && (INVALID_HIERARCHY_INDEX != newParent))
+    {
+        is_allowed = !!((FALSE == document->widgets[newParent].isExtension) && (newParent < document->definition.widgetCount));
+    }
+    if (is_allowed)
+    {
+        is_allowed = !!((widgetIndex != newParent) && ((INVALID_HIERARCHY_INDEX != newParent) || (newLayer != document->widgets[widgetIndex].layerIndex) || (INVALID_HIERARCHY_INDEX != document->widgets[widgetIndex].parentWidgetIndex)));
+    }
+    root_copy = INVALID_HIERARCHY_INDEX;
+    if (is_allowed)
+    {
+        source_end   = SubtreeEnd(document, widgetIndex);
+        source_count = (source_end - widgetIndex);
+        is_allowed   = ((document->definition.widgetCount + source_count) <= ARINC661_DEFINITION_MAX_WIDGETS);
+    }
+    if (is_allowed)
+    {
+        insert_at = document->definition.widgetCount;
+        if (INVALID_HIERARCHY_INDEX != newParent)
+        {
+            insert_at = SubtreeEnd(document, newParent);
+            if (document->widgets[widgetIndex].isExtension)
+            {
+                insert_at = (newParent + 1);
+            }
+        }
+        // Open the slots after the target subtree; a target before the sources shifts them
+        for (source = widgetIndex; source < source_end; ++source)
+        {
+            (void)InsertWidgetAt(document, insert_at + (source - widgetIndex));
+        }
+        if (insert_at <= widgetIndex)
+        {
+            widgetIndex += source_count;
+            source_end += source_count;
+        }
+        for (source = widgetIndex; source < source_end; ++source)
+        {
+            destination                    = insert_at + (source - widgetIndex);
+            document->widgets[destination] = document->widgets[source];
+            document->widgets[destination].layerIndex = newLayer;
+            parent                         = document->widgets[source].parentWidgetIndex;
+            if ((widgetIndex <= parent) && (parent < source_end))
+            {
+                document->widgets[destination].parentWidgetIndex = insert_at + (parent - widgetIndex);
+            }
+            else
+            {
+                document->widgets[destination].parentWidgetIndex = newParent;
+            }
+            if (source == widgetIndex)
+            {
+                root_copy = destination;
+            }
+            property_count = document->definition.propertyCount;
+            for (property_index = 0; property_index < property_count; ++property_index)
+            {
+                if ((ARINC661_PROPERTY_WIDGET == document->properties[property_index].owner) && (source == document->properties[property_index].ownerIndex))
+                {
+                    (void)AppendProperty(document, ARINC661_PROPERTY_WIDGET, destination, document->properties[property_index].name, document->properties[property_index].value);
+                }
+            }
+        }
+        RemoveWidgetSubtree(document, widgetIndex);
+        if (widgetIndex < root_copy)
+        {
+            root_copy -= source_count;
+        }
+        document->selectedKind  = SELECTION_WIDGET;
+        document->selectedIndex = root_copy;
+        document->isDirty       = TRUE;
+        document->status        = STATUS_WIDGET_ADDED;
+    }
+
+    return !!(INVALID_HIERARCHY_INDEX != root_copy);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The LayerId property names a layer to the user application; an empty string stands for a
+ *  layer without one.
+ */
+static const char_t* LayerIdText(const Arinc661_Definition_Document_t* document, uint32_t layerIndex)
+{
+    const char_t* text;
+    uint32_t      property_index;
+
+    text           = "";
+    property_index = FindOwnedProperty(document, ARINC661_PROPERTY_LAYER, layerIndex, PROPERTY_LAYER_ID);
+    if (INVALID_HIERARCHY_INDEX != property_index)
+    {
+        text = document->properties[property_index].value;
+    }
+
+    return text;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Icon row above the canvas: zoom, fit, grid, snap, then add layer, add widget, add
+ *  extension, duplicate, delete, and a combo choosing the layer shown.
+ */
+static void DrawSceneToolbar(Arinc661_Definition_Document_t* document, uint32_t* layerIndex)
+{
+    Arinc661_Definition_Editor_t* owner;
+    char_t                        label[HIERARCHY_LABEL_BYTES];
+    uint32_t                      index;
+    bool_t                        has_widget;
+    bool_t                        has_layer;
+
+    owner      = document->owner;
+    has_layer  = (0 < document->definition.layerCount);
+    has_widget = !!((SELECTION_WIDGET == document->selectedKind) && (document->selectedIndex < document->definition.widgetCount));
+    if (Arinc661_Icons_Button(ARINC661_ICON_ZOOM_IN, TOOL_ZOOM_IN_LABEL, SHORTCUT_WHEEL, has_layer, FALSE))
+    {
+        document->viewZoom = ImClamp(ImMax(document->viewZoom, 1.0f) * ZOOM_STEP_FACTOR, ZOOM_MIN, ZOOM_MAX);
+    }
+    if (Arinc661_Icons_Button(ARINC661_ICON_ZOOM_OUT, TOOL_ZOOM_OUT_LABEL, SHORTCUT_WHEEL, has_layer, FALSE))
+    {
+        document->viewZoom = ImClamp(ImMax(document->viewZoom, 1.0f) / ZOOM_STEP_FACTOR, ZOOM_MIN, ZOOM_MAX);
+    }
+    if (Arinc661_Icons_Button(ARINC661_ICON_FIT, TOOL_FIT_LABEL, SHORTCUT_F, has_layer, FALSE))
+    {
+        document->viewZoom = 1.0f;
+        document->viewPanX = 0.0f;
+        document->viewPanY = 0.0f;
+    }
+    Arinc661_Icons_Gap();
+    if (Arinc661_Icons_Button(ARINC661_ICON_GRID, TOOL_GRID_LABEL, SHORTCUT_G, TRUE, owner->showsGrid))
+    {
+        owner->showsGrid = !owner->showsGrid;
+    }
+    if (Arinc661_Icons_Button(ARINC661_ICON_SNAP, TOOL_SNAP_LABEL, SHORTCUT_S, TRUE, owner->isSnapping))
+    {
+        owner->isSnapping = !owner->isSnapping;
+    }
+    Arinc661_Icons_Gap();
+    if (Arinc661_Icons_Button(ARINC661_ICON_ADD_LAYER, TOOL_ADD_LAYER_LABEL, NULL, TRUE, FALSE))
+    {
+        AddLayer(document);
+    }
+    if (Arinc661_Icons_Button(ARINC661_ICON_ADD_WIDGET, TOOL_ADD_WIDGET_LABEL, NULL, has_layer, FALSE))
+    {
+        Arinc661_Definition_AddWidget(owner);
+    }
+    if (Arinc661_Icons_Button(ARINC661_ICON_ADD_EXTENSION, TOOL_ADD_EXTENSION_LABEL, NULL, has_widget, FALSE))
+    {
+        Arinc661_Definition_AddExtension(owner);
+    }
+    if (Arinc661_Icons_Button(ARINC661_ICON_DUPLICATE, TOOL_DUPLICATE_LABEL, SHORTCUT_CTRL_D, has_widget, FALSE))
+    {
+        (void)DuplicateWidget(document, document->selectedIndex);
+    }
+    if (Arinc661_Icons_Button(ARINC661_ICON_DELETE, TOOL_DELETE_LABEL, SHORTCUT_DEL, has_widget || (SELECTION_LAYER == document->selectedKind), FALSE))
+    {
+        RemoveSelection(document);
+    }
+    Arinc661_Icons_Gap();
+    ImGui::SetNextItemWidth(ImMax(120.0f, ImGui::GetContentRegionAvail().x));
+    label[0] = '\0';
+    if ((*layerIndex) < document->definition.layerCount)
+    {
+        ImFormatString(label, sizeof(label), TOOL_LAYER_FORMAT, LayerIdText(document, *layerIndex), document->layers[*layerIndex].name);
+    }
+    else
+    {
+        ImStrncpy(label, TOOL_NO_LAYER_LABEL, sizeof(label));
+    }
+    if (ImGui::BeginCombo(TOOL_LAYER_COMBO_ID, label))
+    {
+        for (index = 0; index < document->definition.layerCount; ++index)
+        {
+            ImFormatString(label, sizeof(label), TOOL_LAYER_FORMAT, LayerIdText(document, index), document->layers[index].name);
+            if (ImGui::Selectable(label, index == (*layerIndex)))
+            {
+                document->selectedKind  = SELECTION_LAYER;
+                document->selectedIndex = index;
+                (*layerIndex)           = index;
+            }
+        }
+        ImGui::EndCombo();
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Direct manipulation on the scene canvas. A press selects the smallest widget under the
+ *  cursor and starts a move; a press on a corner handle of the selected widget starts a
+ *  resize; the arrow keys nudge PosX and PosY; Delete removes the selection; a right-click
+ *  opens the add pop-up at that point. Layer units grow upward, so screen deltas flip in Y.
+ */
+static void DrawSceneInteraction(Arinc661_Definition_Document_t* document, uint32_t layerIndex, ImVec2 layerMin, ImVec2 layerMax, float32_t scale, ImDrawList* drawList, bool_t isCanvasHovered)
+{
+    Arinc661_Definition_Editor_t* owner;
+    const Arinc661_Scene_Bounds_t* bounds;
+    FACEOE_Gfx_Point_t            mouse_point;
+    ImVec2                        mouse;
+    ImVec2                        corners[4];
+    ImVec2                        selected_min;
+    ImVec2                        selected_max;
+    float32_t                     delta_x;
+    float32_t                     delta_y;
+    float32_t                     step;
+    float32_t                     value;
+    float32_t                     width;
+    float32_t                     height;
+    uint32_t                      hit_index;
+    uint32_t                      bounds_index;
+    uint32_t                      corner;
+    int32_t                       hover_mode;
+    bool_t                        has_selected_bounds;
+    bool_t                        has_position;
+    bool_t                        has_size;
+
+    owner               = document->owner;
+    mouse               = ImGui::GetMousePos();
+    mouse_point.x       = mouse.x;
+    mouse_point.y       = mouse.y;
+    has_selected_bounds = FALSE;
+    has_position        = FALSE;
+    has_size            = FALSE;
+    hover_mode          = DRAG_NONE;
+    if ((SELECTION_WIDGET == document->selectedKind) && (document->selectedIndex < document->definition.widgetCount))
+    {
+        has_position = !!((INVALID_HIERARCHY_INDEX != FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, document->selectedIndex, PROPERTY_POS_X)) && (INVALID_HIERARCHY_INDEX != FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, document->selectedIndex, PROPERTY_POS_Y)));
+        has_size     = !!((INVALID_HIERARCHY_INDEX != FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, document->selectedIndex, PROPERTY_SIZE_X)) && (INVALID_HIERARCHY_INDEX != FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, document->selectedIndex, PROPERTY_SIZE_Y)));
+        for (bounds_index = 0; bounds_index < owner->sceneBoundsCount; ++bounds_index)
+        {
+            bounds = &owner->sceneBounds[bounds_index];
+            if (document->selectedIndex == bounds->widgetIndex)
+            {
+                selected_min        = ImVec2(bounds->minimum.x, bounds->minimum.y);
+                selected_max        = ImVec2(bounds->maximum.x, bounds->maximum.y);
+                has_selected_bounds = TRUE;
+            }
+        }
+    }
+    if (has_selected_bounds)
+    {
+        drawList->AddRectFilled(selected_min, selected_max, SCENE_SELECTION_OVERLAY_COLOR);
+        drawList->AddRect(selected_min, selected_max, SCENE_TEXT_COLOR);
+        if (has_size && has_position)
+        {
+            // Corner handles: bottom-left, bottom-right, top-left, top-right in layer terms
+            corners[0] = ImVec2(selected_min.x, selected_max.y);
+            corners[1] = ImVec2(selected_max.x, selected_max.y);
+            corners[2] = ImVec2(selected_min.x, selected_min.y);
+            corners[3] = ImVec2(selected_max.x, selected_min.y);
+            for (corner = 0; corner < 4; ++corner)
+            {
+                drawList->AddRectFilled(corners[corner] - ImVec2(HANDLE_HALF_SIZE, HANDLE_HALF_SIZE), corners[corner] + ImVec2(HANDLE_HALF_SIZE, HANDLE_HALF_SIZE), SCENE_HANDLE_COLOR);
+                if ((ImFabs(mouse.x - corners[corner].x) <= HANDLE_HALF_SIZE) && (ImFabs(mouse.y - corners[corner].y) <= HANDLE_HALF_SIZE))
+                {
+                    hover_mode = (DRAG_BOTTOM_LEFT + (int32_t)corner);
+                }
+            }
+        }
+    }
+    if (isCanvasHovered && (DRAG_NONE != hover_mode))
+    {
+        if ((DRAG_BOTTOM_LEFT == hover_mode) || (DRAG_TOP_RIGHT == hover_mode))
+        {
+            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNESW);
+        }
+        else
+        {
+            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
+        }
+    }
+    // Outline the widget under the cursor so the pick target is visible before clicking
+    if (isCanvasHovered && (DRAG_NONE == owner->dragMode) && (DRAG_NONE == hover_mode))
+    {
+        hit_index = Arinc661_Scene_Pick(owner->sceneBounds, owner->sceneBoundsCount, mouse_point);
+        if ((ARINC661_SCENE_NO_WIDGET != hit_index) && ((SELECTION_WIDGET != document->selectedKind) || (hit_index != document->selectedIndex)))
+        {
+            for (bounds_index = 0; bounds_index < owner->sceneBoundsCount; ++bounds_index)
+            {
+                if (hit_index == owner->sceneBounds[bounds_index].widgetIndex)
+                {
+                    drawList->AddRect(ImVec2(owner->sceneBounds[bounds_index].minimum.x, owner->sceneBounds[bounds_index].minimum.y), ImVec2(owner->sceneBounds[bounds_index].maximum.x, owner->sceneBounds[bounds_index].maximum.y), SCENE_HOVER_COLOR);
+                }
+            }
+        }
+    }
+    if (isCanvasHovered && (0 == document->definition.widgetCount))
+    {
+        drawList->AddText(ImVec2(layerMin.x + 8.0f, layerMin.y + 8.0f), SCENE_HINT_COLOR, EMPTY_WIDGET_HINT_LABEL);
+    }
+    // Press: start a resize on a handle, otherwise select what is under the cursor and start a move
+    if (ImGui::IsItemActivated() && (FALSE == ImGui::IsKeyDown(ImGuiKey_Space)))
+    {
+        owner->dragMode   = DRAG_NONE;
+        owner->hasDragged = FALSE;
+        owner->dragStartX = mouse.x;
+        owner->dragStartY = mouse.y;
+        owner->dragScale  = scale;
+        if (DRAG_NONE != hover_mode)
+        {
+            owner->dragMode   = hover_mode;
+            owner->dragWidget = document->selectedIndex;
+        }
+        else
+        {
+            hit_index = Arinc661_Scene_Pick(owner->sceneBounds, owner->sceneBoundsCount, mouse_point);
+            if (ARINC661_SCENE_NO_WIDGET != hit_index)
+            {
+                document->selectedKind  = SELECTION_WIDGET;
+                document->selectedIndex = hit_index;
+                if ((INVALID_HIERARCHY_INDEX != FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, hit_index, PROPERTY_POS_X)) && (INVALID_HIERARCHY_INDEX != FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, hit_index, PROPERTY_POS_Y)))
+                {
+                    owner->dragMode   = DRAG_MOVE;
+                    owner->dragWidget = hit_index;
+                }
+            }
+            else
+            {
+                document->selectedKind  = SELECTION_LAYER;
+                document->selectedIndex = layerIndex;
+            }
+        }
+        if (DRAG_NONE != owner->dragMode)
+        {
+            owner->dragOriginX      = 0.0f;
+            owner->dragOriginY      = 0.0f;
+            owner->dragOriginWidth  = 0.0f;
+            owner->dragOriginHeight = 0.0f;
+            (void)GetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, owner->dragWidget, PROPERTY_POS_X, &owner->dragOriginX);
+            (void)GetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, owner->dragWidget, PROPERTY_POS_Y, &owner->dragOriginY);
+            (void)GetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, owner->dragWidget, PROPERTY_SIZE_X, &owner->dragOriginWidth);
+            (void)GetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, owner->dragWidget, PROPERTY_SIZE_Y, &owner->dragOriginHeight);
+        }
+    }
+    // Drag: apply the mouse delta in layer units to the origin values
+    if (ImGui::IsItemActive() && (DRAG_NONE != owner->dragMode) && (owner->dragWidget < document->definition.widgetCount) && (0.0f < owner->dragScale))
+    {
+        delta_x = ((mouse.x - owner->dragStartX) / owner->dragScale);
+        delta_y = (-(mouse.y - owner->dragStartY) / owner->dragScale);
+        if ((DRAG_THRESHOLD <= ImFabs(mouse.x - owner->dragStartX)) || (DRAG_THRESHOLD <= ImFabs(mouse.y - owner->dragStartY)))
+        {
+            owner->hasDragged = TRUE;
+        }
+        if (owner->hasDragged)
+        {
+            if (DRAG_MOVE == owner->dragMode)
+            {
+                SetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, owner->dragWidget, PROPERTY_POS_X, Snap(owner, owner->dragOriginX + delta_x));
+                SetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, owner->dragWidget, PROPERTY_POS_Y, Snap(owner, owner->dragOriginY + delta_y));
+            }
+            else
+            {
+                width  = owner->dragOriginWidth;
+                height = owner->dragOriginHeight;
+                if ((DRAG_BOTTOM_RIGHT == owner->dragMode) || (DRAG_TOP_RIGHT == owner->dragMode))
+                {
+                    width = ImMax(1.0f, Snap(owner, owner->dragOriginWidth + delta_x));
+                }
+                else
+                {
+                    width = ImMax(1.0f, Snap(owner, owner->dragOriginWidth - delta_x));
+                    SetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, owner->dragWidget, PROPERTY_POS_X, owner->dragOriginX + (owner->dragOriginWidth - width));
+                }
+                if ((DRAG_TOP_LEFT == owner->dragMode) || (DRAG_TOP_RIGHT == owner->dragMode))
+                {
+                    height = ImMax(1.0f, Snap(owner, owner->dragOriginHeight + delta_y));
+                }
+                else
+                {
+                    height = ImMax(1.0f, Snap(owner, owner->dragOriginHeight - delta_y));
+                    SetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, owner->dragWidget, PROPERTY_POS_Y, owner->dragOriginY + (owner->dragOriginHeight - height));
+                }
+                SetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, owner->dragWidget, PROPERTY_SIZE_X, width);
+                SetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, owner->dragWidget, PROPERTY_SIZE_Y, height);
+            }
+            MarkDocumentDirty(document, TRUE);
+        }
+    }
+    if (ImGui::IsItemDeactivated())
+    {
+        owner->dragMode = DRAG_NONE;
+    }
+    // Keyboard: nudge and delete while the scene has the focus
+    if (ImGui::IsWindowFocused() && (SELECTION_WIDGET == document->selectedKind) && has_position && (FALSE == ImGui::IsAnyItemActive()))
+    {
+        step = NUDGE_STEP;
+        if (ImGui::GetIO().KeyShift)
+        {
+            step = NUDGE_FAST_STEP;
+        }
+        delta_x = 0.0f;
+        delta_y = 0.0f;
+        if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow))
+        {
+            delta_x = -step;
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_RightArrow))
+        {
+            delta_x = step;
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_UpArrow))
+        {
+            delta_y = step;
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_DownArrow))
+        {
+            delta_y = -step;
+        }
+        if ((0.0f != delta_x) || (0.0f != delta_y))
+        {
+            value = 0.0f;
+            (void)GetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, document->selectedIndex, PROPERTY_POS_X, &value);
+            SetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, document->selectedIndex, PROPERTY_POS_X, value + delta_x);
+            value = 0.0f;
+            (void)GetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, document->selectedIndex, PROPERTY_POS_Y, &value);
+            SetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, document->selectedIndex, PROPERTY_POS_Y, value + delta_y);
+            MarkDocumentDirty(document, TRUE);
+        }
+    }
+    if (ImGui::IsWindowFocused() && (FALSE == ImGui::IsAnyItemActive()) && ImGui::IsKeyPressed(ImGuiKey_Delete))
+    {
+        RemoveSelection(document);
+    }
+    // Right-click: remember where and on what, then open the add pop-up
+    if (isCanvasHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+    {
+        owner->addLayer  = layerIndex;
+        owner->addX      = Snap(owner, (mouse.x - layerMin.x) / scale);
+        owner->addY      = Snap(owner, (layerMax.y - mouse.y) / scale);
+        owner->addHit    = Arinc661_Scene_Pick(owner->sceneBounds, owner->sceneBoundsCount, mouse_point);
+        owner->addParent = INVALID_HIERARCHY_INDEX;
+        if (ARINC661_SCENE_NO_WIDGET != owner->addHit)
+        {
+            owner->addParent = owner->addHit;
+            if (FALSE == IsContainerType(document->widgets[owner->addHit].type))
+            {
+                owner->addParent = document->widgets[owner->addHit].parentWidgetIndex;
+            }
+        }
+        owner->addFilter[0] = '\0';
+        ImGui::OpenPopup(ADD_POPUP_ID);
+    }
+    DrawAddPopup(document);
+    (void)layerMax;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Fits the X to the current font and centers it in a tree-row-height hit area.
  */
 static bool_t DrawRemoveButton(const char_t* label, float32_t rowHeight)
@@ -2232,10 +3930,32 @@ static void DrawWidgetNodes(Arinc661_Definition_Document_t* document, uint32_t l
         {
             is_open = ImGui::TreeNodeEx(WIDGET_NODE_ID, flags, WIDGET_LABEL_FORMAT, widget->name, widget->type);
         }
-        if (ImGui::IsItemClicked())
+        if (ImGui::IsItemClicked() || ImGui::IsItemClicked(ImGuiMouseButton_Right))
         {
             document->selectedKind  = SELECTION_WIDGET;
             document->selectedIndex = widget_index;
+        }
+        if (ImGui::BeginPopupContextItem())
+        {
+            DrawWidgetContextMenu(document, widget_index, request);
+            ImGui::EndPopup();
+        }
+        // Drag a node onto a container to re-parent it
+        if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceNoDisableHover))
+        {
+            ImGui::SetDragDropPayload(DROP_PAYLOAD_ID, &widget_index, sizeof(widget_index));
+            ImGui::Text(WIDGET_LABEL_FORMAT, widget->name, widget->type);
+            ImGui::EndDragDropSource();
+        }
+        if ((FALSE == widget->isExtension) && IsContainerType(widget->type) && ImGui::BeginDragDropTarget())
+        {
+            if (NULL != ImGui::AcceptDragDropPayload(DROP_PAYLOAD_ID))
+            {
+                document->owner->dropWidget = *(const uint32_t*)ImGui::GetDragDropPayload()->Data;
+                document->owner->dropParent = widget_index;
+                document->owner->dropLayer  = layerIndex;
+            }
+            ImGui::EndDragDropTarget();
         }
         row_height = ImGui::GetItemRectSize().y;
         if (widget->isExtension)
@@ -2292,6 +4012,7 @@ static void DrawHierarchy(Arinc661_Definition_Document_t* document)
     request.addWidgetLayerIndex     = INVALID_HIERARCHY_INDEX;
     request.addWidgetParentIndex    = INVALID_HIERARCHY_INDEX;
     request.addExtensionParentIndex = INVALID_HIERARCHY_INDEX;
+    request.duplicateWidgetIndex     = INVALID_HIERARCHY_INDEX;
     flags = HIERARCHY_LEAF_FLAGS;
     if (SELECTION_DEFINITION == document->selectedKind)
     {
@@ -2302,6 +4023,14 @@ static void DrawHierarchy(Arinc661_Definition_Document_t* document)
     {
         document->selectedKind  = SELECTION_DEFINITION;
         document->selectedIndex = 0;
+    }
+    if (ImGui::BeginPopupContextItem())
+    {
+        if (ImGui::MenuItem(TOOL_ADD_LAYER_LABEL))
+        {
+            AddLayer(document);
+        }
+        ImGui::EndPopup();
     }
     for (layer_index = 0; layer_index < document->definition.layerCount; ++layer_index)
     {
@@ -2323,6 +4052,29 @@ static void DrawHierarchy(Arinc661_Definition_Document_t* document)
         {
             document->selectedKind  = SELECTION_LAYER;
             document->selectedIndex = layer_index;
+        }
+        if (ImGui::BeginDragDropTarget())
+        {
+            if (NULL != ImGui::AcceptDragDropPayload(DROP_PAYLOAD_ID))
+            {
+                document->owner->dropWidget = *(const uint32_t*)ImGui::GetDragDropPayload()->Data;
+                document->owner->dropParent = INVALID_HIERARCHY_INDEX;
+                document->owner->dropLayer  = layer_index;
+            }
+            ImGui::EndDragDropTarget();
+        }
+        if (ImGui::BeginPopupContextItem())
+        {
+            if (ImGui::MenuItem(ADD_CHILD_WIDGET_LABEL))
+            {
+                request.addWidgetLayerIndex  = layer_index;
+                request.addWidgetParentIndex = INVALID_HIERARCHY_INDEX;
+            }
+            if (ImGui::MenuItem(REMOVE_LABEL))
+            {
+                request.removeLayerIndex = layer_index;
+            }
+            ImGui::EndPopup();
         }
         row_height = ImGui::GetItemRectSize().y;
         if (DrawRemoveButton(REMOVE_LAYER_LABEL, row_height))
@@ -2372,6 +4124,15 @@ static void DrawHierarchy(Arinc661_Definition_Document_t* document)
         }
         RemoveWidgetSubtree(document, request.removeWidgetIndex);
         document->isDirty = TRUE;
+    }
+    else if (INVALID_HIERARCHY_INDEX != request.duplicateWidgetIndex)
+    {
+        (void)DuplicateWidget(document, request.duplicateWidgetIndex);
+    }
+    else if (INVALID_HIERARCHY_INDEX != document->owner->dropWidget)
+    {
+        (void)MoveWidgetSubtree(document, document->owner->dropWidget, document->owner->dropLayer, document->owner->dropParent);
+        document->owner->dropWidget = INVALID_HIERARCHY_INDEX;
     }
     else if (INVALID_HIERARCHY_INDEX != request.addExtensionParentIndex)
     {
@@ -2669,6 +4430,7 @@ static bool_t DrawParameterRow(Arinc661_Definition_Document_t* document, Arinc66
     ImGui::TableNextRow();
     ImGui::TableSetColumnIndex(0);
     ImGui::TextUnformatted(label);
+    DrawParameterTooltip(document, owner, ownerIndex, propertyName);
     ImGui::TableSetColumnIndex(1);
     ImGui::PushID(label);
     // Show a value the binary writer would reject in the error color
@@ -2788,6 +4550,9 @@ static void DrawParameterTable(Arinc661_Definition_Document_t* document, uint32_
 static bool_t DrawTypeField(const char_t* label, char_t* type, uint32_t capacity, bool_t isExtension)
 {
     const char_t* preview;
+    const char_t* description;
+    const char_t* categories;
+    const char_t* restriction;
     uint32_t type_count;
     uint32_t type_index;
     int      selected;
@@ -2824,6 +4589,15 @@ static bool_t DrawTypeField(const char_t* label, char_t* type, uint32_t capacity
                 ImStrncpy(type, Arinc661_TypeName(isExtension, type_index), capacity);
                 has_changed = TRUE;
             }
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) && Arinc661_TypeHelp(Arinc661_TypeName(isExtension, type_index), &description, &categories, &restriction))
+            {
+                ImGui::BeginTooltip();
+                ImGui::PushTextWrapPos(HELP_WRAP_WIDTH);
+                ImGui::TextUnformatted(description);
+                ImGui::TextDisabled(CATEGORIES_FORMAT, categories);
+                ImGui::PopTextWrapPos();
+                ImGui::EndTooltip();
+            }
         }
         ImGui::EndCombo();
     }
@@ -2847,7 +4621,7 @@ static void DrawModelProperties(Arinc661_Definition_Document_t* document, Arinc6
 
     remove_index = INVALID_HIERARCHY_INDEX;
     should_add   = FALSE;
-    ImGui::TextUnformatted(OTHER_SECTION_LABEL);
+    ImGui::SeparatorText(OTHER_SECTION_LABEL);
     if (ImGui::BeginTable(OTHER_TABLE_ID, 3, PROPERTY_TABLE_FLAGS))
     {
         ImGui::TableSetupColumn(PROPERTY_COLUMN, ImGuiTableColumnFlags_WidthStretch, 1.0f);
@@ -2909,7 +4683,7 @@ static void DrawModelProperties(Arinc661_Definition_Document_t* document, Arinc6
  */
 static void DrawDefinitionInspector(Arinc661_Definition_Document_t* document)
 {
-    ImGui::TextUnformatted(DEFINITION_SECTION_LABEL);
+    ImGui::SeparatorText(DEFINITION_SECTION_LABEL);
     if (BeginPropertyTable(DEFINITION_TABLE_ID))
     {
         MarkDocumentDirty(document, DrawTextField(NAME_LABEL, document->definition.name, sizeof(document->definition.name)));
@@ -2919,7 +4693,7 @@ static void DrawDefinitionInspector(Arinc661_Definition_Document_t* document)
         ImGui::EndTable();
     }
     ImGui::Separator();
-    ImGui::TextUnformatted(MODEL_SECTION_LABEL);
+    ImGui::SeparatorText(MODEL_SECTION_LABEL);
     if (BeginPropertyTable(MODEL_TABLE_ID))
     {
         MarkDocumentDirty(document, DrawParameterRow(document, ARINC661_PROPERTY_DEFINITION, 0, PROPERTY_APPLICATION_ID, PROPERTY_APPLICATION_ID, 0, &c_ushortParameter));
@@ -2954,7 +4728,7 @@ static void DrawContextReferences(Arinc661_Definition_Document_t* document)
     if (NULL != context)
     {
         ImGui::Separator();
-        ImGui::TextUnformatted(REFERENCES_SECTION_LABEL);
+        ImGui::SeparatorText(REFERENCES_SECTION_LABEL);
         property_index     = FindOwnedProperty(document, ARINC661_PROPERTY_DEFINITION, 0, PROPERTY_APPLICATION_ID);
         has_application_id = !!((INVALID_HIERARCHY_INDEX != property_index) && (0 < FACEOE_Utl_Scan_Int64(document->properties[property_index].value, &application_id)));
         reference_count    = 0;
@@ -2971,7 +4745,7 @@ static void DrawContextReferences(Arinc661_Definition_Document_t* document)
             {
                 ImGui::PushStyleColor(ImGuiCol_Text, INVALID_VALUE_COLOR);
             }
-            ImGui::TextUnformatted(label);
+            ImGui::TextWrapped("%s", label);
             if (FALSE == is_match)
             {
                 ImGui::PopStyleColor();
@@ -2980,7 +4754,6 @@ static void DrawContextReferences(Arinc661_Definition_Document_t* document)
                     ImGui::SetTooltip("%s", APPLICATION_ID_MISMATCH_TOOLTIP);
                 }
             }
-            ImGui::SameLine();
             ImGui::PushID((int)application_index);
             if (ImGui::SmallButton(SHOW_USER_APPLICATION_LABEL))
             {
@@ -3002,6 +4775,95 @@ static void DrawContextReferences(Arinc661_Definition_Document_t* document)
         {
             ImGui::TextDisabled("%s", NO_REFERENCES_LABEL);
         }
+        DrawCreateApplication(document);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Offers the open configurations and their windows; the context creates a user application
+ *  referencing this file with its ApplicationId.
+ */
+static void DrawCreateApplication(Arinc661_Definition_Document_t* document)
+{
+    Arinc661_Definition_Editor_t* owner;
+    const char_t*                 configuration_name;
+    const char_t*                 window_name;
+    char_t                        label[HIERARCHY_LABEL_BYTES];
+    int64_t                       window_id;
+    uint32_t                      configuration_index;
+    uint32_t                      window_index;
+    uint32_t                      configuration_count;
+
+    owner = document->owner;
+    configuration_count = 0;
+    for (configuration_index = 0; configuration_index < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS; ++configuration_index)
+    {
+        if (NULL != Arinc661_Configuration_DocumentName(owner->context->configurationEditor, configuration_index))
+        {
+            configuration_count += 1;
+        }
+    }
+    if (0 == configuration_count)
+    {
+        ImGui::TextDisabled("%s", NO_CONFIGURATION_LABEL);
+    }
+    else
+    {
+        if ((owner->createConfiguration >= ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS) || (NULL == Arinc661_Configuration_DocumentName(owner->context->configurationEditor, owner->createConfiguration)))
+        {
+            for (configuration_index = 0; configuration_index < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS; ++configuration_index)
+            {
+                if (NULL != Arinc661_Configuration_DocumentName(owner->context->configurationEditor, configuration_index))
+                {
+                    owner->createConfiguration = configuration_index;
+                    break;
+                }
+            }
+        }
+        configuration_name = Arinc661_Configuration_DocumentName(owner->context->configurationEditor, owner->createConfiguration);
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * 0.5f);
+        if (ImGui::BeginCombo(CONFIGURATION_COMBO_ID, configuration_name))
+        {
+            for (configuration_index = 0; configuration_index < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS; ++configuration_index)
+            {
+                if (NULL != Arinc661_Configuration_DocumentName(owner->context->configurationEditor, configuration_index))
+                {
+                    if (ImGui::Selectable(Arinc661_Configuration_DocumentName(owner->context->configurationEditor, configuration_index), configuration_index == owner->createConfiguration))
+                    {
+                        owner->createConfiguration = configuration_index;
+                        owner->createWindow        = 0;
+                    }
+                }
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::SameLine();
+        label[0] = '\0';
+        if (Arinc661_Configuration_WindowAt(owner->context->configurationEditor, owner->createConfiguration, owner->createWindow, &window_id, &window_name))
+        {
+            ImFormatString(label, sizeof(label), WINDOW_CHOICE_FORMAT, (long long)window_id, window_name);
+        }
+        ImGui::SetNextItemWidth(-1.0f);
+        if (ImGui::BeginCombo(WINDOW_COMBO_ID, label))
+        {
+            for (window_index = 0; Arinc661_Configuration_WindowAt(owner->context->configurationEditor, owner->createConfiguration, window_index, &window_id, &window_name); ++window_index)
+            {
+                ImFormatString(label, sizeof(label), WINDOW_CHOICE_FORMAT, (long long)window_id, window_name);
+                ImGui::PushID((int)window_index);
+                if (ImGui::Selectable(label, window_index == owner->createWindow))
+                {
+                    owner->createWindow = window_index;
+                }
+                ImGui::PopID();
+            }
+            ImGui::EndCombo();
+        }
+        if (ImGui::SmallButton(CREATE_APPLICATION_LABEL) && Arinc661_Configuration_WindowAt(owner->context->configurationEditor, owner->createConfiguration, owner->createWindow, &window_id, &window_name))
+        {
+            (void)Arinc661_Context_CreateUserApplicationFor(owner->context, (uint32_t)(document - owner->documents), owner->createConfiguration, window_id);
+        }
     }
 }
 
@@ -3015,14 +4877,14 @@ static void DrawLayerInspector(Arinc661_Definition_Document_t* document)
     Arinc661_Layer_t* layer;
 
     layer = &document->layers[document->selectedIndex];
-    ImGui::TextUnformatted(LAYER_SECTION_LABEL);
+    ImGui::SeparatorText(LAYER_SECTION_LABEL);
     if (BeginPropertyTable(LAYER_TABLE_ID))
     {
         MarkDocumentDirty(document, DrawTextField(NAME_LABEL, layer->name, sizeof(layer->name)));
         ImGui::EndTable();
     }
     ImGui::Separator();
-    ImGui::TextUnformatted(MODEL_SECTION_LABEL);
+    ImGui::SeparatorText(MODEL_SECTION_LABEL);
     if (BeginPropertyTable(MODEL_TABLE_ID))
     {
         MarkDocumentDirty(document, DrawParameterRow(document, ARINC661_PROPERTY_LAYER, document->selectedIndex, PROPERTY_LAYER_ID, PROPERTY_LAYER_ID, 0, &c_ucharParameter));
@@ -3059,7 +4921,7 @@ static void DrawWidgetInspector(Arinc661_Definition_Document_t* document)
     {
         parent_name = document->widgets[widget->parentWidgetIndex].name;
     }
-    ImGui::TextUnformatted(section_label);
+    ImGui::SeparatorText(section_label);
     if (BeginPropertyTable(WIDGET_TABLE_ID))
     {
         if (FALSE == widget->isExtension)
@@ -3084,9 +4946,10 @@ static void DrawWidgetInspector(Arinc661_Definition_Document_t* document)
         ImGui::EndTable();
     }
     ImGui::Separator();
+    DrawTypeHelp(widget->type);
     if (Arinc661_FindType(widget->type, widget->isExtension, &parameter_count))
     {
-        ImGui::TextUnformatted(MODEL_SECTION_LABEL);
+        ImGui::SeparatorText(MODEL_SECTION_LABEL);
         DrawParameterTable(document, document->selectedIndex);
         ImGui::Separator();
     }
@@ -3558,6 +5421,12 @@ static void DrawSaveAsDialog(Arinc661_Definition_Editor_t* editor)
                             }
                             else
                             {
+                                // Let the context offer to repoint user applications at the new name
+                                if (0 != ImStricmp(previous_name, document->documentName))
+                                {
+                                    ImStrncpy(editor->renamedFrom, previous_name, sizeof(editor->renamedFrom));
+                                    ImStrncpy(editor->renamedTo, document->documentName, sizeof(editor->renamedTo));
+                                }
                                 editor->pendingSaveDocumentIndex = INVALID_DOCUMENT_INDEX;
                                 editor->status                   = STATUS_NONE;
                                 ImGui::CloseCurrentPopup();
@@ -3639,7 +5508,7 @@ static void DrawStatusBar(const Arinc661_Definition_Editor_t* editor)
  */
 static void DrawHierarchyPane(Arinc661_Definition_Document_t* editor)
 {
-    if (ImGui::BeginChild(HIERARCHY_PANE_NAME, ImVec2(0.0f, 0.0f), PANE_FLAGS))
+    if (ImGui::BeginChild(HIERARCHY_PANE_NAME, ImVec2(0.0f, 0.0f), PANE_FLAGS, ImGuiWindowFlags_HorizontalScrollbar))
     {
         ImGui::TextUnformatted(HIERARCHY_PANE_NAME);
         ImGui::Separator();
@@ -3660,6 +5529,7 @@ static void DrawInspectorPane(Arinc661_Definition_Document_t* editor)
 {
     if (ImGui::BeginChild(INSPECTOR_PANE_NAME, ImVec2(0.0f, 0.0f), PANE_FLAGS))
     {
+        ImGui::PushTextWrapPos(0.0f);
         ImGui::TextUnformatted(INSPECTOR_PANE_NAME);
         ImGui::Separator();
         if (editor->isLoaded)
@@ -3681,6 +5551,7 @@ static void DrawInspectorPane(Arinc661_Definition_Document_t* editor)
                 ImGui::TextWrapped("%s", SELECT_ITEM_PROMPT);
             }
         }
+        ImGui::PopTextWrapPos();
     }
     ImGui::EndChild();
 }
@@ -3735,7 +5606,6 @@ static void DrawScenePane(Arinc661_Definition_Document_t* editor)
     Arinc661_Definition_Editor_t* owner;
     Arinc661_Scene_Options_t options;
     FACEOE_Gfx_Transform_t   transform;
-    FACEOE_Gfx_Point_t       mouse;
     ImDrawList*              draw_list;
     ImVec2                   canvas_min;
     ImVec2                   canvas_size;
@@ -3751,18 +5621,22 @@ static void DrawScenePane(Arinc661_Definition_Document_t* editor)
     float32_t                scale;
     uint32_t                 layer_index;
     uint32_t                 property_index;
-    uint32_t                 hit_index;
-    uint32_t                 bounds_index;
+    char_t                   zoom_label[LABEL_FORMAT_BYTES];
+    char_t                   frame_label[FRAME_LABEL_BYTES];
+    ImVec2                   frame_min;
+    ImVec2                   frame_max;
+    float32_t                frame_width;
+    float32_t                frame_height;
+    uint32_t                 frame_index;
+    float32_t                zoom_factor;
     bool_t                   has_layer;
-    bool_t                   is_canvas_clicked;
+    bool_t                   is_canvas_hovered;
 
     owner = editor->owner;
     if (ImGui::BeginChild(SCENE_PANE_NAME, ImVec2(0.0f, 0.0f), PANE_FLAGS))
     {
         style     = &ImGui::GetStyle();
         draw_list = ImGui::GetWindowDrawList();
-        ImGui::TextUnformatted(SCENE_PANE_NAME);
-        ImGui::Separator();
         layer_index = 0;
         if (SELECTION_LAYER == editor->selectedKind)
         {
@@ -3772,6 +5646,18 @@ static void DrawScenePane(Arinc661_Definition_Document_t* editor)
         {
             layer_index = editor->widgets[editor->selectedIndex].layerIndex;
         }
+        if (editor->isLoaded)
+        {
+            DrawSceneToolbar(editor, &layer_index);
+            ImGui::PushStyleColor(ImGuiCol_Text, SCENE_HINT_COLOR);
+            ImGui::TextWrapped("%s", SCENE_HINT_LABEL);
+            ImGui::PopStyleColor();
+        }
+        else
+        {
+            ImGui::TextUnformatted(SCENE_PANE_NAME);
+        }
+        ImGui::Separator();
         has_layer = !!(editor->isLoaded && (layer_index < editor->definition.layerCount));
         if (FALSE == editor->isLoaded)
         {
@@ -3780,6 +5666,10 @@ static void DrawScenePane(Arinc661_Definition_Document_t* editor)
         else if (FALSE == has_layer)
         {
             ImGui::TextWrapped("%s", EMPTY_SCENE_LABEL);
+            if (ImGui::Button(EMPTY_LAYER_BUTTON_LABEL))
+            {
+                AddLayer(editor);
+            }
         }
         else
         {
@@ -3803,14 +5693,61 @@ static void DrawScenePane(Arinc661_Definition_Document_t* editor)
             canvas_size.x = ImMax(canvas_size.x, 1.0f);
             canvas_size.y = ImMax(canvas_size.y, label_height + 1.0f);
             canvas_max    = (canvas_min + canvas_size);
-            is_canvas_clicked = ImGui::InvisibleButton(SCENE_CANVAS_ID, canvas_size);
+            (void)ImGui::InvisibleButton(SCENE_CANVAS_ID, canvas_size);
             draw_list->AddRectFilled(canvas_min, canvas_max, SCENE_CANVAS_COLOR);
-            // Fit the layer below its label while keeping its aspect ratio
+            // Fit the layer below its label while keeping its aspect ratio, then apply the view zoom and pan
             scale      = ImMin((canvas_size.x - (style->WindowPadding.x * 2.0f)) / layer_width, (canvas_size.y - label_height - (style->WindowPadding.y * 2.0f)) / layer_height);
             scale      = ImMax(scale, 0.0f);
+            if (editor->viewZoom <= 0.0f)
+            {
+                editor->viewZoom = 1.0f;
+                editor->viewPanX = 0.0f;
+                editor->viewPanY = 0.0f;
+            }
+            is_canvas_hovered = ImGui::IsItemHovered();
+            if (is_canvas_hovered && (0.0f != ImGui::GetIO().MouseWheel) && (0.0f < scale))
+            {
+                // Zoom about the cursor: keep the layer point under the mouse fixed
+                zoom_factor = ZOOM_WHEEL_FACTOR;
+                if (ImGui::GetIO().MouseWheel < 0.0f)
+                {
+                    zoom_factor = (1.0f / ZOOM_WHEEL_FACTOR);
+                }
+                zoom_factor = (ImClamp(editor->viewZoom * zoom_factor, ZOOM_MIN, ZOOM_MAX) / editor->viewZoom);
+                layer_size  = ImVec2(layer_width * scale * editor->viewZoom, layer_height * scale * editor->viewZoom);
+                layer_min   = ImVec2(canvas_min.x + ((canvas_size.x - layer_size.x) * 0.5f) + editor->viewPanX, canvas_min.y + label_height + ((canvas_size.y - label_height - layer_size.y) * 0.5f) + editor->viewPanY);
+                layer_min   = ImVec2(ImGui::GetMousePos().x - ((ImGui::GetMousePos().x - layer_min.x) * zoom_factor), ImGui::GetMousePos().y - ((ImGui::GetMousePos().y - layer_min.y) * zoom_factor));
+                editor->viewZoom *= zoom_factor;
+                layer_size  = ImVec2(layer_width * scale * editor->viewZoom, layer_height * scale * editor->viewZoom);
+                editor->viewPanX = (layer_min.x - (canvas_min.x + ((canvas_size.x - layer_size.x) * 0.5f)));
+                editor->viewPanY = (layer_min.y - (canvas_min.y + label_height + ((canvas_size.y - label_height - layer_size.y) * 0.5f)));
+            }
+            if (is_canvas_hovered && (ImGui::IsMouseDragging(ImGuiMouseButton_Middle) || (ImGui::IsKeyDown(ImGuiKey_Space) && ImGui::IsMouseDragging(ImGuiMouseButton_Left))))
+            {
+                editor->viewPanX += ImGui::GetIO().MouseDelta.x;
+                editor->viewPanY += ImGui::GetIO().MouseDelta.y;
+                ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
+            }
+            if (is_canvas_hovered && (FALSE == ImGui::IsAnyItemActive()) && ImGui::IsKeyPressed(ImGuiKey_F))
+            {
+                editor->viewZoom = 1.0f;
+                editor->viewPanX = 0.0f;
+                editor->viewPanY = 0.0f;
+            }
+            if (is_canvas_hovered && (FALSE == ImGui::IsAnyItemActive()) && ImGui::IsKeyPressed(ImGuiKey_G))
+            {
+                owner->showsGrid = !owner->showsGrid;
+            }
+            if (is_canvas_hovered && (FALSE == ImGui::IsAnyItemActive()) && ImGui::IsKeyPressed(ImGuiKey_S) && (FALSE == ImGui::GetIO().KeyCtrl))
+            {
+                owner->isSnapping = !owner->isSnapping;
+            }
+            scale     *= editor->viewZoom;
             layer_size = ImVec2(layer_width * scale, layer_height * scale);
-            layer_min  = ImVec2(canvas_min.x + ((canvas_size.x - layer_size.x) * 0.5f), canvas_min.y + label_height + ((canvas_size.y - label_height - layer_size.y) * 0.5f));
-            draw_list->AddText(ImVec2(layer_min.x, canvas_min.y + style->WindowPadding.y * 0.5f), SCENE_TEXT_COLOR, layer_label);
+            layer_min  = ImVec2(canvas_min.x + ((canvas_size.x - layer_size.x) * 0.5f) + editor->viewPanX, canvas_min.y + label_height + ((canvas_size.y - label_height - layer_size.y) * 0.5f) + editor->viewPanY);
+            ImFormatString(zoom_label, sizeof(zoom_label), SCENE_ZOOM_FORMAT, (float64_t)(editor->viewZoom * 100.0f));
+            draw_list->AddText(ImVec2(canvas_min.x + style->WindowPadding.x, canvas_min.y + style->WindowPadding.y * 0.5f), SCENE_TEXT_COLOR, layer_label);
+            draw_list->AddText(ImVec2(canvas_max.x - style->WindowPadding.x - ImGui::CalcTextSize(zoom_label).x, canvas_min.y + style->WindowPadding.y * 0.5f), SCENE_TEXT_COLOR, zoom_label);
             // Record the layer through the scene library with the origin at its lower-left corner
             memset(&transform, 0, sizeof(transform));
             transform.a = scale;
@@ -3823,41 +5760,33 @@ static void DrawScenePane(Arinc661_Definition_Document_t* editor)
             options.showsHidden       = TRUE;
             options.showsNames        = TRUE;
             options.showsNonGraphical = TRUE;
-            options.fillsLayerArea    = TRUE;
+            options.fillsLayerArea    = FALSE;
             options.fontSize          = ImGui::GetFontSize();
             options.bounds            = owner->sceneBounds;
             options.boundsCapacity    = ARINC661_DEFINITION_MAX_WIDGETS;
             Arinc661_Scene_DrawLayer(&editor->definition, layer_index, &owner->drawList, &options);
+            owner->sceneBoundsCount = options.boundsCount;
             draw_list->PushClipRect(canvas_min, canvas_max, true);
+            draw_list->AddRectFilled(layer_min, layer_min + layer_size, SCENE_LAYER_COLOR);
+            draw_list->AddRect(layer_min, layer_min + layer_size, SCENE_LAYER_BORDER_COLOR);
+            if (owner->showsGrid)
+            {
+                DrawGrid(draw_list, layer_min, layer_min + layer_size, scale, canvas_min, canvas_max);
+            }
             Arinc661_Gfx_ImGui_Render(&owner->drawList, draw_list);
-            if (SELECTION_WIDGET == editor->selectedKind)
+            // Outline the windows that will show this file, from the layer origin, in layer units
+            if (NULL != owner->context)
             {
-                for (bounds_index = 0; bounds_index < options.boundsCount; ++bounds_index)
+                for (frame_index = 0; Arinc661_Context_WindowFrame(owner->context, editor->documentName, frame_index, &frame_width, &frame_height, frame_label, sizeof(frame_label)); ++frame_index)
                 {
-                    if (editor->selectedIndex == owner->sceneBounds[bounds_index].widgetIndex)
-                    {
-                        draw_list->AddRectFilled(ImVec2(owner->sceneBounds[bounds_index].minimum.x, owner->sceneBounds[bounds_index].minimum.y), ImVec2(owner->sceneBounds[bounds_index].maximum.x, owner->sceneBounds[bounds_index].maximum.y), SCENE_SELECTION_OVERLAY_COLOR);
-                        draw_list->AddRect(ImVec2(owner->sceneBounds[bounds_index].minimum.x, owner->sceneBounds[bounds_index].minimum.y), ImVec2(owner->sceneBounds[bounds_index].maximum.x, owner->sceneBounds[bounds_index].maximum.y), SCENE_TEXT_COLOR);
-                    }
+                    frame_max = ImVec2(layer_min.x + (frame_width * scale), layer_min.y + layer_size.y);
+                    frame_min = ImVec2(layer_min.x, (layer_min.y + layer_size.y) - (frame_height * scale));
+                    DrawDashedScreenRect(draw_list, frame_min, frame_max, SCENE_FRAME_COLOR);
+                    draw_list->AddText(ImVec2(frame_min.x + 4.0f, frame_max.y - ImGui::GetTextLineHeight() - 2.0f), SCENE_FRAME_COLOR, frame_label);
                 }
             }
+            DrawSceneInteraction(editor, layer_index, layer_min, layer_min + layer_size, scale, draw_list, is_canvas_hovered);
             draw_list->PopClipRect();
-            if (is_canvas_clicked)
-            {
-                mouse.x   = ImGui::GetMousePos().x;
-                mouse.y   = ImGui::GetMousePos().y;
-                hit_index = Arinc661_Scene_Pick(owner->sceneBounds, options.boundsCount, mouse);
-                if (ARINC661_SCENE_NO_WIDGET != hit_index)
-                {
-                    editor->selectedKind  = SELECTION_WIDGET;
-                    editor->selectedIndex = hit_index;
-                }
-                else
-                {
-                    editor->selectedKind  = SELECTION_LAYER;
-                    editor->selectedIndex = layer_index;
-                }
-            }
         }
     }
     ImGui::EndChild();
@@ -4054,6 +5983,9 @@ void Arinc661_Definition_Initialize(Arinc661_Definition_Editor_t* editor)
     {
         editor->documents[document_index].owner = editor;
     }
+    editor->dropWidget = INVALID_HIERARCHY_INDEX;
+    editor->showsGrid  = TRUE;
+    editor->isSnapping = TRUE;
     FACEOE_Gfx_DrawList_Initialize(&editor->drawList, editor->sceneCommands, ARINC661_DEFINITION_MAX_SCENE_COMMANDS, editor->scenePoints, ARINC661_DEFINITION_MAX_SCENE_POINTS, editor->sceneText, ARINC661_DEFINITION_MAX_SCENE_TEXT_BYTES);
 }
 
@@ -4089,6 +6021,7 @@ void Arinc661_Definition_DrawEditor(Arinc661_Definition_Editor_t* editor)
         DrawStatusBar(editor);
     }
     ImGui::End();
+    Arinc661_Definition_EndFrame(editor);
 }
 
 /*************************************************************************************************/
@@ -4208,6 +6141,7 @@ bool_t Arinc661_Definition_HasActiveDocument(const Arinc661_Definition_Editor_t*
  */
 void Arinc661_Definition_DrawDocumentTabs(Arinc661_Definition_Editor_t* editor)
 {
+
     DrawDocumentTabs(editor);
 }
 
@@ -4499,4 +6433,524 @@ bool_t Arinc661_Definition_RecordDocument(const Arinc661_Definition_Editor_t* ed
     }
 
     return has_layers;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Acts on the active document.
+ */
+void Arinc661_Definition_Undo(Arinc661_Definition_Editor_t* editor)
+{
+    LOGASSERT(NULL != editor);
+    if (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex)
+    {
+        UndoDocument(&editor->documents[editor->activeDocumentIndex]);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Acts on the active document.
+ */
+void Arinc661_Definition_Redo(Arinc661_Definition_Editor_t* editor)
+{
+    LOGASSERT(NULL != editor);
+    if (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex)
+    {
+        RedoDocument(&editor->documents[editor->activeDocumentIndex]);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Uncommitted changes of the current frame count as undoable.
+ */
+void Arinc661_Definition_History(const Arinc661_Definition_Editor_t* editor, bool_t* canUndo, bool_t* canRedo)
+{
+    const Arinc661_Definition_Document_t* document;
+
+    LOGASSERT(NULL != editor);
+    LOGASSERT(NULL != canUndo);
+    LOGASSERT(NULL != canRedo);
+    (*canUndo) = FALSE;
+    (*canRedo) = FALSE;
+    if (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex)
+    {
+        document   = &editor->documents[editor->activeDocumentIndex];
+        (*canUndo) = !!((0 < document->undoCount) || ((NULL != document->shadow) && (FALSE == SnapshotMatches(document, document->shadow))));
+        (*canRedo) = (0 < document->redoCount);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Acts on the active document.
+ */
+void Arinc661_Definition_DeleteSelection(Arinc661_Definition_Editor_t* editor)
+{
+    LOGASSERT(NULL != editor);
+    if (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex)
+    {
+        RemoveSelection(&editor->documents[editor->activeDocumentIndex]);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Acts on the active document's selected widget.
+ */
+void Arinc661_Definition_DuplicateSelection(Arinc661_Definition_Editor_t* editor)
+{
+    Arinc661_Definition_Document_t* document;
+
+    LOGASSERT(NULL != editor);
+    if (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex)
+    {
+        document = &editor->documents[editor->activeDocumentIndex];
+        if ((SELECTION_WIDGET == document->selectedKind) && (document->selectedIndex < document->definition.widgetCount))
+        {
+            (void)DuplicateWidget(document, document->selectedIndex);
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Snapping rounds moves, sizes, and add points to whole millimetres.
+ */
+bool_t Arinc661_Definition_Snap(Arinc661_Definition_Editor_t* editor, bool_t toggle)
+{
+    LOGASSERT(NULL != editor);
+    if (toggle)
+    {
+        editor->isSnapping = !editor->isSnapping;
+    }
+
+    return editor->isSnapping;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The grid is one millimetre with a stronger line every centimetre.
+ */
+bool_t Arinc661_Definition_Grid(Arinc661_Definition_Editor_t* editor, bool_t toggle)
+{
+    LOGASSERT(NULL != editor);
+    if (toggle)
+    {
+        editor->showsGrid = !editor->showsGrid;
+    }
+
+    return editor->showsGrid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Resets zoom and pan.
+ */
+void Arinc661_Definition_FitView(Arinc661_Definition_Editor_t* editor)
+{
+    LOGASSERT(NULL != editor);
+    if (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex)
+    {
+        editor->documents[editor->activeDocumentIndex].viewZoom = 1.0f;
+        editor->documents[editor->activeDocumentIndex].viewPanX = 0.0f;
+        editor->documents[editor->activeDocumentIndex].viewPanY = 0.0f;
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Acts on the active document.
+ */
+void Arinc661_Definition_AddLayer(Arinc661_Definition_Editor_t* editor)
+{
+    LOGASSERT(NULL != editor);
+    if ((INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex) && editor->documents[editor->activeDocumentIndex].isLoaded)
+    {
+        AddLayer(&editor->documents[editor->activeDocumentIndex]);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  A selected container receives the widget; a selected leaf gets a sibling; a selected
+ *  layer or the first layer gets a direct child. A document without layers gets one first.
+ */
+void Arinc661_Definition_AddWidget(Arinc661_Definition_Editor_t* editor)
+{
+    Arinc661_Definition_Document_t* document;
+    uint32_t                        layer_index;
+    uint32_t                        parent_index;
+
+    LOGASSERT(NULL != editor);
+    if ((INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex) && editor->documents[editor->activeDocumentIndex].isLoaded)
+    {
+        document = &editor->documents[editor->activeDocumentIndex];
+        if (0 == document->definition.layerCount)
+        {
+            AddLayer(document);
+        }
+        layer_index  = 0;
+        parent_index = INVALID_HIERARCHY_INDEX;
+        if ((SELECTION_LAYER == document->selectedKind) && (document->selectedIndex < document->definition.layerCount))
+        {
+            layer_index = document->selectedIndex;
+        }
+        else if ((SELECTION_WIDGET == document->selectedKind) && (document->selectedIndex < document->definition.widgetCount))
+        {
+            layer_index  = document->widgets[document->selectedIndex].layerIndex;
+            parent_index = document->selectedIndex;
+            if (document->widgets[parent_index].isExtension || (FALSE == IsContainerType(document->widgets[parent_index].type)))
+            {
+                parent_index = document->widgets[parent_index].parentWidgetIndex;
+            }
+        }
+        if (0 < document->definition.layerCount)
+        {
+            AddWidget(document, layer_index, parent_index, FALSE);
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Acts on the active document's selected widget.
+ */
+void Arinc661_Definition_AddExtension(Arinc661_Definition_Editor_t* editor)
+{
+    Arinc661_Definition_Document_t* document;
+    uint32_t                        parent_index;
+
+    LOGASSERT(NULL != editor);
+    if ((INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex) && editor->documents[editor->activeDocumentIndex].isLoaded)
+    {
+        document = &editor->documents[editor->activeDocumentIndex];
+        if ((SELECTION_WIDGET == document->selectedKind) && (document->selectedIndex < document->definition.widgetCount))
+        {
+            parent_index = document->selectedIndex;
+            if (document->widgets[parent_index].isExtension)
+            {
+                parent_index = document->widgets[parent_index].parentWidgetIndex;
+            }
+            AddWidget(document, document->widgets[parent_index].layerIndex, parent_index, TRUE);
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  NULL unless a widget or extension is selected.
+ */
+const char_t* Arinc661_Definition_SelectedType(const Arinc661_Definition_Editor_t* editor)
+{
+    const Arinc661_Definition_Document_t* document;
+    const char_t*                         type;
+
+    LOGASSERT(NULL != editor);
+    type = NULL;
+    if ((INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex) && editor->documents[editor->activeDocumentIndex].isLoaded)
+    {
+        document = &editor->documents[editor->activeDocumentIndex];
+        if ((SELECTION_WIDGET == document->selectedKind) && (document->selectedIndex < document->definition.widgetCount))
+        {
+            type = document->widgets[document->selectedIndex].type;
+        }
+    }
+
+    return type;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Compares names exactly.
+ */
+bool_t Arinc661_Definition_SelectByName(Arinc661_Definition_Editor_t* editor, const char_t* name)
+{
+    Arinc661_Definition_Document_t* document;
+    uint32_t                        widget_index;
+    bool_t                          is_found;
+
+    LOGASSERT(NULL != editor);
+    LOGASSERT(NULL != name);
+    is_found = FALSE;
+    if ((INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex) && editor->documents[editor->activeDocumentIndex].isLoaded)
+    {
+        document = &editor->documents[editor->activeDocumentIndex];
+        for (widget_index = 0; widget_index < document->definition.widgetCount; ++widget_index)
+        {
+            if (0 == strcmp(name, document->widgets[widget_index].name))
+            {
+                document->selectedKind  = SELECTION_WIDGET;
+                document->selectedIndex = widget_index;
+                is_found                = TRUE;
+                break;
+            }
+        }
+    }
+
+    return is_found;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Turns the changes of the frame into one undo step per changed document.
+ */
+void Arinc661_Definition_EndFrame(Arinc661_Definition_Editor_t* editor)
+{
+    uint32_t document_index;
+
+    LOGASSERT(NULL != editor);
+    for (document_index = 0; document_index < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS; ++document_index)
+    {
+        CommitHistory(&editor->documents[document_index]);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Starts an untitled document, names it after the user application's dFPath, writes the
+ *  ApplicationId model property, and adds one layer whose Width and Height match the window.
+ */
+bool_t Arinc661_Definition_CreateFor(Arinc661_Definition_Editor_t* editor, const char_t* fileName, int64_t applicationId, float32_t layerWidth, float32_t layerHeight)
+{
+    Arinc661_Definition_Document_t* document;
+    char_t                          text[INTEGER_TEXT_BYTES];
+    uint32_t                        property_index;
+    bool_t                          is_created;
+
+    LOGASSERT(NULL != editor);
+    LOGASSERT(NULL != fileName);
+    is_created = FALSE;
+    CreateDocument(editor);
+    if ((INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex) && editor->documents[editor->activeDocumentIndex].isLoaded && (0 == editor->documents[editor->activeDocumentIndex].definition.layerCount))
+    {
+        document = &editor->documents[editor->activeDocumentIndex];
+        ImStrncpy(document->documentName, fileName, sizeof(document->documentName));
+        ImStrncpy(document->definition.name, fileName, sizeof(document->definition.name));
+        ImFormatString(text, sizeof(text), "%" PRId64, applicationId);
+        property_index = FindOwnedProperty(document, ARINC661_PROPERTY_DEFINITION, 0, PROPERTY_APPLICATION_ID);
+        if (INVALID_HIERARCHY_INDEX != property_index)
+        {
+            ImStrncpy(document->properties[property_index].value, text, sizeof(document->properties[property_index].value));
+        }
+        else
+        {
+            (void)AppendProperty(document, ARINC661_PROPERTY_DEFINITION, 0, PROPERTY_APPLICATION_ID, text);
+        }
+        AddLayer(document);
+        if (0 < document->definition.layerCount)
+        {
+            SetPropertyNumber(document, ARINC661_PROPERTY_LAYER, 0, PROPERTY_WIDTH, ImMax(1.0f, layerWidth));
+            SetPropertyNumber(document, ARINC661_PROPERTY_LAYER, 0, PROPERTY_HEIGHT, ImMax(1.0f, layerHeight));
+        }
+        document->isDirty = TRUE;
+        is_created        = TRUE;
+    }
+
+    return is_created;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The tab bar honours the document request on its next draw.
+ */
+void Arinc661_Definition_SelectLayer(Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, uint32_t layerIndex)
+{
+    LOGASSERT(NULL != editor);
+    if ((documentIndex < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS) && editor->documents[documentIndex].isLoaded && (layerIndex < editor->documents[documentIndex].definition.layerCount))
+    {
+        Arinc661_Definition_SelectDocument(editor, documentIndex);
+        editor->documents[documentIndex].selectedKind  = SELECTION_LAYER;
+        editor->documents[documentIndex].selectedIndex = layerIndex;
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The tab bar honours the document request on its next draw.
+ */
+void Arinc661_Definition_SelectWidget(Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, uint32_t widgetIndex)
+{
+    LOGASSERT(NULL != editor);
+    if ((documentIndex < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS) && editor->documents[documentIndex].isLoaded && (widgetIndex < editor->documents[documentIndex].definition.widgetCount))
+    {
+        Arinc661_Definition_SelectDocument(editor, documentIndex);
+        editor->documents[documentIndex].selectedKind  = SELECTION_WIDGET;
+        editor->documents[documentIndex].selectedIndex = widgetIndex;
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Like Arinc661_Definition_RecordDocument, with the bounds of every drawn widget appended
+ *  across the layers so a host can pick through the preview.
+ */
+bool_t Arinc661_Definition_RecordDocumentBounds(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, FACEOE_Gfx_DrawList_t* drawList, float32_t fontSize, Arinc661_Scene_Bounds_t* bounds, uint32_t boundsCapacity, uint32_t* boundsCount)
+{
+    const Arinc661_Definition_Document_t* document;
+    Arinc661_Scene_Options_t              options;
+    uint32_t                              layer_index;
+    uint32_t                              total;
+    bool_t                                has_layers;
+
+    LOGASSERT(NULL != editor);
+    LOGASSERT(NULL != drawList);
+    has_layers = FALSE;
+    total      = 0;
+    if ((documentIndex < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS) && editor->documents[documentIndex].isLoaded)
+    {
+        document = &editor->documents[documentIndex];
+        for (layer_index = 0; layer_index < document->definition.layerCount; ++layer_index)
+        {
+            memset(&options, 0, sizeof(options));
+            options.fontSize = fontSize;
+            if ((NULL != bounds) && (total < boundsCapacity))
+            {
+                options.bounds         = &bounds[total];
+                options.boundsCapacity = (boundsCapacity - total);
+            }
+            Arinc661_Scene_DrawLayer(&document->definition, layer_index, drawList, &options);
+            total += options.boundsCount;
+            has_layers = TRUE;
+        }
+    }
+    if (NULL != boundsCount)
+    {
+        (*boundsCount) = total;
+    }
+
+    return has_layers;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Reports once per Save As.
+ */
+bool_t Arinc661_Definition_TakeRename(Arinc661_Definition_Editor_t* editor, const char_t** previousName, const char_t** currentName)
+{
+    bool_t has_rename;
+
+    LOGASSERT(NULL != editor);
+    LOGASSERT(NULL != previousName);
+    LOGASSERT(NULL != currentName);
+    has_rename      = ('\0' != editor->renamedFrom[0]);
+    (*previousName) = editor->renamedFrom;
+    (*currentName)  = editor->renamedTo;
+
+    return has_rename;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Wraps the document's tree in its own id scope; a selection change makes the document
+ *  active so the inspector follows.
+ */
+bool_t Arinc661_Definition_DrawDocumentHierarchy(Arinc661_Definition_Editor_t* editor, uint32_t documentIndex)
+{
+    Arinc661_Definition_Document_t* document;
+    int32_t                         kind_before;
+    uint32_t                        index_before;
+    bool_t                          has_changed;
+
+    LOGASSERT(NULL != editor);
+    has_changed = FALSE;
+    if ((documentIndex < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS) && editor->documents[documentIndex].isLoaded)
+    {
+        document     = &editor->documents[documentIndex];
+        kind_before  = document->selectedKind;
+        index_before = document->selectedIndex;
+        ImGui::PushID(document);
+        DrawHierarchy(document);
+        ImGui::PopID();
+        has_changed = !!((kind_before != document->selectedKind) || (index_before != document->selectedIndex));
+        if (has_changed)
+        {
+            Arinc661_Definition_SelectDocument(editor, documentIndex);
+        }
+    }
+
+    return has_changed;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  File, then layer, then widget with its type.
+ */
+void Arinc661_Definition_SelectionText(const Arinc661_Definition_Editor_t* editor, char_t* text, uint32_t capacity)
+{
+    const Arinc661_Definition_Document_t* document;
+    const Arinc661_Widget_t*              widget;
+    uint32_t                              layer_index;
+
+    LOGASSERT(NULL != editor);
+    LOGASSERT(NULL != text);
+    text[0] = '\0';
+    if ((INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex) && editor->documents[editor->activeDocumentIndex].isLoaded)
+    {
+        document = &editor->documents[editor->activeDocumentIndex];
+        if ((SELECTION_WIDGET == document->selectedKind) && (document->selectedIndex < document->definition.widgetCount))
+        {
+            widget      = &document->widgets[document->selectedIndex];
+            layer_index = widget->layerIndex;
+            ImFormatString(text, capacity, "%s > layer %s %s > %s (%s)", document->documentName, LayerIdText(document, layer_index), document->layers[layer_index].name, widget->name, widget->type);
+        }
+        else if ((SELECTION_LAYER == document->selectedKind) && (document->selectedIndex < document->definition.layerCount))
+        {
+            ImFormatString(text, capacity, "%s > layer %s %s", document->documentName, LayerIdText(document, document->selectedIndex), document->layers[document->selectedIndex].name);
+        }
+        else
+        {
+            ImFormatString(text, capacity, "%s", document->documentName);
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Reads the layer arrays and the Width and Height properties.
+ */
+bool_t Arinc661_Definition_LayerAt(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, uint32_t layerIndex, const char_t** layerId, const char_t** name, float32_t* width, float32_t* height)
+{
+    const Arinc661_Definition_Document_t* document;
+    bool_t                                is_found;
+
+    LOGASSERT(NULL != editor);
+    LOGASSERT(NULL != layerId);
+    LOGASSERT(NULL != name);
+    LOGASSERT(NULL != width);
+    LOGASSERT(NULL != height);
+    is_found = FALSE;
+    if ((documentIndex < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS) && editor->documents[documentIndex].isLoaded && (layerIndex < editor->documents[documentIndex].definition.layerCount))
+    {
+        document   = &editor->documents[documentIndex];
+        (*layerId) = LayerIdText(document, layerIndex);
+        (*name)    = document->layers[layerIndex].name;
+        Arinc661_Scene_LayerSize(&document->definition, layerIndex, width, height);
+        is_found = TRUE;
+    }
+
+    return is_found;
 }

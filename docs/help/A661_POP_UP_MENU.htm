@@ -1,0 +1,20 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>A661_POP_UP_MENU</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:1.5em;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:4px 6px;vertical-align:top;font-size:0.95em}th{background:#eee;text-align:left}.cat{color:#666}</style></head><body><h1>A661_POP_UP_MENU <small>(PopUpMenu)</small></h1>
+<p class="cat">Categories: Graphical representation, Interactive, Text string</p>
+<p>The PopUpMenu is a menu intended for temporary display on top of all layers in its window. PopUpMenu has no static part. PopUpMenu displays a list of selectable string entries, each of which represents either a control selection or sub-menu item. Crew interaction with a menu entry can cause another PopUpMenu to appear. PopUpMenu visibility should be managed by the CDS using implementation dependent logic. The OpeningMode parameter allows the UA some control over the position of the PopUpMenu. However, the CDS is responsible for defining the size and position of the PopUpMenu, as part of the implementation dependent look and feel.</p>
+<table><tr><th>Parameter</th><th>Change</th><th>Description</th></tr>
+<tr><td>WidgetIdent</td><td>D</td><td>Unique identifier of the widget</td></tr>
+<tr><td>ParentIdent</td><td>D</td><td>Identifier of the immediate container of the widget</td></tr>
+<tr><td>Visible</td><td>R</td><td>Visibility of the widget: A661_FALSE A661_TRUE Note: Widget is not visible at creation time.</td></tr>
+<tr><td>StyleSet</td><td>DR</td><td>Referenced to predefined graphical characteristics inside CDS</td></tr>
+<tr><td>PosX</td><td>DR</td><td>The X position of the widget reference point</td></tr>
+<tr><td>PosY</td><td>DR</td><td>The Y position of the widget reference point</td></tr>
+<tr><td>SizeX</td><td>DR</td><td>The X dimension size (width) of the widget</td></tr>
+<tr><td>SizeY</td><td>DR</td><td>The Y dimension size (height) of the widget</td></tr>
+<tr><td>OpeningMode</td><td>DR</td><td>OPEN_UP: the position (X,Y) is the bottom/left corner of the PopUpMenu OPEN_DOWN: the position (X,Y) is the top/left corner of the PopUpMenu CDS_DEPENDENT: Position defined by CDS using CCD Click location</td></tr>
+<tr><td>NumberOfEntries</td><td>D</td><td>Number of entries in the PopUpMenu. It also includes the graphical separators.</td></tr>
+<tr><td>MaxStringLength</td><td>D</td><td>Maximum size in bytes (including the NULL terminator) of each string array entry.</td></tr>
+<tr><td>StringArray</td><td>DR</td><td>Array of Strings. Each String is the text label for a menu entry. Strings composed of only one NULL character will be interpreted as a graphical separator. The NULL string at the end of the array will not be interpreted.</td></tr>
+<tr><td>PictureArray</td><td>DR</td><td>Array of Pictures, each of which is the Picture icon for a menu entry. If value is NULL, no picture is attached to the corresponding entry.</td></tr>
+<tr><td>PopUpIdentArray</td><td>D</td><td>Array of PopUpMenu Widget Idents, each of which is the PopUpMenu that will be displayed when the crew interacts with the corresponding menu entry. WidgetIdent can only refer to another PopUpMenu. If WidgetIdent is NULL, no PopUpMenu is attached to the menu entry.</td></tr>
+<tr><td>EnableArray</td><td>DR</td><td>Ability for each PopUpMenu entry: Refer to Table 4.5.4.5.7</td></tr>
+</table></body></html>

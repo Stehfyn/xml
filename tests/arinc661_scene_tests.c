@@ -19,6 +19,12 @@
 ** 3. DECLARATIONS
 **===============================================================================================*/
 
+/*************************************************************************************************/
+/**
+ * \brief Runs the ARINC 661 scene tests.
+ *
+ * \retval None
+ */
 void RunArinc661SceneTests(void);
 
 #define TEST_MAX_WIDGETS    (64)
@@ -215,7 +221,13 @@ void RunArinc661SceneTests(void)
     Arinc661_Scene_FormatNumber("##", 1234.0, text, sizeof(text));
     assert(0 == strcmp("1234", text));
     Arinc661_Scene_FormatNumber("", 5.0, text, sizeof(text));
-    assert(0 == strcmp("", text));
+    assert(0 == strcmp("5", text));
+    Arinc661_Scene_FormatNumber(".##", 5.25, text, sizeof(text));
+    assert(0 == strcmp("5.25", text));
+    Arinc661_Scene_FormatNumber("kt", 250.0, text, sizeof(text));
+    assert(0 == strcmp("kt250", text));
+    Arinc661_Scene_FormatNumber("+##", -7.0, text, sizeof(text));
+    assert(0 == strcmp("-07", text));
     Arinc661_Scene_FormatNumber("#.#", 0.96, text, sizeof(text));
     assert(0 == strcmp("1.0", text));
 

@@ -1,0 +1,10 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>A661_FOCUS_OUT</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:1.5em;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:4px 6px;vertical-align:top;font-size:0.95em}th{background:#eee;text-align:left}.cat{color:#666}</style></head><body><h1>A661_FOCUS_OUT <small>(FocusOut)</small></h1>
+<p class="cat">Categories: Utility</p>
+<p>The FocusOut widget is used together with the FocusIn widget to define a NextFocusedWidget sequence that crosses between two separate layers. The interactive widgets and the FocusOut/FocusIn widgets are chained together using the NextFocusedWidget parameters in the normal way. the focus sequences. To the Pilot, the tabber would move through the sequence 17, 18, 19, 58, 59. Although the FocusOut (20) and FocusIn (57) exist in the chain of NextFocusedWidgets, the highlight box does not &quot;focus&quot; on these items (since they do not have any graphical representation). Interactive widget (17) Interactive widget (18) Interactive widget (19) FocusOut widget (20) FocusIn widget (57) Interactive widget (58) Interactive widget (59) Application 3, layer 7 NextFocusWidget : 58 Application 1, layer 4 NextFocusInLayerRef 7 NextFocusInRef 57 NextFocusInAppRef 3 The connection between the two layers is performed via NextFocusInAppId, NextFocusInLayerId, and NextFocusInId.</p>
+<table><tr><th>Parameter</th><th>Change</th><th>Description</th></tr>
+<tr><td>WidgetIdent</td><td>D</td><td>Unique identifier of the widget</td></tr>
+<tr><td>ParentIdent</td><td>D</td><td>Identifier of the immediate container of the widget</td></tr>
+<tr><td>NextFocusInAppId</td><td>DR</td><td>Identifier of the other Application (AppliIdent defined in UADF).</td></tr>
+<tr><td>NextFocusInLayerId</td><td>DR</td><td>Identifier of the other Application layer.</td></tr>
+<tr><td>NextFocusInId</td><td>DR</td><td>Identifier of the FocusIn widget that will receive the focus when the focus reaches the FocusOut widget</td></tr>
+</table></body></html>

@@ -1,0 +1,13 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>A661_MASK_CONTAINER</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:1.5em;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:4px 6px;vertical-align:top;font-size:0.95em}th{background:#eee;text-align:left}.cat{color:#666}</style></head><body><h1>A661_MASK_CONTAINER <small>(MaskContainer)</small></h1>
+<p class="cat">Categories: Container</p>
+<p>A MaskContainer widget applies a mask to a group of widgets to implement clipping that is not limited to rectangular regions. A mask can be represented by a picture or a symbol defining the clipping areas, but the exact usage is implementation dependent. A mask is referenced and placed by the Container. Widgets placed within this Container will be affected by the referenced mask.</p>
+<table><tr><th>Parameter</th><th>Change</th><th>Description</th></tr>
+<tr><td>WidgetIdent</td><td>D</td><td>Unique identifier of the widget.</td></tr>
+<tr><td>ParentIdent</td><td>D</td><td>Identifier of the immediate container of the widget.</td></tr>
+<tr><td>Visible</td><td>DR</td><td>Visibility of the widget</td></tr>
+<tr><td>PosX</td><td>DR</td><td>X position of the mask. Note that this does not reposition widgets contained within the MaskContainer, only the mask itself.</td></tr>
+<tr><td>PosY</td><td>DR</td><td>Y position of the mask. Note that this does not reposition widgets contained within the MaskContainer, only the mask itself.</td></tr>
+<tr><td>MaskReference</td><td>DR</td><td>Index to a Mask stored in the CDS.</td></tr>
+<tr><td>MaskEnabled</td><td>DR</td><td>If set to True, the mask is active and all the widgets contained within the MaskContainer will be affected by the referenced mask. If set to False, the mask is not active and the widgets contained within the MaskContainer will not be affected by the referenced mask.</td></tr>
+<tr><td>MotionAllowed</td><td>D</td><td>Capability to change PosX, PosY at runtime.</td></tr>
+</table></body></html>

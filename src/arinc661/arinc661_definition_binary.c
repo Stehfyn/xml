@@ -2130,6 +2130,8 @@ static const BinaryConstant_t c_binaryConstants[] =
  * \param[in]  offset      Byte offset of the value
  * \param[in]  value       Value to store
  * \param[in]  byteCount   Number of bytes to store, at most four
+ *
+ * \retval None
  */
 static void PutUnsigned(byte_t* buffer, uint64_t capacity, uint64_t offset, uint32_t value, uint32_t byteCount);
 
@@ -2162,6 +2164,8 @@ static int64_t ToSigned32(uint32_t value);
  * \param[out]    buffer     Output bytes
  * \param[in]     capacity   Output buffer capacity
  * \param[in,out] offset     Output byte offset, advanced to the boundary
+ *
+ * \retval None
  */
 static void PutAlignment(byte_t* buffer, uint64_t capacity, uint64_t* offset);
 

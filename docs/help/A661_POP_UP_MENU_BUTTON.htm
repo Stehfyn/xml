@@ -1,0 +1,33 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>A661_POP_UP_MENU_BUTTON</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:1.5em;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:4px 6px;vertical-align:top;font-size:0.95em}th{background:#eee;text-align:left}.cat{color:#666}</style></head><body><h1>A661_POP_UP_MENU_BUTTON <small>(PopUpMenuButton)</small></h1>
+<p class="cat">Categories: Graphical representation, Interactive, Text string</p>
+<p>The PopUpMenuButton widget has a static part (a Button) which, when selected by a crew member, causes the display of the popup part of the PopUpMenuButton. The popup part of the PopUpMenuButton is similar to a PopUpMenu widget. The UA is responsible for defining the position of the popup part of this widget. The OpeningMode parameter can be used to further control the position of the popup part relative to the static part. The method for closing the popup part of the widget is implementation dependent.</p>
+<table><tr><th>Parameter</th><th>Change</th><th>Description</th></tr>
+<tr><td>WidgetIdent</td><td>D</td><td>Unique identifier of the widget</td></tr>
+<tr><td>ParentIdent</td><td>D</td><td>Identifier of the immediate container of the widget</td></tr>
+<tr><td>Visible</td><td>DR</td><td>Visibility of the widget</td></tr>
+<tr><td>Enable</td><td>DR</td><td>Ability of the widget to be interactive</td></tr>
+<tr><td>StyleSet</td><td>DR</td><td>Reference to predefined graphical characteristics inside CDS</td></tr>
+<tr><td>PosX</td><td>DR</td><td>The X position of the widget reference point</td></tr>
+<tr><td>PosY</td><td>DR</td><td>The Y position of the widget reference point</td></tr>
+<tr><td>SizeX</td><td>DR</td><td>The X dimension size (width) of the widget</td></tr>
+<tr><td>SizeY</td><td>DR</td><td>The Y dimension size (height) of the widget</td></tr>
+<tr><td>NextFocusedWidget</td><td>DR</td><td>Widget ident of next widget to be focused. See Section 3.1.3.5.</td></tr>
+<tr><td>AutomaticFocusMotion</td><td>DR</td><td>Automatic motion of the focus on widget specified in NextFocusedWidget parameter</td></tr>
+<tr><td>MaxStringLength</td><td>D</td><td>Maximum size in bytes of the label text including the NULL terminator.</td></tr>
+<tr><td>Alignment</td><td>DR</td><td>Alignment of the text within the label area of the widget LEFT RIGHT CENTER</td></tr>
+<tr><td>LabelString</td><td>DR</td><td>Label of the menu button</td></tr>
+<tr><td>PictureReference</td><td>DR</td><td>Reference of the picture to be displayed on the button</td></tr>
+<tr><td>PicturePosition</td><td>DR</td><td>The string position depends on the picture position: CENTER LEFT RIGHT TOP BOTTOM</td></tr>
+<tr><td>PopUpPosX</td><td>DR</td><td>The X position of the popup part reference point</td></tr>
+<tr><td>PopUpPosY</td><td>DR</td><td>The Y position of the popup part reference point</td></tr>
+<tr><td>PopUpSizeX</td><td>DR</td><td>The X dimension size (width) of the popup part</td></tr>
+<tr><td>PopUpSizeY</td><td>DR</td><td>The Y dimension size (height) of the popup part</td></tr>
+<tr><td>OpeningMode</td><td>DR</td><td>OPEN_UP: the position (PopUpPosX/Y) is the bottom/left point corner of the popup part OPEN_DOWN: the position (PopUpPosX/Y) is the top/left point corner of the popup part</td></tr>
+<tr><td>NumberOfEntries</td><td>D</td><td>Number of entries in the popup part. It also includes the graphical separators.</td></tr>
+<tr><td>MaxStringLengthPopUp</td><td>D</td><td>Maximum size in bytes (including the NULL terminator) of each string array entry.</td></tr>
+<tr><td>StringArray</td><td>DR</td><td>Array of Strings. Each String is the text label for a menu entry. Strings composed of only one NULL character will be interpreted as a graphical separator. The NULL string at the end of the array will not be interpreted.</td></tr>
+<tr><td>PictureArray</td><td>DR</td><td>Array of Pictures, each of which is the Picture icon for a menu entry. If value is NULL, no picture is attached to the corresponding entry.</td></tr>
+<tr><td>PopUpIdentArray</td><td>D</td><td>Array of PopUpMenu Widget Idents, each of which is the PopUpMenu that will be displayed when the crew interacts with the corresponding menu entry. WidgetIdent can only refer to another PopUpMenu. If WidgetIdent is NULL, no PopUpMenu is attached to the menu entry.</td></tr>
+<tr><td>EnableArray</td><td>DR</td><td>Ability for each entry in the popup part: Refer to Table 4.5.4.5.7</td></tr>
+<tr><td>EntryValidation</td><td>R</td><td>Indicator notifying the CDS that the UA has completed processing the entry or selection event. This flag also indicates the results of that processing. A661_FALSE A661_TRUE</td></tr>
+</table></body></html>

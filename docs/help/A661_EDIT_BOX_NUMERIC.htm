@@ -1,0 +1,35 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>A661_EDIT_BOX_NUMERIC</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:1.5em;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:4px 6px;vertical-align:top;font-size:0.95em}th{background:#eee;text-align:left}.cat{color:#666}</style></head><body><h1>A661_EDIT_BOX_NUMERIC <small>(EditBoxNumeric)</small></h1>
+<p class="cat">Categories: Graphical representation, Interactive, Text string</p>
+<p>The EditBoxNumeric widget enables editing a numeric value. A crew member can modify the numeric value using input devices. Since a numeric value is used, the CDS is able to increment the value. The widget can receive a number of incremental values or a numeric key value. When the EditBoxNumeric is in edit mode, the CDS may report all modifications made to the value of the edited string, some of the modifications, or just the confirmed value (after a crew member validation). The UA controls this option through the &quot;ReportAllChanges&quot; parameter.</p>
+<p><b>Restriction:</b> N/A</p>
+<table><tr><th>Parameter</th><th>Change</th><th>Description</th></tr>
+<tr><td>WidgetIdent</td><td>D</td><td>Unique identifier of the widget</td></tr>
+<tr><td>ParentIdent</td><td>D</td><td>Identifier of the immediate container of the widget</td></tr>
+<tr><td>Visible</td><td>DR</td><td>Visibility of the widget</td></tr>
+<tr><td>Enable</td><td>DR</td><td>Ability of the widget to be interactive</td></tr>
+<tr><td>StyleSet</td><td>DR</td><td>Reference to predefined graphical characteristics inside CDS</td></tr>
+<tr><td>PosX</td><td>DR</td><td>The X position of the widget reference point</td></tr>
+<tr><td>PosY</td><td>DR</td><td>The Y position of the widget reference point</td></tr>
+<tr><td>SizeX</td><td>DR</td><td>The X dimension size (width) of the widget</td></tr>
+<tr><td>SizeY</td><td>DR</td><td>The Y dimension size (height) of the widget</td></tr>
+<tr><td>NextFocusedWidget</td><td>DR</td><td>Widget ident of next widget to be focused. See Section 3.1.3.5.</td></tr>
+<tr><td>AutomaticFocusMotion</td><td>DR</td><td>Automatic motion of the focus on widget specified in NextFocusedWidget parameter</td></tr>
+<tr><td>Value</td><td>DR</td><td>Value displayed by the edit box in normal mode</td></tr>
+<tr><td>FormatString</td><td>DR</td><td>String describing the format of the numeric field. The string is composed of any authorized characters. Some of them will be interpreted to format the value. See Section 3.2.6 &quot;Formatted Numeric Values.&quot;</td></tr>
+<tr><td>MaxFormatStringLength</td><td>D</td><td>Maximum size in bytes (including the NULL terminator) of FormatString.</td></tr>
+<tr><td>TicsCoarse</td><td>DR</td><td>Coarse increment step for modification of the value with main wheel.</td></tr>
+<tr><td>TicsFine</td><td>DR</td><td>Fine increment step for modification of the value with secondary wheel.</td></tr>
+<tr><td>StartCursorPosByte</td><td>DR</td><td>Start position of cursor in field when entering edit mode. See Section 3.1.3.3.</td></tr>
+<tr><td>Alignment</td><td>DR</td><td>Justification of the label text within the edit box area: A661_CENTER A661_LEFT A661_RIGHT</td></tr>
+<tr><td>ReportAllChanges</td><td>D</td><td>A661_EDB_CHANGE_CONFIRMED CDS will report the value change after crew member validation (A661_EVT_STRING_CONFIRMED) A661_EDB_ALL_CHANGE CDS will report the edit mode opening (A661_EVT_EDITBOX_OPENED) CDS will report each update from the crew member while in edit mode (A661_EVT_STRING_CHANGE) CDS will report the value change after crew member validation (A661_EVT_STRING_CONFIRMED) CDS will report the value if the crew member aborts the edit (A661_EVT_STRING_CHANGE_ABORTED) A661_EDB_OPEN_CLOSE CDS will report the edit mode opening (A661_EVT_EDITBOX_OPENED) CDS will report the value change after crew member validation (A661_EVT_STRING_CONFIRMED) CDS will report the value if the crew member aborts the edit (A661_EVT_STRING_CHANGE_ABORTED)</td></tr>
+<tr><td>EntryValidation</td><td>R</td><td>Indicator notifying the CDS that the UA has completed processing the entry or selection event. This flag also indicates the results of that processing. A661_FALSE A661_TRUE</td></tr>
+<tr><td>NumericKeyFlag</td><td>D</td><td>Ability to change the value with the numerical key A661_TRUE A661_FALSE</td></tr>
+<tr><td>MaxLegendStringLength</td><td>D</td><td>Max string size for the legend (MaxLegendStringLength &gt; 0)</td></tr>
+<tr><td>LegendAreaSizeX</td><td>DR</td><td>The X dimension (size) of the legend.</td></tr>
+<tr><td>LegendString</td><td>DR</td><td>Legend associated to the numeric value</td></tr>
+<tr><td>LegendPosition</td><td>DR</td><td>Position of the legend in comparison with the numeric value: A661_LEFT A661_RIGHT A661_TOP A661_BOTTOM</td></tr>
+<tr><td>LegendRemoved</td><td>DR</td><td>The flag defining if the legend is to be removed on entry in the editing mode.</td></tr>
+<tr><td>MinValue</td><td>DR</td><td>Minimum value of the entry (inclusive), applies for edits associated with TicsCoarse and TicsFine.</td></tr>
+<tr><td>MaxValue</td><td>DR</td><td>Maximum value of the entry (inclusive), applies for edits associated with TicsCoarse and TicsFine.</td></tr>
+<tr><td>CyclicFlag</td><td>D</td><td>Possibility for cyclic modification (or wraparound) of the value on reaching MinValue/MaxValue A661_TRUE A661_FALSE</td></tr>
+</table></body></html>

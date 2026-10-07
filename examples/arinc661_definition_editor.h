@@ -34,6 +34,8 @@ extern "C"
 #define ARINC661_DEFINITION_MAX_SCENE_POINTS       (524288)
 #define ARINC661_DEFINITION_MAX_SCENE_TEXT_BYTES   (1048576)
 #define ARINC661_DEFINITION_NO_DOCUMENT            (UINT32_MAX)
+#define ARINC661_DEFINITION_MAX_HISTORY            (64)
+#define ARINC661_DEFINITION_MAX_FILTER_BYTES       (64)
 
 /*=================================================================================================
 ** 3.2 Types
@@ -48,6 +50,14 @@ struct Arinc661_Definition_Editor_s;
 typedef struct Arinc661_Definition_Document_s
 {
     struct Arinc661_Definition_Editor_s* owner;                                        ///< Editor holding this document.
+    void*                   undoStack[ARINC661_DEFINITION_MAX_HISTORY];               ///< Model snapshots older than the shadow, oldest first.
+    void*                   redoStack[ARINC661_DEFINITION_MAX_HISTORY];               ///< Model snapshots undone, oldest first.
+    void*                   shadow;                                                   ///< Snapshot of the model as last committed.
+    float32_t               viewZoom;                                                 ///< Scene zoom factor over the fitted scale; zero until first drawn.
+    float32_t               viewPanX;                                                 ///< Scene pan in screen pixels.
+    float32_t               viewPanY;                                                 ///< Scene pan in screen pixels.
+    uint32_t                undoCount;                                                ///< Snapshots on the undo stack.
+    uint32_t                redoCount;                                                ///< Snapshots on the redo stack.
     int32_t                 status;                                                   ///< Current status message.
     bool_t                  isLoaded;                                                 ///< TRUE after a successful read.
     bool_t                  isDirty;                                                  ///< TRUE when the loaded document has unsaved changes.
@@ -80,12 +90,38 @@ typedef struct Arinc661_Definition_Editor_s
     FACEOE_Gfx_Point_t               scenePoints[ARINC661_DEFINITION_MAX_SCENE_POINTS];           ///< Scene point storage.
     char_t                           sceneText[ARINC661_DEFINITION_MAX_SCENE_TEXT_BYTES];         ///< Scene text storage.
     Arinc661_Scene_Bounds_t          sceneBounds[ARINC661_DEFINITION_MAX_WIDGETS];                ///< Widget bounds of the last scene.
+    uint32_t                         sceneBoundsCount;                                            ///< Bounds recorded by the last scene.
+    int32_t                          dragMode;                                                    ///< Scene drag in progress: none, move, or a resize corner.
+    uint32_t                         dragWidget;                                                  ///< Widget being dragged.
+    float32_t                        dragStartX;                                                  ///< Mouse X at drag start.
+    float32_t                        dragStartY;                                                  ///< Mouse Y at drag start.
+    float32_t                        dragOriginX;                                                 ///< PosX at drag start.
+    float32_t                        dragOriginY;                                                 ///< PosY at drag start.
+    float32_t                        dragOriginWidth;                                             ///< SizeX at drag start.
+    float32_t                        dragOriginHeight;                                            ///< SizeY at drag start.
+    float32_t                        dragScale;                                                   ///< Screen pixels per layer unit during the drag.
+    bool_t                           hasDragged;                                                  ///< TRUE once the drag moved the mouse.
+    bool_t                           isSnapping;                                                  ///< TRUE to snap moves and sizes to whole millimetres.
+    bool_t                           showsGrid;                                                   ///< TRUE to draw a millimetre grid behind the layer.
+    uint32_t                         dropWidget;                                                  ///< Widget dropped onto a hierarchy node this frame, or UINT32_MAX.
+    uint32_t                         dropParent;                                                  ///< Node it was dropped on, or UINT32_MAX for the layer.
+    uint32_t                         dropLayer;                                                   ///< Layer of that node.
+    uint32_t                         createConfiguration;                                         ///< Configuration slot chosen for a new user application.
+    uint32_t                         createWindow;                                                ///< Window array index chosen for it.
+    char_t                           addFilter[ARINC661_DEFINITION_MAX_FILTER_BYTES];             ///< Type filter typed in the add pop-up.
+    uint32_t                         addLayer;                                                    ///< Layer the add pop-up targets.
+    uint32_t                         addParent;                                                   ///< Parent widget the add pop-up targets.
+    uint32_t                         addHit;                                                      ///< Widget under the cursor when the add pop-up opened.
+    float32_t                        addX;                                                        ///< Layer X where the add pop-up opened.
+    float32_t                        addY;                                                        ///< Layer Y where the add pop-up opened.
     int32_t                          status;                                                      ///< File browser status message.
     uint32_t                         activeDocumentIndex;                                         ///< Selected document slot.
     uint32_t                         requestedDocumentIndex;                                      ///< Tab to select after opening a file.
     uint32_t                         pendingCloseDocumentIndex;                                   ///< Document awaiting close confirmation.
     uint32_t                         pendingSaveDocumentIndex;                                    ///< Untitled document awaiting a filename.
     bool_t                           isSaveAllPending;                                            ///< TRUE while Save All is naming untitled documents.
+    char_t                           renamedFrom[ARINC661_DEFINITION_MAX_XML_NAME_BYTES];         ///< Name a document had before its last Save As, or empty.
+    char_t                           renamedTo[ARINC661_DEFINITION_MAX_XML_NAME_BYTES];           ///< Name it has now.
     char_t                           folderPath[ARINC661_DEFINITION_MAX_FOLDER_PATH_BYTES];       ///< Folder containing Definition Files.
     char_t                           saveFolderPath[ARINC661_DEFINITION_MAX_FOLDER_PATH_BYTES];   ///< Folder chosen in the save dialog.
     char_t                           saveFileName[ARINC661_DEFINITION_MAX_XML_NAME_BYTES];        ///< Filename chosen in the save dialog.
@@ -368,5 +404,266 @@ void Arinc661_Definition_SelectDocument(Arinc661_Definition_Editor_t* editor, ui
  * \retval        FALSE           otherwise.
  */
 bool_t Arinc661_Definition_RecordDocument(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, FACEOE_Gfx_DrawList_t* drawList, float32_t fontSize);
+
+/*************************************************************************************************/
+/**
+ * \brief Reverts the active document to the state before its latest change.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_Undo(Arinc661_Definition_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Reapplies the active document's latest undone change.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_Redo(Arinc661_Definition_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Reports whether the active document can undo or redo.
+ *
+ * \param[in]  editor    Editor state
+ * \param[out] canUndo   TRUE when an older state exists
+ * \param[out] canRedo   TRUE when an undone state exists
+ *
+ * \retval     None
+ */
+void Arinc661_Definition_History(const Arinc661_Definition_Editor_t* editor, bool_t* canUndo, bool_t* canRedo);
+
+/*************************************************************************************************/
+/**
+ * \brief Removes the active document's selected layer, widget, or extension.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_DeleteSelection(Arinc661_Definition_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Duplicates the active document's selected widget with its subtree and extensions.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_DuplicateSelection(Arinc661_Definition_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Toggles grid snapping and reports its state.
+ *
+ * \param[in,out] editor   Editor state
+ * \param[in]     toggle   TRUE to flip the setting
+ *
+ * \retval        TRUE     if snapping is on.
+ * \retval        FALSE    otherwise.
+ */
+bool_t Arinc661_Definition_Snap(Arinc661_Definition_Editor_t* editor, bool_t toggle);
+
+/*************************************************************************************************/
+/**
+ * \brief Toggles the scene grid and reports its state.
+ *
+ * \param[in,out] editor   Editor state
+ * \param[in]     toggle   TRUE to flip the setting
+ *
+ * \retval        TRUE     if the grid is shown.
+ * \retval        FALSE    otherwise.
+ */
+bool_t Arinc661_Definition_Grid(Arinc661_Definition_Editor_t* editor, bool_t toggle);
+
+/*************************************************************************************************/
+/**
+ * \brief Resets the active document's scene view to fit the layer.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_FitView(Arinc661_Definition_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Adds a layer to the active document.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_AddLayer(Arinc661_Definition_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Adds a widget under the active document's selection: into the selected container,
+ *  beside a selected leaf, or into the selected layer.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_AddWidget(Arinc661_Definition_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Adds an extension to the active document's selected widget.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_AddExtension(Arinc661_Definition_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Returns the type of the active document's selected widget, for contextual help.
+ *
+ * \param[in] editor   Editor state
+ *
+ * \retval    const char_t*   Type name, or NULL when no widget is selected.
+ */
+const char_t* Arinc661_Definition_SelectedType(const Arinc661_Definition_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Selects the first widget of the active document with a name.
+ *
+ * \param[in,out] editor   Editor state
+ * \param[in]     name     Widget name
+ *
+ * \retval        TRUE     if a widget was selected.
+ * \retval        FALSE    otherwise.
+ */
+bool_t Arinc661_Definition_SelectByName(Arinc661_Definition_Editor_t* editor, const char_t* name);
+
+/*************************************************************************************************/
+/**
+ * \brief Commits the frame's changes to the undo history; call once per frame after drawing.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_EndFrame(Arinc661_Definition_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Creates a Definition File for a user application: named after its dFPath, carrying
+ *  its applicationId, with one layer sized to its window.
+ *
+ * \param[in,out] editor          Editor state
+ * \param[in]     fileName        File name the user application references
+ * \param[in]     applicationId   FACE applicationId to store as ApplicationId
+ * \param[in]     layerWidth      Layer width in 0.01 mm
+ * \param[in]     layerHeight     Layer height in 0.01 mm
+ *
+ * \retval        TRUE            if the document was created and selected.
+ * \retval        FALSE           when no slot is free.
+ */
+bool_t Arinc661_Definition_CreateFor(Arinc661_Definition_Editor_t* editor, const char_t* fileName, int64_t applicationId, float32_t layerWidth, float32_t layerHeight);
+
+/*************************************************************************************************/
+/**
+ * \brief Selects a layer of an open document and makes the document active.
+ *
+ * \param[in,out] editor          Editor state
+ * \param[in]     documentIndex   Document slot
+ * \param[in]     layerIndex      Layer array index
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_SelectLayer(Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, uint32_t layerIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Selects a widget of an open document and makes the document active.
+ *
+ * \param[in,out] editor          Editor state
+ * \param[in]     documentIndex   Document slot
+ * \param[in]     widgetIndex     Widget array index
+ *
+ * \retval        None
+ */
+void Arinc661_Definition_SelectWidget(Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, uint32_t widgetIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Records every layer of an open document into a draw list and reports widget bounds.
+ *
+ * \param[in]     editor          Editor state
+ * \param[in]     documentIndex   Document slot
+ * \param[in,out] drawList        Target draw list; its transform maps 0.01 mm to output units
+ * \param[in]     fontSize        Host font size in output units
+ * \param[out]    bounds          Bounds storage, or NULL
+ * \param[in]     boundsCapacity  Bounds slots
+ * \param[out]    boundsCount     Bounds written; may be NULL
+ *
+ * \retval        TRUE            if at least one layer was recorded.
+ * \retval        FALSE           otherwise.
+ */
+bool_t Arinc661_Definition_RecordDocumentBounds(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, FACEOE_Gfx_DrawList_t* drawList, float32_t fontSize, Arinc661_Scene_Bounds_t* bounds, uint32_t boundsCapacity, uint32_t* boundsCount);
+
+/*************************************************************************************************/
+/**
+ * \brief Renames an open document's file name without saving, so references can follow a Save As.
+ *
+ * \param[in]  editor          Editor state
+ * \param[out] previousName    Name before the last Save As, or an empty string
+ * \param[out] currentName     Name after it
+ *
+ * \retval     TRUE            if a Save As happened since the last call; the record is cleared.
+ * \retval     FALSE           otherwise.
+ */
+bool_t Arinc661_Definition_TakeRename(Arinc661_Definition_Editor_t* editor, const char_t** previousName, const char_t** currentName);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws one open document's hierarchy tree, wherever the caller is; a click inside
+ *  selects in that document and makes it active.
+ *
+ * \param[in,out] editor          Editor state
+ * \param[in]     documentIndex   Document slot
+ *
+ * \retval        TRUE            if the selection changed through this tree.
+ * \retval        FALSE           otherwise.
+ */
+bool_t Arinc661_Definition_DrawDocumentHierarchy(Arinc661_Definition_Editor_t* editor, uint32_t documentIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Describes the active document's selection as a breadcrumb.
+ *
+ * \param[in]  editor     Editor state
+ * \param[out] text       Breadcrumb, or an empty string
+ * \param[in]  capacity   Bytes in text
+ *
+ * \retval     None
+ */
+void Arinc661_Definition_SelectionText(const Arinc661_Definition_Editor_t* editor, char_t* text, uint32_t capacity);
+
+/*************************************************************************************************/
+/**
+ * \brief Counts an open document's layers and reads one layer's id, name, and size.
+ *
+ * \param[in]  editor          Editor state
+ * \param[in]  documentIndex   Document slot
+ * \param[in]  layerIndex      Layer array index
+ * \param[out] layerId         LayerId text, or an empty string
+ * \param[out] name            Layer name
+ * \param[out] width           Width in 0.01 mm
+ * \param[out] height          Height in 0.01 mm
+ *
+ * \retval     TRUE            if the layer exists.
+ * \retval     FALSE           otherwise.
+ */
+bool_t Arinc661_Definition_LayerAt(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, uint32_t layerIndex, const char_t** layerId, const char_t** name, float32_t* width, float32_t* height);
 
 #endif /* ARINC661_DEFINITION_EDITOR_H */

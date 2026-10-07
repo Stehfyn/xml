@@ -1,0 +1,22 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>A661_MAPHORZ</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:1.5em;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:4px 6px;vertical-align:top;font-size:0.95em}th{background:#eee;text-align:left}.cat{color:#666}</style></head><body><h1>A661_MAPHORZ <small>(MapHorz)</small></h1>
+<p class="cat">Categories: Container, Map management</p>
+<p>A MapHorz widget consists of a rectangular region on the display, which contains reference information to enable the display of map features in the cockpit. The MapHorz widget enables multiple sources of information with different coordinate systems to be merged into a composite map image. MapHorz provides information for resolving coordinate system disparities among the map sources. MapHorz also has the responsibility for containing multiple map sources such that the data is merged properly into a composite representation.</p>
+<table><tr><th>Parameter</th><th>Change</th><th>Description</th></tr>
+<tr><td>WidgetIdent</td><td>D</td><td>Unique identifier of the widget</td></tr>
+<tr><td>ParentIdentifier</td><td>D</td><td>Identifier of the immediate container of the widget</td></tr>
+<tr><td>Visible</td><td>DR</td><td>Visibility of the widget</td></tr>
+<tr><td>Enable</td><td>DR</td><td>Ability of the widget to be interactive</td></tr>
+<tr><td>PosX</td><td>DR</td><td>The X position of the widget reference point (screen coordinate system)</td></tr>
+<tr><td>PosY</td><td>DR</td><td>The Y position of the widget reference point (screen coordinate system)</td></tr>
+<tr><td>SizeX</td><td>DR</td><td>Area size X</td></tr>
+<tr><td>SizeY</td><td>DR</td><td>Area size Y</td></tr>
+<tr><td>MapSynchronizationNumber</td><td>R</td><td>See Section 3.2.8.4 Reference coordinate system Projection Reference Point Latitude R This point is used by the CDS to know what reference should be used to run the projection algorithm. The CDS converts dynamic widget coordinate data into the MapHorz coordinate system. The MapHorz coordinate system is defined by: Reference point: PRP with lat/long coordinate Reference direction: True North Commentary: For the ND, PRP is the aircraft position for ARC and ROSE mode. For PLAN mode the PRP is a waypoint of the FPLN. In mode PLAN, the PRP can be populated by the FMS through the ND. Projection Reference Point Longitude R Equivalence between &quot;MapHorz coordinate system&quot; and &quot;MapHorz Screen Coordinate system&quot;</td></tr>
+<tr><td>ScreenReferencePointX</td><td>DR</td><td>X and Y Position of the PRP on the screen. This position is expressed in MapHorz Screen Coordinate System relative to the widget reference point (PosX, PosY) ScreenReferencePointY DR</td></tr>
+<tr><td>Range</td><td>DR</td><td>Geo-referenced range expressed in nm</td></tr>
+<tr><td>ScreenRange</td><td>DR</td><td>Distance in screen units (hundredth of mm) equivalent to range. Orientation parameters for latitude/longitude and TCAS coordinate like systems</td></tr>
+<tr><td>Orientation</td><td>R</td><td>Angle between True North and the up-direction of the display at the PRP (see Reference coordinate system, positive direction: counter-clockwise). If PRP Latitude is at a pole, the up-direction of the display should be the meridian identified by PRP Longitude.</td></tr>
+<tr><td>AircraftOrientation</td><td>R</td><td>Orientation of the aircraft relative to the True North (positive direction: clockwise)</td></tr>
+<tr><td>AircraftLatitude</td><td>R</td><td>Latitude of the aircraft</td></tr>
+<tr><td>AircraftLongitude</td><td>R</td><td>Longitude of the aircraft</td></tr>
+<tr><td>ProjectionType</td><td>D</td><td>Indicate which kind of projection will be applied on lat/long coordinate of dynamic widget. For example: LAMBERT POLAR MapHorz Creation is defined in Table 3.3.25-2a.</td></tr>
+</table></body></html>

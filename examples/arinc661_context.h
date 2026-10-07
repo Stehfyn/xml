@@ -29,6 +29,8 @@ extern "C"
 
 #define ARINC661_CONTEXT_MAX_DEFINITION_FILES (256)
 #define ARINC661_CONTEXT_MAX_FILE_NAME_BYTES  (260)
+#define ARINC661_CONTEXT_MAX_PROBLEMS         (256)
+#define ARINC661_CONTEXT_MAX_PROBLEM_BYTES    (320)
 
 /*=================================================================================================
 ** 3.2 Types
@@ -36,6 +38,32 @@ extern "C"
 
 struct Arinc661_Configuration_Editor_s;
 struct Arinc661_Definition_Editor_s;
+
+/*************************************************************************************************/
+/**
+ * \brief Where a problem points.
+ */
+typedef enum Arinc661_Context_Target_e
+{
+    ARINC661_CONTEXT_TARGET_NONE,             ///< Nothing to select
+    ARINC661_CONTEXT_TARGET_USER_APPLICATION, ///< A user application of a configuration
+    ARINC661_CONTEXT_TARGET_WINDOW,           ///< A window of a configuration
+    ARINC661_CONTEXT_TARGET_DEFINITION,       ///< A Definition File document
+    ARINC661_CONTEXT_TARGET_LAYER             ///< A layer of a Definition File document
+} Arinc661_Context_Target_t;
+
+/*************************************************************************************************/
+/**
+ * \brief One cross-document problem.
+ */
+typedef struct Arinc661_Context_Problem_s
+{
+    char_t                    text[ARINC661_CONTEXT_MAX_PROBLEM_BYTES]; ///< What is wrong and where
+    Arinc661_Context_Target_t target;                                   ///< Where it points
+    uint32_t                  documentIndex;                            ///< Document slot of the target
+    uint32_t                  itemIndex;                                ///< Array index of the target item
+    bool_t                    isError;                                  ///< TRUE for a defect, FALSE for a warning
+} Arinc661_Context_Problem_t;
 
 /*************************************************************************************************/
 /**
@@ -55,6 +83,9 @@ typedef struct Arinc661_Context_s
     char_t                                  definitionFiles[ARINC661_CONTEXT_MAX_DEFINITION_FILES][ARINC661_CONTEXT_MAX_FILE_NAME_BYTES]; ///< Their names.
     bool_t                                  isDefinitionFocused;                                                       ///< TRUE when the last focus request named the Definition File section.
     bool_t                                  hasFocusRequest;                                                           ///< TRUE until the host moves the focus as requested.
+    Arinc661_Context_Problem_t              problems[ARINC661_CONTEXT_MAX_PROBLEMS];                                   ///< Problems found by the last check.
+    uint32_t                                problemCount;                                                              ///< Problems found.
+    uint32_t                                errorCount;                                                                ///< Problems that are errors.
 } Arinc661_Context_t;
 
 /*************************************************************************************************/
@@ -193,5 +224,96 @@ bool_t Arinc661_Context_RecordDefinition(const Arinc661_Context_t* context, cons
  * \retval        FALSE                 otherwise.
  */
 bool_t Arinc661_Context_TakeFocusRequest(Arinc661_Context_t* context, bool_t* isDefinitionFocused);
+
+/*************************************************************************************************/
+/**
+ * \brief Checks every open document against the others and fills the problem list.
+ *
+ * \par Details:
+ *  Errors: a user application whose dFPath names no known file; an ApplicationId that differs
+ *  from the applicationId; two Definition Files carrying the same ApplicationId; a user
+ *  application whose window does not exist. Warnings: a referenced file that is not open; a
+ *  layer larger than its window; a window no user application targets; an open Definition
+ *  File no user application references.
+ *
+ * \param[in,out] context   Context
+ *
+ * \retval        uint32_t   Number of problems.
+ */
+uint32_t Arinc661_Context_Check(Arinc661_Context_t* context);
+
+/*************************************************************************************************/
+/**
+ * \brief Selects the item a problem points at and moves the focus there.
+ *
+ * \param[in,out] context   Context
+ * \param[in]     problem   A problem from the last check
+ *
+ * \retval        None
+ */
+void Arinc661_Context_ShowProblem(Arinc661_Context_t* context, const Arinc661_Context_Problem_t* problem);
+
+/*************************************************************************************************/
+/**
+ * \brief Opens every Definition File in the folder that a user application references.
+ *
+ * \param[in,out] context   Context
+ *
+ * \retval        uint32_t   Number of files opened.
+ */
+uint32_t Arinc661_Context_OpenReferencedDefinitions(Arinc661_Context_t* context);
+
+/*************************************************************************************************/
+/**
+ * \brief Creates a Definition File for a user application, sized to its window.
+ *
+ * \param[in,out] context       Context
+ * \param[in]     application   The user application
+ *
+ * \retval        TRUE          if the document was created and focused.
+ * \retval        FALSE         otherwise.
+ */
+bool_t Arinc661_Context_CreateDefinitionFor(Arinc661_Context_t* context, const Arinc661_Context_UserApplication_t* application);
+
+/*************************************************************************************************/
+/**
+ * \brief Creates a user application for an open Definition File in a configuration window.
+ *
+ * \param[in,out] context                 Context
+ * \param[in]     definitionDocument      Definition File document slot
+ * \param[in]     configurationDocument   Configuration document slot
+ * \param[in]     windowId                Window the application targets
+ *
+ * \retval        TRUE                    if the user application was created and focused.
+ * \retval        FALSE                   otherwise.
+ */
+bool_t Arinc661_Context_CreateUserApplicationFor(Arinc661_Context_t* context, uint32_t definitionDocument, uint32_t configurationDocument, int64_t windowId);
+
+/*************************************************************************************************/
+/**
+ * \brief Reports the window frames of the user applications referencing a Definition File.
+ *
+ * \param[in]  context          Context
+ * \param[in]  fileName         Definition File name
+ * \param[in]  index            Which referencing user application
+ * \param[out] widthUnits       Window width in 0.01 mm
+ * \param[out] heightUnits      Window height in 0.01 mm
+ * \param[out] label            Label naming the configuration, application, and window
+ * \param[in]  labelCapacity    Bytes in label
+ *
+ * \retval     TRUE             if such a user application exists and its window was found.
+ * \retval     FALSE            otherwise.
+ */
+bool_t Arinc661_Context_WindowFrame(const Arinc661_Context_t* context, const char_t* fileName, uint32_t index, float32_t* widthUnits, float32_t* heightUnits, char_t* label, uint32_t labelCapacity);
+
+/*************************************************************************************************/
+/**
+ * \brief Follows a Definition File rename by repointing user applications that named it.
+ *
+ * \param[in,out] context   Context
+ *
+ * \retval        uint32_t   Number of user applications changed.
+ */
+uint32_t Arinc661_Context_FollowRenames(Arinc661_Context_t* context);
 
 #endif /* ARINC661_CONTEXT_H */

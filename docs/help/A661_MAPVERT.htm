@@ -1,0 +1,19 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>A661_MAPVERT</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:1.5em;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:4px 6px;vertical-align:top;font-size:0.95em}th{background:#eee;text-align:left}.cat{color:#666}</style></head><body><h1>A661_MAPVERT <small>(MapVert)</small></h1>
+<p class="cat">Categories: Container, Map Management</p>
+<p>The MapVert widget is the counterpart of the MapHorz widget for a vertical display made of a slice presentation. It is based on Cartesian coordinate system. Typically, the horizontal axis will be distance in nautical miles and the vertical axis will be height in feet. The UA master of the vertical display will have to create such a widget and through it, provide the following information to the CDS: - The location of the widget in the window - The size of the widget - The geographic correspondence of this size. From there, real world distance be converted in screen distance on both axes - Position of a reference point both in screen coordinate and Geographic coordinates. From there the CDS can interpret absolute or relative coordinates for Items. For example, on the horizontal axis, the reference point is 30 mm from origin of widget, 30Nm in geographic coordinates. Knowing the distance equivalence, the CDS can position either an Item at 45Nm absolute or 15Nm relative to the reference point</p>
+<table><tr><th>Parameter</th><th>Change</th><th>Description</th></tr>
+<tr><td>WidgetIdent</td><td>D</td><td>Unique identifier of the widget</td></tr>
+<tr><td>ParentIdent</td><td>D</td><td>Identifier of the immediate container of the widget</td></tr>
+<tr><td>Visible</td><td>DR</td><td>Visibility of the widget</td></tr>
+<tr><td>Enable</td><td>DR</td><td>Ability of the widget to be interactive</td></tr>
+<tr><td>PosX</td><td>DR</td><td>The X position of the widget reference point (screen coordinate system)</td></tr>
+<tr><td>PosY</td><td>DR</td><td>The Y position of the widget reference point (screen coordinate system)</td></tr>
+<tr><td>SizeX</td><td>DR</td><td>Area size X</td></tr>
+<tr><td>SizeY</td><td>DR</td><td>Area size Y</td></tr>
+<tr><td>RangeX</td><td>DR</td><td>Equivalent in Geographic coordinates, expressed in nm, of Area Size X</td></tr>
+<tr><td>RangeY</td><td>DR</td><td>Equivalent in Geographic coordinates, expressed in feet, of Area Size Y</td></tr>
+<tr><td>RefPosX</td><td>DR</td><td>Position X of the reference point, expressed in screen coordinates (hundredth of mm) from PosX</td></tr>
+<tr><td>RefPosY</td><td>DR</td><td>Position Y of the reference point, expressed in screen coordinates (hundredth of mm) from PosY</td></tr>
+<tr><td>RefGeoPosX</td><td>DR</td><td>Geo-referenced Position X of the reference point, expressed in nm</td></tr>
+<tr><td>RefGeoPosY</td><td>DR</td><td>Geo-referenced Position Y of the reference point, expressed in feet MapSynchronization Number R See Section 3.2.8.4</td></tr>
+</table></body></html>

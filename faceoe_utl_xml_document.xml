@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<root a="A > é" b="">
+    <child>
+        <grandchild/>
+    </child>
+    <sibling/>
+</root>

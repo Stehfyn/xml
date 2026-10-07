@@ -46,3 +46,18 @@ cmake -S . -B build
 cmake --build build --config Debug
 ctest --test-dir build -C Debug --output-on-failure
 ```
+
+## Libraries
+
+- `faceoe_utl`: XML reading and writing, scanning, and string helpers (`FACEOE_Utl_`).
+- `faceoe_gfx`: retained 2-D draw list with transform and clip stacks (`FACEOE_Gfx_`); knows nothing about ARINC 661 or FACE objects. Backends replay its commands.
+- `arinc661`: Definition File model, XML and binary (Part 1-7) forms, the Creation Structure schema, the specification help text, and `arinc661_scene`, which records a layer's widgets into a draw list (`Arinc661_`).
+- `faceoe`: FACE display management configuration (`FACEOE_DisplayManagement_`).
+
+## Editor
+
+`arinc661_editor` (Windows, Dear ImGui) edits configurations and Definition Files on one page: files, hierarchy, scene, inspector. The scene supports drag to move, corner handles to resize, arrow nudging, Delete, right-click add with a type filter, wheel zoom, middle or Space drag pan, grid and millimetre snapping. Containers accept children from the context menu or by drag and drop in the hierarchy. Ctrl+Z and Ctrl+Y undo and redo. F1 opens Windows Help (`docs/arinc661.chm`) on the selection; Shift+F1 opens the in-app reference. A user application's window previews its Definition File's layers at the window's pixel density; double-clicking a previewed widget edits it in the Definition File editor, and the Definition File scene outlines the windows that will show it. Opening a configuration opens the Definition Files it references, and each user application node in the hierarchy embeds its Definition File's layer and widget tree, editable in place; the user application inspector lists the file's layers with fit checks, and the status line shows a breadcrumb for the selection on each side. A Problems panel checks every open document against the others (missing or unopened files, `applicationId` versus `ApplicationId`, duplicate identifiers, layers larger than their window, windows without applications, unreferenced files) and navigates to each finding. A user application can create its Definition File (named after its dFPath, carrying its id, with a window-sized layer); a Definition File can create a user application in a chosen configuration window; Save As repoints the user applications that referenced the old name.
+
+`tools/help.py` and `tools/chm.py` regenerate the help text and the CHM from the specification text.
+
+Automation: `arinc661_editor --screenshot out.bmp [--frames n] [--definition f] [--configuration f] [--focus-definition] [--select widget]` writes a frame and exits.

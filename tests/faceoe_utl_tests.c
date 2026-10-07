@@ -12,9 +12,36 @@
 #include <limits.h>
 #include <stdio.h>
 
+/*************************************************************************************************/
+/**
+ * \brief Runs the ARINC 661 Definition File tests.
+ *
+ * \retval None
+ */
 void RunArinc661Tests(void);
+
+/*************************************************************************************************/
+/**
+ * \brief Runs the FACE display management tests.
+ *
+ * \retval None
+ */
 void RunFACEOEDisplayManagementTests(void);
+
+/*************************************************************************************************/
+/**
+ * \brief Runs the FACEOE graphics draw list tests.
+ *
+ * \retval None
+ */
 void RunFACEOEGfxTests(void);
+
+/*************************************************************************************************/
+/**
+ * \brief Runs the ARINC 661 scene tests.
+ *
+ * \retval None
+ */
 void RunArinc661SceneTests(void);
 
 /*************************************************************************************************/

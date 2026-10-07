@@ -1,0 +1,15 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>A661_DATA_SCALING_FR180</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:1.5em;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:4px 6px;vertical-align:top;font-size:0.95em}th{background:#eee;text-align:left}.cat{color:#666}</style></head><body><h1>A661_DATA_SCALING_FR180 <small>(DataScalingFR180)</small></h1>
+<p>The objective of this widget is to provide a means for scaling one fr(180) value for one widget parameter. The widget referenced in this DataScalingFR180 widget must be defined in the Definition File before the DataScalingFR180 widget. The algorithm for this widget is defined below: - If (EndValue = StartValue) then scale = 0 - Else scale = (Value - StartValue)/(EndValue - StartValue) The resulting angle value is calculated clockwise: ParamValue = StartScaledValue + (EndScaledValue - StartScaledValue) * scale ParamValue is cast to ulong and clamped to the ulong range. If (Clamping) then: - If (ParamValue &lt; StartScaledValue) then ParamValue = StartScaledValue - Else if (ParamValue &gt; EndScaledValue) then ParamValue = EndScaledValue ParamValue should be wrapped in the [-180, 180] extension by a modulo function Note: For example, for a ParamValue of 200 after applying the scale, then it will be considered as -160.</p>
+<p><b>Restriction:</b> - The DataScalingFR180 can only be the child of a layer - The DataScaling cannot refer to a &quot;Definition Only&quot; parameter - The referred parameter type must be fr(180)</p>
+<table><tr><th>Parameter</th><th>Change</th><th>Description</th></tr>
+<tr><td>WidgetIdent</td><td>D</td><td>Unique identifier of the widget.</td></tr>
+<tr><td>ParentIdent</td><td>D</td><td>Identifier of the immediate container of the widget. The only possible parent of the DataScalingFR180 is the layer; therefore, ParentIdent Value: 0</td></tr>
+<tr><td>TargetWidgetID</td><td>D</td><td>Widget ID for which the parameter should be scaled</td></tr>
+<tr><td>TargetParameterID</td><td>D</td><td>ParameterID for the widget which should be scaled. Its type should be Long</td></tr>
+<tr><td>Clamping</td><td>DR</td><td>Determine if the parameter is clamped to its [StartScaledValue, EndScaledValue] range</td></tr>
+<tr><td>StartValue</td><td>DR</td><td>Start value of the parameter (corresponding to a scale of 0)</td></tr>
+<tr><td>EndValue</td><td>DR</td><td>End value of the parameter (corresponding to a scale of 1)</td></tr>
+<tr><td>StartScaledValue</td><td>DR</td><td>Start value of the parameter after scaling (corresponding to a scale of 0)</td></tr>
+<tr><td>EndScaledValue</td><td>DR</td><td>End value of the parameter after scaling (corresponding to a scale of 1)</td></tr>
+<tr><td>Value</td><td>R</td><td>Value StartScaledValue = 180 EndScaledValue = 0</td></tr>
+</table></body></html>

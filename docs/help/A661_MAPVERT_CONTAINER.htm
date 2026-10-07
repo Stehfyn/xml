@@ -1,0 +1,16 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>A661_MAPVERT_CONTAINER</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:1.5em;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:4px 6px;vertical-align:top;font-size:0.95em}th{background:#eee;text-align:left}.cat{color:#666}</style></head><body><h1>A661_MAPVERT_CONTAINER <small>(MapVert_Container)</small></h1>
+<p class="cat">Categories: Container, Map management</p>
+<p>The MapVert_Container is used to position a set of non-interactive widgets on a map using real world coordinates (e.g., Distance/Altitude). The X and Y parameters provide this real world position data. Their interpretation is dependent on the MapDataFormatX and MapDataFormatY parameters of the parent MapVert_Source widget. The screen location resulting from the projection of the X and Y parameters defines the origin of the MapVert_Container&#x27;s children. The position and size of the children are still defined in hundredth of millimeters. The MapVert_Container scales its children according to the widgets RangeX/Y and SizeX/Y parameters as well as the RangeX/Y and SizeX/Y parameters of the ancestor MapVert. Behavior of this widget before the X, Y, RangeX, RangeY, SizeX, and SizeY parameters are received is implementation dependent. The MapVert_Container sends events to its owner to indicate when its children widgets are onscreen or offscreen. This is calculated based on the RangeX/Y parameter.</p>
+<p><b>Restriction:</b> A MapVert_Container must be in a MapVert_Source container.</p>
+<table><tr><th>Parameter</th><th>Change</th><th>Description</th></tr>
+<tr><td>WidgetIdent</td><td>D</td><td>Unique identifier of the widget</td></tr>
+<tr><td>ParentIdent</td><td>D</td><td>Identifier of the immediate container of the widget</td></tr>
+<tr><td>Visible</td><td>DR</td><td>Visibility of the widget</td></tr>
+<tr><td>SizeX</td><td>R</td><td>Distance in screen units (hundredth of mm) equivalent to RangeX</td></tr>
+<tr><td>SizeY</td><td>R</td><td>Distance in screen units (hundredth of mm) equivalent to RangeY</td></tr>
+<tr><td>X</td><td>R</td><td>Dependent on MapDataFormat. See Table 3.4.4-2b</td></tr>
+<tr><td>Y</td><td>R</td><td>Dependent on MapDataFormat. See Table 3.4.4-2b</td></tr>
+<tr><td>MapSynchronizationNumber</td><td>R</td><td>See Section 3.2.8.4</td></tr>
+<tr><td>RangeX</td><td>R</td><td>Geo-referenced range in nm</td></tr>
+<tr><td>RangeY</td><td>R</td><td>Geo-referenced range in feet MapVert_Container Creation Structures are defined in Table 3.9.13-2.</td></tr>
+</table></body></html>

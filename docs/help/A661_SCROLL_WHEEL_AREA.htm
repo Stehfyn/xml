@@ -1,0 +1,12 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>A661_SCROLL_WHEEL_AREA</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:1.5em;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:4px 6px;vertical-align:top;font-size:0.95em}th{background:#eee;text-align:left}.cat{color:#666}</style></head><body><h1>A661_SCROLL_WHEEL_AREA <small>(ScrollWheelArea)</small></h1>
+<p class="cat">Categories: Interactive</p>
+<p>The ScrollWheelArea is transparent rectangular widget. The objective of this widget is to send Increment events from Crew member interactions (from scrollwheel interactions) in order to allow UA to simulate scrolling action at screen. The principle is that this ScrollWheelArea widget will define an area inside which the scrollwheel events will be redirected to UA while the Cursor is over the area and when the scrollwheel input is not consumed by another widget. Note: An input is considered consumed by a widget X when it is made unavailable for any widget to trigger internal behavior after being used by the aforesaid widget X. The CDS will transmit the scrollwheel events as an increment value: Number of Increments. If the pilot scrolls quickly enough, the event transmission will occur up to CDS cycle. ScrollWheelArea widgets that are drawn on top of other interactive widget do not prevent the widget underneath from generating events. Under these conditions, the ScrollWheelArea widget and the interactive widget underneath will still be able to generate events. This is one of the noted exceptions to the recommendation defined in Section 2.3.5.2 for overlapping widgets.</p>
+<table><tr><th>Parameter</th><th>Change</th><th>Description</th></tr>
+<tr><td>WidgetIdent</td><td>D</td><td>Unique identifier of the widget</td></tr>
+<tr><td>ParentIdent</td><td>D</td><td>Identifier of the immediate container of the widget</td></tr>
+<tr><td>Enable</td><td>DR</td><td>Ability of the widget to be activated</td></tr>
+<tr><td>PosX</td><td>DR</td><td>The X position of the widget reference point</td></tr>
+<tr><td>PosY</td><td>DR</td><td>The Y position of the widget reference point</td></tr>
+<tr><td>SizeX</td><td>DR</td><td>The X dimension size (width) of the widget</td></tr>
+<tr><td>SizeY</td><td>DR</td><td>The Y dimension size (height) of the widget</td></tr>
+</table></body></html>

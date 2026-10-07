@@ -10,6 +10,7 @@
 
 #include "arinc661_configuration.h"
 #include "arinc661_context.h"
+#include "arinc661_icons.h"
 #include "arinc661_definition_editor.h"
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -31,6 +32,7 @@ extern "C"
 #define NOMINMAX
 #endif
 #include <windows.h>
+#include <shellapi.h>
 #include <winternl.h>
 #include <d3dkmthk.h>
 #include <dwmapi.h>
@@ -38,6 +40,7 @@ extern "C"
 
 #include <atomic>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 
 /*=================================================================================================
@@ -80,6 +83,85 @@ extern "C"
 #define PANE_FLAGS                  (ImGuiChildFlags_AlwaysUseWindowPadding)
 #define READY_LABEL                 ("Ready")
 #define SHORTCUT_FLAGS              (ImGuiInputFlags_RouteGlobal | ImGuiInputFlags_RouteOverActive)
+#define EDIT_MENU_LABEL             ("Edit")
+#define VIEW_MENU_LABEL             ("View")
+#define HELP_MENU_LABEL             ("Help")
+#define UNDO_LABEL                  ("Undo")
+#define REDO_LABEL                  ("Redo")
+#define DUPLICATE_LABEL             ("Duplicate")
+#define DELETE_LABEL                ("Delete")
+#define ADD_LAYER_LABEL             ("Add Layer")
+#define ADD_WIDGET_LABEL            ("Add Widget")
+#define ADD_EXTENSION_LABEL         ("Add Extension")
+#define ADD_SCREEN_LABEL            ("Add Screen")
+#define ADD_LAYOUT_LABEL            ("Add Layout")
+#define ADD_WINDOW_LABEL            ("Add Window")
+#define ADD_APPLICATION_LABEL       ("Add User Application")
+#define GRID_LABEL                  ("Grid")
+#define SNAP_LABEL                  ("Snap To Millimetre")
+#define FIT_LABEL                   ("Fit Layer")
+#define HELP_WINDOW_LABEL           ("Help")
+#define HELP_CONTEXT_LABEL          ("Help On Selection")
+#define HELP_BROWSER_LABEL          ("Open Help Reference")
+#define UNDO_SHORTCUT_LABEL         ("Ctrl+Z")
+#define REDO_SHORTCUT_LABEL         ("Ctrl+Y")
+#define DUPLICATE_SHORTCUT_LABEL    ("Ctrl+D")
+#define DELETE_SHORTCUT_LABEL       ("Del")
+#define GRID_SHORTCUT_LABEL         ("G")
+#define SNAP_SHORTCUT_LABEL         ("S")
+#define FIT_SHORTCUT_LABEL          ("F")
+#define HELP_SHORTCUT_LABEL         ("F1")
+#define HELP_BROWSER_SHORTCUT_LABEL ("Shift+F1")
+#define UNDO_CHORD                  (ImGuiMod_Ctrl | ImGuiKey_Z)
+#define REDO_CHORD                  (ImGuiMod_Ctrl | ImGuiKey_Y)
+#define DUPLICATE_CHORD             (ImGuiMod_Ctrl | ImGuiKey_D)
+#define HELP_CHORD                  (ImGuiKey_F1)
+#define HELP_BROWSER_CHORD          (ImGuiMod_Shift | ImGuiKey_F1)
+#define TOOLBAR_ID                  ("##toolbar")
+#define HELP_PAGE_PATH              ("docs\\arinc661_help.html")
+#define HELP_CHM_PATH               ("docs\\arinc661.chm")
+#define HELP_LIBRARY_NAME           ("hhctrl.ocx")
+#define HELP_FUNCTION_NAME          ("HtmlHelpA")
+#define HELP_TOPIC_FORMAT           ("%s%s::/%s.htm")
+#define HELP_DEFAULT_TOPIC          ("Getting-Started")
+#define HH_DISPLAY_TOPIC_COMMAND    (0x0000U)
+#define HH_DISPLAY_TOC_COMMAND      (0x0001U)
+#define HH_DISPLAY_INDEX_COMMAND    (0x0002U)
+#define HH_DISPLAY_SEARCH_COMMAND   (0x0003U)
+#define HELP_CONTENTS_LABEL         ("Contents")
+#define HELP_INDEX_LABEL            ("Index")
+#define HELP_SEARCH_LABEL           ("Search")
+#define HELP_REFERENCE_LABEL        ("Reference (in-app)")
+#define HELP_SEARCH_HINT            ("Search widgets, extensions, FACE elements")
+#define HELP_LIST_WIDTH             (260.0f)
+#define HELP_WINDOW_SIZE            (ImVec2(900.0f, 600.0f))
+#define HELP_GETTING_STARTED        ("Getting Started")
+#define HELP_PARAMETERS_LABEL       ("Parameters")
+#define HELP_CHANGE_COLUMN          ("Change")
+#define HELP_NAME_COLUMN            ("Name")
+#define HELP_DESCRIPTION_COLUMN     ("Description")
+#define HELP_FACE_PREFIX            ("FACE ")
+#define MAX_HELP_FILTER_BYTES       (64)
+#define PROBLEMS_SECTION_FORMAT     ("Problems: %u errors, %u warnings###problems")
+#define NO_PROBLEMS_LABEL           ("No problems across the open documents.")
+#define OPEN_REFERENCED_LABEL       ("Open referenced Definition Files")
+#define RECHECK_HINT_LABEL          ("Click a problem to go to it.")
+#define PROBLEM_ERROR_PREFIX        ("[error]")
+#define PROBLEM_WARNING_PREFIX      ("[warning]")
+#define PROBLEMS_LIST_ROWS          (4.5f)
+#define PROBLEM_ERROR_COLOR         (ImVec4(1.0f, 0.45f, 0.45f, 1.0f))
+#define PROBLEM_WARNING_COLOR       (ImVec4(1.0f, 0.8f, 0.4f, 1.0f))
+#define CONTEXT_BAR_FORMAT          ("Configuration: %s   |   Definition File: %s")
+#define CONTEXT_BAR_GAP             (40.0f)
+#define CONTEXT_CRUMB_BYTES         (512)
+#define SCREENSHOT_OPTION           ("--screenshot")
+#define OPEN_DEFINITION_OPTION      ("--definition")
+#define OPEN_CONFIGURATION_OPTION   ("--configuration")
+#define FOCUS_DEFINITION_OPTION     ("--focus-definition")
+#define SELECT_OPTION               ("--select")
+#define FRAMES_OPTION               ("--frames")
+#define SCREENSHOT_DEFAULT_FRAMES   (12)
+#define BMP_HEADER_BYTES            (54)
 #define NEW_CONFIGURATION_CHORD     (ImGuiMod_Ctrl | ImGuiKey_N)
 #define NEW_DEFINITION_CHORD        (ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_N)
 #define SAVE_CHORD                  (ImGuiMod_Ctrl | ImGuiKey_S)
@@ -108,6 +190,23 @@ extern "C"
 #define WGL_PROFILE_MASK_ATTRIBUTE (0x9126)
 #define WGL_CORE_PROFILE_BIT (0x0001)
 
+/** FACE H.3 element help shown beside the ARINC 661 reference. */
+typedef struct FaceTopic_s
+{
+    const char_t* name;        ///< Element name
+    const char_t* description; ///< What it is and how it relates to the others
+} FaceTopic_t;
+
+static const FaceTopic_t c_faceTopics[] =
+{
+    {"Screen", "A physical display surface (FACE Technical Standard, Appendix H.3.4): pixelSize gives its resolution, physicalDimensions its size in mm or inches. A screen holds layouts. The editor uses pixelSize over physicalDimensions as the pixel density for previews when a window has no pixel-per-mm scaling factor."},
+    {"Layout", "A set of windows that are shown together on one screen (H.3.6). Select a layout to see and add its windows; a window belongs to exactly one layout."},
+    {"Window", "A rectangle of a screen, in pixels (H.3.2): pixelArea is its origin and size, scalingFactor converts ARINC 661 screen units to pixels. User applications target windows by id. Drag a window in the scene to move it, drag its corners to resize."},
+    {"UserApplication", "An ARINC 661 User Application (H.3.1): applicationId must equal the ApplicationId inside its Definition File, window names the window its layers appear in, dFPath names the Definition File. The inspector checks the identifier against the open Definition File and previews its layers inside the window."},
+    {"ExternalSource", "An external video or graphics source (H.3.7) that an ExternalSource widget can show by SourceReference."},
+    {"Configuration", "The FACE display management configuration file (H.3): screens, layouts, windows, user applications, and external sources. Create one with File > New Configuration, add a screen, a layout, a window, then a user application pointing at a Definition File."}
+};
+
 /*=================================================================================================
 ** 3.2 Types
 **===============================================================================================*/
@@ -134,6 +233,9 @@ typedef struct WindowThreadState_s
     Arinc661_Configuration_Editor_t* configurationEditor; ///< FACE display management configuration editor.
     Arinc661_Definition_Editor_t*    definitionEditor;    ///< ARINC 661 Definition File editor.
     Arinc661_Context_t*              context;             ///< Shared application context across both editors.
+    bool_t                           isHelpOpen;          ///< TRUE while the Help window is shown.
+    char_t                           helpFilter[MAX_HELP_FILTER_BYTES]; ///< Search text of the Help window.
+    char_t                           helpTopic[ARINC661_MAX_NAME_BYTES]; ///< Topic the Help window shows.
     bool_t                           isDefinitionActive;  ///< TRUE while the Definition File section has the focus.
     bool_t                           hasEditors;          ///< TRUE once both editors exist.
     bool_t                           isFolderReadable;    ///< TRUE when the last scan could read the folder.
@@ -158,6 +260,11 @@ typedef struct WindowThreadState_s
  * \brief WGL extension signature for creating an OpenGL context.
  */
 typedef HGLRC(WINAPI* WglCreateContextAttribsFunction_t)(HDC, HGLRC, const int*);
+
+/*************************************************************************************************/
+/**
+ * \brief WGL extension signature for setting the swap interval.
+ */
 typedef BOOL(WINAPI* WglSwapIntervalFunction_t)(int);
 
 /*=================================================================================================
@@ -174,6 +281,13 @@ typedef BOOL(WINAPI* WglSwapIntervalFunction_t)(int);
  */
 static HGLRC           g_renderContext;
 static WglWindowData_t g_mainWindow;
+static const char_t* g_screenshotPath;        ///< BMP written after the capture frame, or NULL.
+static const char_t* g_openDefinition;        ///< Definition File opened at start, or NULL.
+static const char_t* g_openConfiguration;     ///< Configuration opened at start, or NULL.
+static const char_t* g_selectName;            ///< Widget name selected after opening, or NULL.
+static bool_t        g_focusDefinition;       ///< TRUE to focus the Definition File section at start.
+static uint32_t      g_captureFrame;          ///< Frame on which the screenshot is taken.
+static uint32_t      g_frameCount;            ///< Frames rendered so far.
 
 /*=================================================================================================
 ** 3.5 Static function prototypes
@@ -217,6 +331,160 @@ static void EndFrame(WindowThreadState_t* window);
  * \retval        None
  */
 static void DrawFrame(WindowThreadState_t* window);
+
+/*************************************************************************************************/
+/**
+ * \brief Classifies one folder entry as a configuration or a Definition File by content.
+ *
+ * \param[in]     fileName   Entry name
+ * \param[in,out] context    WindowThreadState_t passed as an opaque pointer
+ *
+ * \retval        None
+ */
+static void ClassifyFolderFile(const char_t* fileName, void* context);
+
+/*************************************************************************************************/
+/**
+ * \brief Writes the current back buffer as a 24-bit BMP and asks the window to close.
+ *
+ * \param[in,out] window   Window and editor state
+ *
+ * \retval        None
+ */
+static void CaptureScreenshot(WindowThreadState_t* window);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads the command line options for automated runs.
+ *
+ * \param[in] argc   Argument count
+ * \param[in] argv   Arguments
+ *
+ * \retval    None
+ */
+static void ParseOptions(int argc, char** argv);
+
+/*************************************************************************************************/
+/**
+ * \brief Rescans the shared folder and refreshes both editors' file knowledge.
+ *
+ * \param[in,out] window   Window and editor state
+ *
+ * \retval        None
+ */
+static void ScanFolder(WindowThreadState_t* window);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws the main menu bar and handles its shortcuts.
+ *
+ * \param[in,out] window   Window and editor state
+ *
+ * \retval        None
+ */
+static void DrawPageMenu(WindowThreadState_t* window);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws the icon toolbar for the focused section.
+ *
+ * \param[in,out] window   Window and editor state
+ *
+ * \retval        None
+ */
+static void DrawToolbar(WindowThreadState_t* window);
+
+/*************************************************************************************************/
+/**
+ * \brief Opens the Help window on a topic.
+ *
+ * \param[in,out] window   Window and editor state
+ * \param[in]     topic    Topic name, or NULL to keep the current topic
+ *
+ * \retval        None
+ */
+static void ShowHelp(WindowThreadState_t* window, const char_t* topic);
+
+/*************************************************************************************************/
+/**
+ * \brief Shows the selection's page in Windows Help.
+ *
+ * \param[in] window   Window and editor state
+ *
+ * \retval    None
+ */
+static void OpenHelpInBrowser(WindowThreadState_t* window);
+
+/*************************************************************************************************/
+/**
+ * \brief Shows the compiled Windows help file through the HTML Help engine.
+ *
+ * \param[in] window    Window and editor state
+ * \param[in] command   HH_DISPLAY_TOPIC_COMMAND for the selection's page, or a contents, index, or search command
+ *
+ * \retval    None
+ */
+static void OpenWindowsHelp(WindowThreadState_t* window, uint32_t command);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws the searchable Help window when it is open.
+ *
+ * \param[in,out] window   Window and editor state
+ *
+ * \retval        None
+ */
+static void DrawHelpWindow(WindowThreadState_t* window);
+
+/*************************************************************************************************/
+/**
+ * \brief Names the help topic for the focused section's selection.
+ *
+ * \param[in] window   Window and editor state
+ *
+ * \retval    const char_t*   Topic name, or NULL.
+ */
+static const char_t* SelectionTopic(const WindowThreadState_t* window);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws the folder path and the file list of both kinds.
+ *
+ * \param[in,out] window   Window and editor state
+ *
+ * \retval        None
+ */
+static void DrawPageFiles(WindowThreadState_t* window);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws the cross-document problem list; clicking a row navigates to it.
+ *
+ * \param[in,out] window   Window and editor state
+ *
+ * \retval        None
+ */
+static void DrawPageProblems(WindowThreadState_t* window);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws both hierarchies, giving the focus to the clicked section.
+ *
+ * \param[in,out] window   Window and editor state
+ *
+ * \retval        None
+ */
+static void DrawPageHierarchy(WindowThreadState_t* window);
+
+/*************************************************************************************************/
+/**
+ * \brief Draws the single page: menu, toolbar, files, hierarchy, scene, inspector, dialogs.
+ *
+ * \param[in,out] window   Window and editor state
+ *
+ * \retval        None
+ */
+static void DrawEditors(WindowThreadState_t* window);
 
 /*************************************************************************************************/
 /**
@@ -366,6 +634,123 @@ static void EndFrame(WindowThreadState_t* window)
     }
     glFinish();
     window->fFrameReady = TRUE;
+    g_frameCount += 1;
+    if ((NULL != g_screenshotPath) && (g_frameCount == g_captureFrame))
+    {
+        CaptureScreenshot(window);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  OpenGL rows run bottom-up, which is the BMP order, so the pixels go straight to the
+ *  file as BGR with each row padded to four bytes.
+ */
+static void CaptureScreenshot(WindowThreadState_t* window)
+{
+    byte_t*  pixels;
+    byte_t*  row;
+    byte_t   header[BMP_HEADER_BYTES];
+    FILE*    file;
+    int32_t  width;
+    int32_t  height;
+    int32_t  x;
+    int32_t  y;
+    uint32_t row_bytes;
+    uint32_t image_bytes;
+    uint32_t file_bytes;
+
+    width  = (window->rcClient.right - window->rcClient.left);
+    height = (window->rcClient.bottom - window->rcClient.top);
+    if ((0 < width) && (0 < height))
+    {
+        pixels = (byte_t*)malloc((size_t)width * (size_t)height * 4U);
+        LOGASSERT(NULL != pixels);
+        glPixelStorei(GL_PACK_ALIGNMENT, 1);
+        glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+        row_bytes   = (((uint32_t)width * 3U + 3U) & ~3U);
+        image_bytes = (row_bytes * (uint32_t)height);
+        file_bytes  = (BMP_HEADER_BYTES + image_bytes);
+        (void)memset(header, 0, sizeof(header));
+        header[0] = 'B';
+        header[1] = 'M';
+        (void)memcpy(&header[2], &file_bytes, 4);
+        header[10] = BMP_HEADER_BYTES;
+        header[14] = 40;
+        (void)memcpy(&header[18], &width, 4);
+        (void)memcpy(&header[22], &height, 4);
+        header[26] = 1;
+        header[28] = 24;
+        (void)memcpy(&header[34], &image_bytes, 4);
+        file = fopen(g_screenshotPath, "wb");
+        if (NULL != file)
+        {
+            (void)fwrite(header, 1, sizeof(header), file);
+            row = (byte_t*)malloc(row_bytes);
+            LOGASSERT(NULL != row);
+            for (y = 0; y < height; ++y)
+            {
+                (void)memset(row, 0, row_bytes);
+                for (x = 0; x < width; ++x)
+                {
+                    row[(x * 3) + 0] = pixels[((y * width) + x) * 4 + 2];
+                    row[(x * 3) + 1] = pixels[((y * width) + x) * 4 + 1];
+                    row[(x * 3) + 2] = pixels[((y * width) + x) * 4 + 0];
+                }
+                (void)fwrite(row, 1, row_bytes, file);
+            }
+            free(row);
+            (void)fclose(file);
+        }
+        free(pixels);
+    }
+    (void)::PostMessageA(window->windowHandle, WM_CLOSE, 0, 0);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  --screenshot path.bmp [--frames n] [--definition name] [--configuration name]
+ *  [--focus-definition] [--select widgetName].
+ */
+static void ParseOptions(int argc, char** argv)
+{
+    int index;
+
+    g_captureFrame = SCREENSHOT_DEFAULT_FRAMES;
+    for (index = 1; index < argc; ++index)
+    {
+        if ((0 == strcmp(argv[index], SCREENSHOT_OPTION)) && ((index + 1) < argc))
+        {
+            index += 1;
+            g_screenshotPath = argv[index];
+        }
+        else if ((0 == strcmp(argv[index], OPEN_DEFINITION_OPTION)) && ((index + 1) < argc))
+        {
+            index += 1;
+            g_openDefinition = argv[index];
+        }
+        else if ((0 == strcmp(argv[index], OPEN_CONFIGURATION_OPTION)) && ((index + 1) < argc))
+        {
+            index += 1;
+            g_openConfiguration = argv[index];
+        }
+        else if ((0 == strcmp(argv[index], SELECT_OPTION)) && ((index + 1) < argc))
+        {
+            index += 1;
+            g_selectName = argv[index];
+        }
+        else if ((0 == strcmp(argv[index], FRAMES_OPTION)) && ((index + 1) < argc))
+        {
+            index += 1;
+            g_captureFrame = (uint32_t)atoi(argv[index]);
+        }
+        else if (0 == strcmp(argv[index], FOCUS_DEFINITION_OPTION))
+        {
+            g_focusDefinition = TRUE;
+        }
+    }
 }
 
 /*************************************************************************************************/
@@ -476,6 +861,476 @@ static void ScanFolder(WindowThreadState_t* window)
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  One row of icon buttons for the focused section: file actions, undo and redo, then the
+ *  section's add, duplicate, and delete actions, view toggles, and help.
+ */
+static void DrawToolbar(WindowThreadState_t* window)
+{
+    const char_t* new_label;
+    const char_t* new_shortcut;
+    bool_t has_active;
+    bool_t is_dirty;
+    bool_t has_free;
+    bool_t can_undo;
+    bool_t can_redo;
+    bool_t has_selection;
+
+    if (window->isDefinitionActive)
+    {
+        has_active = Arinc661_Definition_HasActiveDocument(window->definitionEditor, &is_dirty, &has_free);
+        Arinc661_Definition_History(window->definitionEditor, &can_undo, &can_redo);
+        has_selection = (NULL != Arinc661_Definition_SelectedType(window->definitionEditor));
+    }
+    else
+    {
+        has_active = Arinc661_Configuration_HasActiveDocument(window->configurationEditor, &is_dirty, &has_free);
+        Arinc661_Configuration_History(window->configurationEditor, &can_undo, &can_redo);
+        has_selection = (NULL != Arinc661_Configuration_SelectedElement(window->configurationEditor));
+    }
+    new_label = NEW_CONFIGURATION_LABEL;
+    new_shortcut = NEW_CONFIGURATION_SHORTCUT;
+    if (window->isDefinitionActive)
+    {
+        new_label    = NEW_DEFINITION_LABEL;
+        new_shortcut = NEW_DEFINITION_SHORTCUT;
+    }
+    if (Arinc661_Icons_Button(ARINC661_ICON_NEW, new_label, new_shortcut, has_free, FALSE))
+    {
+        if (window->isDefinitionActive)
+        {
+            Arinc661_Definition_CreateDocument(window->definitionEditor);
+        }
+        else
+        {
+            Arinc661_Configuration_CreateDocument(window->configurationEditor);
+        }
+    }
+    if (Arinc661_Icons_Button(ARINC661_ICON_SAVE, SAVE_LABEL, SAVE_SHORTCUT_LABEL, has_active, FALSE))
+    {
+        if (window->isDefinitionActive)
+        {
+            Arinc661_Definition_SaveActiveDocument(window->definitionEditor);
+        }
+        else
+        {
+            Arinc661_Configuration_SaveActiveDocument(window->configurationEditor);
+        }
+    }
+    if (Arinc661_Icons_Button(ARINC661_ICON_SAVE_ALL, SAVE_ALL_LABEL, SAVE_ALL_SHORTCUT_LABEL, is_dirty, FALSE))
+    {
+        Arinc661_Configuration_SaveAllDocuments(window->configurationEditor);
+        Arinc661_Definition_SaveAllDocuments(window->definitionEditor);
+    }
+    Arinc661_Icons_Gap();
+    if (Arinc661_Icons_Button(ARINC661_ICON_UNDO, UNDO_LABEL, UNDO_SHORTCUT_LABEL, can_undo, FALSE))
+    {
+        if (window->isDefinitionActive)
+        {
+            Arinc661_Definition_Undo(window->definitionEditor);
+        }
+        else
+        {
+            Arinc661_Configuration_Undo(window->configurationEditor);
+        }
+    }
+    if (Arinc661_Icons_Button(ARINC661_ICON_REDO, REDO_LABEL, REDO_SHORTCUT_LABEL, can_redo, FALSE))
+    {
+        if (window->isDefinitionActive)
+        {
+            Arinc661_Definition_Redo(window->definitionEditor);
+        }
+        else
+        {
+            Arinc661_Configuration_Redo(window->configurationEditor);
+        }
+    }
+    Arinc661_Icons_Gap();
+    if (window->isDefinitionActive)
+    {
+        if (Arinc661_Icons_Button(ARINC661_ICON_ADD_LAYER, ADD_LAYER_LABEL, NULL, has_active, FALSE))
+        {
+            Arinc661_Definition_AddLayer(window->definitionEditor);
+        }
+        if (Arinc661_Icons_Button(ARINC661_ICON_ADD_WIDGET, ADD_WIDGET_LABEL, NULL, has_active, FALSE))
+        {
+            Arinc661_Definition_AddWidget(window->definitionEditor);
+        }
+        if (Arinc661_Icons_Button(ARINC661_ICON_ADD_EXTENSION, ADD_EXTENSION_LABEL, NULL, has_selection, FALSE))
+        {
+            Arinc661_Definition_AddExtension(window->definitionEditor);
+        }
+        if (Arinc661_Icons_Button(ARINC661_ICON_DUPLICATE, DUPLICATE_LABEL, DUPLICATE_SHORTCUT_LABEL, has_selection, FALSE))
+        {
+            Arinc661_Definition_DuplicateSelection(window->definitionEditor);
+        }
+        if (Arinc661_Icons_Button(ARINC661_ICON_DELETE, DELETE_LABEL, DELETE_SHORTCUT_LABEL, has_active, FALSE))
+        {
+            Arinc661_Definition_DeleteSelection(window->definitionEditor);
+        }
+        Arinc661_Icons_Gap();
+        if (Arinc661_Icons_Button(ARINC661_ICON_GRID, GRID_LABEL, GRID_SHORTCUT_LABEL, TRUE, Arinc661_Definition_Grid(window->definitionEditor, FALSE)))
+        {
+            (void)Arinc661_Definition_Grid(window->definitionEditor, TRUE);
+        }
+        if (Arinc661_Icons_Button(ARINC661_ICON_SNAP, SNAP_LABEL, SNAP_SHORTCUT_LABEL, TRUE, Arinc661_Definition_Snap(window->definitionEditor, FALSE)))
+        {
+            (void)Arinc661_Definition_Snap(window->definitionEditor, TRUE);
+        }
+        if (Arinc661_Icons_Button(ARINC661_ICON_FIT, FIT_LABEL, FIT_SHORTCUT_LABEL, has_active, FALSE))
+        {
+            Arinc661_Definition_FitView(window->definitionEditor);
+        }
+    }
+    else
+    {
+        if (Arinc661_Icons_Button(ARINC661_ICON_SCREEN, ADD_SCREEN_LABEL, NULL, has_active, FALSE))
+        {
+            Arinc661_Configuration_AddScreen(window->configurationEditor);
+        }
+        if (Arinc661_Icons_Button(ARINC661_ICON_LAYOUT, ADD_LAYOUT_LABEL, NULL, has_active, FALSE))
+        {
+            Arinc661_Configuration_AddLayout(window->configurationEditor);
+        }
+        if (Arinc661_Icons_Button(ARINC661_ICON_WINDOW, ADD_WINDOW_LABEL, NULL, has_active, FALSE))
+        {
+            Arinc661_Configuration_AddWindow(window->configurationEditor);
+        }
+        if (Arinc661_Icons_Button(ARINC661_ICON_APPLICATION, ADD_APPLICATION_LABEL, NULL, has_active, FALSE))
+        {
+            Arinc661_Configuration_AddUserApplication(window->configurationEditor);
+        }
+        if (Arinc661_Icons_Button(ARINC661_ICON_DUPLICATE, DUPLICATE_LABEL, DUPLICATE_SHORTCUT_LABEL, has_selection, FALSE))
+        {
+            Arinc661_Configuration_DuplicateSelection(window->configurationEditor);
+        }
+        if (Arinc661_Icons_Button(ARINC661_ICON_DELETE, DELETE_LABEL, DELETE_SHORTCUT_LABEL, has_selection, FALSE))
+        {
+            Arinc661_Configuration_DeleteSelection(window->configurationEditor);
+        }
+    }
+    Arinc661_Icons_Gap();
+    if (Arinc661_Icons_Button(ARINC661_ICON_HELP, HELP_CONTEXT_LABEL, HELP_SHORTCUT_LABEL, TRUE, FALSE))
+    {
+        OpenWindowsHelp(window, HH_DISPLAY_TOPIC_COMMAND);
+    }
+    ImGui::NewLine();
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The selected widget type, or the FACE element kind, names the help topic.
+ */
+static const char_t* SelectionTopic(const WindowThreadState_t* window)
+{
+    const char_t* topic;
+
+    if (window->isDefinitionActive)
+    {
+        topic = Arinc661_Definition_SelectedType(window->definitionEditor);
+    }
+    else
+    {
+        topic = Arinc661_Configuration_SelectedElement(window->configurationEditor);
+    }
+
+    return topic;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Opens the Help window on a topic; a NULL topic keeps the current one.
+ */
+static void ShowHelp(WindowThreadState_t* window, const char_t* topic)
+{
+    window->isHelpOpen = TRUE;
+    if (NULL != topic)
+    {
+        strncpy_s(window->helpTopic, sizeof(window->helpTopic), topic, _TRUNCATE);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Shows the selection's page in Windows Help.
+ */
+static void OpenHelpInBrowser(WindowThreadState_t* window)
+{
+    OpenWindowsHelp(window, HH_DISPLAY_TOPIC_COMMAND);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Loads the HTML Help engine (hhctrl.ocx) once and shows the compiled help file,
+ *  docs\arinc661.chm, found by walking up from the executable's folder. A topic command
+ *  opens the page of the current selection; the contents, index, and search commands open
+ *  those panes. Without the engine or the file, the HTML page opens in the browser instead.
+ */
+static void OpenWindowsHelp(WindowThreadState_t* window, uint32_t command)
+{
+    static HMODULE s_helpLibrary;
+    static HWND (WINAPI* s_htmlHelp)(HWND, LPCSTR, UINT, DWORD_PTR);
+    char_t        path[MAX_PATH + ARINC661_MAX_NAME_BYTES + 16];
+    char_t        folder[MAX_PATH];
+    const char_t* topic;
+    DWORD         length;
+    bool_t        has_file;
+
+    if (NULL == s_helpLibrary)
+    {
+        s_helpLibrary = LoadLibraryA(HELP_LIBRARY_NAME);
+        if (NULL != s_helpLibrary)
+        {
+            s_htmlHelp = (HWND (WINAPI*)(HWND, LPCSTR, UINT, DWORD_PTR))GetProcAddress(s_helpLibrary, HELP_FUNCTION_NAME);
+        }
+    }
+    length = GetModuleFileNameA(NULL, folder, sizeof(folder));
+    while ((0 < length) && ('\\' != folder[length - 1]))
+    {
+        length -= 1;
+    }
+    folder[length] = '\0';
+    // The help file sits in the repository docs; walk up from the executable until it is found
+    has_file = FALSE;
+    for (;;)
+    {
+        (void)snprintf(path, sizeof(path), "%s%s", folder, HELP_CHM_PATH);
+        if (INVALID_FILE_ATTRIBUTES != GetFileAttributesA(path))
+        {
+            has_file = TRUE;
+            break;
+        }
+        if (0 == length)
+        {
+            break;
+        }
+        length -= 1;
+        while ((0 < length) && ('\\' != folder[length - 1]))
+        {
+            length -= 1;
+        }
+        folder[length] = '\0';
+    }
+    topic = SelectionTopic(window);
+    if (NULL == topic)
+    {
+        topic = window->helpTopic;
+    }
+    if (0 == strcmp(topic, HELP_GETTING_STARTED))
+    {
+        topic = HELP_DEFAULT_TOPIC;
+    }
+    if (has_file && (NULL != s_htmlHelp))
+    {
+        if (HH_DISPLAY_TOPIC_COMMAND == command)
+        {
+            (void)snprintf(path, sizeof(path), HELP_TOPIC_FORMAT, folder, HELP_CHM_PATH, topic);
+            (void)s_htmlHelp(NULL, path, HH_DISPLAY_TOPIC_COMMAND, 0);
+        }
+        else
+        {
+            (void)snprintf(path, sizeof(path), "%s%s", folder, HELP_CHM_PATH);
+            (void)s_htmlHelp(NULL, path, (UINT)command, 0);
+        }
+    }
+    else
+    {
+        (void)snprintf(path, sizeof(path), "file:///%s%s#%s", folder, HELP_PAGE_PATH, topic);
+        (void)ShellExecuteA(NULL, "open", path, NULL, NULL, SW_SHOWNORMAL);
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  A searchable reference: a getting-started page, the FACE H.3 elements, and every ARINC
+ *  661 widget and extension with its description, categories, restriction, and parameter
+ *  table from the specification. The topic list follows the selection when F1 is pressed.
+ */
+static void DrawHelpWindow(WindowThreadState_t* window)
+{
+    const char_t* description;
+    const char_t* categories;
+    const char_t* restriction;
+    const char_t* type_name;
+    const char_t* change;
+    const char_t* parameter_description;
+    Arinc661_Parameter_t parameter;
+    char_t        upper_filter[MAX_HELP_FILTER_BYTES];
+    char_t        upper_name[ARINC661_MAX_NAME_BYTES];
+    uint32_t      index;
+    uint32_t      character;
+    uint32_t      parameter_count;
+    uint32_t      pass;
+    bool_t        is_extension;
+    bool_t        is_match;
+    bool          is_open;
+
+    if (window->isHelpOpen)
+    {
+        ImGui::SetNextWindowSize(HELP_WINDOW_SIZE, ImGuiCond_FirstUseEver);
+        is_open = (FALSE != window->isHelpOpen);
+        if (ImGui::Begin(HELP_WINDOW_LABEL, &is_open))
+        {
+            ImGui::SetNextItemWidth(HELP_LIST_WIDTH);
+            (void)ImGui::InputTextWithHint("##search", HELP_SEARCH_HINT, window->helpFilter, sizeof(window->helpFilter));
+            ImGui::SameLine();
+            if (ImGui::SmallButton(HELP_BROWSER_LABEL))
+            {
+                OpenWindowsHelp(window, HH_DISPLAY_TOPIC_COMMAND);
+            }
+            for (character = 0; character < sizeof(upper_filter); ++character)
+            {
+                upper_filter[character] = (char_t)ImToUpper(window->helpFilter[character]);
+                if ('\0' == window->helpFilter[character])
+                {
+                    break;
+                }
+            }
+            if (ImGui::BeginChild("##topics", ImVec2(HELP_LIST_WIDTH, 0.0f), ImGuiChildFlags_Borders))
+            {
+                if (ImGui::Selectable(HELP_GETTING_STARTED, 0 == strcmp(window->helpTopic, HELP_GETTING_STARTED)))
+                {
+                    window->isHelpOpen    = FALSE;
+    window->helpFilter[0] = 0;
+    strncpy_s(window->helpTopic, sizeof(window->helpTopic), HELP_GETTING_STARTED, _TRUNCATE);
+                }
+                for (index = 0; index < (sizeof(c_faceTopics) / sizeof(c_faceTopics[0])); ++index)
+                {
+                    for (character = 0; character < sizeof(upper_name); ++character)
+                    {
+                        upper_name[character] = (char_t)ImToUpper(c_faceTopics[index].name[character]);
+                        if ('\0' == c_faceTopics[index].name[character])
+                        {
+                            break;
+                        }
+                    }
+                    if (('\0' == upper_filter[0]) || (NULL != strstr(upper_name, upper_filter)))
+                    {
+                        ImGui::PushID((int)index);
+                        if (ImGui::Selectable(c_faceTopics[index].name, 0 == strcmp(window->helpTopic, c_faceTopics[index].name)))
+                        {
+                            strncpy_s(window->helpTopic, sizeof(window->helpTopic), c_faceTopics[index].name, _TRUNCATE);
+                        }
+                        ImGui::PopID();
+                    }
+                }
+                ImGui::Separator();
+                for (pass = 0; pass < 2; ++pass)
+                {
+                    is_extension = (1 == pass);
+                    for (index = 0; index < Arinc661_TypeCount(is_extension); ++index)
+                    {
+                        type_name = Arinc661_TypeName(is_extension, index);
+                        for (character = 0; character < sizeof(upper_name); ++character)
+                        {
+                            upper_name[character] = (char_t)ImToUpper(type_name[character]);
+                            if ('\0' == type_name[character])
+                            {
+                                break;
+                            }
+                        }
+                        is_match = !!(('\0' == upper_filter[0]) || (NULL != strstr(upper_name, upper_filter)));
+                        if (is_match)
+                        {
+                            if (ImGui::Selectable(type_name, 0 == strcmp(window->helpTopic, type_name)))
+                            {
+                                strncpy_s(window->helpTopic, sizeof(window->helpTopic), type_name, _TRUNCATE);
+                            }
+                            if (0 == strcmp(window->helpTopic, type_name) && ImGui::IsWindowAppearing())
+                            {
+                                ImGui::SetScrollHereY();
+                            }
+                        }
+                    }
+                }
+            }
+            ImGui::EndChild();
+            ImGui::SameLine();
+            if (ImGui::BeginChild("##topic", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders))
+            {
+                ImGui::PushTextWrapPos(0.0f);
+                if (('\0' == window->helpTopic[0]) || (0 == strcmp(window->helpTopic, HELP_GETTING_STARTED)))
+                {
+                    ImGui::SeparatorText(HELP_GETTING_STARTED);
+                    ImGui::TextUnformatted("1. Configuration: File > New Configuration. Add a Screen (toolbar), then a Layout, then a Window; set the window's pixelArea and scalingFactor. Add a User Application, pick its Window and its DF Path from the Definition Files in the folder.");
+                    ImGui::TextUnformatted("2. Definition File: File > New Definition File. Add a Layer, then right-click the scene to add widgets where you click, or use the toolbar. Containers (Panel, BasicContainer, ...) accept children: right-click a container or drag a node onto it in the hierarchy.");
+                    ImGui::TextUnformatted("3. Scene: drag widgets to move them, drag the corner handles to resize, arrow keys nudge, Delete removes, mouse wheel zooms, middle-drag or Space-drag pans, F fits, G toggles the grid, S toggles millimetre snapping.");
+                    ImGui::TextUnformatted("4. Inspector: every parameter row shows its specification description on hover; the About section explains the selected widget. Red values would not fit the binary form.");
+                    ImGui::TextUnformatted("5. Link both: set the Definition File's ApplicationId (root node) to the user application's applicationId. The user application inspector checks it and previews the Definition File's layers inside the window; the Definition File root lists who references it.");
+                    ImGui::TextUnformatted("6. Save with Ctrl+S; a .bin name saves the binary form of ARINC 661 Part 1-7, any other name the XML form. Undo with Ctrl+Z, redo with Ctrl+Y. F1 opens this help on the selection; Shift+F1 opens the HTML reference in the browser.");
+                }
+                else
+                {
+                    is_match = FALSE;
+                    for (index = 0; index < (sizeof(c_faceTopics) / sizeof(c_faceTopics[0])); ++index)
+                    {
+                        if (0 == strcmp(window->helpTopic, c_faceTopics[index].name))
+                        {
+                            ImGui::SeparatorText(c_faceTopics[index].name);
+                            ImGui::TextUnformatted(c_faceTopics[index].description);
+                            is_match = TRUE;
+                        }
+                    }
+                    if ((FALSE == is_match) && Arinc661_TypeHelp(window->helpTopic, &description, &categories, &restriction))
+                    {
+                        ImGui::SeparatorText(window->helpTopic);
+                        ImGui::TextUnformatted(description);
+                        if ('\0' != categories[0])
+                        {
+                            ImGui::TextDisabled("Categories: %s", categories);
+                        }
+                        if ('\0' != restriction[0])
+                        {
+                            ImGui::TextDisabled("Restriction: %s", restriction);
+                        }
+                        is_extension = !!(Arinc661_FindType(window->helpTopic, TRUE, &parameter_count));
+                        if (Arinc661_FindType(window->helpTopic, is_extension, &parameter_count))
+                        {
+                            ImGui::SeparatorText(HELP_PARAMETERS_LABEL);
+                            if (ImGui::BeginTable("##parameters", 3, ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp))
+                            {
+                                ImGui::TableSetupColumn(HELP_NAME_COLUMN, ImGuiTableColumnFlags_WidthFixed, 180.0f);
+                                ImGui::TableSetupColumn(HELP_CHANGE_COLUMN, ImGuiTableColumnFlags_WidthFixed, 50.0f);
+                                ImGui::TableSetupColumn(HELP_DESCRIPTION_COLUMN);
+                                ImGui::TableHeadersRow();
+                                for (index = 0; index < parameter_count; ++index)
+                                {
+                                    (void)Arinc661_Parameter(window->helpTopic, is_extension, index, &parameter);
+                                    parameter_description = Arinc661_ParameterHelp(window->helpTopic, parameter.name, &change);
+                                    ImGui::TableNextRow();
+                                    ImGui::TableSetColumnIndex(0);
+                                    ImGui::TextUnformatted(parameter.name);
+                                    ImGui::TableSetColumnIndex(1);
+                                    ImGui::TextUnformatted(change);
+                                    ImGui::TableSetColumnIndex(2);
+                                    ImGui::TextWrapped("%s", parameter_description);
+                                }
+                                ImGui::EndTable();
+                            }
+                        }
+                        is_match = TRUE;
+                    }
+                    if (FALSE == is_match)
+                    {
+                        ImGui::TextDisabled("%s", window->helpTopic);
+                    }
+                }
+                ImGui::PopTextWrapPos();
+            }
+            ImGui::EndChild();
+        }
+        ImGui::End();
+        window->isHelpOpen = !!is_open;
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Draws the File menu, whose Save and Close act on whichever section was used last, and the
  *  matching keyboard shortcuts.
  */
@@ -489,6 +1344,9 @@ static void DrawPageMenu(WindowThreadState_t* window)
     bool_t has_dirty_definition;
     bool_t has_active_configuration;
     bool_t has_active_definition;
+    bool_t can_undo;
+    bool_t can_redo;
+    bool_t has_selection;
 
     has_active_configuration = Arinc661_Configuration_HasActiveDocument(window->configurationEditor, &has_dirty_configuration, &has_free_configuration);
     has_active_definition    = Arinc661_Definition_HasActiveDocument(window->definitionEditor, &has_dirty_definition, &has_free_definition);
@@ -543,7 +1401,187 @@ static void DrawPageMenu(WindowThreadState_t* window)
             }
             ImGui::EndMenu();
         }
+        if (window->isDefinitionActive)
+        {
+            Arinc661_Definition_History(window->definitionEditor, &can_undo, &can_redo);
+            has_selection = (NULL != Arinc661_Definition_SelectedType(window->definitionEditor));
+        }
+        else
+        {
+            Arinc661_Configuration_History(window->configurationEditor, &can_undo, &can_redo);
+            has_selection = (NULL != Arinc661_Configuration_SelectedElement(window->configurationEditor));
+        }
+        if (ImGui::BeginMenu(EDIT_MENU_LABEL))
+        {
+            if (ImGui::MenuItem(UNDO_LABEL, UNDO_SHORTCUT_LABEL, false, can_undo))
+            {
+                if (window->isDefinitionActive)
+                {
+                    Arinc661_Definition_Undo(window->definitionEditor);
+                }
+                else
+                {
+                    Arinc661_Configuration_Undo(window->configurationEditor);
+                }
+            }
+            if (ImGui::MenuItem(REDO_LABEL, REDO_SHORTCUT_LABEL, false, can_redo))
+            {
+                if (window->isDefinitionActive)
+                {
+                    Arinc661_Definition_Redo(window->definitionEditor);
+                }
+                else
+                {
+                    Arinc661_Configuration_Redo(window->configurationEditor);
+                }
+            }
+            ImGui::Separator();
+            if (window->isDefinitionActive)
+            {
+                if (ImGui::MenuItem(ADD_LAYER_LABEL, NULL, false, has_active))
+                {
+                    Arinc661_Definition_AddLayer(window->definitionEditor);
+                }
+                if (ImGui::MenuItem(ADD_WIDGET_LABEL, NULL, false, has_active))
+                {
+                    Arinc661_Definition_AddWidget(window->definitionEditor);
+                }
+                if (ImGui::MenuItem(ADD_EXTENSION_LABEL, NULL, false, has_selection))
+                {
+                    Arinc661_Definition_AddExtension(window->definitionEditor);
+                }
+            }
+            else
+            {
+                if (ImGui::MenuItem(ADD_SCREEN_LABEL, NULL, false, has_active))
+                {
+                    Arinc661_Configuration_AddScreen(window->configurationEditor);
+                }
+                if (ImGui::MenuItem(ADD_LAYOUT_LABEL, NULL, false, has_active))
+                {
+                    Arinc661_Configuration_AddLayout(window->configurationEditor);
+                }
+                if (ImGui::MenuItem(ADD_WINDOW_LABEL, NULL, false, has_active))
+                {
+                    Arinc661_Configuration_AddWindow(window->configurationEditor);
+                }
+                if (ImGui::MenuItem(ADD_APPLICATION_LABEL, NULL, false, has_active))
+                {
+                    Arinc661_Configuration_AddUserApplication(window->configurationEditor);
+                }
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem(DUPLICATE_LABEL, DUPLICATE_SHORTCUT_LABEL, false, has_selection))
+            {
+                if (window->isDefinitionActive)
+                {
+                    Arinc661_Definition_DuplicateSelection(window->definitionEditor);
+                }
+                else
+                {
+                    Arinc661_Configuration_DuplicateSelection(window->configurationEditor);
+                }
+            }
+            if (ImGui::MenuItem(DELETE_LABEL, DELETE_SHORTCUT_LABEL, false, has_active))
+            {
+                if (window->isDefinitionActive)
+                {
+                    Arinc661_Definition_DeleteSelection(window->definitionEditor);
+                }
+                else
+                {
+                    Arinc661_Configuration_DeleteSelection(window->configurationEditor);
+                }
+            }
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu(VIEW_MENU_LABEL))
+        {
+            if (ImGui::MenuItem(GRID_LABEL, GRID_SHORTCUT_LABEL, Arinc661_Definition_Grid(window->definitionEditor, FALSE)))
+            {
+                (void)Arinc661_Definition_Grid(window->definitionEditor, TRUE);
+            }
+            if (ImGui::MenuItem(SNAP_LABEL, SNAP_SHORTCUT_LABEL, Arinc661_Definition_Snap(window->definitionEditor, FALSE)))
+            {
+                (void)Arinc661_Definition_Snap(window->definitionEditor, TRUE);
+            }
+            if (ImGui::MenuItem(FIT_LABEL, FIT_SHORTCUT_LABEL))
+            {
+                Arinc661_Definition_FitView(window->definitionEditor);
+            }
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu(HELP_MENU_LABEL))
+        {
+            if (ImGui::MenuItem(HELP_CONTEXT_LABEL, HELP_SHORTCUT_LABEL))
+            {
+                OpenWindowsHelp(window, HH_DISPLAY_TOPIC_COMMAND);
+            }
+            if (ImGui::MenuItem(HELP_CONTENTS_LABEL))
+            {
+                OpenWindowsHelp(window, HH_DISPLAY_TOC_COMMAND);
+            }
+            if (ImGui::MenuItem(HELP_INDEX_LABEL))
+            {
+                OpenWindowsHelp(window, HH_DISPLAY_INDEX_COMMAND);
+            }
+            if (ImGui::MenuItem(HELP_SEARCH_LABEL))
+            {
+                OpenWindowsHelp(window, HH_DISPLAY_SEARCH_COMMAND);
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem(HELP_REFERENCE_LABEL, HELP_BROWSER_SHORTCUT_LABEL))
+            {
+                ShowHelp(window, SelectionTopic(window));
+            }
+            if (ImGui::MenuItem(HELP_GETTING_STARTED))
+            {
+                ShowHelp(window, HELP_GETTING_STARTED);
+            }
+            ImGui::EndMenu();
+        }
         ImGui::EndMainMenuBar();
+    }
+    if (ImGui::Shortcut(UNDO_CHORD, SHORTCUT_FLAGS))
+    {
+        if (window->isDefinitionActive)
+        {
+            Arinc661_Definition_Undo(window->definitionEditor);
+        }
+        else
+        {
+            Arinc661_Configuration_Undo(window->configurationEditor);
+        }
+    }
+    if (ImGui::Shortcut(REDO_CHORD, SHORTCUT_FLAGS))
+    {
+        if (window->isDefinitionActive)
+        {
+            Arinc661_Definition_Redo(window->definitionEditor);
+        }
+        else
+        {
+            Arinc661_Configuration_Redo(window->configurationEditor);
+        }
+    }
+    if (ImGui::Shortcut(DUPLICATE_CHORD, SHORTCUT_FLAGS))
+    {
+        if (window->isDefinitionActive)
+        {
+            Arinc661_Definition_DuplicateSelection(window->definitionEditor);
+        }
+        else
+        {
+            Arinc661_Configuration_DuplicateSelection(window->configurationEditor);
+        }
+    }
+    if (ImGui::Shortcut(HELP_BROWSER_CHORD, SHORTCUT_FLAGS))
+    {
+        ShowHelp(window, SelectionTopic(window));
+    }
+    else if (ImGui::Shortcut(HELP_CHORD, SHORTCUT_FLAGS))
+    {
+        OpenWindowsHelp(window, HH_DISPLAY_TOPIC_COMMAND);
     }
     if (ImGui::Shortcut(NEW_CONFIGURATION_CHORD, SHORTCUT_FLAGS) && has_free_configuration)
     {
@@ -581,6 +1619,77 @@ static void DrawPageMenu(WindowThreadState_t* window)
         {
             Arinc661_Configuration_CloseActiveDocument(window->configurationEditor);
         }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Runs the context check every frame and lists the findings under a collapsing header whose
+ *  title carries the counts. Errors are red, warnings amber; a click selects the offending
+ *  item in its editor and moves the focus there.
+ */
+static void DrawPageProblems(WindowThreadState_t* window)
+{
+    const Arinc661_Context_Problem_t* problem;
+    char_t                            title[128];
+    uint32_t                          problem_index;
+    ImVec4                            color;
+    bool                              is_open;
+
+    (void)Arinc661_Context_Check(window->context);
+    (void)snprintf(title, sizeof(title), PROBLEMS_SECTION_FORMAT, (unsigned)window->context->errorCount, (unsigned)(window->context->problemCount - window->context->errorCount));
+    if (0 < window->context->errorCount)
+    {
+        ImGui::PushStyleColor(ImGuiCol_Text, PROBLEM_ERROR_COLOR);
+    }
+    is_open = ImGui::CollapsingHeader(title, ImGuiTreeNodeFlags_DefaultOpen);
+    if (0 < window->context->errorCount)
+    {
+        ImGui::PopStyleColor();
+    }
+    if (is_open)
+    {
+        if (ImGui::SmallButton(OPEN_REFERENCED_LABEL))
+        {
+            (void)Arinc661_Context_OpenReferencedDefinitions(window->context);
+        }
+        ImGui::SameLine();
+        ImGui::TextDisabled("%s", RECHECK_HINT_LABEL);
+        if (ImGui::BeginChild("##problems", ImVec2(0.0f, ImGui::GetTextLineHeightWithSpacing() * ImMin(PROBLEMS_LIST_ROWS, (float32_t)window->context->problemCount + 1.5f)), ImGuiChildFlags_Borders | ImGuiChildFlags_ResizeY))
+        {
+            if (0 == window->context->problemCount)
+            {
+                ImGui::TextDisabled("%s", NO_PROBLEMS_LABEL);
+            }
+            for (problem_index = 0; problem_index < window->context->problemCount; ++problem_index)
+            {
+                problem = &window->context->problems[problem_index];
+                color   = PROBLEM_WARNING_COLOR;
+                if (problem->isError)
+                {
+                    color = PROBLEM_ERROR_COLOR;
+                }
+                ImGui::PushID((int)problem_index);
+                ImGui::PushStyleColor(ImGuiCol_Text, color);
+                if (problem->isError)
+                {
+                    ImGui::TextUnformatted(PROBLEM_ERROR_PREFIX);
+                }
+                else
+                {
+                    ImGui::TextUnformatted(PROBLEM_WARNING_PREFIX);
+                }
+                ImGui::PopStyleColor();
+                ImGui::SameLine();
+                if (ImGui::Selectable(problem->text))
+                {
+                    Arinc661_Context_ShowProblem(window->context, problem);
+                }
+                ImGui::PopID();
+            }
+        }
+        ImGui::EndChild();
     }
 }
 
@@ -651,6 +1760,7 @@ static void DrawPageFiles(WindowThreadState_t* window)
                     else
                     {
                         Arinc661_Configuration_LoadFile(window->configurationEditor, window->fileNames[file_index]);
+                        (void)Arinc661_Context_OpenReferencedDefinitions(window->context);
                         window->isDefinitionActive = FALSE;
                     }
                 }
@@ -671,7 +1781,7 @@ static void DrawPageFiles(WindowThreadState_t* window)
  */
 static void DrawPageHierarchy(WindowThreadState_t* window)
 {
-    if (ImGui::BeginChild(HIERARCHY_PANE_NAME, ImVec2(0.0f, 0.0f), PANE_FLAGS))
+    if (ImGui::BeginChild(HIERARCHY_PANE_NAME, ImVec2(0.0f, 0.0f), PANE_FLAGS, ImGuiWindowFlags_HorizontalScrollbar))
     {
         ImGui::TextUnformatted(HIERARCHY_PANE_NAME);
         ImGui::Separator();
@@ -714,6 +1824,8 @@ static void DrawPageHierarchy(WindowThreadState_t* window)
 static void DrawEditors(WindowThreadState_t* window)
 {
     const ImGuiViewport* viewport;
+    char_t               configuration_crumb[CONTEXT_CRUMB_BYTES];
+    char_t               definition_crumb[CONTEXT_CRUMB_BYTES];
     bool_t               is_definition_focused;
     const char_t*        status_text;
     ImVec2               table_size;
@@ -737,7 +1849,9 @@ static void DrawEditors(WindowThreadState_t* window)
     ImGui::SetNextWindowViewport(viewport->ID);
     if (ImGui::Begin(PAGE_WINDOW_NAME, NULL, PAGE_WINDOW_FLAGS))
     {
+        DrawToolbar(window);
         DrawPageFiles(window);
+        DrawPageProblems(window);
         Arinc661_Configuration_MeasurePanes(window->configurationEditor, &configuration_hierarchy_width, &configuration_inspector_width);
         Arinc661_Definition_MeasurePanes(window->definitionEditor, &definition_hierarchy_width, &definition_inspector_width);
         hierarchy_width   = ImMax(configuration_hierarchy_width, definition_hierarchy_width);
@@ -775,7 +1889,11 @@ static void DrawEditors(WindowThreadState_t* window)
             }
             ImGui::EndTable();
         }
-        Arinc661_Configuration_DrawDialogs(window->configurationEditor);
+        DrawHelpWindow(window);
+    (void)Arinc661_Context_FollowRenames(window->context);
+    Arinc661_Configuration_EndFrame(window->configurationEditor);
+    Arinc661_Definition_EndFrame(window->definitionEditor);
+    Arinc661_Configuration_DrawDialogs(window->configurationEditor);
         Arinc661_Definition_DrawDialogs(window->definitionEditor);
         status_text = Arinc661_Configuration_StatusText(window->configurationEditor);
         if (window->isDefinitionActive)
@@ -788,6 +1906,11 @@ static void DrawEditors(WindowThreadState_t* window)
         }
         ImGui::Separator();
         ImGui::TextUnformatted(status_text);
+        // Context bar: where the selection sits on each side
+        Arinc661_Configuration_SelectionText(window->configurationEditor, configuration_crumb, sizeof(configuration_crumb));
+        Arinc661_Definition_SelectionText(window->definitionEditor, definition_crumb, sizeof(definition_crumb));
+        ImGui::SameLine(0.0f, CONTEXT_BAR_GAP);
+        ImGui::TextDisabled(CONTEXT_BAR_FORMAT, configuration_crumb, definition_crumb);
     }
     ImGui::End();
 }
@@ -1195,9 +2318,26 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
     Arinc661_Configuration_Initialize(window->configurationEditor);
     window->definitionEditor = (Arinc661_Definition_Editor_t*)OS_CALLOC(sizeof(Arinc661_Definition_Editor_t));
     Arinc661_Definition_Initialize(window->definitionEditor);
+    window->isHelpOpen    = FALSE;
+    window->helpFilter[0] = 0;
+    strncpy_s(window->helpTopic, sizeof(window->helpTopic), HELP_GETTING_STARTED, _TRUNCATE);
     window->context = (Arinc661_Context_t*)OS_CALLOC(sizeof(Arinc661_Context_t));
     Arinc661_Context_Initialize(window->context, window->configurationEditor, window->definitionEditor);
     ScanFolder(window);
+    if (NULL != g_openConfiguration)
+    {
+        Arinc661_Configuration_LoadFile(window->configurationEditor, g_openConfiguration);
+        (void)Arinc661_Context_OpenReferencedDefinitions(window->context);
+    }
+    if (NULL != g_openDefinition)
+    {
+        Arinc661_Definition_LoadFile(window->definitionEditor, g_openDefinition);
+        if (NULL != g_selectName)
+        {
+            Arinc661_Definition_SelectByName(window->definitionEditor, g_selectName);
+        }
+    }
+    window->isDefinitionActive = g_focusDefinition;
     window->hasEditors = TRUE;
     window->isInitialized = TRUE;
     LOGASSERT(FALSE != ::SetEvent(window->readyEvent));
@@ -1251,7 +2391,7 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
  * \par Details:
  *  Opens the configuration editor and its live scene view.
  */
-int main(void)
+int main(int argc, char** argv)
 {
     float32_t                            main_scale;
     WindowThreadState_t                  window;
@@ -1261,6 +2401,7 @@ int main(void)
 
     // Route assertion and runtime failures to stderr instead of dialog boxes
     Os_Diagnostics_Initialize();
+    ParseOptions(argc, argv);
     ImGui_ImplWin32_EnableDpiAwareness();
     main_scale = ImGui_ImplWin32_GetDpiScaleForMonitor(::MonitorFromPoint(POINT{0, 0}, MONITOR_DEFAULTTOPRIMARY));
 

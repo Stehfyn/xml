@@ -13,6 +13,7 @@ extern "C"
 {
 #include "faceoe/faceoe_displaymanagement.h"
 #include "faceoe_gfx/faceoe_gfx_drawlist.h"
+#include "arinc661/arinc661_scene.h"
 }
 
 /*=================================================================================================
@@ -32,6 +33,8 @@ extern "C"
 #define ARINC661_CONFIGURATION_MAX_EXTERNAL_SOURCES   (1024)
 #define ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS     (8)
 #define ARINC661_CONFIGURATION_MAX_DEFINITION_FILES   (256)
+#define ARINC661_CONFIGURATION_MAX_HISTORY            (64)
+#define ARINC661_CONFIGURATION_MAX_PREVIEW_BOUNDS     (4096)
 #define ARINC661_CONFIGURATION_MAX_SCENE_COMMANDS     (65536)
 #define ARINC661_CONFIGURATION_MAX_SCENE_POINTS       (524288)
 #define ARINC661_CONFIGURATION_MAX_SCENE_TEXT_BYTES   (1048576)
@@ -44,9 +47,17 @@ extern "C"
 /**
  * \brief One open document and its conversion workspace.
  */
+struct Arinc661_Configuration_Editor_s;
+
 typedef struct Arinc661_Configuration_Document_s
 {
+    struct Arinc661_Configuration_Editor_s* owner;                                                             ///< Editor holding this document.
     int32_t                                status;                                                           ///< Current status message.
+    void*                                  undoStack[ARINC661_CONFIGURATION_MAX_HISTORY];                    ///< Model snapshots older than the shadow, oldest first.
+    void*                                  redoStack[ARINC661_CONFIGURATION_MAX_HISTORY];                    ///< Model snapshots undone, oldest first.
+    void*                                  shadow;                                                           ///< Snapshot of the model as last committed.
+    uint32_t                               undoCount;                                                        ///< Snapshots on the undo stack.
+    uint32_t                               redoCount;                                                        ///< Snapshots on the redo stack.
     bool_t                                 isLoaded;                                                         ///< TRUE after a successful read.
     bool_t                                 isDirty;                                                          ///< TRUE when the loaded document has unsaved changes.
     int32_t                                selectedKind;                                                     ///< Selected entity type.
@@ -80,6 +91,19 @@ typedef struct Arinc661_Configuration_Editor_s
     FACEOE_Gfx_Command_t                sceneCommands[ARINC661_CONFIGURATION_MAX_SCENE_COMMANDS];       ///< Preview command storage.
     FACEOE_Gfx_Point_t                  scenePoints[ARINC661_CONFIGURATION_MAX_SCENE_POINTS];           ///< Preview point storage.
     char_t                              sceneText[ARINC661_CONFIGURATION_MAX_SCENE_TEXT_BYTES];         ///< Preview text storage.
+    int32_t                             dragMode;                                                       ///< Scene drag in progress: none, move, or a resize corner.
+    uint32_t                            dragWindow;                                                     ///< Window being dragged.
+    float32_t                           dragStartX;                                                     ///< Mouse X at drag start.
+    float32_t                           dragStartY;                                                     ///< Mouse Y at drag start.
+    int64_t                             dragOriginX;                                                    ///< pixelArea.x at drag start.
+    int64_t                             dragOriginY;                                                    ///< pixelArea.y at drag start.
+    int64_t                             dragOriginWidth;                                                ///< pixelArea.width at drag start.
+    int64_t                             dragOriginHeight;                                               ///< pixelArea.height at drag start.
+    float32_t                           dragScale;                                                      ///< Screen pixels per screen pixel during the drag.
+    bool_t                              hasDragged;                                                     ///< TRUE once the drag moved the mouse.
+    Arinc661_Scene_Bounds_t             previewBounds[ARINC661_CONFIGURATION_MAX_PREVIEW_BOUNDS];        ///< Widget bounds of the previews drawn this frame.
+    uint32_t                            previewBoundsCount;                                             ///< Bounds recorded this frame.
+    uint32_t                            previewDocuments[ARINC661_CONFIGURATION_MAX_PREVIEW_BOUNDS];     ///< Definition File document slot of each bound.
     int32_t                             status;                                                         ///< File browser status message.
     uint32_t                            activeDocumentIndex;                                            ///< Selected document slot.
     uint32_t                            requestedDocumentIndex;                                         ///< Tab to select after opening a file.
@@ -354,5 +378,212 @@ bool_t Arinc661_Configuration_UserApplication(const Arinc661_Configuration_Edito
  * \retval        None
  */
 void Arinc661_Configuration_SelectUserApplication(Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex, uint32_t applicationIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Reverts the active document to the state before its latest change.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Configuration_Undo(Arinc661_Configuration_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Reapplies the active document's latest undone change.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Configuration_Redo(Arinc661_Configuration_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Reports whether the active document can undo or redo.
+ *
+ * \param[in]  editor    Editor state
+ * \param[out] canUndo   TRUE when an older state exists
+ * \param[out] canRedo   TRUE when an undone state exists
+ *
+ * \retval     None
+ */
+void Arinc661_Configuration_History(const Arinc661_Configuration_Editor_t* editor, bool_t* canUndo, bool_t* canRedo);
+
+/*************************************************************************************************/
+/**
+ * \brief Removes the active document's selected element.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Configuration_DeleteSelection(Arinc661_Configuration_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Duplicates the active document's selected window or user application.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Configuration_DuplicateSelection(Arinc661_Configuration_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Adds a screen to the active document.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Configuration_AddScreen(Arinc661_Configuration_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Adds a layout to the selected screen, or the first screen, of the active document.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Configuration_AddLayout(Arinc661_Configuration_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Adds a window to the selected layout, or the selected window's layout, or the first.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Configuration_AddWindow(Arinc661_Configuration_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Adds a user application to the active document, targeting the selected window.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Configuration_AddUserApplication(Arinc661_Configuration_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Names the active document's selected element kind, for contextual help.
+ *
+ * \param[in] editor   Editor state
+ *
+ * \retval    const char_t*   "Screen", "Layout", "Window", "UserApplication", or NULL.
+ */
+const char_t* Arinc661_Configuration_SelectedElement(const Arinc661_Configuration_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Commits the frame's changes to the undo history; call once per frame after drawing.
+ *
+ * \param[in,out] editor   Editor state
+ *
+ * \retval        None
+ */
+void Arinc661_Configuration_EndFrame(Arinc661_Configuration_Editor_t* editor);
+
+/*************************************************************************************************/
+/**
+ * \brief Finds a window of an open document by id and reports its pixel area and density.
+ *
+ * \param[in]  editor            Editor state
+ * \param[in]  documentIndex     Document slot
+ * \param[in]  windowId          FACE window id
+ * \param[out] windowIndex       Window array index; may be NULL
+ * \param[out] pixelWidth        Width in pixels; may be NULL
+ * \param[out] pixelHeight       Height in pixels; may be NULL
+ * \param[out] unitsPerPixelX    0.01 mm per pixel along X; may be NULL
+ * \param[out] unitsPerPixelY    0.01 mm per pixel along Y; may be NULL
+ *
+ * \retval     TRUE              if the window exists.
+ * \retval     FALSE             otherwise.
+ */
+bool_t Arinc661_Configuration_Window(const Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex, int64_t windowId, uint32_t* windowIndex, int64_t* pixelWidth, int64_t* pixelHeight, float32_t* unitsPerPixelX, float32_t* unitsPerPixelY);
+
+/*************************************************************************************************/
+/**
+ * \brief Counts an open document's windows.
+ *
+ * \param[in] editor          Editor state
+ * \param[in] documentIndex   Document slot
+ *
+ * \retval    uint32_t   Count, zero for an empty slot.
+ */
+uint32_t Arinc661_Configuration_WindowCount(const Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads one window's id and name by array index.
+ *
+ * \param[in]  editor          Editor state
+ * \param[in]  documentIndex   Document slot
+ * \param[in]  windowIndex     Window array index
+ * \param[out] windowId        FACE window id
+ * \param[out] name            Window name; stays valid while the document stays open
+ *
+ * \retval     TRUE            if the window exists.
+ * \retval     FALSE           otherwise.
+ */
+bool_t Arinc661_Configuration_WindowAt(const Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex, uint32_t windowIndex, int64_t* windowId, const char_t** name);
+
+/*************************************************************************************************/
+/**
+ * \brief Makes a document active and selects one of its windows.
+ *
+ * \param[in,out] editor          Editor state
+ * \param[in]     documentIndex   Document slot
+ * \param[in]     windowIndex     Window array index
+ *
+ * \retval        None
+ */
+void Arinc661_Configuration_SelectWindow(Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex, uint32_t windowIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Adds a user application with given values to an open document and selects it.
+ *
+ * \param[in,out] editor          Editor state
+ * \param[in]     documentIndex   Document slot
+ * \param[in]     applicationId   FACE applicationId
+ * \param[in]     windowId        FACE window id
+ * \param[in]     dFPath          Definition File name
+ *
+ * \retval        TRUE            if the user application was added.
+ * \retval        FALSE           otherwise.
+ */
+bool_t Arinc661_Configuration_AddUserApplicationFor(Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex, int64_t applicationId, int64_t windowId, const char_t* dFPath);
+
+/*************************************************************************************************/
+/**
+ * \brief Repoints every user application naming one Definition File at another name.
+ *
+ * \param[in,out] editor         Editor state
+ * \param[in]     previousName   Name to replace, compared ignoring case
+ * \param[in]     newName        Replacement
+ *
+ * \retval        uint32_t       Number of user applications changed.
+ */
+uint32_t Arinc661_Configuration_RepointDefinition(Arinc661_Configuration_Editor_t* editor, const char_t* previousName, const char_t* newName);
+
+/*************************************************************************************************/
+/**
+ * \brief Describes the active document's selection as a breadcrumb.
+ *
+ * \param[in]  editor     Editor state
+ * \param[out] text       Breadcrumb, or an empty string
+ * \param[in]  capacity   Bytes in text
+ *
+ * \retval     None
+ */
+void Arinc661_Configuration_SelectionText(const Arinc661_Configuration_Editor_t* editor, char_t* text, uint32_t capacity);
 
 #endif /* ARINC661_CONFIGURATION_H */

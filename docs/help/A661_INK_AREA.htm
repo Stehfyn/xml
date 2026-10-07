@@ -1,0 +1,20 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>A661_INK_AREA</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:1.5em;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:4px 6px;vertical-align:top;font-size:0.95em}th{background:#eee;text-align:left}.cat{color:#666}</style></head><body><h1>A661_INK_AREA <small>(InkArea)</small></h1>
+<p class="cat">Categories: Graphical representation, Interactive</p>
+<p>The InkArea widget allows a crew member to draw in an active area region of the widget using input from a digitizer or similar device. This widget provides a means collect natural written input data on a canvas defined by the UA upon which the CDS can draw based on crew input. Impact to drawn content when PosX, PosY, SizeX, or SizeY is changed is implementation dependent.</p>
+<table><tr><th>Parameter</th><th>Change</th><th>Description</th></tr>
+<tr><td>WidgetIdent</td><td>D</td><td>Unique identifier of the widget</td></tr>
+<tr><td>ParentIdent</td><td>D</td><td>Identifier of the immediate container of the widget</td></tr>
+<tr><td>Visible</td><td>DR</td><td>Visibility of the widget</td></tr>
+<tr><td>Enable</td><td>DR</td><td>Ability of the widget to be interactive</td></tr>
+<tr><td>StyleSet</td><td>DR</td><td>Reference to the predefined graphical characteristics inside CDS</td></tr>
+<tr><td>PosX</td><td>DR</td><td>The X position of the widget reference point</td></tr>
+<tr><td>PosY</td><td>DR</td><td>The Y position of the widget reference point</td></tr>
+<tr><td>SizeX</td><td>DR</td><td>The width of the widget</td></tr>
+<tr><td>SizeY</td><td>DR</td><td>The height of the widget</td></tr>
+<tr><td>ColorIndex</td><td>DR</td><td>Color index of the ink graphic. See Section 3.1.3.3.1.</td></tr>
+<tr><td>Filled</td><td>DR</td><td>If set to True, background will be filled</td></tr>
+<tr><td>FillIndex</td><td>DR</td><td>Fill Pattern index for the background. See Section 3.1.3.3.1.</td></tr>
+<tr><td>Clear</td><td>R</td><td>Set to A661_TRUE to clear the ink area. CDS will set this value back to A661_FALSE.</td></tr>
+<tr><td>MaxBufferSize</td><td>D</td><td>Implementation dependent value to set max size of ink data</td></tr>
+<tr><td>NextFocusedWidget</td><td>DR</td><td>Widget ident of next widget to be focused. See Section 3.1.3.5.</td></tr>
+</table></body></html>

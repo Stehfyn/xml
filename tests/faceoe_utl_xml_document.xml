@@ -1,13 +1,7 @@
 <?xml version="1.0"?>
-<!--before-->
-<!DOCTYPE root>
-<?target data?>
-<root a="A&amp;&quot;&lt;&#x9;&#xA;&#xD;">
-    &lt;&amp;&gt;&#xD;
+<root a="A > é" b="">
     <child>
         <grandchild/>
     </child>
-    tail
-    <!--inside-->
+    <sibling/>
 </root>
-<!--after-->

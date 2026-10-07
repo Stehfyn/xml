@@ -1,0 +1,19 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>A661_TABBED_PANEL_GROUP</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:1.5em;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:4px 6px;vertical-align:top;font-size:0.95em}th{background:#eee;text-align:left}.cat{color:#666}</style></head><body><h1>A661_TABBED_PANEL_GROUP <small>(TabbedPanelGroup)</small></h1>
+<p class="cat">Categories: Container, Graphical representation, Interactive</p>
+<p>A TabbedPanelGroup widget groups several TabbedPanel widgets. A TabbedPanelGroup enables the UA or a crew member to select one of the TabbedPanel widgets for display. All of the TabbedPanels inside the TabbedPanelGroup widget occupy the same display space, and only one may be displayed at a time. The displayed TabbedPanel is the one referenced by the &quot;ActiveTabbedPanelID&quot; parameter. Note: The effect of having a 0 value for the ActiveTabbedPanelID is implementation dependent. The TabbedPanelGroup has clipping capabilities.</p>
+<p><b>Restriction:</b> A TabbedPanelGroup can only contain TabbedPanel or Connector widgets.</p>
+<table><tr><th>Parameter</th><th>Change</th><th>Description</th></tr>
+<tr><td>WidgetIdent</td><td>D</td><td>Unique identifier of the widget</td></tr>
+<tr><td>ParentIdent</td><td>D</td><td>Identifier of the immediate container of the widget</td></tr>
+<tr><td>Visible</td><td>DR</td><td>Visibility of the widget</td></tr>
+<tr><td>Enable</td><td>DR</td><td>Ability of the widget to be interactive</td></tr>
+<tr><td>StyleSet</td><td>DR</td><td>Reference to predefined graphical characteristics inside CDS</td></tr>
+<tr><td>PosX</td><td>DR</td><td>The X position of the widget reference point</td></tr>
+<tr><td>PosY</td><td>DR</td><td>The Y position of the widget reference point</td></tr>
+<tr><td>SizeX</td><td>DR</td><td>The X dimension size (width) of the widget</td></tr>
+<tr><td>SizeY</td><td>DR</td><td>The Y dimension size (height) of the widget</td></tr>
+<tr><td>TabPosition</td><td>DR</td><td>Display and position of optional tab: ABSENT no tab will be used TOP automatic tab will be set up BOTTOM automatic tab will be set down LEFT automatic tab will be set left RIGHT automatic tab will be set right</td></tr>
+<tr><td>AutomaticInsetSizeFlag</td><td>D</td><td>If TabPosition is Top/Bottom: TRUE: CDS defines the button size according to the TabbedPanelGroup and the number of buttons. FALSE: The button size is defined by the TabbedPanel parameter InsetSize. If this size is incoherent, it is set by the CDS automatically If TabPosition is Right/Left: TRUE: CDS defines the button size according to the StyleSet FALSE: The CDS use the maximum of the sizes defined inside the TabbedPanel</td></tr>
+<tr><td>ActiveTabbedPanelID</td><td>DR</td><td>Widget Ident of the active TabbedPanel or Connector</td></tr>
+<tr><td>EntryValidation</td><td>R</td><td>Indicator notifying the CDS that the UA has completed processing the entry or selection event. This flag also indicates the results of that processing. A661_FALSE A661_TRUE</td></tr>
+</table></body></html>

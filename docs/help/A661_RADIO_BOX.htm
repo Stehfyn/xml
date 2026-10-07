@@ -1,0 +1,10 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>A661_RADIO_BOX</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:1.5em;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:4px 6px;vertical-align:top;font-size:0.95em}th{background:#eee;text-align:left}.cat{color:#666}</style></head><body><h1>A661_RADIO_BOX <small>(RadioBox)</small></h1>
+<p class="cat">Categories: Container</p>
+<p>A RadioBox widget manages the visibility and the interactivity of a group of Buttons (CheckButtons or ToggleButtons). It enables a crew member to select one Button out of &quot;n&quot; exclusive ones. At a given time one item maximum can be SELECTED. A selection of a selected item by a crew member is without effect. Nevertheless, the UA can deselect the selected item (through setParameter command) to create a RadioBox without selection. The Buttons contained in the RadioBox should be individually defined with the RadioBox as a parent widget. RadioBox does not have any graphical representation.</p>
+<p><b>Restriction:</b> The children of the RadioBox will be positioned relative to the parent of the RadioBox. Only one child widget type can be selected in a given RadioBox at a time. The CDS should assure that internal state of the children is consistent (no more than one is selected) at all times, including when the user changes the state of the children.</p>
+<table><tr><th>Parameter</th><th>Change</th><th>Description</th></tr>
+<tr><td>WidgetIdent</td><td>D</td><td>Unique identifier of the widget</td></tr>
+<tr><td>ParentIdent</td><td>D</td><td>Identifier of the immediate container of the widget</td></tr>
+<tr><td>Visible</td><td>DR</td><td>Visibility of the widget</td></tr>
+<tr><td>Enable</td><td>DR</td><td>Ability of the widget&#x27;s descendants to be interactive</td></tr>
+</table></body></html>

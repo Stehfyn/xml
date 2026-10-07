@@ -1,0 +1,20 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>A661_PUSH_BUTTON</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:1.5em;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:4px 6px;vertical-align:top;font-size:0.95em}th{background:#eee;text-align:left}.cat{color:#666}</style></head><body><h1>A661_PUSH_BUTTON <small>(PushButton)</small></h1>
+<p class="cat">Categories: Graphical representation, Interactive, Text string</p>
+<p>A PushButton widget is a momentary switched Button, which enables the crew to launch an action. A PushButton has only one inner state, so there is no need for an inner state parameter.</p>
+<table><tr><th>Parameter</th><th>Change</th><th>Description</th></tr>
+<tr><td>WidgetIdent</td><td>D</td><td>Unique identifier of the widget</td></tr>
+<tr><td>ParentIdent</td><td>D</td><td>Identifier of the immediate container of the widget</td></tr>
+<tr><td>Visible</td><td>DR</td><td>Visibility of the widget</td></tr>
+<tr><td>Enable</td><td>DR</td><td>Ability of the widget to be interactive</td></tr>
+<tr><td>StyleSet</td><td>DR</td><td>Reference to predefined graphical characteristics inside CDS</td></tr>
+<tr><td>PosX</td><td>DR</td><td>The X position of the widget reference point</td></tr>
+<tr><td>PosY</td><td>DR</td><td>The Y position of the widget reference point</td></tr>
+<tr><td>SizeX</td><td>DR</td><td>The X dimension size (width) of the widget</td></tr>
+<tr><td>SizeY</td><td>DR</td><td>The Y dimension size (height) of the widget</td></tr>
+<tr><td>NextFocusedWidget</td><td>DR</td><td>Widget ident of next widget to be focused. See Section 3.1.3.5.</td></tr>
+<tr><td>AutomaticFocusMotion</td><td>DR</td><td>Automatic motion of the focus on widget specified in NextFocusedWidget parameter</td></tr>
+<tr><td>Alignment</td><td>DR</td><td>Alignment of the text within the label area of the widget LEFT RIGHT CENTER</td></tr>
+<tr><td>LabelString</td><td>DR</td><td>String of the PushButton</td></tr>
+<tr><td>MaxStringLength</td><td>D</td><td>Maximum size in bytes of the label text including the NULL terminator.</td></tr>
+<tr><td>EntryValidation</td><td>R</td><td>Indicator notifying the CDS that the UA has completed processing the entry or selection event. This flag also indicates the results of that processing. A661_FALSE A661_TRUE</td></tr>
+</table></body></html>

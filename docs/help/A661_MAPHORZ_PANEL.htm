@@ -1,0 +1,15 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>A661_MAPHORZ_PANEL</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:1.5em;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:4px 6px;vertical-align:top;font-size:0.95em}th{background:#eee;text-align:left}.cat{color:#666}</style></head><body><h1>A661_MAPHORZ_PANEL <small>(MapHorz_Panel)</small></h1>
+<p class="cat">Categories: Container, Map management, Graphical Representation</p>
+<p>This container can be embedded into a MapHorz_Source widget. The X and Y parameters provide this real world position data. Their interpretation is dependent on the MapDataFormat. The screen location resulting from the projection of the X and Y parameters defines the origin of the MapHorz_Panel&#x27;s children. Its aim is to provide geographic-aware interactivity, e.g., it is possible to add a few buttons close to a waypoint or a text entry close to an airport. The unit for the widgets within the container remains the standard hundredth of mm A661 unit. The size of the widget can be used by the CDS to manage specific placement policies.</p>
+<table><tr><th>Parameter</th><th>Change</th><th>Description</th></tr>
+<tr><td>WidgetIdent</td><td>D</td><td>Unique identifier of the widget.</td></tr>
+<tr><td>ParentIdent</td><td>D</td><td>Identifier of the immediate container of the widget.</td></tr>
+<tr><td>Enable</td><td>DR</td><td>Ability of the widget&#x27;s descendants to be interactive</td></tr>
+<tr><td>Visible</td><td>DR</td><td>Visibility of the widget</td></tr>
+<tr><td>SizeX</td><td>DR</td><td>The X dimension size (width) of the widget in hundredths of mm.</td></tr>
+<tr><td>SizeY</td><td>DR</td><td>The Y dimension size (height) of the widget in hundredths of mm.</td></tr>
+<tr><td>StyleSet</td><td>DR</td><td>Reference to predefined graphical characteristics inside CDS.</td></tr>
+<tr><td>X</td><td>DR</td><td>Dependent on MapDataFormat See Table 3.3.24-2b</td></tr>
+<tr><td>Y</td><td>DR</td><td>Dependent on MapDataFormat See Table 3.3.24-2b</td></tr>
+<tr><td>MapSynchronizationNumber</td><td>R</td><td>See Section 3.2.8.4</td></tr>
+</table></body></html>

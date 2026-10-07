@@ -1,0 +1,30 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>A661_COMBO_BOX_EDIT</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:1.5em;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:4px 6px;vertical-align:top;font-size:0.95em}th{background:#eee;text-align:left}.cat{color:#666}</style></head><body><h1>A661_COMBO_BOX_EDIT <small>(ComboBoxEdit)</small></h1>
+<p class="cat">Categories: Graphical representation, Interactive, Text String</p>
+<p>Like ComboBox, ComboBoxEdit provides a means to choose one entry within a list by interacting with that entry. This widget is composed of a static part displaying the selected item and a popup part displaying possible items. The number of the current selected entry is held in the SelectedEntry parameter. The complete list of possible Entries is held in a string array (parameter EntryList). The list is displayed upon crew member interaction. Moreover, ComboBoxEdit allows the crew to enter new data to the static part of the widget. When ComboBoxEdit is in edit mode, the CDS may report all modification made to the edited string, some of the modifications, or just the confirmed value (after a crew member validation). The UA controls this option through the &quot;ReportAllChanges&quot; parameter. Note that SelectingAreaHeight and the SelectingAreaWidth represent the Y and X Size of the popup part of the ComboBoxEdit. OpeningMode of the ComboBoxEdit is used to determine how the ComboBox opens.</p>
+<p><b>Restriction:</b> N/A</p>
+<table><tr><th>Parameter</th><th>Change</th><th>Description</th></tr>
+<tr><td>WidgetIdent</td><td>D</td><td>Unique identifier of the widget</td></tr>
+<tr><td>ParentIdent</td><td>D</td><td>Identifier of the immediate container of the widget</td></tr>
+<tr><td>Visible</td><td>DR</td><td>Visibility of the widget</td></tr>
+<tr><td>Enable</td><td>DR</td><td>Ability of the widget to be interactive</td></tr>
+<tr><td>StyleSet</td><td>DR</td><td>Reference to predefined graphical characteristics inside CDS</td></tr>
+<tr><td>PosX</td><td>DR</td><td>The X position of the widget reference point</td></tr>
+<tr><td>PosY</td><td>DR</td><td>The Y position of the widget reference point</td></tr>
+<tr><td>SizeX</td><td>DR</td><td>The X dimension size (width) of the widget (in the closed mode)</td></tr>
+<tr><td>SizeY</td><td>DR</td><td>The Y dimension size (height) of the ComboBoxEdit (in the closed mode)</td></tr>
+<tr><td>NextFocusedWidget</td><td>DR</td><td>Widget ident of next widget to be focused. See Section 3.1.3.5.</td></tr>
+<tr><td>AutomaticFocusMotion</td><td>DR</td><td>Automatic motion of the focus on widget specified in NextFocusedWidget parameter</td></tr>
+<tr><td>SelectingAreaWidth</td><td>DR</td><td>X Size of the area available to display the popup part (the entry list)</td></tr>
+<tr><td>SelectingAreaHeight</td><td>DR</td><td>Y Size of the area available to display the popup part (the entry list)</td></tr>
+<tr><td>OpeningMode</td><td>DR</td><td>Position of the popup part relative to the static part when it is opened: UP CENTERED DOWN</td></tr>
+<tr><td>MaxStringLength</td><td>D</td><td>Maximum size in bytes (including the NULL terminator) of the label text and of each string array entry.</td></tr>
+<tr><td>Alignment</td><td>DR</td><td>Justification of the label text within the edit area CENTER LEFT RIGHT</td></tr>
+<tr><td>ReportAllChanges</td><td>D</td><td>A661_EDB_CHANGE_CONFIRMED CDS will report the value change after crew member validation (A661_EVT_STRING_CONFIRMED) A661_EDB_ALL_CHANGE CDS will report the edit mode opening (A661_EVT_EDITBOX_OPENED) CDS will report each update from the crew member while in edit mode (A661_EVT_STRING_CHANGE) CDS will report the value change after crew member validation (A661_EVT_STRING_CONFIRMED) CDS will report the value if the crew member aborts the edit (A661_EVT_STRING_CHANGE_ABORTED) A661_EDB_OPEN_CLOSE CDS will report the edit mode opening (A661_EVT_EDITBOX_OPENED) CDS will report the value change after crew member validation (A661_EVT_STRING_CONFIRMED) CDS will report the value if the crew member aborts the edit (A661_EVT_STRING_CHANGE_ABORTED)</td></tr>
+<tr><td>EntryValidation</td><td>R</td><td>Indicator notifying the CDS that the UA has completed processing the entry or selection event. This flag also indicates the results of that processing. A661_FALSE A661_TRUE</td></tr>
+<tr><td>StartCursorPos</td><td>DR</td><td>Start position of the cursor in field when entering edit mode. See Section 3.1.3.3.</td></tr>
+<tr><td>MaxNumberOfEntries</td><td>D</td><td>Maximum number of entries in the list</td></tr>
+<tr><td>NumberOfEntries</td><td>DR</td><td>Total number of entries in the list (must be less than or equal to MaxNumberOfEntries)</td></tr>
+<tr><td>SelectedEntry</td><td>DR</td><td>Current selected entry number in the list from 1 to NumberOfEntries if an entry is selected and 0 else</td></tr>
+<tr><td>OpeningEntry</td><td>DR</td><td>Entry number which is ensured to be visible when the ComboBoxEdit is opened. Opening entry is in the range [0; NumberOfEntries] OpeningEntry will be set to 0, if not used. LabelString N/A Text of the new entry entered by the crewmember</td></tr>
+<tr><td>EntryList</td><td>DR</td><td>String array holding the list of entries. Note: D is Design time. R is Run time. N/A means that this parameter is only used as an event value. It is never set by the UA (not at definition time nor at runtime).</td></tr>
+</table></body></html>

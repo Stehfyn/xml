@@ -1,0 +1,13 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>A661_SCALE_CONTAINER</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:1.5em;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:4px 6px;vertical-align:top;font-size:0.95em}th{background:#eee;text-align:left}.cat{color:#666}</style></head><body><h1>A661_SCALE_CONTAINER <small>(ScaleContainer)</small></h1>
+<p class="cat">Categories: Container</p>
+<p>A ScaleContainer widget applies a scaling transformation to a group of widgets. The ScaleContainer scales its children according to the ScaleX and ScaleY parameters, and the position of its Pivot Center of Scaling. ScaleX and ScaleY parameters should be positive values. Note that: - Scaling texts is implementation-dependent - CenterX and CenterY only apply to the container itself, not the children positions Examples with a ScaleX and ScaleY parameters = 2 :</p>
+<p><b>Restriction:</b> The possible children of this widgets are the same as for the TranslationContainer widget. Note: The ScaleX and ScaleY parameters must be &gt; 0</p>
+<table><tr><th>Parameter</th><th>Change</th><th>Description</th></tr>
+<tr><td>WidgetIdent</td><td>D</td><td>Unique identifier of the widget.</td></tr>
+<tr><td>ParentIdent</td><td>D</td><td>Identifier of the immediate container of the widget.</td></tr>
+<tr><td>Visible</td><td>DR</td><td>Visibility of the widget</td></tr>
+<tr><td>CenterX</td><td>DR</td><td>X coordinate of the scaling Pivot point</td></tr>
+<tr><td>CenterY</td><td>DR</td><td>Y coordinate of the scaling Pivot point</td></tr>
+<tr><td>ScaleX</td><td>DR</td><td>X Scale of the children widgets</td></tr>
+<tr><td>ScaleY</td><td>DR</td><td>Y Scale of the children widgets</td></tr>
+</table></body></html>

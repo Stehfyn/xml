@@ -1,0 +1,19 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>A661_PICTURE_ANIMATED</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:1.5em;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:4px 6px;vertical-align:top;font-size:0.95em}th{background:#eee;text-align:left}.cat{color:#666}</style></head><body><h1>A661_PICTURE_ANIMATED <small>(PictureAnimated)</small></h1>
+<p class="cat">Categories: Graphical representation</p>
+<p>A PictureAnimated is a reference to a set of images available in the CDS. By displaying this set of pictures successively at a frequency defined as a parameter of the widget, the CDS performs an animation. It is possible to define if the animation is performed only once then stopped or if it is an infinite loop. The UA can stop the loop animation. The animation always stops on the first picture of the list.</p>
+<p><b>Restriction:</b> N/A</p>
+<table><tr><th>Parameter</th><th>Change</th><th>Description</th></tr>
+<tr><td>WidgetIdent</td><td>D</td><td>Unique identifier of the widget.</td></tr>
+<tr><td>ParentIdent</td><td>D</td><td>Identifier of the immediate container of the widget.</td></tr>
+<tr><td>Visible</td><td>DR</td><td>Visibility of the widget</td></tr>
+<tr><td>StyleSet</td><td>DR</td><td>Reference to predefined graphical characteristics inside CDS</td></tr>
+<tr><td>PosX</td><td>DR</td><td>The X position of the widget reference point</td></tr>
+<tr><td>PosY</td><td>DR</td><td>The Y position of the widget reference point</td></tr>
+<tr><td>SizeX</td><td>DR</td><td>The X dimension size (width) of the widget</td></tr>
+<tr><td>SizeY</td><td>DR</td><td>The Y dimension size (height) of the widget</td></tr>
+<tr><td>IndexOfFrequency</td><td>DR</td><td>Index of the frequency defined in CDS (implementation dependent)</td></tr>
+<tr><td>LoopFlag</td><td>DR</td><td>Flag for loop animation: FALSE: animation is played once then stops TRUE: loop animation.</td></tr>
+<tr><td>AnimationFlag</td><td>DR</td><td>TRUE: the animation is played FALSE: the animation continues until it reaches the first picture of the array. Then it stops.</td></tr>
+<tr><td>NumberOfPictures</td><td>D</td><td>The number of picture references to store</td></tr>
+<tr><td>PictureArray</td><td>D</td><td>Array of pictures references stored in the CDS. The definition order set the sequence order.</td></tr>
+</table></body></html>

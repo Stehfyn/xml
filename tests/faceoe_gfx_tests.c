@@ -19,12 +19,23 @@
 ** 3. DECLARATIONS
 **===============================================================================================*/
 
+/*************************************************************************************************/
+/**
+ * \brief Runs the FACEOE graphics draw list tests.
+ *
+ * \retval None
+ */
 void RunFACEOEGfxTests(void);
 
 static FACEOE_Gfx_Command_t s_commands[256];
 static FACEOE_Gfx_Point_t   s_points[4096];
 static char_t               s_text[4096];
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Compares two floats within a tolerance.
+ */
 static bool_t Near(float32_t a, float32_t b)
 {
     return (fabsf(a - b) < 0.001f);

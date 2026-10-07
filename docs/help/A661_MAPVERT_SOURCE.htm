@@ -1,0 +1,13 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>A661_MAPVERT_SOURCE</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:1.5em;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:4px 6px;vertical-align:top;font-size:0.95em}th{background:#eee;text-align:left}.cat{color:#666}</style></head><body><h1>A661_MAPVERT_SOURCE <small>(MapVert_Source)</small></h1>
+<p class="cat">Categories: Map management, Container, Interactive</p>
+<p>The MapVert_Source is the equivalent of the MapHorz_Source for vertical displays. The MapVert_Source widget is a specialized container. It contains some MapVert_ItemList widgets to display Items expressed in a common coordinate system. The MapDataFormat (X or Y) parameters allow a UA to transmit its data either as absolute values or relative to the Reference Point. MapVert_Source is an interactive widget. The display area of the MapVert_Source is the same as the MapVert. The UA may need to receive the cursor position on a crew member validation with CCD on the MapVert_Source display area. The MapVert_Source EventFlag parameter provides a means for the map UA to control the CDS sending this event. The X,Y position sent by the CDS is expressed in the MapVert_Source coordinate system.</p>
+<p><b>Restriction:</b> The MapVert_Source should be under a MapVert widget (directly or via a MaskContainer widget), or a Layer widget. When directly attached to a Layer, the layer should not be attached to a window displayed alone.</p>
+<table><tr><th>Parameter</th><th>Change</th><th>Description</th></tr>
+<tr><td>WidgetIdent</td><td>D</td><td>Unique identifier of the widget</td></tr>
+<tr><td>ParentIdent</td><td>D</td><td>Identifier of the immediate container of the widget</td></tr>
+<tr><td>Visible</td><td>DR</td><td>Visibility of the widget</td></tr>
+<tr><td>Enable</td><td>DR</td><td>Ability of the widget to be interactive</td></tr>
+<tr><td>MapDataFormatX</td><td>D</td><td>Relative: X position of Items expressed relative to Reference point. Absolute: X position of Items expressed in absolute value. X_Dist: X fixed position with respect to screen reference point (no motion compensation)</td></tr>
+<tr><td>MapDataFormatY</td><td>D</td><td>Relative: Y position of Items expressed relative to Reference point. Absolute: Y position of Items expressed in absolute value. Y_Alt: Y fixed position with respect to screen reference point (no motion compensation)</td></tr>
+<tr><td>EventFlag</td><td>DR</td><td>Indicates if the UA wants to receive the cursor position upon click, expressed in its coordinate system.</td></tr>
+</table></body></html>

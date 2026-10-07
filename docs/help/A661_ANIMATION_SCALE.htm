@@ -1,0 +1,19 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>A661_ANIMATION_SCALE</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:1.5em;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:4px 6px;vertical-align:top;font-size:0.95em}th{background:#eee;text-align:left}.cat{color:#666}</style></head><body><h1>A661_ANIMATION_SCALE <small>(AnimationScale)</small></h1>
+<p class="cat">Categories: Utility</p>
+<p>The objective of this widget is to provide a means for performing a scale animation on one widget. The widget referenced in this AnimationScale widget must be defined in the Definition File before the AnimationScale widget. The behavior for this widget is specified in Section 3.2.11. Notes: 1. The scale values do not change the ARINC 661 target widget parameter values. The result of the scale is added to the coordinate system transformation specified by the widget position and rotation. 2. If this animation receives a A661_DEACTIVATE, it will put back the state of the scaling transformation to the identity transform (1, 1 scale).</p>
+<table><tr><th>Parameter</th><th>Change</th><th>Description</th></tr>
+<tr><td>WidgetIdent</td><td>D</td><td>Unique identifier of the widget.</td></tr>
+<tr><td>ParentIdent</td><td>D</td><td>Identifier of the immediate container of the widget</td></tr>
+<tr><td>StyleSet</td><td>DR</td><td>Reference to predefined graphical characteristics inside CDS</td></tr>
+<tr><td>Anonymous</td><td>D</td><td>Ability to be modified at run-time by the UA</td></tr>
+<tr><td>TargetWidgetID</td><td>D</td><td>Widget ID which should be translated according to this animation</td></tr>
+<tr><td>FromScaleX</td><td>DR</td><td>The initial ScaleX of the scale animation</td></tr>
+<tr><td>FromScaleY</td><td>DR</td><td>The initial ScaleY value of the scale animation</td></tr>
+<tr><td>ToScaleX</td><td>DR</td><td>The final ScaleX of the scale animation</td></tr>
+<tr><td>ToScaleY</td><td>DR</td><td>The final ScaleY value of the scale animation</td></tr>
+<tr><td>AnimationLawRef</td><td>DR</td><td>The animation law reference to use for the animation (see Section 9)</td></tr>
+<tr><td>Duration</td><td>DR</td><td>The duration of the animation in milliseconds</td></tr>
+<tr><td>Delay</td><td>DR</td><td>The delay in milliseconds for starting the animation</td></tr>
+<tr><td>AnimationState</td><td>R</td><td>The state of the animation A661_PLAY A661_ABORT A661_END A661_DEACTIVATE A661_FROM A661_TO</td></tr>
+<tr><td>AnimationRepetition</td><td>DR</td><td>Specifies how much times the animation will repeat (0 or 1 will mean no repetition, and the maximum value for ushort an indefinite repetition of the animation)</td></tr>
+</table></body></html>

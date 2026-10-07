@@ -1,0 +1,15 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>A661_POP_UP_PANEL</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:1.5em;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:4px 6px;vertical-align:top;font-size:0.95em}th{background:#eee;text-align:left}.cat{color:#666}</style></head><body><h1>A661_POP_UP_PANEL <small>(PopUpPanel)</small></h1>
+<p class="cat">Categories: Container, Graphical representation, Interactive</p>
+<p>The PopUpPanel is a container intended for temporary display on top of all layers in its window. PopUpPanel has no static part. PopUpPanel widget should not be used as a regular Container. The UA or CDS can define the position of the Container according to the UAPositionFlag value. PopUpPanel widget has clipping capability.</p>
+<table><tr><th>Parameter</th><th>Change</th><th>Description</th></tr>
+<tr><td>WidgetIdent</td><td>D</td><td>Unique identifier of the widget</td></tr>
+<tr><td>ParentIdent</td><td>D</td><td>Identifier of the immediate container of the widget</td></tr>
+<tr><td>Visible</td><td>R</td><td>Visibility of the widget: A661_FALSE A661_TRUE Note: Widget is not visible at creation time.</td></tr>
+<tr><td>StyleSet</td><td>DR</td><td>Reference to graphical characteristics inside CDS</td></tr>
+<tr><td>PosX</td><td>DR</td><td>The X position of the widget reference point</td></tr>
+<tr><td>PosY</td><td>DR</td><td>The Y position of the widget reference point</td></tr>
+<tr><td>SizeX</td><td>DR</td><td>The X dimension size (width) of the widget</td></tr>
+<tr><td>SizeY</td><td>DR</td><td>The Y dimension size (height) of the widget</td></tr>
+<tr><td>UAPositionFlag</td><td>DR</td><td>TRUE: UA defined position FALSE: Position defined by CDS using MouseClick location</td></tr>
+<tr><td>AutomaticClosure</td><td>DR</td><td>TRUE: with the automatic closure upon a click outside the PopUpPanel FALSE: without the automatic closure upon a click outside the PopUpPanel</td></tr>
+</table></body></html>
