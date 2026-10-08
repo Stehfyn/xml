@@ -30,6 +30,7 @@
 #include <float.h>
 #include <limits.h>
 #include <math.h>
+#include <stddef.h>
 #include <string.h>
 
 /*=================================================================================================
@@ -95,8 +96,6 @@
 #define BINARY_LAYER_HEADER_BYTES   (8U)  ///< Block code, LayerIdent, ContextNumber, and Block Size
 #define BINARY_SIZED_HEADER_BYTES   (8U)  ///< Block code, unused pad, and Block Size of symbol and animation law blocks
 #define BINARY_CHARSET_BLOCK_BYTES  (8U)  ///< Complete charset encoding block
-#define BINARY_PICTURE_HEADER_BYTES (8U)  ///< Picture block code, formats, counts, and unused pad
-#define BINARY_PICTURE_BYTES        (8U)  ///< Picture code, pad, reference, width, and height
 #define BINARY_BLOCK_END_BYTES      (4U)  ///< End or footer code followed by its unused pad
 #define BINARY_COMMAND_BYTES        (10U) ///< Command code, CommandSize, WidgetType, WidgetIdent, and ParentIdent
 #define BINARY_EXTEND_BYTES         (6U)  ///< Command code, CommandSize, and ExtensionType
@@ -130,14 +129,6 @@
 #define BINARY_COMMAND_TYPE_OFFSET (4U) ///< WidgetType or ExtensionType, ushort
 #define BINARY_WIDGET_IDENT_OFFSET (6U) ///< WidgetIdent, ushort
 #define BINARY_PARENT_IDENT_OFFSET (8U) ///< ParentIdent, ushort
-
-/* ARINC 661 Part 1-7, Tables 7-1 and 7-2: picture block and picture field offsets. */
-#define BINARY_PIXEL_FORMAT_OFFSET   (1U) ///< Pixel format of the block's pictures, uchar
-#define BINARY_PICTURE_COUNT_OFFSET  (2U) ///< Number of pictures, uchar
-#define BINARY_COLOR_COUNT_OFFSET    (3U) ///< Number of color table entries, uchar
-#define BINARY_COLOR_FORMAT_OFFSET   (4U) ///< Pixel format of the color table entries, uchar
-#define BINARY_PICTURE_WIDTH_OFFSET  (4U) ///< Picture width in pixels, ushort
-#define BINARY_PICTURE_HEIGHT_OFFSET (6U) ///< Picture height in pixels, ushort
 
 /* ARINC 661 Part 1-7, Tables 8.6.5-3, 3.9.17-6, and 8.6.7-3: offsets inside variable-size parameters. */
 #define BINARY_SIZED_PAD_OFFSET    (2U) ///< UnusedPad after the ParamBufferSize of a StaticParamBuffer, ushort
@@ -554,6 +545,43 @@ typedef struct ExtensionTargets_s
     const char_t* const* widgets;     ///< Widget type names
     uint32_t             widgetCount; ///< Number of widget type names
 } ExtensionTargets_t;
+
+/*************************************************************************************************/
+/**
+ * \brief Header of a picture block (Table 7-1), byte for byte.
+ *
+ * \par Details:
+ *  Packed to 1-byte alignment so offsetof and sizeof give the offsets and size
+ *  of the binary form. Multi-byte fields are big-endian in the file, so values
+ *  are read with GetUnsigned at these offsets, never through a cast of the input.
+ */
+#pragma pack(push, 1)
+typedef struct BinaryPictureBlock_s
+{
+    byte_t blockCode;    ///< A661_BEGIN_PICTURE_BLOCK
+    byte_t pixelFormat;  ///< Table 7-3 format of the pictures
+    byte_t pictureCount; ///< Number of pictures
+    byte_t colorCount;   ///< Number of color table entries
+    byte_t colorFormat;  ///< Table 7-3 format of the color table entries
+    byte_t unusedPad[3]; ///< UnusedPad
+} BinaryPictureBlock_t;
+
+/*************************************************************************************************/
+/**
+ * \brief Header of one picture in a picture block (Table 7-2), byte for byte; packed like BinaryPictureBlock_t.
+ */
+typedef struct BinaryPicture_s
+{
+    byte_t   pictureCode; ///< A661_BEGIN_PICTURE
+    byte_t   unusedPad;   ///< UnusedPad
+    uint16_t reference;   ///< Picture reference
+    uint16_t width;       ///< Width in pixels
+    uint16_t height;      ///< Height in pixels
+} BinaryPicture_t;
+#pragma pack(pop)
+
+_Static_assert(8U == sizeof(BinaryPictureBlock_t), "Table 7-1 picture block header is 8 bytes");
+_Static_assert(8U == sizeof(BinaryPicture_t), "Table 7-2 picture header is 8 bytes");
 
 /*=================================================================================================
 ** 3.3 External global variables
@@ -4604,6 +4632,20 @@ static bool_t ReadLayer(Arinc661_Definition_t* definition, const byte_t* buffer,
 
 /*************************************************************************************************/
 /**
+ * \brief Moves past one picture of a picture block (Table 7-2).
+ *
+ * \param[in]     buffer        Input bytes
+ * \param[in]     byteCount     Number of input bytes
+ * \param[in]     pixelFormat   Table 7-3 pixel format of the block's pictures
+ * \param[in,out] cursor        Offset of the picture code; on success, the offset after its end code
+ *
+ * \retval        TRUE          if the picture lies inside the input and ends with A661_END_PICTURE.
+ * \retval        FALSE         otherwise.
+ */
+static bool_t MeasurePicture(const byte_t* buffer, uint64_t byteCount, uint32_t pixelFormat, uint64_t* cursor);
+
+/*************************************************************************************************/
+/**
  * \brief Measures a picture block (Tables 7-1 and 7-2).
  *
  * \param[in]  buffer      Input bytes
@@ -5603,13 +5645,17 @@ static bool_t PutHexBytes(const char_t* text, uint64_t byteCount, byte_t* buffer
     bool_t        is_valid;
 
     is_valid = (strlen(text) == (byteCount * HEX_DIGITS_PER_BYTE));
-    for (byte_index = 0; is_valid && (byte_index < byteCount); ++byte_index)
+    if (is_valid)
     {
-        high_digit = strchr(c_binaryHexDigits, text[byte_index * HEX_DIGITS_PER_BYTE]);
-        low_digit  = strchr(c_binaryHexDigits, text[(byte_index * HEX_DIGITS_PER_BYTE) + 1U]);
-        is_valid   = (NULL != high_digit) && (NULL != low_digit);
-        if (is_valid)
+        for (byte_index = 0; byte_index < byteCount; ++byte_index)
         {
+            high_digit = strchr(c_binaryHexDigits, text[byte_index * HEX_DIGITS_PER_BYTE]);
+            low_digit  = strchr(c_binaryHexDigits, text[(byte_index * HEX_DIGITS_PER_BYTE) + 1U]);
+            is_valid   = (NULL != high_digit) && (NULL != low_digit);
+            if (FALSE == is_valid)
+            {
+                break;
+            }
             PutUnsigned(buffer, capacity, offset + byte_index, (uint32_t)(((high_digit - c_binaryHexDigits) << HEX_DIGIT_BITS) | (low_digit - c_binaryHexDigits)), BINARY_UCHAR_BYTES);
         }
     }
@@ -6839,6 +6885,47 @@ static bool_t ReadLayer(Arinc661_Definition_t* definition, const byte_t* buffer,
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  Reads one picture laid out as in Table 7-2, for example two by three RGBA pixels:
+ *
+ * \verbatim
+ * BC        A661_BEGIN_PICTURE
+ * 00        UnusedPad
+ * 0001      Picture reference
+ * 0002      Width in pixels
+ * 0003      Height in pixels
+ * ...       Width x height pixels in the block's pixel format, 24 bytes here, padded to 32 bits
+ * BD        A661_END_PICTURE
+ * 000000    UnusedPad
+ * \endverbatim
+ */
+static bool_t MeasurePicture(const byte_t* buffer, uint64_t byteCount, uint32_t pixelFormat, uint64_t* cursor)
+{
+    uint64_t pixel_bytes;
+    uint32_t width;
+    uint32_t height;
+    bool_t   has_picture_bytes;
+    bool_t   has_end_code_bytes;
+    bool_t   is_valid;
+
+    has_picture_bytes = ((*cursor) <= byteCount) && (sizeof(BinaryPicture_t) <= (byteCount - (*cursor)));
+    is_valid          = has_picture_bytes && (BINARY_BEGIN_PICTURE == buffer[(*cursor)]);
+    if (is_valid)
+    {
+        width              = GetUnsigned(buffer, (*cursor) + offsetof(BinaryPicture_t, width), BINARY_USHORT_BYTES);
+        height             = GetUnsigned(buffer, (*cursor) + offsetof(BinaryPicture_t, height), BINARY_USHORT_BYTES);
+        pixel_bytes        = (uint64_t)width * height * c_pixelFormatBytes[pixelFormat - BINARY_PIX_FMT_RGBA_8];
+        (*cursor)         += sizeof(BinaryPicture_t) + BINARY_ALIGN(pixel_bytes);
+        has_end_code_bytes = ((*cursor) <= byteCount) && (BINARY_BLOCK_END_BYTES <= (byteCount - (*cursor)));
+        is_valid           = has_end_code_bytes && (BINARY_END_PICTURE == buffer[(*cursor)]);
+        (*cursor)         += BINARY_BLOCK_END_BYTES;
+    }
+
+    return is_valid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Walks Table 7-1: the block header, an optional color table, each picture of
  *  Table 7-2 with its pixel data padded to 32 bits, an optional reserved word,
  *  and the end code. Bytes per pixel and per color table entry follow
@@ -6849,24 +6936,24 @@ static bool_t ReadLayer(Arinc661_Definition_t* definition, const byte_t* buffer,
 static bool_t MeasurePictureBlock(const byte_t* buffer, uint64_t byteCount, uint64_t offset, uint64_t* blockSize)
 {
     uint64_t cursor;
-    uint64_t pixel_bytes;
     uint32_t pixel_format;
     uint32_t color_format;
     uint32_t picture_count;
     uint32_t color_count;
     uint32_t picture_index;
+    bool_t   has_end_code_bytes;
     bool_t   is_valid;
 
-    cursor        = offset + BINARY_PICTURE_HEADER_BYTES;
+    cursor        = offset + sizeof(BinaryPictureBlock_t);
     pixel_format  = 0;
     picture_count = 0;
-    is_valid      = (BINARY_PICTURE_HEADER_BYTES <= (byteCount - offset));
+    is_valid      = (sizeof(BinaryPictureBlock_t) <= (byteCount - offset));
     if (is_valid)
     {
-        pixel_format  = buffer[offset + BINARY_PIXEL_FORMAT_OFFSET];
-        picture_count = buffer[offset + BINARY_PICTURE_COUNT_OFFSET];
-        color_count   = buffer[offset + BINARY_COLOR_COUNT_OFFSET];
-        color_format  = buffer[offset + BINARY_COLOR_FORMAT_OFFSET];
+        pixel_format  = buffer[offset + offsetof(BinaryPictureBlock_t, pixelFormat)];
+        picture_count = buffer[offset + offsetof(BinaryPictureBlock_t, pictureCount)];
+        color_count   = buffer[offset + offsetof(BinaryPictureBlock_t, colorCount)];
+        color_format  = buffer[offset + offsetof(BinaryPictureBlock_t, colorFormat)];
         is_valid      = (BINARY_PIX_FMT_RGBA_8 <= pixel_format) && (BINARY_PIX_FMT_COLOR_INDEXED_8 >= pixel_format);
         if (is_valid && (0 != color_count))
         {
@@ -6878,15 +6965,15 @@ static bool_t MeasurePictureBlock(const byte_t* buffer, uint64_t byteCount, uint
             }
         }
     }
-    for (picture_index = 0; is_valid && (picture_index < picture_count); ++picture_index)
+    if (is_valid)
     {
-        is_valid = (cursor <= byteCount) && (BINARY_PICTURE_BYTES <= (byteCount - cursor)) && (BINARY_BEGIN_PICTURE == buffer[cursor]);
-        if (is_valid)
+        for (picture_index = 0; picture_index < picture_count; ++picture_index)
         {
-            pixel_bytes = (uint64_t)GetUnsigned(buffer, cursor + BINARY_PICTURE_WIDTH_OFFSET, BINARY_USHORT_BYTES) * GetUnsigned(buffer, cursor + BINARY_PICTURE_HEIGHT_OFFSET, BINARY_USHORT_BYTES) * c_pixelFormatBytes[pixel_format - BINARY_PIX_FMT_RGBA_8];
-            cursor     += BINARY_PICTURE_BYTES + BINARY_ALIGN(pixel_bytes);
-            is_valid    = (cursor <= byteCount) && (BINARY_BLOCK_END_BYTES <= (byteCount - cursor)) && (BINARY_END_PICTURE == buffer[cursor]);
-            cursor     += BINARY_BLOCK_END_BYTES;
+            is_valid = MeasurePicture(buffer, byteCount, pixel_format, &cursor);
+            if (FALSE == is_valid)
+            {
+                break;
+            }
         }
     }
     if (is_valid)
@@ -6896,8 +6983,9 @@ static bool_t MeasurePictureBlock(const byte_t* buffer, uint64_t byteCount, uint
     if (is_valid && (BINARY_END_PICTURE_BLOCK != buffer[cursor]))
     {
         // Skip the Table 7-1 reserved word before the end code
-        cursor  += BINARY_WORD_BYTES;
-        is_valid = (cursor <= byteCount) && (BINARY_BLOCK_END_BYTES <= (byteCount - cursor)) && (BINARY_END_PICTURE_BLOCK == buffer[cursor]);
+        cursor            += BINARY_WORD_BYTES;
+        has_end_code_bytes = (cursor <= byteCount) && (BINARY_BLOCK_END_BYTES <= (byteCount - cursor));
+        is_valid           = has_end_code_bytes && (BINARY_END_PICTURE_BLOCK == buffer[cursor]);
     }
     if (is_valid)
     {
