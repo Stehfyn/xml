@@ -5077,7 +5077,7 @@ static bool_t WriteProperties(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent
  *
  * \retval     None
  */
-static void PutUnsigned(byte_t* buffer, uint64_t capacity, uint64_t offset, uint32_t value, uint32_t sizeOfValue);
+static void WriteUnsigned(byte_t* buffer, uint64_t capacity, uint64_t offset, uint32_t value, uint32_t sizeOfValue);
 
 /*************************************************************************************************/
 /**
@@ -5089,7 +5089,7 @@ static void PutUnsigned(byte_t* buffer, uint64_t capacity, uint64_t offset, uint
  *
  * \retval    uint32_t      Loaded value.
  */
-static uint32_t GetUnsigned(const byte_t* buffer, uint64_t offset, uint32_t sizeOfValue);
+static uint32_t ReadUnsigned(const byte_t* buffer, uint64_t offset, uint32_t sizeOfValue);
 
 /*************************************************************************************************/
 /**
@@ -5111,7 +5111,7 @@ static int64_t ToSigned32(uint32_t value);
  *
  * \retval None
  */
-static void PutAlignment(byte_t* buffer, uint64_t capacity, uint64_t* offset);
+static void WriteAlignment(byte_t* buffer, uint64_t capacity, uint64_t* offset);
 
 /*************************************************************************************************/
 /**
@@ -5136,7 +5136,7 @@ static uint64_t AlignToWord(uint64_t size);
  * \retval     TRUE          if the text holds exactly sizeOfValue bytes of valid digits.
  * \retval     FALSE         otherwise.
  */
-static bool_t PutHexBytes(const char_t* text, uint64_t sizeOfValue, byte_t* buffer, uint64_t capacity, uint64_t offset);
+static bool_t WriteHexBytes(const char_t* text, uint64_t sizeOfValue, byte_t* buffer, uint64_t capacity, uint64_t offset);
 
 /*************************************************************************************************/
 /**
@@ -6316,7 +6316,7 @@ static bool_t WriteProperties(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent
  *  that would extend past capacity is not stored; callers keep advancing their
  *  offset and compare it with capacity once the complete file has been sized.
  */
-static void PutUnsigned(byte_t* buffer, uint64_t capacity, uint64_t offset, uint32_t value, uint32_t sizeOfValue)
+static void WriteUnsigned(byte_t* buffer, uint64_t capacity, uint64_t offset, uint32_t value, uint32_t sizeOfValue)
 {
     uint32_t byte_index;
     bool_t   has_room;
@@ -6338,7 +6338,7 @@ static void PutUnsigned(byte_t* buffer, uint64_t capacity, uint64_t offset, uint
  *  Loads the most significant byte first. The caller has already checked that
  *  the bytes lie inside the input.
  */
-static uint32_t GetUnsigned(const byte_t* buffer, uint64_t offset, uint32_t sizeOfValue)
+static uint32_t ReadUnsigned(const byte_t* buffer, uint64_t offset, uint32_t sizeOfValue)
 {
     uint32_t value;
     uint32_t byte_index;
@@ -6378,7 +6378,7 @@ static int64_t ToSigned32(uint32_t value)
  *  Offsets of blocks and commands are multiples of four, so aligning the output
  *  offset aligns the position inside the command.
  */
-static void PutAlignment(byte_t* buffer, uint64_t capacity, uint64_t* offset)
+static void WriteAlignment(byte_t* buffer, uint64_t capacity, uint64_t* offset)
 {
     uint32_t byte_index;
 
@@ -6388,7 +6388,7 @@ static void PutAlignment(byte_t* buffer, uint64_t capacity, uint64_t* offset)
         {
             break;
         }
-        PutUnsigned(buffer, capacity, (*offset), 0, BINARY_UCHAR_BYTES);
+        WriteUnsigned(buffer, capacity, (*offset), 0, BINARY_UCHAR_BYTES);
         (*offset) += BINARY_UCHAR_BYTES;
     }
 }
@@ -6421,7 +6421,7 @@ static uint64_t AlignToWord(uint64_t size)
  *  "1B4200" stores three bytes. The length check keeps the terminator, which
  *  strchr would also find, out of reach.
  */
-static bool_t PutHexBytes(const char_t* text, uint64_t sizeOfValue, byte_t* buffer, uint64_t capacity, uint64_t offset)
+static bool_t WriteHexBytes(const char_t* text, uint64_t sizeOfValue, byte_t* buffer, uint64_t capacity, uint64_t offset)
 {
     const char_t* high_digit;
     const char_t* low_digit;
@@ -6440,7 +6440,7 @@ static bool_t PutHexBytes(const char_t* text, uint64_t sizeOfValue, byte_t* buff
             {
                 break;
             }
-            PutUnsigned(buffer, capacity, offset + byte_index, (uint32_t)(((high_digit - c_binaryHexDigits) << HEX_DIGIT_BITS) | (low_digit - c_binaryHexDigits)), BINARY_UCHAR_BYTES);
+            WriteUnsigned(buffer, capacity, offset + byte_index, (uint32_t)(((high_digit - c_binaryHexDigits) << HEX_DIGIT_BITS) | (low_digit - c_binaryHexDigits)), BINARY_UCHAR_BYTES);
         }
     }
 
@@ -6728,19 +6728,19 @@ static bool_t WriteField(const BinaryField_t* field, const Arinc661_Property_t* 
     }
     if (BINARY_FIELD_ALIGN == field->type)
     {
-        PutAlignment(buffer, capacity, offset);
+        WriteAlignment(buffer, capacity, offset);
     }
     else if (BINARY_FIELD_BYTES == field->type)
     {
         if (NULL != property)
         {
-            is_valid = PutHexBytes(text, field->byteCount, buffer, capacity, (*offset));
+            is_valid = WriteHexBytes(text, field->byteCount, buffer, capacity, (*offset));
         }
         else
         {
             for (byte_index = 0; byte_index < field->byteCount; ++byte_index)
             {
-                PutUnsigned(buffer, capacity, (*offset) + byte_index, 0, BINARY_UCHAR_BYTES);
+                WriteUnsigned(buffer, capacity, (*offset) + byte_index, 0, BINARY_UCHAR_BYTES);
             }
         }
         (*offset) += field->byteCount;
@@ -6752,12 +6752,12 @@ static bool_t WriteField(const BinaryField_t* field, const Arinc661_Property_t* 
         is_valid   = (UINT16_MAX >= byte_count);
         if (is_valid)
         {
-            PutUnsigned(buffer, capacity, (*offset), (uint32_t)byte_count, BINARY_USHORT_BYTES);
-            PutUnsigned(buffer, capacity, (*offset) + offsetof(BinarySizedBytes_t, unusedPad), 0, BINARY_USHORT_BYTES);
-            is_valid = PutHexBytes(text, byte_count, buffer, capacity, (*offset) + sizeof(BinarySizedBytes_t));
+            WriteUnsigned(buffer, capacity, (*offset), (uint32_t)byte_count, BINARY_USHORT_BYTES);
+            WriteUnsigned(buffer, capacity, (*offset) + offsetof(BinarySizedBytes_t, unusedPad), 0, BINARY_USHORT_BYTES);
+            is_valid = WriteHexBytes(text, byte_count, buffer, capacity, (*offset) + sizeof(BinarySizedBytes_t));
         }
         (*offset) += (sizeof(BinarySizedBytes_t) + byte_count);
-        PutAlignment(buffer, capacity, offset);
+        WriteAlignment(buffer, capacity, offset);
     }
     else if (BINARY_FIELD_REGION == field->type)
     {
@@ -6776,7 +6776,7 @@ static bool_t WriteField(const BinaryField_t* field, const Arinc661_Property_t* 
         }
         if (is_valid)
         {
-            is_valid = PutHexBytes(text, byte_count, buffer, capacity, (*offset));
+            is_valid = WriteHexBytes(text, byte_count, buffer, capacity, (*offset));
         }
         (*offset) += byte_count;
     }
@@ -6787,7 +6787,7 @@ static bool_t WriteField(const BinaryField_t* field, const Arinc661_Property_t* 
         is_valid   = (sizeof(BinaryLayerRequest_t) <= byte_count);
         if (is_valid)
         {
-            is_valid = PutHexBytes(text, byte_count, buffer, capacity, (*offset));
+            is_valid = WriteHexBytes(text, byte_count, buffer, capacity, (*offset));
         }
         if (is_valid)
         {
@@ -6805,10 +6805,10 @@ static bool_t WriteField(const BinaryField_t* field, const Arinc661_Property_t* 
         byte_count = strlen(text);
         for (byte_index = 0; byte_index < byte_count; ++byte_index)
         {
-            PutUnsigned(buffer, capacity, (*offset) + byte_index, (byte_t)text[byte_index], BINARY_UCHAR_BYTES);
+            WriteUnsigned(buffer, capacity, (*offset) + byte_index, (byte_t)text[byte_index], BINARY_UCHAR_BYTES);
         }
         // Keep each string's terminator; pad the command after its last parameter
-        PutUnsigned(buffer, capacity, (*offset) + byte_count, 0, BINARY_UCHAR_BYTES);
+        WriteUnsigned(buffer, capacity, (*offset) + byte_count, 0, BINARY_UCHAR_BYTES);
         (*offset) += (byte_count + 1);
     }
     else
@@ -6868,7 +6868,7 @@ static bool_t WriteField(const BinaryField_t* field, const Arinc661_Property_t* 
                 encoded_value = (uint32_t)integer_value;
             }
         }
-        PutUnsigned(buffer, capacity, (*offset), encoded_value, field->byteCount);
+        WriteUnsigned(buffer, capacity, (*offset), encoded_value, field->byteCount);
         (*offset) += field->byteCount;
     }
 
@@ -7049,18 +7049,18 @@ static bool_t WriteCommand(const Arinc661_Definition_t* definition, uint32_t wid
     }
     if (is_valid)
     {
-        PutAlignment(buffer, capacity, &cursor);
+        WriteAlignment(buffer, capacity, &cursor);
         is_valid = ((cursor - (*offset)) <= UINT16_MAX);
     }
     if (is_valid)
     {
-        PutUnsigned(buffer, capacity, (*offset), command, BINARY_USHORT_BYTES);
-        PutUnsigned(buffer, capacity, (*offset) + offsetof(BinaryCommand_t, commandSize), (uint32_t)(cursor - (*offset)), BINARY_USHORT_BYTES);
-        PutUnsigned(buffer, capacity, (*offset) + offsetof(BinaryCommand_t, type), type->code, BINARY_USHORT_BYTES);
+        WriteUnsigned(buffer, capacity, (*offset), command, BINARY_USHORT_BYTES);
+        WriteUnsigned(buffer, capacity, (*offset) + offsetof(BinaryCommand_t, commandSize), (uint32_t)(cursor - (*offset)), BINARY_USHORT_BYTES);
+        WriteUnsigned(buffer, capacity, (*offset) + offsetof(BinaryCommand_t, type), type->code, BINARY_USHORT_BYTES);
         if (FALSE == widget->isExtension)
         {
-            PutUnsigned(buffer, capacity, (*offset) + offsetof(BinaryCreateCommand_t, widgetIdent), (uint32_t)widget_ident, BINARY_USHORT_BYTES);
-            PutUnsigned(buffer, capacity, (*offset) + offsetof(BinaryCreateCommand_t, parentIdent), (uint32_t)parent_ident, BINARY_USHORT_BYTES);
+            WriteUnsigned(buffer, capacity, (*offset) + offsetof(BinaryCreateCommand_t, widgetIdent), (uint32_t)widget_ident, BINARY_USHORT_BYTES);
+            WriteUnsigned(buffer, capacity, (*offset) + offsetof(BinaryCreateCommand_t, parentIdent), (uint32_t)parent_ident, BINARY_USHORT_BYTES);
         }
         (*offset) = cursor;
     }
@@ -7320,7 +7320,7 @@ static bool_t ReadField(Arinc661_Definition_t* definition, const BinaryField_t* 
         is_valid = (sizeof(BinarySizedBytes_t) <= remaining);
         if (is_valid)
         {
-            byte_count       = GetUnsigned(buffer, (*offset), BINARY_USHORT_BYTES);
+            byte_count       = ReadUnsigned(buffer, (*offset), BINARY_USHORT_BYTES);
             has_buffer_bytes = (byte_count <= (remaining - sizeof(BinarySizedBytes_t)));
             is_valid         = has_buffer_bytes;
         }
@@ -7354,7 +7354,7 @@ static bool_t ReadField(Arinc661_Definition_t* definition, const BinaryField_t* 
         is_valid = (sizeof(BinaryLayerRequest_t) <= remaining);
         if (is_valid)
         {
-            byte_count        = sizeof(BinaryLayerRequest_t) + GetUnsigned(buffer, (*offset) + offsetof(BinaryLayerRequest_t, commandSize), BINARY_USHORT_BYTES);
+            byte_count        = sizeof(BinaryLayerRequest_t) + ReadUnsigned(buffer, (*offset) + offsetof(BinaryLayerRequest_t, commandSize), BINARY_USHORT_BYTES);
             has_request_bytes = (byte_count <= remaining);
             is_valid          = has_request_bytes && (0 == (byte_count % BINARY_WORD_BYTES));
         }
@@ -7386,7 +7386,7 @@ static bool_t ReadField(Arinc661_Definition_t* definition, const BinaryField_t* 
         is_valid = (field->byteCount <= remaining);
         if (is_valid && (BINARY_FIELD_PAD != field->type))
         {
-            encoded_value = GetUnsigned(buffer, (*offset), field->byteCount);
+            encoded_value = ReadUnsigned(buffer, (*offset), field->byteCount);
             if (BINARY_FIELD_FLOAT == field->type)
             {
                 (void)memcpy(&float_value, &encoded_value, sizeof(float_value));
@@ -7491,7 +7491,7 @@ static bool_t ReadCommand(Arinc661_Definition_t* definition, const byte_t* buffe
     bool_t                has_field_bytes;
     bool_t                is_valid;
 
-    command      = GetUnsigned(buffer, commandOffset, BINARY_USHORT_BYTES);
+    command      = ReadUnsigned(buffer, commandOffset, BINARY_USHORT_BYTES);
     is_extension = (BINARY_CMD_EXTEND == command);
     end_offset   = commandOffset + commandSize;
     cursor       = end_offset;
@@ -7500,7 +7500,7 @@ static bool_t ReadCommand(Arinc661_Definition_t* definition, const byte_t* buffe
     is_valid = is_extension || (BINARY_CMD_CREATE == command);
     if (is_valid)
     {
-        type     = FindTypeByCode(GetUnsigned(buffer, commandOffset + offsetof(BinaryCommand_t, type), BINARY_USHORT_BYTES), is_extension);
+        type     = FindTypeByCode(ReadUnsigned(buffer, commandOffset + offsetof(BinaryCommand_t, type), BINARY_USHORT_BYTES), is_extension);
         is_valid = (NULL != type);
     }
     if (is_valid)
@@ -7526,25 +7526,25 @@ static bool_t ReadCommand(Arinc661_Definition_t* definition, const byte_t* buffe
         else
         {
             cursor       = commandOffset + sizeof(BinaryCreateCommand_t);
-            parent_ident = GetUnsigned(buffer, commandOffset + offsetof(BinaryCreateCommand_t, parentIdent), BINARY_USHORT_BYTES);
+            parent_ident = ReadUnsigned(buffer, commandOffset + offsetof(BinaryCreateCommand_t, parentIdent), BINARY_USHORT_BYTES);
             if (0 != parent_ident)
             {
                 cursor = firstCommandOffset;
                 for (widget_index = firstWidgetIndex; widget_index < definition->widgetCount; ++widget_index)
                 {
-                    if ((BINARY_CMD_CREATE == GetUnsigned(buffer, cursor, BINARY_USHORT_BYTES)) && (parent_ident == GetUnsigned(buffer, cursor + offsetof(BinaryCreateCommand_t, widgetIdent), BINARY_USHORT_BYTES)))
+                    if ((BINARY_CMD_CREATE == ReadUnsigned(buffer, cursor, BINARY_USHORT_BYTES)) && (parent_ident == ReadUnsigned(buffer, cursor + offsetof(BinaryCreateCommand_t, widgetIdent), BINARY_USHORT_BYTES)))
                     {
                         widget->parentWidgetIndex = widget_index;
                         break;
                     }
-                    cursor += GetUnsigned(buffer, cursor + offsetof(BinaryCommand_t, commandSize), BINARY_USHORT_BYTES);
+                    cursor += ReadUnsigned(buffer, cursor + offsetof(BinaryCommand_t, commandSize), BINARY_USHORT_BYTES);
                 }
                 cursor   = commandOffset + sizeof(BinaryCreateCommand_t);
                 is_valid = (UINT32_MAX != widget->parentWidgetIndex);
             }
             if (is_valid)
             {
-                is_valid = AddIntegerProperty(definition, ARINC661_PROPERTY_WIDGET, definition->widgetCount, BINARY_PROPERTY_WIDGET_IDENT, GetUnsigned(buffer, commandOffset + offsetof(BinaryCreateCommand_t, widgetIdent), BINARY_USHORT_BYTES));
+                is_valid = AddIntegerProperty(definition, ARINC661_PROPERTY_WIDGET, definition->widgetCount, BINARY_PROPERTY_WIDGET_IDENT, ReadUnsigned(buffer, commandOffset + offsetof(BinaryCreateCommand_t, widgetIdent), BINARY_USHORT_BYTES));
             }
         }
     }
@@ -7562,7 +7562,7 @@ static bool_t ReadCommand(Arinc661_Definition_t* definition, const byte_t* buffe
             else if (((BINARY_FIELD_UCHAR == field->type) || (BINARY_FIELD_USHORT == field->type)) && has_field_bytes)
             {
                 // Keep small integers so later arrays can find their entry counts
-                values[field_index] = GetUnsigned(buffer, cursor, field->byteCount);
+                values[field_index] = ReadUnsigned(buffer, cursor, field->byteCount);
             }
             // Let a count larger than the command holds fail in ReadField at the command end
             for (element_index = 0; element_index < element_count; ++element_index)
@@ -7642,7 +7642,7 @@ static bool_t ReadLayer(Arinc661_Definition_t* definition, const byte_t* buffer,
     is_valid           = has_minimum_bytes;
     if (is_valid)
     {
-        block_size          = GetUnsigned(buffer, (*offset) + offsetof(BinaryLayerBlock_t, blockSize), BINARY_ULONG_BYTES);
+        block_size          = ReadUnsigned(buffer, (*offset) + offsetof(BinaryLayerBlock_t, blockSize), BINARY_ULONG_BYTES);
         is_block_size_valid = ((sizeof(BinaryLayerBlock_t) + sizeof(BinaryBlockEnd_t)) <= block_size) && (0 == (block_size % BINARY_WORD_BYTES));
         has_block_bytes     = (block_size <= (sizeOfBinaryBuffer - (*offset)));
         is_valid            = is_block_size_valid && has_block_bytes;
@@ -7664,7 +7664,7 @@ static bool_t ReadLayer(Arinc661_Definition_t* definition, const byte_t* buffer,
     }
     if (is_valid)
     {
-        is_valid = AddIntegerProperty(definition, ARINC661_PROPERTY_LAYER, layer_index, BINARY_PROPERTY_CONTEXT_NUMBER, GetUnsigned(buffer, (*offset) + offsetof(BinaryLayerBlock_t, contextNumber), BINARY_USHORT_BYTES));
+        is_valid = AddIntegerProperty(definition, ARINC661_PROPERTY_LAYER, layer_index, BINARY_PROPERTY_CONTEXT_NUMBER, ReadUnsigned(buffer, (*offset) + offsetof(BinaryLayerBlock_t, contextNumber), BINARY_USHORT_BYTES));
     }
     if (is_valid)
     {
@@ -7682,12 +7682,12 @@ static bool_t ReadLayer(Arinc661_Definition_t* definition, const byte_t* buffer,
             is_valid           = has_command_header;
             if (is_valid)
             {
-                command_size          = GetUnsigned(buffer, cursor + offsetof(BinaryCommand_t, commandSize), BINARY_USHORT_BYTES);
+                command_size          = ReadUnsigned(buffer, cursor + offsetof(BinaryCommand_t, commandSize), BINARY_USHORT_BYTES);
                 is_command_size_valid = (AlignToWord(sizeof(BinaryCommand_t)) <= command_size) && (0 == (command_size % BINARY_WORD_BYTES));
                 has_command_bytes     = (command_size <= (end_offset - cursor));
                 is_valid              = is_command_size_valid && has_command_bytes;
             }
-            if (is_valid && (BINARY_CMD_CREATE == GetUnsigned(buffer, cursor, BINARY_USHORT_BYTES)))
+            if (is_valid && (BINARY_CMD_CREATE == ReadUnsigned(buffer, cursor, BINARY_USHORT_BYTES)))
             {
                 is_valid = (AlignToWord(sizeof(BinaryCreateCommand_t)) <= command_size);
             }
@@ -7739,8 +7739,8 @@ static bool_t MeasurePicture(const byte_t* buffer, uint64_t sizeOfBinaryBuffer, 
     is_valid          = has_picture_bytes && (BINARY_BEGIN_PICTURE == buffer[(*cursor)]);
     if (is_valid)
     {
-        width              = GetUnsigned(buffer, (*cursor) + offsetof(BinaryPicture_t, width), BINARY_USHORT_BYTES);
-        height             = GetUnsigned(buffer, (*cursor) + offsetof(BinaryPicture_t, height), BINARY_USHORT_BYTES);
+        width              = ReadUnsigned(buffer, (*cursor) + offsetof(BinaryPicture_t, width), BINARY_USHORT_BYTES);
+        height             = ReadUnsigned(buffer, (*cursor) + offsetof(BinaryPicture_t, height), BINARY_USHORT_BYTES);
         pixel_bytes        = (uint64_t)width * height * c_pixelFormatBytes[pixelFormat - BINARY_PIX_FMT_RGBA_8];
         (*cursor)         += sizeof(BinaryPicture_t) + AlignToWord(pixel_bytes);
         has_end_code_bytes = ((*cursor) <= sizeOfBinaryBuffer) && (sizeof(BinaryBlockEnd_t) <= (sizeOfBinaryBuffer - (*cursor)));
@@ -7871,7 +7871,7 @@ static bool_t ReadOpaqueBlock(Arinc661_Definition_t* definition, const byte_t* b
         is_valid         = has_header_bytes;
         if (is_valid)
         {
-            block_size          = GetUnsigned(buffer, (*offset) + offsetof(BinarySizedBlock_t, blockSize), BINARY_ULONG_BYTES);
+            block_size          = ReadUnsigned(buffer, (*offset) + offsetof(BinarySizedBlock_t, blockSize), BINARY_ULONG_BYTES);
             is_block_size_valid = ((sizeof(BinarySizedBlock_t) + sizeof(BinaryBlockEnd_t)) <= block_size);
             has_block_bytes     = (block_size <= (sizeOfBinaryBuffer - (*offset)));
             is_valid            = is_block_size_valid && has_block_bytes;
@@ -8659,16 +8659,16 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
     is_valid   = (sizeof(BinaryHeader_t) <= sizeOfBinaryBuffer);
     if (is_valid)
     {
-        is_valid = (BINARY_DF_MAGIC_NUMBER == GetUnsigned(bufferToReadBinaryFrom, offsetof(BinaryHeader_t, magicNumber), BINARY_USHORT_BYTES));
+        is_valid = (BINARY_DF_MAGIC_NUMBER == ReadUnsigned(bufferToReadBinaryFrom, offsetof(BinaryHeader_t, magicNumber), BINARY_USHORT_BYTES));
     }
     if (is_valid)
     {
         definition->name[0]           = '\0';
         definition->libraryVersion    = bufferToReadBinaryFrom[offsetof(BinaryHeader_t, libraryVersion)];
         definition->supplementVersion = bufferToReadBinaryFrom[offsetof(BinaryHeader_t, supplementVersion)];
-        is_valid                      = AddIntegerProperty(definition, ARINC661_PROPERTY_DEFINITION, 0, BINARY_PROPERTY_APPLICATION_ID, GetUnsigned(bufferToReadBinaryFrom, offsetof(BinaryHeader_t, appliIdent), BINARY_USHORT_BYTES));
+        is_valid                      = AddIntegerProperty(definition, ARINC661_PROPERTY_DEFINITION, 0, BINARY_PROPERTY_APPLICATION_ID, ReadUnsigned(bufferToReadBinaryFrom, offsetof(BinaryHeader_t, appliIdent), BINARY_USHORT_BYTES));
         // Skip the implementation-dependent OEM data, which occupies whole words
-        offset += AlignToWord(GetUnsigned(bufferToReadBinaryFrom, offsetof(BinaryHeader_t, oemDataSize), BINARY_USHORT_BYTES));
+        offset += AlignToWord(ReadUnsigned(bufferToReadBinaryFrom, offsetof(BinaryHeader_t, oemDataSize), BINARY_USHORT_BYTES));
     }
     if (is_valid)
     {
@@ -8698,7 +8698,7 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
                 is_valid          = has_charset_bytes && (BINARY_END_CHARSET_BLOCK == bufferToReadBinaryFrom[offset + offsetof(BinaryCharsetBlock_t, endCode)]) && (0 == definition->charsetEncoding);
                 if (is_valid)
                 {
-                    definition->charsetEncoding = GetUnsigned(bufferToReadBinaryFrom, offset + offsetof(BinaryCharsetBlock_t, encoding), BINARY_USHORT_BYTES);
+                    definition->charsetEncoding = ReadUnsigned(bufferToReadBinaryFrom, offset + offsetof(BinaryCharsetBlock_t, encoding), BINARY_USHORT_BYTES);
                     is_valid                    = (0 != definition->charsetEncoding);
                     offset                     += sizeof(BinaryCharsetBlock_t);
                 }
@@ -8784,22 +8784,22 @@ uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition
     }
     if (is_valid)
     {
-        PutUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offsetof(BinaryHeader_t, magicNumber), BINARY_DF_MAGIC_NUMBER, BINARY_USHORT_BYTES);
-        PutUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offsetof(BinaryHeader_t, libraryVersion), definition->libraryVersion, BINARY_UCHAR_BYTES);
-        PutUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offsetof(BinaryHeader_t, supplementVersion), definition->supplementVersion, BINARY_UCHAR_BYTES);
-        PutUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offsetof(BinaryHeader_t, appliIdent), (uint32_t)application_id, BINARY_USHORT_BYTES);
+        WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offsetof(BinaryHeader_t, magicNumber), BINARY_DF_MAGIC_NUMBER, BINARY_USHORT_BYTES);
+        WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offsetof(BinaryHeader_t, libraryVersion), definition->libraryVersion, BINARY_UCHAR_BYTES);
+        WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offsetof(BinaryHeader_t, supplementVersion), definition->supplementVersion, BINARY_UCHAR_BYTES);
+        WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offsetof(BinaryHeader_t, appliIdent), (uint32_t)application_id, BINARY_USHORT_BYTES);
         // Write no OEM free data
-        PutUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offsetof(BinaryHeader_t, oemDataSize), 0, BINARY_USHORT_BYTES);
+        WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offsetof(BinaryHeader_t, oemDataSize), 0, BINARY_USHORT_BYTES);
         if (0 != definition->charsetEncoding)
         {
-            PutUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offset, (BINARY_BEGIN_CHARSET_BLOCK << BINARY_BLOCK_CODE_SHIFT) | definition->charsetEncoding, BINARY_ULONG_BYTES);
-            PutUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offset + offsetof(BinaryCharsetBlock_t, endCode), BINARY_END_CHARSET_BLOCK << BINARY_BLOCK_CODE_SHIFT, BINARY_ULONG_BYTES);
+            WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offset, (BINARY_BEGIN_CHARSET_BLOCK << BINARY_BLOCK_CODE_SHIFT) | definition->charsetEncoding, BINARY_ULONG_BYTES);
+            WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offset + offsetof(BinaryCharsetBlock_t, endCode), BINARY_END_CHARSET_BLOCK << BINARY_BLOCK_CODE_SHIFT, BINARY_ULONG_BYTES);
             offset += sizeof(BinaryCharsetBlock_t);
         }
         // Write symbol, picture, and animation law blocks before the layers (Table 4.5.3.2-1)
         for (byte_index = 0; byte_index < definition->blockByteCount; ++byte_index)
         {
-            PutUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offset + byte_index, definition->blocks[byte_index], BINARY_UCHAR_BYTES);
+            WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offset + byte_index, definition->blocks[byte_index], BINARY_UCHAR_BYTES);
         }
         offset += definition->blockByteCount;
         for (layer_index = 0; layer_index < definition->layerCount; ++layer_index)
@@ -8817,9 +8817,9 @@ uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition
             {
                 break;
             }
-            PutUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, layer_offset, BINARY_BEGIN_LAYER_BLOCK, BINARY_UCHAR_BYTES);
-            PutUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, layer_offset + offsetof(BinaryLayerBlock_t, layerIdent), (uint32_t)layer_id, BINARY_UCHAR_BYTES);
-            PutUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, layer_offset + offsetof(BinaryLayerBlock_t, contextNumber), (uint32_t)context_number, BINARY_USHORT_BYTES);
+            WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, layer_offset, BINARY_BEGIN_LAYER_BLOCK, BINARY_UCHAR_BYTES);
+            WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, layer_offset + offsetof(BinaryLayerBlock_t, layerIdent), (uint32_t)layer_id, BINARY_UCHAR_BYTES);
+            WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, layer_offset + offsetof(BinaryLayerBlock_t, contextNumber), (uint32_t)context_number, BINARY_USHORT_BYTES);
             offset += sizeof(BinaryLayerBlock_t);
             for (widget_index = 0; widget_index < definition->widgetCount; ++widget_index)
             {
@@ -8839,7 +8839,7 @@ uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition
             }
             if (is_valid)
             {
-                PutUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offset, (uint32_t)BINARY_END_LAYER_BLOCK << BINARY_BLOCK_CODE_SHIFT, sizeof(BinaryBlockEnd_t));
+                WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offset, (uint32_t)BINARY_END_LAYER_BLOCK << BINARY_BLOCK_CODE_SHIFT, sizeof(BinaryBlockEnd_t));
                 offset   += sizeof(BinaryBlockEnd_t);
                 // Count the block header and the end code in Block Size
                 is_valid  = ((offset - layer_offset) <= UINT32_MAX);
@@ -8848,12 +8848,12 @@ uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition
             {
                 break;
             }
-            PutUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, layer_offset + offsetof(BinaryLayerBlock_t, blockSize), (uint32_t)(offset - layer_offset), BINARY_ULONG_BYTES);
+            WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, layer_offset + offsetof(BinaryLayerBlock_t, blockSize), (uint32_t)(offset - layer_offset), BINARY_ULONG_BYTES);
         }
     }
     if (is_valid)
     {
-        PutUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offset, (uint32_t)BINARY_DF_FOOTER << BINARY_BLOCK_CODE_SHIFT, sizeof(BinaryBlockEnd_t));
+        WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offset, (uint32_t)BINARY_DF_FOOTER << BINARY_BLOCK_CODE_SHIFT, sizeof(BinaryBlockEnd_t));
         offset   += sizeof(BinaryBlockEnd_t);
         is_valid  = (offset <= capacityOfBinaryBuffer);
     }
