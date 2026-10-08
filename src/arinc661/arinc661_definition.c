@@ -28,7 +28,6 @@
 #include "os/os_assert.h"
 
 #include <float.h>
-#include <inttypes.h>
 #include <limits.h>
 #include <math.h>
 #include <string.h>
@@ -5018,7 +5017,7 @@ static const char_t* FormatInteger(XmlWorkspace_t* xml, int64_t value)
     if (XML_INTEGER_TEXT_BYTES <= (xml->textCapacity - xml->textByteCount))
     {
         text       = (char_t*)&xml->text[xml->textByteCount];
-        byte_count = FACEOE_Utl_Print_Format(text, XML_INTEGER_TEXT_BYTES, "%" PRId64, value);
+        byte_count = FACEOE_Utl_Print_Int64(text, XML_INTEGER_TEXT_BYTES, value);
         LOGASSERT((0 < byte_count) && ((uint32_t)byte_count < XML_INTEGER_TEXT_BYTES));
         // Keep the terminator in workspace storage for subsequent strlen calls
         xml->textByteCount += ((uint64_t)byte_count + 1);
@@ -6184,7 +6183,7 @@ static uint32_t FormatReal(char_t* text, uint32_t capacity, float64_t value, int
     int      byte_count;
     uint32_t byte_index;
 
-    byte_count = FACEOE_Utl_Print_Format(text, capacity, "%.*f", precision, value);
+    byte_count = FACEOE_Utl_Print_Float(text, capacity, value, (uint32_t)precision);
     LOGASSERT((0 < byte_count) && ((uint32_t)byte_count < capacity));
     if (NULL != strchr(text, '.'))
     {
@@ -6329,7 +6328,7 @@ static bool_t AddIntegerProperty(Arinc661_Definition_t* definition, Arinc661_Pro
     char_t text[BINARY_INTEGER_TEXT_BYTES];
     int    byte_count;
 
-    byte_count = FACEOE_Utl_Print_Format(text, sizeof(text), "%" PRId64, value);
+    byte_count = FACEOE_Utl_Print_Int64(text, sizeof(text), value);
     LOGASSERT((0 < byte_count) && ((uint32_t)byte_count < sizeof(text)));
 
     return AddProperty(definition, owner, ownerIndex, name, text, (uint64_t)byte_count);

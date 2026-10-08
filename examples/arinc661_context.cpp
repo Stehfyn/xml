@@ -23,7 +23,6 @@ extern "C"
 
 extern "C"
 {
-#include "faceoe_utl/faceoe_utl_print.h"
 #include "os/os_assert.h"
 }
 
@@ -300,7 +299,7 @@ static bool_t FileExistsInFolder(const Arinc661_Context_t* context, const char_t
     char_t path[ARINC661_DEFINITION_MAX_FILE_PATH_BYTES];
     DWORD  attributes;
 
-    (void)FACEOE_Utl_Print_Format(path, sizeof(path), "%s\\%s", context->definitionEditor->folderPath, fileName);
+    (void)snprintf(path, sizeof(path), "%s\\%s", context->definitionEditor->folderPath, fileName);
     attributes = GetFileAttributesA(path);
 
     return !!(INVALID_FILE_ATTRIBUTES != attributes);
@@ -353,34 +352,34 @@ uint32_t Arinc661_Context_Check(Arinc661_Context_t* context)
     {
         if ('\0' == application.dFPath[0])
         {
-            (void)FACEOE_Utl_Print_Format(text, sizeof(text), "%s: application %lld has no Definition File (dFPath is empty).", application.documentName, (long long)application.applicationId);
+            (void)snprintf(text, sizeof(text), "%s: application %lld has no Definition File (dFPath is empty).", application.documentName, (long long)application.applicationId);
             AddProblem(context, TRUE, ARINC661_CONTEXT_TARGET_USER_APPLICATION, application.documentIndex, application.applicationIndex, text);
         }
         else if (FALSE == Arinc661_Context_FindDefinition(context, application.dFPath, &definition))
         {
-            (void)FACEOE_Utl_Print_Format(text, sizeof(text), "%s: application %lld names %s, which is not a Definition File in the folder.", application.documentName, (long long)application.applicationId, application.dFPath);
+            (void)snprintf(text, sizeof(text), "%s: application %lld names %s, which is not a Definition File in the folder.", application.documentName, (long long)application.applicationId, application.dFPath);
             AddProblem(context, TRUE, ARINC661_CONTEXT_TARGET_USER_APPLICATION, application.documentIndex, application.applicationIndex, text);
         }
         else if (FALSE == definition.isOpen)
         {
-            (void)FACEOE_Utl_Print_Format(text, sizeof(text), "%s: application %lld references %s, which is not open; open it to preview and check it.", application.documentName, (long long)application.applicationId, application.dFPath);
+            (void)snprintf(text, sizeof(text), "%s: application %lld references %s, which is not open; open it to preview and check it.", application.documentName, (long long)application.applicationId, application.dFPath);
             AddProblem(context, FALSE, ARINC661_CONTEXT_TARGET_USER_APPLICATION, application.documentIndex, application.applicationIndex, text);
         }
         else
         {
             if (FALSE == definition.hasApplicationId)
             {
-                (void)FACEOE_Utl_Print_Format(text, sizeof(text), "%s has no numeric ApplicationId; application %lld expects it.", application.dFPath, (long long)application.applicationId);
+                (void)snprintf(text, sizeof(text), "%s has no numeric ApplicationId; application %lld expects it.", application.dFPath, (long long)application.applicationId);
                 AddProblem(context, TRUE, ARINC661_CONTEXT_TARGET_DEFINITION, definition.documentIndex, 0, text);
             }
             else if (definition.applicationId != application.applicationId)
             {
-                (void)FACEOE_Utl_Print_Format(text, sizeof(text), "%s carries ApplicationId %lld but %s application %lld references it (ARINC 661 6.5.1.2).", application.dFPath, (long long)definition.applicationId, application.documentName, (long long)application.applicationId);
+                (void)snprintf(text, sizeof(text), "%s carries ApplicationId %lld but %s application %lld references it (ARINC 661 6.5.1.2).", application.dFPath, (long long)definition.applicationId, application.documentName, (long long)application.applicationId);
                 AddProblem(context, TRUE, ARINC661_CONTEXT_TARGET_DEFINITION, definition.documentIndex, 0, text);
             }
             if (0 == definition.layerCount)
             {
-                (void)FACEOE_Utl_Print_Format(text, sizeof(text), "%s has no layers; application %lld shows nothing.", application.dFPath, (long long)application.applicationId);
+                (void)snprintf(text, sizeof(text), "%s has no layers; application %lld shows nothing.", application.dFPath, (long long)application.applicationId);
                 AddProblem(context, FALSE, ARINC661_CONTEXT_TARGET_DEFINITION, definition.documentIndex, 0, text);
             }
             // Layer size against the window's size in layer units
@@ -392,7 +391,7 @@ uint32_t Arinc661_Context_Check(Arinc661_Context_t* context)
                     Arinc661_Scene_LayerSize(model, layer_index, &layer_width, &layer_height);
                     if ((layer_width > ((float32_t)pixel_width * units_per_pixel_x * 1.001f)) || (layer_height > ((float32_t)pixel_height * units_per_pixel_y * 1.001f)))
                     {
-                        (void)FACEOE_Utl_Print_Format(text, sizeof(text), "%s layer %u is %.0f x %.0f but window %lld of %s holds %.0f x %.0f (0.01 mm); the layer will be cut off.", application.dFPath, (unsigned)layer_index, (float64_t)layer_width, (float64_t)layer_height, (long long)application.windowId, application.documentName, (float64_t)((float32_t)pixel_width * units_per_pixel_x), (float64_t)((float32_t)pixel_height * units_per_pixel_y));
+                        (void)snprintf(text, sizeof(text), "%s layer %u is %.0f x %.0f but window %lld of %s holds %.0f x %.0f (0.01 mm); the layer will be cut off.", application.dFPath, (unsigned)layer_index, (float64_t)layer_width, (float64_t)layer_height, (long long)application.windowId, application.documentName, (float64_t)((float32_t)pixel_width * units_per_pixel_x), (float64_t)((float32_t)pixel_height * units_per_pixel_y));
                         AddProblem(context, FALSE, ARINC661_CONTEXT_TARGET_LAYER, definition.documentIndex, layer_index, text);
                     }
                 }
@@ -400,7 +399,7 @@ uint32_t Arinc661_Context_Check(Arinc661_Context_t* context)
         }
         if (FALSE == Arinc661_Configuration_Window(context->configurationEditor, application.documentIndex, application.windowId, NULL, NULL, NULL, NULL, NULL))
         {
-            (void)FACEOE_Utl_Print_Format(text, sizeof(text), "%s: application %lld targets window %lld, which does not exist.", application.documentName, (long long)application.applicationId, (long long)application.windowId);
+            (void)snprintf(text, sizeof(text), "%s: application %lld targets window %lld, which does not exist.", application.documentName, (long long)application.applicationId, (long long)application.windowId);
             AddProblem(context, TRUE, ARINC661_CONTEXT_TARGET_USER_APPLICATION, application.documentIndex, application.applicationIndex, text);
         }
         // Duplicate applicationId inside one configuration
@@ -408,7 +407,7 @@ uint32_t Arinc661_Context_Check(Arinc661_Context_t* context)
         {
             if ((other.documentIndex == application.documentIndex) && (other.applicationId == application.applicationId))
             {
-                (void)FACEOE_Utl_Print_Format(text, sizeof(text), "%s: applicationId %lld is used twice.", application.documentName, (long long)application.applicationId);
+                (void)snprintf(text, sizeof(text), "%s: applicationId %lld is used twice.", application.documentName, (long long)application.applicationId);
                 AddProblem(context, TRUE, ARINC661_CONTEXT_TARGET_USER_APPLICATION, other.documentIndex, other.applicationIndex, text);
             }
         }
@@ -429,7 +428,7 @@ uint32_t Arinc661_Context_Check(Arinc661_Context_t* context)
             if (FALSE == has_application)
             {
                 document_name = Arinc661_Configuration_DocumentName(context->configurationEditor, document_index);
-                (void)FACEOE_Utl_Print_Format(text, sizeof(text), "%s: window %lld (%s) has no user application; nothing will be shown in it.", document_name, (long long)window_id, window_name);
+                (void)snprintf(text, sizeof(text), "%s: window %lld (%s) has no user application; nothing will be shown in it.", document_name, (long long)window_id, window_name);
                 AddProblem(context, FALSE, ARINC661_CONTEXT_TARGET_WINDOW, document_index, window_index, text);
             }
         }
@@ -453,7 +452,7 @@ uint32_t Arinc661_Context_Check(Arinc661_Context_t* context)
         has_window = (0 < Arinc661_Context_UserApplicationCount(context));
         if ((FALSE == has_application) && has_window)
         {
-            (void)FACEOE_Utl_Print_Format(text, sizeof(text), "%s is open but no user application references it; set a dFPath to it or create one from its inspector.", document_name);
+            (void)snprintf(text, sizeof(text), "%s is open but no user application references it; set a dFPath to it or create one from its inspector.", document_name);
             AddProblem(context, FALSE, ARINC661_CONTEXT_TARGET_DEFINITION, document_index, 0, text);
         }
         if (Arinc661_Definition_DocumentApplicationId(context->definitionEditor, document_index, &application_id))
@@ -462,7 +461,7 @@ uint32_t Arinc661_Context_Check(Arinc661_Context_t* context)
             {
                 if (Arinc661_Definition_DocumentApplicationId(context->definitionEditor, other_document, &other_id) && (other_id == application_id))
                 {
-                    (void)FACEOE_Utl_Print_Format(text, sizeof(text), "%s and %s both carry ApplicationId %lld; a CDS cannot tell them apart.", document_name, Arinc661_Definition_DocumentName(context->definitionEditor, other_document), (long long)application_id);
+                    (void)snprintf(text, sizeof(text), "%s and %s both carry ApplicationId %lld; a CDS cannot tell them apart.", document_name, Arinc661_Definition_DocumentName(context->definitionEditor, other_document), (long long)application_id);
                     AddProblem(context, TRUE, ARINC661_CONTEXT_TARGET_DEFINITION, other_document, 0, text);
                 }
             }
@@ -507,7 +506,7 @@ uint32_t Arinc661_Context_Check(Arinc661_Context_t* context)
                 {
                     if (other_layer_id == layer_id)
                     {
-                        (void)FACEOE_Utl_Print_Format(text, sizeof(text), "%s and %s both define LayerId %lld for application %lld; layer ids must be unique per application.", Arinc661_Definition_DocumentName(context->definitionEditor, document_index), Arinc661_Definition_DocumentName(context->definitionEditor, other_document), (long long)layer_id, (long long)application_id);
+                        (void)snprintf(text, sizeof(text), "%s and %s both define LayerId %lld for application %lld; layer ids must be unique per application.", Arinc661_Definition_DocumentName(context->definitionEditor, document_index), Arinc661_Definition_DocumentName(context->definitionEditor, other_document), (long long)layer_id, (long long)application_id);
                         AddProblem(context, TRUE, ARINC661_CONTEXT_TARGET_LAYER, other_document, index, text);
                     }
                 }
@@ -526,23 +525,23 @@ uint32_t Arinc661_Context_Check(Arinc661_Context_t* context)
             has_map_source = Arinc661_Definition_HasMapSource(context->definitionEditor, definition.documentIndex);
             if (map_source_layer && (FALSE == has_map_source))
             {
-                (void)FACEOE_Utl_Print_Format(text, sizeof(text), "%s: application %lld sets mapSourceLayer but %s holds no MapHorz_Source or MapVert_Source widget.", application.documentName, (long long)application.applicationId, application.dFPath);
+                (void)snprintf(text, sizeof(text), "%s: application %lld sets mapSourceLayer but %s holds no MapHorz_Source or MapVert_Source widget.", application.documentName, (long long)application.applicationId, application.dFPath);
                 AddProblem(context, FALSE, ARINC661_CONTEXT_TARGET_USER_APPLICATION, application.documentIndex, application.applicationIndex, text);
             }
             else if ((FALSE == map_source_layer) && has_map_source)
             {
-                (void)FACEOE_Utl_Print_Format(text, sizeof(text), "%s: %s holds a map source widget but application %lld does not set mapSourceLayer.", application.documentName, application.dFPath, (long long)application.applicationId);
+                (void)snprintf(text, sizeof(text), "%s: %s holds a map source widget but application %lld does not set mapSourceLayer.", application.documentName, application.dFPath, (long long)application.applicationId);
                 AddProblem(context, FALSE, ARINC661_CONTEXT_TARGET_USER_APPLICATION, application.documentIndex, application.applicationIndex, text);
             }
         }
         if (('\0' != style_path[0]) && (FALSE == FileExistsInFolder(context, style_path)))
         {
-            (void)FACEOE_Utl_Print_Format(text, sizeof(text), "%s: application %lld names style file %s, which is not in the folder.", application.documentName, (long long)application.applicationId, style_path);
+            (void)snprintf(text, sizeof(text), "%s: application %lld names style file %s, which is not in the folder.", application.documentName, (long long)application.applicationId, style_path);
             AddProblem(context, FALSE, ARINC661_CONTEXT_TARGET_USER_APPLICATION, application.documentIndex, application.applicationIndex, text);
         }
         if (FALSE == is_visible)
         {
-            (void)FACEOE_Utl_Print_Format(text, sizeof(text), "%s: application %lld starts hidden (visible is false); its layers are not previewed.", application.documentName, (long long)application.applicationId);
+            (void)snprintf(text, sizeof(text), "%s: application %lld starts hidden (visible is false); its layers are not previewed.", application.documentName, (long long)application.applicationId);
             AddProblem(context, FALSE, ARINC661_CONTEXT_TARGET_USER_APPLICATION, application.documentIndex, application.applicationIndex, text);
         }
     }
@@ -652,7 +651,7 @@ bool_t Arinc661_Context_CreateDefinitionFor(Arinc661_Context_t* context, const A
     }
     else
     {
-        (void)FACEOE_Utl_Print_Format(file_name, sizeof(file_name), "application_%lld.xml", (long long)application->applicationId);
+        (void)snprintf(file_name, sizeof(file_name), "application_%lld.xml", (long long)application->applicationId);
     }
     layer_width  = 10000.0f;
     layer_height = 10000.0f;
@@ -751,7 +750,7 @@ bool_t Arinc661_Context_WindowFrame(const Arinc661_Context_t* context, const cha
             {
                 (*widthUnits)  = ((float32_t)pixel_width * units_per_pixel_x);
                 (*heightUnits) = ((float32_t)pixel_height * units_per_pixel_y);
-                (void)FACEOE_Utl_Print_Format(label, labelCapacity, "%s: application %lld, window %lld", application.documentName, (long long)application.applicationId, (long long)application.windowId);
+                (void)snprintf(label, labelCapacity, "%s: application %lld, window %lld", application.documentName, (long long)application.applicationId, (long long)application.windowId);
                 is_found = TRUE;
             }
             break;
@@ -916,11 +915,11 @@ uint32_t Arinc661_Context_Build(Arinc661_Context_t* context, char_t* report, uin
         }
         if (Arinc661_Definition_ExportBinary(context->definitionEditor, document_index, path, sizeof(path)))
         {
-            used += FACEOE_Utl_Print_Format(&report[used], capacity - used, "Wrote %s\n", path);
+            used += (size_t)snprintf(&report[used], capacity - used, "Wrote %s\n", path);
         }
         else
         {
-            used += FACEOE_Utl_Print_Format(&report[used], capacity - used, "Could not write the binary form of %s\n", Arinc661_Definition_DocumentName(context->definitionEditor, document_index));
+            used += (size_t)snprintf(&report[used], capacity - used, "Could not write the binary form of %s\n", Arinc661_Definition_DocumentName(context->definitionEditor, document_index));
             errors += 1;
         }
         if (used >= capacity)
@@ -930,7 +929,7 @@ uint32_t Arinc661_Context_Build(Arinc661_Context_t* context, char_t* report, uin
     }
     if (used < capacity)
     {
-        (void)FACEOE_Utl_Print_Format(&report[used], capacity - used, "Build finished: %u errors, %u warnings.", (unsigned)errors, (unsigned)(context->problemCount - context->errorCount));
+        (void)snprintf(&report[used], capacity - used, "Build finished: %u errors, %u warnings.", (unsigned)errors, (unsigned)(context->problemCount - context->errorCount));
     }
 
     return errors;

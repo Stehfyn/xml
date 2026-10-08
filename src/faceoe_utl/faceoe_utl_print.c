@@ -3,7 +3,7 @@
 **===============================================================================================*/
 
 /**
- * ISO/IEC 9899:2018, section 7.21.6.12, the vsnprintf function.
+ * ISO/IEC 9899:2018, section 7.21.6.1, the fprintf conversions d, u, and f.
  */
 
 /*=================================================================================================
@@ -14,7 +14,7 @@
 
 #include "os/os_assert.h"
 
-#include <stdarg.h>
+#include <inttypes.h>
 #include <stdio.h>
 
 /*=================================================================================================
@@ -39,9 +39,42 @@
 ** 3.5 Static function prototypes
 **===============================================================================================*/
 
+/*************************************************************************************************/
+/**
+ * \brief Checks an snprintf result against the destination it was printed into.
+ *
+ * \param[in,out] a          Destination text, emptied when the result does not fit
+ * \param[in]     capacity   Destination bytes, including the terminator
+ * \param[in]     printed    snprintf result
+ *
+ * \retval        -1             The text does not fit, or snprintf failed.
+ * \retval        1..INT32_MAX   Number of characters printed.
+ */
+static int32_t CheckPrinted(char_t* a, uint32_t capacity, int printed);
+
 /*=================================================================================================
 ** 4. PRIVATE FUNCTIONS
 **===============================================================================================*/
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  snprintf returns the length the complete text would have had, so a result
+ *  of capacity or more means the text was cut off.
+ */
+static int32_t CheckPrinted(char_t* a, uint32_t capacity, int printed)
+{
+    int32_t length;
+
+    length = (int32_t)printed;
+    if ((0 > printed) || ((uint32_t)printed >= capacity))
+    {
+        a[0]   = '\0';
+        length = -1;
+    }
+
+    return length;
+}
 
 /*=================================================================================================
 ** 5. PUBLIC FUNCTIONS
@@ -50,36 +83,39 @@
 /*************************************************************************************************/
 /**
  * \par Details:
- *  vsnprintf returns the length the complete output would have had; that length
- *  is clamped to what was stored, and a negative result becomes an empty string.
+ *  The longest result, INT64_MIN, needs 21 bytes including the terminator.
  */
-uint32_t FACEOE_Utl_Print_Format(char_t* buffer, uint32_t capacity, const char_t* format, ...)
+int32_t FACEOE_Utl_Print_Int64(char_t* a, uint32_t capacity, int64_t v)
 {
-    va_list  arguments;
-    int      needed;
-    uint32_t stored;
+    LOGASSERT(NULL != a);
+    LOGASSERT(0 < capacity);
 
-    LOGASSERT(NULL != format);
-    LOGASSERT((NULL != buffer) || (0 == capacity));
-    stored = 0;
-    if (0 < capacity)
-    {
-        va_start(arguments, format);
-        needed = vsnprintf(buffer, capacity, format, arguments);
-        va_end(arguments);
-        if (0 > needed)
-        {
-            buffer[0] = '\0';
-        }
-        else if ((uint32_t)needed < capacity)
-        {
-            stored = (uint32_t)needed;
-        }
-        else
-        {
-            stored = capacity - 1U;
-        }
-    }
+    return CheckPrinted(a, capacity, snprintf(a, capacity, "%" PRId64, v));
+}
 
-    return stored;
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The longest result, UINT64_MAX, needs 21 bytes including the terminator.
+ */
+int32_t FACEOE_Utl_Print_Uint64(char_t* a, uint32_t capacity, uint64_t v)
+{
+    LOGASSERT(NULL != a);
+    LOGASSERT(0 < capacity);
+
+    return CheckPrinted(a, capacity, snprintf(a, capacity, "%" PRIu64, v));
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Rounding follows the C library's %.*f conversion.
+ */
+int32_t FACEOE_Utl_Print_Float(char_t* a, uint32_t capacity, float64_t v, uint32_t fractionalDigits)
+{
+    LOGASSERT(NULL != a);
+    LOGASSERT(0 < capacity);
+    LOGASSERT(INT32_MAX >= fractionalDigits);
+
+    return CheckPrinted(a, capacity, snprintf(a, capacity, "%.*f", (int)fractionalDigits, v));
 }

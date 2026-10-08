@@ -12,7 +12,6 @@
 
 #include "arinc661_update.h"
 
-#include "faceoe_utl/faceoe_utl_print.h"
 #include "os/os_assert.h"
 #include "os/os_file.h"
 
@@ -20,6 +19,7 @@
 #include <winhttp.h>
 #include <bcrypt.h>
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -345,7 +345,7 @@ static void JoinUrl(const char_t* baseUrl, const char_t* name, char_t* result, u
 
     if (IsHttp(name) || (('\\' == name[0]) && ('\\' == name[1])) || ((0 != name[0]) && (':' == name[1])))
     {
-        (void)FACEOE_Utl_Print_Format(result, capacity, "%s", name);
+        (void)snprintf(result, capacity, "%s", name);
         return;
     }
     base_length = strlen(baseUrl);
@@ -354,7 +354,7 @@ static void JoinUrl(const char_t* baseUrl, const char_t* name, char_t* result, u
     {
         cut -= 1;
     }
-    (void)FACEOE_Utl_Print_Format(result, capacity, "%.*s%s", (int)cut, baseUrl, name);
+    (void)snprintf(result, capacity, "%.*s%s", (int)cut, baseUrl, name);
 }
 
 /*=================================================================================================
@@ -480,7 +480,7 @@ bool_t Arinc661_Update_ParseManifest(const char_t* text, uint32_t byteCount, con
         if (ReadLine(line, line_end, KEY_VERSION, value, sizeof(value)))
         {
             has_version = Arinc661_Update_ParseVersion(value, &manifest->version);
-            (void)FACEOE_Utl_Print_Format(manifest->versionText, sizeof(manifest->versionText), "%s", value);
+            (void)snprintf(manifest->versionText, sizeof(manifest->versionText), "%s", value);
         }
         else if (ReadLine(line, line_end, KEY_PACKAGE, value, sizeof(value)))
         {
@@ -497,7 +497,7 @@ bool_t Arinc661_Update_ParseManifest(const char_t* text, uint32_t byteCount, con
         }
         else if (ReadLine(line, line_end, KEY_NOTES, value, sizeof(value)))
         {
-            (void)FACEOE_Utl_Print_Format(manifest->notes, sizeof(manifest->notes), "%s", value);
+            (void)snprintf(manifest->notes, sizeof(manifest->notes), "%s", value);
         }
         line = (line_end + 1);
     }
@@ -582,7 +582,7 @@ Arinc661_Update_Result_t Arinc661_Update_Download(const Arinc661_Update_Manifest
     {
         return ARINC661_UPDATE_RESULT_UNREACHABLE;
     }
-    (void)FACEOE_Utl_Print_Format(path, capacity, "%s%s", temp_folder, PACKAGE_FILE_NAME);
+    (void)snprintf(path, capacity, "%s%s", temp_folder, PACKAGE_FILE_NAME);
     package = (byte_t*)malloc(PACKAGE_MAX_BYTES);
     if (NULL == package)
     {
@@ -629,13 +629,13 @@ bool_t Arinc661_Update_Apply(const char_t* packagePath, const char_t* relaunchPa
     LOGASSERT(NULL != packagePath);
     if ((NULL != relaunchPath) && ('\0' != relaunchPath[0]))
     {
-        (void)FACEOE_Utl_Print_Format(arguments, sizeof(arguments), APPLY_COMMAND_FORMAT, packagePath, relaunchPath);
+        (void)snprintf(arguments, sizeof(arguments), APPLY_COMMAND_FORMAT, packagePath, relaunchPath);
     }
     else
     {
-        (void)FACEOE_Utl_Print_Format(arguments, sizeof(arguments), APPLY_COMMAND_NO_RELAUNCH, packagePath);
+        (void)snprintf(arguments, sizeof(arguments), APPLY_COMMAND_NO_RELAUNCH, packagePath);
     }
-    (void)FACEOE_Utl_Print_Format(command, sizeof(command), "cmd.exe");
+    (void)snprintf(command, sizeof(command), "cmd.exe");
     (void)memset(&startup, 0, sizeof(startup));
     startup.cb = sizeof(startup);
     (void)memset(&process, 0, sizeof(process));

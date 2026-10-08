@@ -6,7 +6,7 @@
 **===============================================================================================*/
 
 /**
- * ISO/IEC 9899:2018, section 7.21.6.12, the vsnprintf function.
+ * ISO/IEC 9899:2018, section 7.21.6.1, the fprintf conversions d, u, and f.
  */
 
 /*=================================================================================================
@@ -20,12 +20,6 @@
 **
 ** 3.1 Macros
 **===============================================================================================*/
-
-#if defined(__GNUC__)
-#define FACEOE_UTL_PRINT_FORMAT_CHECK(formatIndex, firstArgument) __attribute__((format(printf, formatIndex, firstArgument))) ///< Lets GCC and Clang check arguments against the format
-#else
-#define FACEOE_UTL_PRINT_FORMAT_CHECK(formatIndex, firstArgument) ///< No format checking on this compiler
-#endif
 
 /*=================================================================================================
 ** 3.2 Types
@@ -45,31 +39,69 @@
 
 /*************************************************************************************************/
 /**
- * \brief Formats text into a caller buffer as printf does, always zero-terminated.
+ * \brief Prints a signed 64-bit value as decimal text, the inverse of FACEOE_Utl_Scan_Int64.
  *
  * \par Details:
- *  Output that does not fit is cut off at capacity - 1 characters. The return
- *  value counts only the characters stored, so a caller appending piece after
- *  piece can add it to its position without passing the end of the buffer:
- *
- * \code{.c}
- * used += FACEOE_Utl_Print_Format(&report[used], capacity - used, "Wrote %s\n", path);
- * \endcode
+ *  A negative value starts with a minus sign; a positive value has no sign,
+ *  for example -20 prints "-20" and INT64_MIN prints "-9223372036854775808".
  *
  * \par Requirements:
- *  - 001 This function shall store at most capacity bytes, including the zero terminator.
- *  - 002 This function shall zero-terminate the buffer whenever capacity is nonzero.
- *  - 003 This function shall return the number of characters stored, excluding the terminator.
- *  - 004 This function shall store an empty string and return zero on an encoding error.
- *  - 005 This function shall fail an assertion if format is NULL, or buffer is NULL with a nonzero capacity.
+ *  - 001 This function shall return the number of characters printed, excluding the zero terminator.
+ *  - 002 This function shall print an empty string and return -1 when the text and its terminator do not fit.
+ *  - 003 This function shall fail an assertion if a is NULL or capacity is zero.
  *
- * \param[out] buffer     Destination text
+ * \param[out] a          Non-NULL destination text
  * \param[in]  capacity   Destination bytes, including the terminator
- * \param[in]  format     printf format
- * \param[in]  ...        Arguments of the format
+ * \param[in]  v          Value to print
  *
- * \retval     uint32_t   Characters stored, excluding the terminator; less than capacity, or zero when capacity is zero.
+ * \retval     -1             The text does not fit.
+ * \retval     1..INT32_MAX   Number of characters printed.
  */
-uint32_t FACEOE_Utl_Print_Format(char_t* buffer, uint32_t capacity, const char_t* format, ...) FACEOE_UTL_PRINT_FORMAT_CHECK(3, 4);
+int32_t FACEOE_Utl_Print_Int64(char_t* a, uint32_t capacity, int64_t v);
+
+/*************************************************************************************************/
+/**
+ * \brief Prints an unsigned 64-bit value as decimal text.
+ *
+ * \par Details:
+ *  For example 10000 prints "10000" and UINT64_MAX prints "18446744073709551615".
+ *
+ * \par Requirements:
+ *  - 001 This function shall return the number of characters printed, excluding the zero terminator.
+ *  - 002 This function shall print an empty string and return -1 when the text and its terminator do not fit.
+ *  - 003 This function shall fail an assertion if a is NULL or capacity is zero.
+ *
+ * \param[out] a          Non-NULL destination text
+ * \param[in]  capacity   Destination bytes, including the terminator
+ * \param[in]  v          Value to print
+ *
+ * \retval     -1             The text does not fit.
+ * \retval     1..INT32_MAX   Number of characters printed.
+ */
+int32_t FACEOE_Utl_Print_Uint64(char_t* a, uint32_t capacity, uint64_t v);
+
+/*************************************************************************************************/
+/**
+ * \brief Prints a value as decimal text with a fixed number of fractional digits, the inverse of FACEOE_Utl_Scan_Float.
+ *
+ * \par Details:
+ *  The value is rounded to the given number of fractional digits; zero
+ *  digits prints no decimal point. For example, 1.5 with 3 digits prints
+ *  "1.500", and -0.125 with 1 digit prints "-0.1".
+ *
+ * \par Requirements:
+ *  - 001 This function shall return the number of characters printed, excluding the zero terminator.
+ *  - 002 This function shall print an empty string and return -1 when the text and its terminator do not fit.
+ *  - 003 This function shall fail an assertion if a is NULL or capacity is zero.
+ *
+ * \param[out] a                  Non-NULL destination text
+ * \param[in]  capacity           Destination bytes, including the terminator
+ * \param[in]  v                  Value to print
+ * \param[in]  fractionalDigits   Digits after the decimal point
+ *
+ * \retval     -1             The text does not fit.
+ * \retval     1..INT32_MAX   Number of characters printed.
+ */
+int32_t FACEOE_Utl_Print_Float(char_t* a, uint32_t capacity, float64_t v, uint32_t fractionalDigits);
 
 #endif /* FACEOE_UTL_PRINT_H */

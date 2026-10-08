@@ -567,30 +567,35 @@ static void TestNumberScanning(void)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Checks that formatted text is always terminated, cut off at capacity, and
- *  counted as stored, so appending piece after piece never passes the end.
+ *  Checks decimal printing of integers and fractions, and text that does not fit.
  */
 static void TestPrint(void)
 {
-    char_t   text[8];
-    uint32_t used;
+    char_t text[8];
+    char_t wide[32];
 
-    assert(5 == FACEOE_Utl_Print_Format(text, sizeof(text), "%s-%u", "ab", 12U));
-    assert(0 == strcmp("ab-12", text));
+    assert(3 == FACEOE_Utl_Print_Int64(text, sizeof(text), -20));
+    assert(0 == strcmp("-20", text));
+    assert(20 == FACEOE_Utl_Print_Int64(wide, sizeof(wide), INT64_MIN));
+    assert(0 == strcmp("-9223372036854775808", wide));
 
-    // Cut off at capacity - 1 characters, still terminated
-    assert(7 == FACEOE_Utl_Print_Format(text, sizeof(text), "%s", "abcdefghij"));
-    assert(0 == strcmp("abcdefg", text));
+    assert(5 == FACEOE_Utl_Print_Uint64(text, sizeof(text), 10000U));
+    assert(0 == strcmp("10000", text));
+    assert(20 == FACEOE_Utl_Print_Uint64(wide, sizeof(wide), UINT64_MAX));
+    assert(0 == strcmp("18446744073709551615", wide));
 
-    // Appending stops at the end of the buffer instead of passing it
-    used  = FACEOE_Utl_Print_Format(text, sizeof(text), "%s", "abcde");
-    used += FACEOE_Utl_Print_Format(&text[used], sizeof(text) - used, "%s", "fghij");
-    assert(7 == used);
-    assert(0 == strcmp("abcdefg", text));
-    assert(0 == FACEOE_Utl_Print_Format(&text[used], sizeof(text) - used, "%s", "k"));
+    assert(5 == FACEOE_Utl_Print_Float(text, sizeof(text), 1.5, 3));
+    assert(0 == strcmp("1.500", text));
+    assert(4 == FACEOE_Utl_Print_Float(text, sizeof(text), -0.125, 1));
+    assert(0 == strcmp("-0.1", text));
+    assert(1 == FACEOE_Utl_Print_Float(text, sizeof(text), 2.0, 0));
+    assert(0 == strcmp("2", text));
 
-    // A zero capacity stores nothing
-    assert(0 == FACEOE_Utl_Print_Format(NULL, 0, "%s", "x"));
+    // Text that does not fit with its terminator leaves an empty string
+    assert(-1 == FACEOE_Utl_Print_Uint64(text, sizeof(text), 12345678U));
+    assert(0 == strcmp("", text));
+    assert(7 == FACEOE_Utl_Print_Uint64(text, sizeof(text), 1234567U));
+    assert(-1 == FACEOE_Utl_Print_Float(text, sizeof(text), 1.0, 6));
 }
 
 /*************************************************************************************************/
