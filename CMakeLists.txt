@@ -63,6 +63,7 @@ target_include_directories(faceoe_gfx PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/includ
 add_library(arinc661 STATIC
     src/arinc661/arinc661_definition.c
     src/arinc661/arinc661_scene.c
+    include/arinc661/arinc661.h
     include/arinc661/arinc661_definition.h
     include/arinc661/arinc661_scene.h)
 target_link_libraries(arinc661 PUBLIC faceoe_utl faceoe_gfx)

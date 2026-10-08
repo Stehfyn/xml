@@ -29,7 +29,7 @@ extern "C"
 /**
  * \brief Counts the properties owned by one model.
  */
-static uint32_t CountOwned(const Arinc661_Definition_Document_t* document, Arinc661_PropertyOwner_t owner, uint32_t ownerIndex)
+static uint32_t CountOwned(const Arinc661_DefinitionEditor_Document_t* document, Arinc661_PropertyOwner_t owner, uint32_t ownerIndex)
 {
     uint32_t property_index;
     uint32_t count;
@@ -58,31 +58,31 @@ static uint32_t CountOwned(const Arinc661_Definition_Document_t* document, Arinc
  */
 int main(void)
 {
-    Arinc661_Definition_Editor_t*   editor;
-    Arinc661_Definition_Document_t* document;
-    Arinc661_Parameter_t            extension_parameter;
-    Arinc661_Parameter_t            parameter;
-    char_t                          value[ARINC661_MAX_PROPERTY_BYTES];
-    uint32_t                        type_index;
-    uint32_t                        parameter_count;
-    uint32_t                        parameter_index;
-    const char_t*                   animation_name;
-    const char_t*                   animation_type;
-    FILE*                           export_file;
-    char_t                          export_path[ARINC661_DEFINITION_MAX_FILE_PATH_BYTES];
-    uint64_t                        byte_count;
-    uint32_t                        extension_parameter_count;
-    uint32_t                        extension_index;
-    uint32_t                        single_count;
-    uint32_t                        widget_count_before;
-    uint32_t                        subtree_size;
-    uint32_t                        history_index;
-    float32_t                       button_state;
-    float32_t                       animation_delay;
-    float32_t                       animation_duration;
+    Arinc661_DefinitionEditor_t*          editor;
+    Arinc661_DefinitionEditor_Document_t* document;
+    Arinc661_Parameter_t                  extension_parameter;
+    Arinc661_Parameter_t                  parameter;
+    char_t                                value[ARINC661_MAX_PROPERTY_BYTES];
+    uint32_t                              type_index;
+    uint32_t                              parameter_count;
+    uint32_t                              parameter_index;
+    const char_t*                         animation_name;
+    const char_t*                         animation_type;
+    FILE*                                 export_file;
+    char_t                                export_path[ARINC661_DEFINITION_EDITOR_MAX_FILE_PATH_BYTES];
+    uint64_t                              byte_count;
+    uint32_t                              extension_parameter_count;
+    uint32_t                              extension_index;
+    uint32_t                              single_count;
+    uint32_t                              widget_count_before;
+    uint32_t                              subtree_size;
+    uint32_t                              history_index;
+    float32_t                             button_state;
+    float32_t                             animation_delay;
+    float32_t                             animation_duration;
 
     Os_Diagnostics_Initialize();
-    editor = (Arinc661_Definition_Editor_t*)OS_CALLOC(sizeof(Arinc661_Definition_Editor_t));
+    editor = (Arinc661_DefinitionEditor_t*)OS_CALLOC(sizeof(Arinc661_DefinitionEditor_t));
     Arinc661_Definition_Initialize(editor);
     CreateDocument(editor);
     document = &editor->documents[0];
@@ -286,13 +286,13 @@ int main(void)
     CommitHistory(document);
     assert(0 == document->redoCount);
     /* History states carry labels: the open state, then the addition */
-    assert(2 == Arinc661_Definition_HistoryCount(editor, &history_index));
+    assert(2 == Arinc661_DefinitionEditor_HistoryCount(editor, &history_index));
     assert(1 == history_index);
-    assert(0 == strncmp(HISTORY_OPEN_LABEL, Arinc661_Definition_HistoryLabel(editor, 0), sizeof(HISTORY_OPEN_LABEL)));
-    assert(0 == strncmp("Add ", Arinc661_Definition_HistoryLabel(editor, 1), 4));
-    Arinc661_Definition_GoToHistory(editor, 0);
+    assert(0 == strncmp(HISTORY_OPEN_LABEL, Arinc661_DefinitionEditor_HistoryLabel(editor, 0), sizeof(HISTORY_OPEN_LABEL)));
+    assert(0 == strncmp("Add ", Arinc661_DefinitionEditor_HistoryLabel(editor, 1), 4));
+    Arinc661_DefinitionEditor_GoToHistory(editor, 0);
     assert(8 == document->definition.widgetCount);
-    Arinc661_Definition_GoToHistory(editor, 1);
+    Arinc661_DefinitionEditor_GoToHistory(editor, 1);
     assert(9 == document->definition.widgetCount);
     ClearHistory(document);
     assert(NULL == document->shadow);
@@ -306,15 +306,15 @@ int main(void)
     assert(ConformParameters(document, 10));
     strcpy(document->properties[FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, 9, "ToggleState")].value, "A661_UNSELECTED");
     document->isDirty = FALSE;
-    Arinc661_Definition_BeginPlay(editor);
+    Arinc661_DefinitionEditor_BeginPlay(editor);
     assert(editor->isPlaying);
-    assert(Arinc661_Definition_Interact(editor, 0, 9, 0.5f, 0.5f));
+    assert(Arinc661_DefinitionEditor_Interact(editor, 0, 9, 0.5f, 0.5f));
     assert(0 == strncmp("A661_SELECTED", document->properties[FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, 9, "ToggleState")].value, sizeof("A661_SELECTED")));
-    assert(Arinc661_Definition_Interact(editor, 0, 10, 0.5f, 0.5f));
+    assert(Arinc661_DefinitionEditor_Interact(editor, 0, 10, 0.5f, 0.5f));
     assert(GetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, 10, "ButtonState", &button_state));
     assert(1.0f == button_state);
-    assert(FALSE == Arinc661_Definition_Interact(editor, 0, 0, 0.5f, 0.5f));
-    Arinc661_Definition_EndPlay(editor);
+    assert(FALSE == Arinc661_DefinitionEditor_Interact(editor, 0, 0, 0.5f, 0.5f));
+    Arinc661_DefinitionEditor_EndPlay(editor);
     assert(FALSE == editor->isPlaying);
     assert(FALSE == document->isDirty);
     assert(0 == strncmp("A661_UNSELECTED", document->properties[FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, 9, "ToggleState")].value, sizeof("A661_UNSELECTED")));
@@ -325,31 +325,31 @@ int main(void)
     assert(ConformParameters(document, 11));
     SetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, 11, "Delay", 500.0f);
     SetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, 11, "Duration", 2000.0f);
-    assert(Arinc661_Definition_AnimationAt(editor, 0, &animation_name, &animation_type, &animation_delay, &animation_duration));
+    assert(Arinc661_DefinitionEditor_AnimationAt(editor, 0, &animation_name, &animation_type, &animation_delay, &animation_duration));
     assert(0 == strncmp("A661_ANIMATION_ROTATION", animation_type, sizeof("A661_ANIMATION_ROTATION")));
     assert(0.5f == animation_delay);
     assert(2.0f == animation_duration);
-    assert(FALSE == Arinc661_Definition_AnimationAt(editor, 1, &animation_name, &animation_type, &animation_delay, &animation_duration));
+    assert(FALSE == Arinc661_DefinitionEditor_AnimationAt(editor, 1, &animation_name, &animation_type, &animation_delay, &animation_duration));
 
     /* Export writes the binary twin beside the XML path */
     strcpy(document->documentPath, "arinc661_editor_export_test.xml");
-    assert(Arinc661_Definition_ExportBinary(editor, 0, export_path, sizeof(export_path)));
+    assert(Arinc661_DefinitionEditor_ExportBinary(editor, 0, export_path, sizeof(export_path)));
     assert(0 == strncmp("arinc661_editor_export_test.bin", export_path, sizeof("arinc661_editor_export_test.bin")));
     export_file = fopen(export_path, "rb");
     assert(NULL != export_file);
     (void)fclose(export_file);
     (void)remove(export_path);
-    assert(FALSE == Arinc661_Definition_ExportBinary(editor, 1, export_path, sizeof(export_path)));
+    assert(FALSE == Arinc661_DefinitionEditor_ExportBinary(editor, 1, export_path, sizeof(export_path)));
 
     /* A prefab round trip: the selected panel subtree is saved, then pasted back from the file */
     strcpy(editor->folderPath, ".");
     SelectOnly(document, 0);
     widget_count_before = document->definition.widgetCount;
     subtree_size        = SubtreeEnd(document, 0);
-    assert(0 < Arinc661_Definition_Copy(editor));
-    assert(Arinc661_Definition_SavePrefab(editor, "editor_test_prefab", export_path, sizeof(export_path)));
-    assert(FALSE == Arinc661_Definition_SavePrefab(editor, "bad/name", export_path, sizeof(export_path)));
-    assert(Arinc661_Definition_LoadPrefab(editor, "editor_test_prefab.prefab.xml"));
+    assert(0 < Arinc661_DefinitionEditor_Copy(editor));
+    assert(Arinc661_DefinitionEditor_SavePrefab(editor, "editor_test_prefab", export_path, sizeof(export_path)));
+    assert(FALSE == Arinc661_DefinitionEditor_SavePrefab(editor, "bad/name", export_path, sizeof(export_path)));
+    assert(Arinc661_DefinitionEditor_LoadPrefab(editor, "editor_test_prefab.prefab.xml"));
     assert(document->definition.widgetCount == (widget_count_before + subtree_size));
     (void)remove("./editor_test_prefab.prefab.xml");
 

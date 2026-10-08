@@ -112,7 +112,7 @@ out.append('''/*================================================================
 **===============================================================================================*/
 
 #include "arinc661_help.h"
-#include "arinc661/arinc661_definition.h"
+#include "arinc661/arinc661.h"
 
 #include "faceoe_utl/faceoe_utl_defines.h"
 

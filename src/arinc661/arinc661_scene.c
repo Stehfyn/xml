@@ -12,6 +12,7 @@
 **===============================================================================================*/
 
 #include "arinc661/arinc661_scene.h"
+#include "arinc661/arinc661_definition.h"
 #include "faceoe_utl/faceoe_utl_defines.h"
 #include "faceoe_utl/faceoe_utl_print.h"
 

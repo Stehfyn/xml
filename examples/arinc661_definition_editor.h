@@ -21,23 +21,23 @@ extern "C"
 ** 3.1 Macros
 **===============================================================================================*/
 
-#define ARINC661_DEFINITION_MAX_DOCUMENT_BYTES     (1048576)
-#define ARINC661_DEFINITION_MAX_BLOCK_BYTES        (524288)
-#define ARINC661_DEFINITION_MAX_FOLDER_PATH_BYTES  (512)
-#define ARINC661_DEFINITION_MAX_XML_NAME_BYTES     (260)
-#define ARINC661_DEFINITION_MAX_FILE_PATH_BYTES    (ARINC661_DEFINITION_MAX_FOLDER_PATH_BYTES + ARINC661_DEFINITION_MAX_XML_NAME_BYTES + 1)
-#define ARINC661_DEFINITION_MAX_LAYERS             (128)
-#define ARINC661_DEFINITION_MAX_WIDGETS            (2048)
-#define ARINC661_DEFINITION_MAX_PROPERTIES         (16384)
-#define ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS     (8)
-#define ARINC661_DEFINITION_MAX_SCENE_COMMANDS     (65536)
-#define ARINC661_DEFINITION_MAX_SCENE_POINTS       (524288)
-#define ARINC661_DEFINITION_MAX_SCENE_TEXT_BYTES   (1048576)
-#define ARINC661_DEFINITION_NO_DOCUMENT            (UINT32_MAX)
-#define ARINC661_DEFINITION_MAX_HISTORY            (64)
-#define ARINC661_DEFINITION_MAX_FILTER_BYTES       (64)
-#define ARINC661_DEFINITION_CLIPBOARD_WIDGETS      (512)
-#define ARINC661_DEFINITION_CLIPBOARD_PROPERTIES   (4096)
+#define ARINC661_DEFINITION_EDITOR_MAX_DOCUMENT_BYTES     (1048576)
+#define ARINC661_DEFINITION_EDITOR_MAX_BLOCK_BYTES        (524288)
+#define ARINC661_DEFINITION_EDITOR_MAX_FOLDER_PATH_BYTES  (512)
+#define ARINC661_DEFINITION_EDITOR_MAX_XML_NAME_BYTES     (260)
+#define ARINC661_DEFINITION_EDITOR_MAX_FILE_PATH_BYTES    (ARINC661_DEFINITION_EDITOR_MAX_FOLDER_PATH_BYTES + ARINC661_DEFINITION_EDITOR_MAX_XML_NAME_BYTES + 1)
+#define ARINC661_DEFINITION_EDITOR_MAX_LAYERS             (128)
+#define ARINC661_DEFINITION_EDITOR_MAX_WIDGETS            (2048)
+#define ARINC661_DEFINITION_EDITOR_MAX_PROPERTIES         (16384)
+#define ARINC661_DEFINITION_EDITOR_MAX_OPEN_DOCUMENTS     (8)
+#define ARINC661_DEFINITION_EDITOR_MAX_SCENE_COMMANDS     (65536)
+#define ARINC661_DEFINITION_EDITOR_MAX_SCENE_POINTS       (524288)
+#define ARINC661_DEFINITION_EDITOR_MAX_SCENE_TEXT_BYTES   (1048576)
+#define ARINC661_DEFINITION_EDITOR_NO_DOCUMENT            (UINT32_MAX)
+#define ARINC661_DEFINITION_EDITOR_MAX_HISTORY            (64)
+#define ARINC661_DEFINITION_EDITOR_MAX_FILTER_BYTES       (64)
+#define ARINC661_DEFINITION_EDITOR_CLIPBOARD_WIDGETS      (512)
+#define ARINC661_DEFINITION_EDITOR_CLIPBOARD_PROPERTIES   (4096)
 
 /*=================================================================================================
 ** 3.2 Types
@@ -47,39 +47,39 @@ extern "C"
 /**
  * \brief One open Definition File and its conversion workspace.
  */
-struct Arinc661_Definition_Editor_s;
+struct Arinc661_DefinitionEditor_s;
 
-typedef struct Arinc661_Definition_Document_s
+typedef struct Arinc661_DefinitionEditor_Document_s
 {
-    struct Arinc661_Definition_Editor_s* owner;                                                   ///< Editor holding this document.
-    void*                                undoStack[ARINC661_DEFINITION_MAX_HISTORY];              ///< Model snapshots older than the shadow, oldest first.
-    void*                                redoStack[ARINC661_DEFINITION_MAX_HISTORY];              ///< Model snapshots undone, oldest first.
-    void*                                shadow;                                                  ///< Snapshot of the model as last committed.
-    float32_t                            viewZoom;                                                ///< Scene zoom factor over the fitted scale; zero until first drawn.
-    float32_t                            viewPanX;                                                ///< Scene pan in screen pixels.
-    float32_t                            viewPanY;                                                ///< Scene pan in screen pixels.
-    uint32_t                             undoCount;                                               ///< Snapshots on the undo stack.
-    uint32_t                             redoCount;                                               ///< Snapshots on the redo stack.
-    int32_t                              status;                                                  ///< Current status message.
-    bool_t                               isLoaded;                                                ///< TRUE after a successful read.
-    bool_t                               isDirty;                                                 ///< TRUE when the loaded document has unsaved changes.
-    bool_t                               isBinary;                                                ///< TRUE when the document is saved in the binary form.
-    int32_t                              selectedKind;                                            ///< Selected entity type; the primary selection.
-    uint32_t                             selectedIndex;                                           ///< Selected array index; the primary selection.
-    byte_t                               isSelected[ARINC661_DEFINITION_MAX_WIDGETS];             ///< Widgets in the multi-selection, primary included.
-    byte_t                               isHiddenInEditor[ARINC661_DEFINITION_MAX_WIDGETS];       ///< Widgets hidden from the scene by the author (editor only).
-    byte_t                               isLocked[ARINC661_DEFINITION_MAX_WIDGETS];               ///< Widgets the scene does not pick or move (editor only).
-    char_t                               documentName[ARINC661_DEFINITION_MAX_XML_NAME_BYTES];    ///< Filename shown on the tab.
-    char_t                               documentPath[ARINC661_DEFINITION_MAX_FILE_PATH_BYTES];   ///< Path of the loaded document.
-    byte_t                               inputBuffer[ARINC661_DEFINITION_MAX_DOCUMENT_BYTES + 1]; ///< Input file bytes.
-    byte_t                               outputBuffer[ARINC661_DEFINITION_MAX_DOCUMENT_BYTES];    ///< Built file bytes.
-    uint64_t                             workspace[ARINC661_WORKSPACE_BYTES / sizeof(uint64_t)];  ///< XML conversion scratch space.
-    Arinc661_Layer_t                     layers[ARINC661_DEFINITION_MAX_LAYERS];                  ///< Layer values.
-    Arinc661_Widget_t                    widgets[ARINC661_DEFINITION_MAX_WIDGETS];                ///< Widget and extension values.
-    Arinc661_Property_t                  properties[ARINC661_DEFINITION_MAX_PROPERTIES];          ///< Property values.
-    byte_t                               blocks[ARINC661_DEFINITION_MAX_BLOCK_BYTES];             ///< Binary symbol, picture, and animation law blocks.
-    Arinc661_Definition_t                definition;                                              ///< Definition File values.
-} Arinc661_Definition_Document_t;
+    struct Arinc661_DefinitionEditor_s* owner;                                                          ///< Editor holding this document.
+    void*                               undoStack[ARINC661_DEFINITION_EDITOR_MAX_HISTORY];              ///< Model snapshots older than the shadow, oldest first.
+    void*                               redoStack[ARINC661_DEFINITION_EDITOR_MAX_HISTORY];              ///< Model snapshots undone, oldest first.
+    void*                               shadow;                                                         ///< Snapshot of the model as last committed.
+    float32_t                           viewZoom;                                                       ///< Scene zoom factor over the fitted scale; zero until first drawn.
+    float32_t                           viewPanX;                                                       ///< Scene pan in screen pixels.
+    float32_t                           viewPanY;                                                       ///< Scene pan in screen pixels.
+    uint32_t                            undoCount;                                                      ///< Snapshots on the undo stack.
+    uint32_t                            redoCount;                                                      ///< Snapshots on the redo stack.
+    int32_t                             status;                                                         ///< Current status message.
+    bool_t                              isLoaded;                                                       ///< TRUE after a successful read.
+    bool_t                              isDirty;                                                        ///< TRUE when the loaded document has unsaved changes.
+    bool_t                              isBinary;                                                       ///< TRUE when the document is saved in the binary form.
+    int32_t                             selectedKind;                                                   ///< Selected entity type; the primary selection.
+    uint32_t                            selectedIndex;                                                  ///< Selected array index; the primary selection.
+    byte_t                              isSelected[ARINC661_DEFINITION_EDITOR_MAX_WIDGETS];             ///< Widgets in the multi-selection, primary included.
+    byte_t                              isHiddenInEditor[ARINC661_DEFINITION_EDITOR_MAX_WIDGETS];       ///< Widgets hidden from the scene by the author (editor only).
+    byte_t                              isLocked[ARINC661_DEFINITION_EDITOR_MAX_WIDGETS];               ///< Widgets the scene does not pick or move (editor only).
+    char_t                              documentName[ARINC661_DEFINITION_EDITOR_MAX_XML_NAME_BYTES];    ///< Filename shown on the tab.
+    char_t                              documentPath[ARINC661_DEFINITION_EDITOR_MAX_FILE_PATH_BYTES];   ///< Path of the loaded document.
+    byte_t                              inputBuffer[ARINC661_DEFINITION_EDITOR_MAX_DOCUMENT_BYTES + 1]; ///< Input file bytes.
+    byte_t                              outputBuffer[ARINC661_DEFINITION_EDITOR_MAX_DOCUMENT_BYTES];    ///< Built file bytes.
+    uint64_t                            workspace[ARINC661_WORKSPACE_BYTES / sizeof(uint64_t)];         ///< XML conversion scratch space.
+    Arinc661_Layer_t                    layers[ARINC661_DEFINITION_EDITOR_MAX_LAYERS];                  ///< Layer values.
+    Arinc661_Widget_t                   widgets[ARINC661_DEFINITION_EDITOR_MAX_WIDGETS];                ///< Widget and extension values.
+    Arinc661_Property_t                 properties[ARINC661_DEFINITION_EDITOR_MAX_PROPERTIES];          ///< Property values.
+    byte_t                              blocks[ARINC661_DEFINITION_EDITOR_MAX_BLOCK_BYTES];             ///< Binary symbol, picture, and animation law blocks.
+    Arinc661_Definition_t               definition;                                                     ///< Definition File values.
+} Arinc661_DefinitionEditor_Document_t;
 
 /*************************************************************************************************/
 /**
@@ -87,75 +87,75 @@ typedef struct Arinc661_Definition_Document_s
  */
 struct Arinc661_Context_s;
 
-typedef struct Arinc661_Definition_Editor_s
+typedef struct Arinc661_DefinitionEditor_s
 {
-    struct Arinc661_Context_s*     context;                                                       ///< Shared application context, or NULL.
-    FACEOE_Gfx_DrawList_t          drawList;                                                      ///< Scene draw list.
-    FACEOE_Gfx_Command_t           sceneCommands[ARINC661_DEFINITION_MAX_SCENE_COMMANDS];         ///< Scene command storage.
-    FACEOE_Gfx_Point_t             scenePoints[ARINC661_DEFINITION_MAX_SCENE_POINTS];             ///< Scene point storage.
-    char_t                         sceneText[ARINC661_DEFINITION_MAX_SCENE_TEXT_BYTES];           ///< Scene text storage.
-    Arinc661_Scene_Bounds_t        sceneBounds[ARINC661_DEFINITION_MAX_WIDGETS];                  ///< Widget bounds of the last scene.
-    uint32_t                       sceneBoundsCount;                                              ///< Bounds recorded by the last scene.
-    int32_t                        dragMode;                                                      ///< Scene drag in progress: none, move, or a resize corner.
-    uint32_t                       dragWidget;                                                    ///< Widget being dragged.
-    float32_t                      dragStartX;                                                    ///< Mouse X at drag start.
-    float32_t                      dragStartY;                                                    ///< Mouse Y at drag start.
-    float32_t                      dragOriginX;                                                   ///< PosX at drag start.
-    float32_t                      dragOriginY;                                                   ///< PosY at drag start.
-    float32_t                      dragOriginWidth;                                               ///< SizeX at drag start.
-    float32_t                      dragOriginHeight;                                              ///< SizeY at drag start.
-    float32_t                      dragOriginAngle;                                               ///< RotationAngle at drag start.
-    float32_t                      dragCenterX;                                                   ///< Rotation pivot on screen at drag start.
-    float32_t                      dragCenterY;                                                   ///< Rotation pivot on screen at drag start.
-    float32_t                      dragScale;                                                     ///< Screen pixels per layer unit during the drag.
-    bool_t                         hasDragged;                                                    ///< TRUE once the drag moved the mouse.
-    bool_t                         isMarquee;                                                     ///< TRUE while a rubber-band selection is drawn.
-    bool_t                         zoomsToSelection;                                              ///< TRUE to fit the view to the selection next frame.
-    float32_t                      animationTime;                                                 ///< Seconds into the animations shown, or negative for the rest state.
-    bool_t                         isPlaying;                                                     ///< TRUE while play mode holds snapshots of the documents.
-    void*                          playSnapshots[ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS];         ///< Document states to restore when play stops.
-    bool_t                         playWasDirty[ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS];          ///< Dirty flags to restore when play stops.
-    Arinc661_Widget_t              clipboardWidgets[ARINC661_DEFINITION_CLIPBOARD_WIDGETS];       ///< Copied subtrees; parent indices are relative to the clipboard.
-    Arinc661_Property_t            clipboardProperties[ARINC661_DEFINITION_CLIPBOARD_PROPERTIES]; ///< Their properties; ownerIndex is relative to the clipboard.
-    uint32_t                       clipboardWidgetCount;                                          ///< Widgets in the clipboard.
-    uint32_t                       clipboardPropertyCount;                                        ///< Properties in the clipboard.
-    uint32_t                       renamingWidget;                                                ///< Widget whose name is being edited inline, or UINT32_MAX.
-    char_t                         renameBuffer[ARINC661_MAX_NAME_BYTES];                         ///< Inline rename text.
-    char_t                         hierarchyFilter[ARINC661_DEFINITION_MAX_FILTER_BYTES];         ///< Hierarchy filter text.
-    char_t                         inspectorFilter[ARINC661_DEFINITION_MAX_FILTER_BYTES];         ///< Inspector parameter filter text.
-    float32_t                      marqueeStartX;                                                 ///< Screen X where the marquee started.
-    float32_t                      marqueeStartY;                                                 ///< Screen Y where the marquee started.
-    float32_t                      dragOrigins[ARINC661_DEFINITION_MAX_WIDGETS][2];               ///< PosX and PosY of every selected widget at drag start.
-    bool_t                         isSnapping;                                                    ///< TRUE to snap moves and sizes to whole millimetres.
-    bool_t                         showsGrid;                                                     ///< TRUE to draw a millimetre grid behind the layer.
-    uint32_t                       dropWidget;                                                    ///< Widget dropped onto a hierarchy node this frame, or UINT32_MAX.
-    uint32_t                       dropParent;                                                    ///< Node it was dropped on, or UINT32_MAX for the layer.
-    uint32_t                       dropLayer;                                                     ///< Layer of that node.
-    uint32_t                       createConfiguration;                                           ///< Configuration slot chosen for a new user application.
-    uint32_t                       createWindow;                                                  ///< Window array index chosen for it.
-    char_t                         dropType[ARINC661_MAX_NAME_BYTES];                             ///< Palette type dropped on a hierarchy node this frame, or empty.
-    uint32_t                       dropTypeParent;                                                ///< Node it was dropped on, or UINT32_MAX for the layer.
-    uint32_t                       dropTypeLayer;                                                 ///< Layer of that node.
-    char_t                         addFilter[ARINC661_DEFINITION_MAX_FILTER_BYTES];               ///< Type filter typed in the add pop-up.
-    uint32_t                       addLayer;                                                      ///< Layer the add pop-up targets.
-    uint32_t                       addParent;                                                     ///< Parent widget the add pop-up targets.
-    uint32_t                       addHit;                                                        ///< Widget under the cursor when the add pop-up opened.
-    float32_t                      addX;                                                          ///< Layer X where the add pop-up opened.
-    float32_t                      addY;                                                          ///< Layer Y where the add pop-up opened.
-    int32_t                        status;                                                        ///< File browser status message.
-    uint32_t                       activeDocumentIndex;                                           ///< Selected document slot.
-    uint32_t                       requestedDocumentIndex;                                        ///< Tab to select after opening a file.
-    uint32_t                       pendingCloseDocumentIndex;                                     ///< Document awaiting close confirmation.
-    uint32_t                       pendingSaveDocumentIndex;                                      ///< Untitled document awaiting a filename.
-    bool_t                         isSaveAllPending;                                              ///< TRUE while Save All is naming untitled documents.
-    char_t                         renamedFrom[ARINC661_DEFINITION_MAX_XML_NAME_BYTES];           ///< Name a document had before its last Save As, or empty.
-    char_t                         renamedTo[ARINC661_DEFINITION_MAX_XML_NAME_BYTES];             ///< Name it has now.
-    char_t                         statusNote[ARINC661_DEFINITION_MAX_XML_NAME_BYTES];            ///< Host note appended to the status text, or empty.
-    char_t                         folderPath[ARINC661_DEFINITION_MAX_FOLDER_PATH_BYTES];         ///< Folder containing Definition Files.
-    char_t                         saveFolderPath[ARINC661_DEFINITION_MAX_FOLDER_PATH_BYTES];     ///< Folder chosen in the save dialog.
-    char_t                         saveFileName[ARINC661_DEFINITION_MAX_XML_NAME_BYTES];          ///< Filename chosen in the save dialog.
-    Arinc661_Definition_Document_t documents[ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS];             ///< Document slots and workspaces.
-} Arinc661_Definition_Editor_t;
+    struct Arinc661_Context_s*           context;                                                              ///< Shared application context, or NULL.
+    FACEOE_Gfx_DrawList_t                drawList;                                                             ///< Scene draw list.
+    FACEOE_Gfx_Command_t                 sceneCommands[ARINC661_DEFINITION_EDITOR_MAX_SCENE_COMMANDS];         ///< Scene command storage.
+    FACEOE_Gfx_Point_t                   scenePoints[ARINC661_DEFINITION_EDITOR_MAX_SCENE_POINTS];             ///< Scene point storage.
+    char_t                               sceneText[ARINC661_DEFINITION_EDITOR_MAX_SCENE_TEXT_BYTES];           ///< Scene text storage.
+    Arinc661_Scene_Bounds_t              sceneBounds[ARINC661_DEFINITION_EDITOR_MAX_WIDGETS];                  ///< Widget bounds of the last scene.
+    uint32_t                             sceneBoundsCount;                                                     ///< Bounds recorded by the last scene.
+    int32_t                              dragMode;                                                             ///< Scene drag in progress: none, move, or a resize corner.
+    uint32_t                             dragWidget;                                                           ///< Widget being dragged.
+    float32_t                            dragStartX;                                                           ///< Mouse X at drag start.
+    float32_t                            dragStartY;                                                           ///< Mouse Y at drag start.
+    float32_t                            dragOriginX;                                                          ///< PosX at drag start.
+    float32_t                            dragOriginY;                                                          ///< PosY at drag start.
+    float32_t                            dragOriginWidth;                                                      ///< SizeX at drag start.
+    float32_t                            dragOriginHeight;                                                     ///< SizeY at drag start.
+    float32_t                            dragOriginAngle;                                                      ///< RotationAngle at drag start.
+    float32_t                            dragCenterX;                                                          ///< Rotation pivot on screen at drag start.
+    float32_t                            dragCenterY;                                                          ///< Rotation pivot on screen at drag start.
+    float32_t                            dragScale;                                                            ///< Screen pixels per layer unit during the drag.
+    bool_t                               hasDragged;                                                           ///< TRUE once the drag moved the mouse.
+    bool_t                               isMarquee;                                                            ///< TRUE while a rubber-band selection is drawn.
+    bool_t                               zoomsToSelection;                                                     ///< TRUE to fit the view to the selection next frame.
+    float32_t                            animationTime;                                                        ///< Seconds into the animations shown, or negative for the rest state.
+    bool_t                               isPlaying;                                                            ///< TRUE while play mode holds snapshots of the documents.
+    void*                                playSnapshots[ARINC661_DEFINITION_EDITOR_MAX_OPEN_DOCUMENTS];         ///< Document states to restore when play stops.
+    bool_t                               playWasDirty[ARINC661_DEFINITION_EDITOR_MAX_OPEN_DOCUMENTS];          ///< Dirty flags to restore when play stops.
+    Arinc661_Widget_t                    clipboardWidgets[ARINC661_DEFINITION_EDITOR_CLIPBOARD_WIDGETS];       ///< Copied subtrees; parent indices are relative to the clipboard.
+    Arinc661_Property_t                  clipboardProperties[ARINC661_DEFINITION_EDITOR_CLIPBOARD_PROPERTIES]; ///< Their properties; ownerIndex is relative to the clipboard.
+    uint32_t                             clipboardWidgetCount;                                                 ///< Widgets in the clipboard.
+    uint32_t                             clipboardPropertyCount;                                               ///< Properties in the clipboard.
+    uint32_t                             renamingWidget;                                                       ///< Widget whose name is being edited inline, or UINT32_MAX.
+    char_t                               renameBuffer[ARINC661_MAX_NAME_BYTES];                                ///< Inline rename text.
+    char_t                               hierarchyFilter[ARINC661_DEFINITION_EDITOR_MAX_FILTER_BYTES];         ///< Hierarchy filter text.
+    char_t                               inspectorFilter[ARINC661_DEFINITION_EDITOR_MAX_FILTER_BYTES];         ///< Inspector parameter filter text.
+    float32_t                            marqueeStartX;                                                        ///< Screen X where the marquee started.
+    float32_t                            marqueeStartY;                                                        ///< Screen Y where the marquee started.
+    float32_t                            dragOrigins[ARINC661_DEFINITION_EDITOR_MAX_WIDGETS][2];               ///< PosX and PosY of every selected widget at drag start.
+    bool_t                               isSnapping;                                                           ///< TRUE to snap moves and sizes to whole millimetres.
+    bool_t                               showsGrid;                                                            ///< TRUE to draw a millimetre grid behind the layer.
+    uint32_t                             dropWidget;                                                           ///< Widget dropped onto a hierarchy node this frame, or UINT32_MAX.
+    uint32_t                             dropParent;                                                           ///< Node it was dropped on, or UINT32_MAX for the layer.
+    uint32_t                             dropLayer;                                                            ///< Layer of that node.
+    uint32_t                             createConfiguration;                                                  ///< Configuration slot chosen for a new user application.
+    uint32_t                             createWindow;                                                         ///< Window array index chosen for it.
+    char_t                               dropType[ARINC661_MAX_NAME_BYTES];                                    ///< Palette type dropped on a hierarchy node this frame, or empty.
+    uint32_t                             dropTypeParent;                                                       ///< Node it was dropped on, or UINT32_MAX for the layer.
+    uint32_t                             dropTypeLayer;                                                        ///< Layer of that node.
+    char_t                               addFilter[ARINC661_DEFINITION_EDITOR_MAX_FILTER_BYTES];               ///< Type filter typed in the add pop-up.
+    uint32_t                             addLayer;                                                             ///< Layer the add pop-up targets.
+    uint32_t                             addParent;                                                            ///< Parent widget the add pop-up targets.
+    uint32_t                             addHit;                                                               ///< Widget under the cursor when the add pop-up opened.
+    float32_t                            addX;                                                                 ///< Layer X where the add pop-up opened.
+    float32_t                            addY;                                                                 ///< Layer Y where the add pop-up opened.
+    int32_t                              status;                                                               ///< File browser status message.
+    uint32_t                             activeDocumentIndex;                                                  ///< Selected document slot.
+    uint32_t                             requestedDocumentIndex;                                               ///< Tab to select after opening a file.
+    uint32_t                             pendingCloseDocumentIndex;                                            ///< Document awaiting close confirmation.
+    uint32_t                             pendingSaveDocumentIndex;                                             ///< Untitled document awaiting a filename.
+    bool_t                               isSaveAllPending;                                                     ///< TRUE while Save All is naming untitled documents.
+    char_t                               renamedFrom[ARINC661_DEFINITION_EDITOR_MAX_XML_NAME_BYTES];           ///< Name a document had before its last Save As, or empty.
+    char_t                               renamedTo[ARINC661_DEFINITION_EDITOR_MAX_XML_NAME_BYTES];             ///< Name it has now.
+    char_t                               statusNote[ARINC661_DEFINITION_EDITOR_MAX_XML_NAME_BYTES];            ///< Host note appended to the status text, or empty.
+    char_t                               folderPath[ARINC661_DEFINITION_EDITOR_MAX_FOLDER_PATH_BYTES];         ///< Folder containing Definition Files.
+    char_t                               saveFolderPath[ARINC661_DEFINITION_EDITOR_MAX_FOLDER_PATH_BYTES];     ///< Folder chosen in the save dialog.
+    char_t                               saveFileName[ARINC661_DEFINITION_EDITOR_MAX_XML_NAME_BYTES];          ///< Filename chosen in the save dialog.
+    Arinc661_DefinitionEditor_Document_t documents[ARINC661_DEFINITION_EDITOR_MAX_OPEN_DOCUMENTS];             ///< Document slots and workspaces.
+} Arinc661_DefinitionEditor_t;
 
 /*=================================================================================================
 ** 3.3 Constants
@@ -177,7 +177,7 @@ typedef struct Arinc661_Definition_Editor_s
  *
  * \retval        None
  */
-void Arinc661_Definition_Initialize(Arinc661_Definition_Editor_t* editor);
+void Arinc661_Definition_Initialize(Arinc661_DefinitionEditor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -187,7 +187,7 @@ void Arinc661_Definition_Initialize(Arinc661_Definition_Editor_t* editor);
  *
  * \retval        None
  */
-void Arinc661_Definition_DrawEditor(Arinc661_Definition_Editor_t* editor);
+void Arinc661_DefinitionEditor_DrawEditor(Arinc661_DefinitionEditor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -198,7 +198,7 @@ void Arinc661_Definition_DrawEditor(Arinc661_Definition_Editor_t* editor);
  *
  * \retval        None
  */
-void Arinc661_Definition_SetFolderPath(Arinc661_Definition_Editor_t* editor, const char_t* folderPath);
+void Arinc661_DefinitionEditor_SetFolderPath(Arinc661_DefinitionEditor_t* editor, const char_t* folderPath);
 
 /*************************************************************************************************/
 /**
@@ -209,7 +209,7 @@ void Arinc661_Definition_SetFolderPath(Arinc661_Definition_Editor_t* editor, con
  *
  * \retval        None
  */
-void Arinc661_Definition_LoadFile(Arinc661_Definition_Editor_t* editor, const char_t* fileName);
+void Arinc661_DefinitionEditor_LoadFile(Arinc661_DefinitionEditor_t* editor, const char_t* fileName);
 
 /*************************************************************************************************/
 /**
@@ -219,7 +219,7 @@ void Arinc661_Definition_LoadFile(Arinc661_Definition_Editor_t* editor, const ch
  *
  * \retval        None
  */
-void Arinc661_Definition_CreateDocument(Arinc661_Definition_Editor_t* editor);
+void Arinc661_DefinitionEditor_CreateDocument(Arinc661_DefinitionEditor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -229,7 +229,7 @@ void Arinc661_Definition_CreateDocument(Arinc661_Definition_Editor_t* editor);
  *
  * \retval        None
  */
-void Arinc661_Definition_SaveActiveDocument(Arinc661_Definition_Editor_t* editor);
+void Arinc661_DefinitionEditor_SaveActiveDocument(Arinc661_DefinitionEditor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -239,7 +239,7 @@ void Arinc661_Definition_SaveActiveDocument(Arinc661_Definition_Editor_t* editor
  *
  * \retval        None
  */
-void Arinc661_Definition_SaveAllDocuments(Arinc661_Definition_Editor_t* editor);
+void Arinc661_DefinitionEditor_SaveAllDocuments(Arinc661_DefinitionEditor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -249,7 +249,7 @@ void Arinc661_Definition_SaveAllDocuments(Arinc661_Definition_Editor_t* editor);
  *
  * \retval        None
  */
-void Arinc661_Definition_CloseActiveDocument(Arinc661_Definition_Editor_t* editor);
+void Arinc661_DefinitionEditor_CloseActiveDocument(Arinc661_DefinitionEditor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -262,7 +262,7 @@ void Arinc661_Definition_CloseActiveDocument(Arinc661_Definition_Editor_t* edito
  * \retval     TRUE      if a document is active.
  * \retval     FALSE     otherwise.
  */
-bool_t Arinc661_Definition_HasActiveDocument(const Arinc661_Definition_Editor_t* editor, bool_t* isDirty, bool_t* hasFree);
+bool_t Arinc661_DefinitionEditor_HasActiveDocument(const Arinc661_DefinitionEditor_t* editor, bool_t* isDirty, bool_t* hasFree);
 
 /*************************************************************************************************/
 /**
@@ -272,7 +272,7 @@ bool_t Arinc661_Definition_HasActiveDocument(const Arinc661_Definition_Editor_t*
  *
  * \retval        None
  */
-void Arinc661_Definition_DrawDocumentTabs(Arinc661_Definition_Editor_t* editor);
+void Arinc661_DefinitionEditor_DrawDocumentTabs(Arinc661_DefinitionEditor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -282,7 +282,7 @@ void Arinc661_Definition_DrawDocumentTabs(Arinc661_Definition_Editor_t* editor);
  *
  * \retval        None
  */
-void Arinc661_Definition_DrawHierarchy(Arinc661_Definition_Editor_t* editor);
+void Arinc661_DefinitionEditor_DrawHierarchy(Arinc661_DefinitionEditor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -292,7 +292,7 @@ void Arinc661_Definition_DrawHierarchy(Arinc661_Definition_Editor_t* editor);
  *
  * \retval        None
  */
-void Arinc661_Definition_DrawScene(Arinc661_Definition_Editor_t* editor);
+void Arinc661_DefinitionEditor_DrawScene(Arinc661_DefinitionEditor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -302,7 +302,7 @@ void Arinc661_Definition_DrawScene(Arinc661_Definition_Editor_t* editor);
  *
  * \retval        None
  */
-void Arinc661_Definition_DrawInspector(Arinc661_Definition_Editor_t* editor);
+void Arinc661_DefinitionEditor_DrawInspector(Arinc661_DefinitionEditor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -312,7 +312,7 @@ void Arinc661_Definition_DrawInspector(Arinc661_Definition_Editor_t* editor);
  *
  * \retval        None
  */
-void Arinc661_Definition_DrawDialogs(Arinc661_Definition_Editor_t* editor);
+void Arinc661_DefinitionEditor_DrawDialogs(Arinc661_DefinitionEditor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -322,7 +322,7 @@ void Arinc661_Definition_DrawDialogs(Arinc661_Definition_Editor_t* editor);
  *
  * \retval    const char_t*   Zero-terminated status text.
  */
-const char_t* Arinc661_Definition_StatusText(const Arinc661_Definition_Editor_t* editor);
+const char_t* Arinc661_DefinitionEditor_StatusText(const Arinc661_DefinitionEditor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -334,7 +334,7 @@ const char_t* Arinc661_Definition_StatusText(const Arinc661_Definition_Editor_t*
  *
  * \retval     None
  */
-void Arinc661_Definition_MeasurePanes(const Arinc661_Definition_Editor_t* editor, float32_t* hierarchyWidth, float32_t* inspectorWidth);
+void Arinc661_DefinitionEditor_MeasurePanes(const Arinc661_DefinitionEditor_t* editor, float32_t* hierarchyWidth, float32_t* inspectorWidth);
 
 /*************************************************************************************************/
 /**
@@ -346,7 +346,7 @@ void Arinc661_Definition_MeasurePanes(const Arinc661_Definition_Editor_t* editor
  * \retval    TRUE        if the bytes start a binary Definition File or an a661_df document.
  * \retval    FALSE       otherwise.
  */
-bool_t Arinc661_Definition_IsDefinitionFile(const byte_t* bytes, uint64_t byteCount);
+bool_t Arinc661_DefinitionEditor_IsDefinitionFile(const byte_t* bytes, uint64_t byteCount);
 
 /*************************************************************************************************/
 /**
@@ -357,7 +357,7 @@ bool_t Arinc661_Definition_IsDefinitionFile(const byte_t* bytes, uint64_t byteCo
  *
  * \retval        None
  */
-void Arinc661_Definition_SetContext(Arinc661_Definition_Editor_t* editor, struct Arinc661_Context_s* context);
+void Arinc661_DefinitionEditor_SetContext(Arinc661_DefinitionEditor_t* editor, struct Arinc661_Context_s* context);
 
 /*************************************************************************************************/
 /**
@@ -366,9 +366,9 @@ void Arinc661_Definition_SetContext(Arinc661_Definition_Editor_t* editor, struct
  * \param[in] editor     Editor state
  * \param[in] fileName   File name as shown on its tab
  *
- * \retval    uint32_t   Document slot, or ARINC661_DEFINITION_NO_DOCUMENT.
+ * \retval    uint32_t   Document slot, or ARINC661_DEFINITION_EDITOR_NO_DOCUMENT.
  */
-uint32_t Arinc661_Definition_FindDocument(const Arinc661_Definition_Editor_t* editor, const char_t* fileName);
+uint32_t Arinc661_DefinitionEditor_FindDocument(const Arinc661_DefinitionEditor_t* editor, const char_t* fileName);
 
 /*************************************************************************************************/
 /**
@@ -379,7 +379,7 @@ uint32_t Arinc661_Definition_FindDocument(const Arinc661_Definition_Editor_t* ed
  *
  * \retval    const Arinc661_Definition_t*   Values, or NULL when the slot is empty.
  */
-const Arinc661_Definition_t* Arinc661_Definition_Document(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex);
+const Arinc661_Definition_t* Arinc661_DefinitionEditor_Document(const Arinc661_DefinitionEditor_t* editor, uint32_t documentIndex);
 
 /*************************************************************************************************/
 /**
@@ -390,7 +390,7 @@ const Arinc661_Definition_t* Arinc661_Definition_Document(const Arinc661_Definit
  *
  * \retval    const char_t*   Name, or NULL when the slot is empty.
  */
-const char_t* Arinc661_Definition_DocumentName(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex);
+const char_t* Arinc661_DefinitionEditor_DocumentName(const Arinc661_DefinitionEditor_t* editor, uint32_t documentIndex);
 
 /*************************************************************************************************/
 /**
@@ -403,7 +403,7 @@ const char_t* Arinc661_Definition_DocumentName(const Arinc661_Definition_Editor_
  * \retval     TRUE            if the property exists and is numeric.
  * \retval     FALSE           otherwise.
  */
-bool_t Arinc661_Definition_DocumentApplicationId(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, int64_t* applicationId);
+bool_t Arinc661_DefinitionEditor_DocumentApplicationId(const Arinc661_DefinitionEditor_t* editor, uint32_t documentIndex, int64_t* applicationId);
 
 /*************************************************************************************************/
 /**
@@ -414,7 +414,7 @@ bool_t Arinc661_Definition_DocumentApplicationId(const Arinc661_Definition_Edito
  *
  * \retval        None
  */
-void Arinc661_Definition_SelectDocument(Arinc661_Definition_Editor_t* editor, uint32_t documentIndex);
+void Arinc661_DefinitionEditor_SelectDocument(Arinc661_DefinitionEditor_t* editor, uint32_t documentIndex);
 
 /*************************************************************************************************/
 /**
@@ -432,7 +432,7 @@ void Arinc661_Definition_SelectDocument(Arinc661_Definition_Editor_t* editor, ui
  * \retval        TRUE            if the document is open and at least one layer was recorded.
  * \retval        FALSE           otherwise.
  */
-bool_t Arinc661_Definition_RecordDocument(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, FACEOE_Gfx_DrawList_t* drawList, float32_t fontSize);
+bool_t Arinc661_DefinitionEditor_RecordDocument(const Arinc661_DefinitionEditor_t* editor, uint32_t documentIndex, FACEOE_Gfx_DrawList_t* drawList, float32_t fontSize);
 
 /*************************************************************************************************/
 /**
@@ -442,7 +442,7 @@ bool_t Arinc661_Definition_RecordDocument(const Arinc661_Definition_Editor_t* ed
  *
  * \retval        None
  */
-void Arinc661_Definition_Undo(Arinc661_Definition_Editor_t* editor);
+void Arinc661_DefinitionEditor_Undo(Arinc661_DefinitionEditor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -452,7 +452,7 @@ void Arinc661_Definition_Undo(Arinc661_Definition_Editor_t* editor);
  *
  * \retval        None
  */
-void Arinc661_Definition_Redo(Arinc661_Definition_Editor_t* editor);
+void Arinc661_DefinitionEditor_Redo(Arinc661_DefinitionEditor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -464,7 +464,7 @@ void Arinc661_Definition_Redo(Arinc661_Definition_Editor_t* editor);
  *
  * \retval     None
  */
-void Arinc661_Definition_History(const Arinc661_Definition_Editor_t* editor, bool_t* canUndo, bool_t* canRedo);
+void Arinc661_DefinitionEditor_History(const Arinc661_DefinitionEditor_t* editor, bool_t* canUndo, bool_t* canRedo);
 
 /*************************************************************************************************/
 /**
@@ -474,7 +474,7 @@ void Arinc661_Definition_History(const Arinc661_Definition_Editor_t* editor, boo
  *
  * \retval        None
  */
-void Arinc661_Definition_DeleteSelection(Arinc661_Definition_Editor_t* editor);
+void Arinc661_DefinitionEditor_DeleteSelection(Arinc661_DefinitionEditor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -484,7 +484,7 @@ void Arinc661_Definition_DeleteSelection(Arinc661_Definition_Editor_t* editor);
  *
  * \retval        None
  */
-void Arinc661_Definition_DuplicateSelection(Arinc661_Definition_Editor_t* editor);
+void Arinc661_DefinitionEditor_DuplicateSelection(Arinc661_DefinitionEditor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -496,7 +496,7 @@ void Arinc661_Definition_DuplicateSelection(Arinc661_Definition_Editor_t* editor
  * \retval        TRUE     if snapping is on.
  * \retval        FALSE    otherwise.
  */
-bool_t Arinc661_Definition_Snap(Arinc661_Definition_Editor_t* editor, bool_t toggle);
+bool_t Arinc661_DefinitionEditor_Snap(Arinc661_DefinitionEditor_t* editor, bool_t toggle);
 
 /*************************************************************************************************/
 /**
@@ -508,7 +508,7 @@ bool_t Arinc661_Definition_Snap(Arinc661_Definition_Editor_t* editor, bool_t tog
  * \retval        TRUE     if the grid is shown.
  * \retval        FALSE    otherwise.
  */
-bool_t Arinc661_Definition_Grid(Arinc661_Definition_Editor_t* editor, bool_t toggle);
+bool_t Arinc661_DefinitionEditor_Grid(Arinc661_DefinitionEditor_t* editor, bool_t toggle);
 
 /*************************************************************************************************/
 /**
@@ -518,7 +518,7 @@ bool_t Arinc661_Definition_Grid(Arinc661_Definition_Editor_t* editor, bool_t tog
  *
  * \retval        None
  */
-void Arinc661_Definition_FitView(Arinc661_Definition_Editor_t* editor);
+void Arinc661_DefinitionEditor_FitView(Arinc661_DefinitionEditor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -528,7 +528,7 @@ void Arinc661_Definition_FitView(Arinc661_Definition_Editor_t* editor);
  *
  * \retval        None
  */
-void Arinc661_Definition_AddLayer(Arinc661_Definition_Editor_t* editor);
+void Arinc661_DefinitionEditor_AddLayer(Arinc661_DefinitionEditor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -539,7 +539,7 @@ void Arinc661_Definition_AddLayer(Arinc661_Definition_Editor_t* editor);
  *
  * \retval        None
  */
-void Arinc661_Definition_AddWidget(Arinc661_Definition_Editor_t* editor);
+void Arinc661_DefinitionEditor_AddWidget(Arinc661_DefinitionEditor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -549,7 +549,7 @@ void Arinc661_Definition_AddWidget(Arinc661_Definition_Editor_t* editor);
  *
  * \retval        None
  */
-void Arinc661_Definition_AddExtension(Arinc661_Definition_Editor_t* editor);
+void Arinc661_DefinitionEditor_AddExtension(Arinc661_DefinitionEditor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -559,7 +559,7 @@ void Arinc661_Definition_AddExtension(Arinc661_Definition_Editor_t* editor);
  *
  * \retval    const char_t*   Type name, or NULL when no widget is selected.
  */
-const char_t* Arinc661_Definition_SelectedType(const Arinc661_Definition_Editor_t* editor);
+const char_t* Arinc661_DefinitionEditor_SelectedType(const Arinc661_DefinitionEditor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -571,7 +571,7 @@ const char_t* Arinc661_Definition_SelectedType(const Arinc661_Definition_Editor_
  * \retval        TRUE     if a widget was selected.
  * \retval        FALSE    otherwise.
  */
-bool_t Arinc661_Definition_SelectByName(Arinc661_Definition_Editor_t* editor, const char_t* name);
+bool_t Arinc661_DefinitionEditor_SelectByName(Arinc661_DefinitionEditor_t* editor, const char_t* name);
 
 /*************************************************************************************************/
 /**
@@ -581,7 +581,7 @@ bool_t Arinc661_Definition_SelectByName(Arinc661_Definition_Editor_t* editor, co
  *
  * \retval        None
  */
-void Arinc661_Definition_EndFrame(Arinc661_Definition_Editor_t* editor);
+void Arinc661_DefinitionEditor_EndFrame(Arinc661_DefinitionEditor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -597,7 +597,7 @@ void Arinc661_Definition_EndFrame(Arinc661_Definition_Editor_t* editor);
  * \retval        TRUE            if the document was created and selected.
  * \retval        FALSE           when no slot is free.
  */
-bool_t Arinc661_Definition_CreateFor(Arinc661_Definition_Editor_t* editor, const char_t* fileName, int64_t applicationId, float32_t layerWidth, float32_t layerHeight);
+bool_t Arinc661_DefinitionEditor_CreateFor(Arinc661_DefinitionEditor_t* editor, const char_t* fileName, int64_t applicationId, float32_t layerWidth, float32_t layerHeight);
 
 /*************************************************************************************************/
 /**
@@ -609,7 +609,7 @@ bool_t Arinc661_Definition_CreateFor(Arinc661_Definition_Editor_t* editor, const
  *
  * \retval        None
  */
-void Arinc661_Definition_SelectLayer(Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, uint32_t layerIndex);
+void Arinc661_DefinitionEditor_SelectLayer(Arinc661_DefinitionEditor_t* editor, uint32_t documentIndex, uint32_t layerIndex);
 
 /*************************************************************************************************/
 /**
@@ -621,7 +621,7 @@ void Arinc661_Definition_SelectLayer(Arinc661_Definition_Editor_t* editor, uint3
  *
  * \retval        None
  */
-void Arinc661_Definition_SelectWidget(Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, uint32_t widgetIndex);
+void Arinc661_DefinitionEditor_SelectWidget(Arinc661_DefinitionEditor_t* editor, uint32_t documentIndex, uint32_t widgetIndex);
 
 /*************************************************************************************************/
 /**
@@ -638,7 +638,7 @@ void Arinc661_Definition_SelectWidget(Arinc661_Definition_Editor_t* editor, uint
  * \retval        TRUE            if at least one layer was recorded.
  * \retval        FALSE           otherwise.
  */
-bool_t Arinc661_Definition_RecordDocumentBounds(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, FACEOE_Gfx_DrawList_t* drawList, float32_t fontSize, Arinc661_Scene_Bounds_t* bounds, uint32_t boundsCapacity, uint32_t* boundsCount);
+bool_t Arinc661_DefinitionEditor_RecordDocumentBounds(const Arinc661_DefinitionEditor_t* editor, uint32_t documentIndex, FACEOE_Gfx_DrawList_t* drawList, float32_t fontSize, Arinc661_Scene_Bounds_t* bounds, uint32_t boundsCapacity, uint32_t* boundsCount);
 
 /*************************************************************************************************/
 /**
@@ -651,7 +651,7 @@ bool_t Arinc661_Definition_RecordDocumentBounds(const Arinc661_Definition_Editor
  * \retval     TRUE            if a Save As happened since the last call; the record is cleared.
  * \retval     FALSE           otherwise.
  */
-bool_t Arinc661_Definition_TakeRename(Arinc661_Definition_Editor_t* editor, const char_t** previousName, const char_t** currentName);
+bool_t Arinc661_DefinitionEditor_TakeRename(Arinc661_DefinitionEditor_t* editor, const char_t** previousName, const char_t** currentName);
 
 /*************************************************************************************************/
 /**
@@ -664,7 +664,7 @@ bool_t Arinc661_Definition_TakeRename(Arinc661_Definition_Editor_t* editor, cons
  * \retval        TRUE            if the selection changed through this tree.
  * \retval        FALSE           otherwise.
  */
-bool_t Arinc661_Definition_DrawDocumentHierarchy(Arinc661_Definition_Editor_t* editor, uint32_t documentIndex);
+bool_t Arinc661_DefinitionEditor_DrawDocumentHierarchy(Arinc661_DefinitionEditor_t* editor, uint32_t documentIndex);
 
 /*************************************************************************************************/
 /**
@@ -676,7 +676,7 @@ bool_t Arinc661_Definition_DrawDocumentHierarchy(Arinc661_Definition_Editor_t* e
  *
  * \retval     None
  */
-void Arinc661_Definition_SelectionText(const Arinc661_Definition_Editor_t* editor, char_t* text, uint32_t capacity);
+void Arinc661_DefinitionEditor_SelectionText(const Arinc661_DefinitionEditor_t* editor, char_t* text, uint32_t capacity);
 
 /*************************************************************************************************/
 /**
@@ -693,7 +693,7 @@ void Arinc661_Definition_SelectionText(const Arinc661_Definition_Editor_t* edito
  * \retval     TRUE            if the layer exists.
  * \retval     FALSE           otherwise.
  */
-bool_t Arinc661_Definition_LayerAt(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, uint32_t layerIndex, const char_t** layerId, const char_t** name, float32_t* width, float32_t* height);
+bool_t Arinc661_DefinitionEditor_LayerAt(const Arinc661_DefinitionEditor_t* editor, uint32_t documentIndex, uint32_t layerIndex, const char_t** layerId, const char_t** name, float32_t* width, float32_t* height);
 
 /*************************************************************************************************/
 /**
@@ -714,7 +714,7 @@ bool_t Arinc661_Definition_LayerAt(const Arinc661_Definition_Editor_t* editor, u
  * \retval     TRUE            if such a problem exists.
  * \retval     FALSE           otherwise.
  */
-bool_t Arinc661_Definition_ProblemAt(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, uint32_t index, char_t* text, uint32_t capacity, uint32_t* widgetIndex, uint32_t* layerIndex);
+bool_t Arinc661_DefinitionEditor_ProblemAt(const Arinc661_DefinitionEditor_t* editor, uint32_t documentIndex, uint32_t index, char_t* text, uint32_t capacity, uint32_t* widgetIndex, uint32_t* layerIndex);
 
 /*************************************************************************************************/
 /**
@@ -726,7 +726,7 @@ bool_t Arinc661_Definition_ProblemAt(const Arinc661_Definition_Editor_t* editor,
  * \retval    TRUE            if it does.
  * \retval    FALSE           otherwise.
  */
-bool_t Arinc661_Definition_HasMapSource(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex);
+bool_t Arinc661_DefinitionEditor_HasMapSource(const Arinc661_DefinitionEditor_t* editor, uint32_t documentIndex);
 
 /*************************************************************************************************/
 /**
@@ -740,7 +740,7 @@ bool_t Arinc661_Definition_HasMapSource(const Arinc661_Definition_Editor_t* edit
  * \retval     TRUE            if the layer exists and has a numeric LayerId.
  * \retval     FALSE           otherwise.
  */
-bool_t Arinc661_Definition_LayerIdAt(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, uint32_t layerIndex, int64_t* layerId);
+bool_t Arinc661_DefinitionEditor_LayerIdAt(const Arinc661_DefinitionEditor_t* editor, uint32_t documentIndex, uint32_t layerIndex, int64_t* layerId);
 
 /*************************************************************************************************/
 /**
@@ -753,7 +753,7 @@ bool_t Arinc661_Definition_LayerIdAt(const Arinc661_Definition_Editor_t* editor,
  * \retval     TRUE            if a widget is selected in that document.
  * \retval     FALSE           otherwise.
  */
-bool_t Arinc661_Definition_SelectedWidgetIndex(const Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, uint32_t* widgetIndex);
+bool_t Arinc661_DefinitionEditor_SelectedWidgetIndex(const Arinc661_DefinitionEditor_t* editor, uint32_t documentIndex, uint32_t* widgetIndex);
 
 /*************************************************************************************************/
 /**
@@ -764,7 +764,7 @@ bool_t Arinc661_Definition_SelectedWidgetIndex(const Arinc661_Definition_Editor_
  *
  * \retval        None
  */
-void Arinc661_Definition_SetStatusNote(Arinc661_Definition_Editor_t* editor, const char_t* text);
+void Arinc661_DefinitionEditor_SetStatusNote(Arinc661_DefinitionEditor_t* editor, const char_t* text);
 
 /*************************************************************************************************/
 /**
@@ -775,7 +775,7 @@ void Arinc661_Definition_SetStatusNote(Arinc661_Definition_Editor_t* editor, con
  *
  * \retval        None
  */
-void Arinc661_Definition_AddWidgetOfType(Arinc661_Definition_Editor_t* editor, const char_t* type);
+void Arinc661_DefinitionEditor_AddWidgetOfType(Arinc661_DefinitionEditor_t* editor, const char_t* type);
 
 /*************************************************************************************************/
 /**
@@ -786,7 +786,7 @@ void Arinc661_Definition_AddWidgetOfType(Arinc661_Definition_Editor_t* editor, c
  *
  * \retval        None
  */
-void Arinc661_Definition_AddExtensionOfType(Arinc661_Definition_Editor_t* editor, const char_t* type);
+void Arinc661_DefinitionEditor_AddExtensionOfType(Arinc661_DefinitionEditor_t* editor, const char_t* type);
 
 /*************************************************************************************************/
 /**
@@ -796,7 +796,7 @@ void Arinc661_Definition_AddExtensionOfType(Arinc661_Definition_Editor_t* editor
  *
  * \retval        uint32_t   Widgets copied.
  */
-uint32_t Arinc661_Definition_Copy(Arinc661_Definition_Editor_t* editor);
+uint32_t Arinc661_DefinitionEditor_Copy(Arinc661_DefinitionEditor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -806,7 +806,7 @@ uint32_t Arinc661_Definition_Copy(Arinc661_Definition_Editor_t* editor);
  *
  * \retval        uint32_t   Widgets pasted.
  */
-uint32_t Arinc661_Definition_Paste(Arinc661_Definition_Editor_t* editor);
+uint32_t Arinc661_DefinitionEditor_Paste(Arinc661_DefinitionEditor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -816,7 +816,7 @@ uint32_t Arinc661_Definition_Paste(Arinc661_Definition_Editor_t* editor);
  *
  * \retval        None
  */
-void Arinc661_Definition_BeginRename(Arinc661_Definition_Editor_t* editor);
+void Arinc661_DefinitionEditor_BeginRename(Arinc661_DefinitionEditor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -827,7 +827,7 @@ void Arinc661_Definition_BeginRename(Arinc661_Definition_Editor_t* editor);
  *
  * \retval        None
  */
-void Arinc661_Definition_SetAnimationTime(Arinc661_Definition_Editor_t* editor, float32_t seconds);
+void Arinc661_DefinitionEditor_SetAnimationTime(Arinc661_DefinitionEditor_t* editor, float32_t seconds);
 
 /*************************************************************************************************/
 /**
@@ -843,7 +843,7 @@ void Arinc661_Definition_SetAnimationTime(Arinc661_Definition_Editor_t* editor, 
  * \retval     TRUE              if such an animation exists.
  * \retval     FALSE             otherwise.
  */
-bool_t Arinc661_Definition_AnimationAt(const Arinc661_Definition_Editor_t* editor, uint32_t index, const char_t** name, const char_t** type, float32_t* delaySeconds, float32_t* durationSeconds);
+bool_t Arinc661_DefinitionEditor_AnimationAt(const Arinc661_DefinitionEditor_t* editor, uint32_t index, const char_t** name, const char_t** type, float32_t* delaySeconds, float32_t* durationSeconds);
 
 /*************************************************************************************************/
 /**
@@ -853,7 +853,7 @@ bool_t Arinc661_Definition_AnimationAt(const Arinc661_Definition_Editor_t* edito
  *
  * \retval        None
  */
-void Arinc661_Definition_BeginPlay(Arinc661_Definition_Editor_t* editor);
+void Arinc661_DefinitionEditor_BeginPlay(Arinc661_DefinitionEditor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -863,7 +863,7 @@ void Arinc661_Definition_BeginPlay(Arinc661_Definition_Editor_t* editor);
  *
  * \retval        None
  */
-void Arinc661_Definition_EndPlay(Arinc661_Definition_Editor_t* editor);
+void Arinc661_DefinitionEditor_EndPlay(Arinc661_DefinitionEditor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -878,7 +878,7 @@ void Arinc661_Definition_EndPlay(Arinc661_Definition_Editor_t* editor);
  * \retval        TRUE            if a state changed.
  * \retval        FALSE           otherwise.
  */
-bool_t Arinc661_Definition_Interact(Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, uint32_t widgetIndex, float32_t fractionX, float32_t fractionY);
+bool_t Arinc661_DefinitionEditor_Interact(Arinc661_DefinitionEditor_t* editor, uint32_t documentIndex, uint32_t widgetIndex, float32_t fractionX, float32_t fractionY);
 
 /*************************************************************************************************/
 /**
@@ -892,7 +892,7 @@ bool_t Arinc661_Definition_Interact(Arinc661_Definition_Editor_t* editor, uint32
  * \retval        TRUE            if the file was written.
  * \retval        FALSE           otherwise.
  */
-bool_t Arinc661_Definition_ExportBinary(Arinc661_Definition_Editor_t* editor, uint32_t documentIndex, char_t* path, uint32_t capacity);
+bool_t Arinc661_DefinitionEditor_ExportBinary(Arinc661_DefinitionEditor_t* editor, uint32_t documentIndex, char_t* path, uint32_t capacity);
 
 /*************************************************************************************************/
 /**
@@ -902,7 +902,7 @@ bool_t Arinc661_Definition_ExportBinary(Arinc661_Definition_Editor_t* editor, ui
  *
  * \retval    uint32_t   Widget count, zero without an active document.
  */
-uint32_t Arinc661_Definition_WidgetCount(const Arinc661_Definition_Editor_t* editor);
+uint32_t Arinc661_DefinitionEditor_WidgetCount(const Arinc661_DefinitionEditor_t* editor);
 
 /*************************************************************************************************/
 /**
@@ -916,7 +916,7 @@ uint32_t Arinc661_Definition_WidgetCount(const Arinc661_Definition_Editor_t* edi
  * \retval        TRUE       if the file was written.
  * \retval        FALSE      otherwise.
  */
-bool_t Arinc661_Definition_SavePrefab(Arinc661_Definition_Editor_t* editor, const char_t* name, char_t* path, uint32_t capacity);
+bool_t Arinc661_DefinitionEditor_SavePrefab(Arinc661_DefinitionEditor_t* editor, const char_t* name, char_t* path, uint32_t capacity);
 
 /*************************************************************************************************/
 /**
@@ -928,7 +928,7 @@ bool_t Arinc661_Definition_SavePrefab(Arinc661_Definition_Editor_t* editor, cons
  * \retval        TRUE       if widgets were added.
  * \retval        FALSE      otherwise.
  */
-bool_t Arinc661_Definition_LoadPrefab(Arinc661_Definition_Editor_t* editor, const char_t* fileName);
+bool_t Arinc661_DefinitionEditor_LoadPrefab(Arinc661_DefinitionEditor_t* editor, const char_t* fileName);
 
 /*************************************************************************************************/
 /**
@@ -939,7 +939,7 @@ bool_t Arinc661_Definition_LoadPrefab(Arinc661_Definition_Editor_t* editor, cons
  *
  * \retval     uint32_t       States, zero without a document.
  */
-uint32_t Arinc661_Definition_HistoryCount(const Arinc661_Definition_Editor_t* editor, uint32_t* currentIndex);
+uint32_t Arinc661_DefinitionEditor_HistoryCount(const Arinc661_DefinitionEditor_t* editor, uint32_t* currentIndex);
 
 /*************************************************************************************************/
 /**
@@ -950,7 +950,7 @@ uint32_t Arinc661_Definition_HistoryCount(const Arinc661_Definition_Editor_t* ed
  *
  * \retval    const char_t*   Label, empty when out of range.
  */
-const char_t* Arinc661_Definition_HistoryLabel(const Arinc661_Definition_Editor_t* editor, uint32_t index);
+const char_t* Arinc661_DefinitionEditor_HistoryLabel(const Arinc661_DefinitionEditor_t* editor, uint32_t index);
 
 /*************************************************************************************************/
 /**
@@ -961,6 +961,6 @@ const char_t* Arinc661_Definition_HistoryLabel(const Arinc661_Definition_Editor_
  *
  * \retval        None
  */
-void Arinc661_Definition_GoToHistory(Arinc661_Definition_Editor_t* editor, uint32_t index);
+void Arinc661_DefinitionEditor_GoToHistory(Arinc661_DefinitionEditor_t* editor, uint32_t index);
 
 #endif /* ARINC661_DEFINITION_EDITOR_H */

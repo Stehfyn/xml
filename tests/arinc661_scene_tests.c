@@ -6,6 +6,7 @@
 ** 2. INCLUDE FILES
 **===============================================================================================*/
 
+#include "arinc661/arinc661_definition.h"
 #include "arinc661/arinc661_scene.h"
 
 #ifdef NDEBUG

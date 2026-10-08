@@ -58,7 +58,7 @@ extern "C"
 ** 3.4 Static global variables
 **===============================================================================================*/
 
-static Arinc661_Definition_Editor_t*    s_definitionEditor;
+static Arinc661_DefinitionEditor_t*    s_definitionEditor;
 static Arinc661_Configuration_Editor_t* s_configurationEditor;
 static Arinc661_Context_t*              s_context;
 
@@ -166,27 +166,27 @@ static void Frame(void)
     ImGui::SetNextWindowSize(ImVec2(GUI_SIDE_WIDTH, GUI_DISPLAY_HEIGHT));
     if (ImGui::Begin(GUI_HIERARCHY_WINDOW))
     {
-        Arinc661_Definition_DrawDocumentTabs(s_definitionEditor);
-        Arinc661_Definition_DrawHierarchy(s_definitionEditor);
+        Arinc661_DefinitionEditor_DrawDocumentTabs(s_definitionEditor);
+        Arinc661_DefinitionEditor_DrawHierarchy(s_definitionEditor);
     }
     ImGui::End();
     ImGui::SetNextWindowPos(ImVec2(GUI_SIDE_WIDTH, 0.0f));
     ImGui::SetNextWindowSize(ImVec2(GUI_SCENE_WIDTH, GUI_DISPLAY_HEIGHT));
     if (ImGui::Begin(GUI_SCENE_WINDOW))
     {
-        Arinc661_Definition_DrawScene(s_definitionEditor);
+        Arinc661_DefinitionEditor_DrawScene(s_definitionEditor);
     }
     ImGui::End();
     ImGui::SetNextWindowPos(ImVec2(GUI_SIDE_WIDTH + GUI_SCENE_WIDTH, 0.0f));
     ImGui::SetNextWindowSize(ImVec2(GUI_SIDE_WIDTH, GUI_DISPLAY_HEIGHT));
     if (ImGui::Begin(GUI_INSPECTOR_WINDOW))
     {
-        Arinc661_Definition_DrawInspector(s_definitionEditor);
+        Arinc661_DefinitionEditor_DrawInspector(s_definitionEditor);
     }
     ImGui::End();
-    Arinc661_Definition_DrawDialogs(s_definitionEditor);
+    Arinc661_DefinitionEditor_DrawDialogs(s_definitionEditor);
     ImGui::Render();
-    Arinc661_Definition_EndFrame(s_definitionEditor);
+    Arinc661_DefinitionEditor_EndFrame(s_definitionEditor);
 }
 
 /*************************************************************************************************/
@@ -285,8 +285,8 @@ static void Press(ImGuiKey key)
  */
 static uint32_t IndexOf(const char_t* name)
 {
-    const Arinc661_Definition_Document_t* document;
-    uint32_t                              widget_index;
+    const Arinc661_DefinitionEditor_Document_t* document;
+    uint32_t                                    widget_index;
 
     document = &s_definitionEditor->documents[s_definitionEditor->activeDocumentIndex];
     for (widget_index = 0; widget_index < document->definition.widgetCount; ++widget_index)
@@ -349,19 +349,19 @@ int main(int argc, char** argv)
     ImGui_ImplNullPlatform_Init();
     ImGui_ImplNullRender_Init();
 
-    s_definitionEditor    = (Arinc661_Definition_Editor_t*)OS_CALLOC(sizeof(Arinc661_Definition_Editor_t));
+    s_definitionEditor    = (Arinc661_DefinitionEditor_t*)OS_CALLOC(sizeof(Arinc661_DefinitionEditor_t));
     s_configurationEditor = (Arinc661_Configuration_Editor_t*)OS_CALLOC(sizeof(Arinc661_Configuration_Editor_t));
     s_context             = (Arinc661_Context_t*)OS_CALLOC(sizeof(Arinc661_Context_t));
     Arinc661_Definition_Initialize(s_definitionEditor);
     Arinc661_Configuration_Initialize(s_configurationEditor);
     Arinc661_Context_Initialize(s_context, s_configurationEditor, s_definitionEditor);
-    Arinc661_Definition_SetFolderPath(s_definitionEditor, argv[1]);
+    Arinc661_DefinitionEditor_SetFolderPath(s_definitionEditor, argv[1]);
 
     /* Frames with no document, then with an empty one, draw without asserting */
     Settle();
-    Arinc661_Definition_CreateDocument(s_definitionEditor);
+    Arinc661_DefinitionEditor_CreateDocument(s_definitionEditor);
     Settle();
-    Arinc661_Definition_LoadFile(s_definitionEditor, GUI_DEFINITION_FILE);
+    Arinc661_DefinitionEditor_LoadFile(s_definitionEditor, GUI_DEFINITION_FILE);
     Settle();
     status_index    = IndexOf(GUI_STATUS_LABEL);
     secondary_index = IndexOf(GUI_SECONDARY_LABEL);
@@ -370,7 +370,7 @@ int main(int argc, char** argv)
     widget_count = s_definitionEditor->documents[s_definitionEditor->activeDocumentIndex].definition.widgetCount;
 
     /* Select the layer so the scene draws it, then click a label: it becomes the selection */
-    Arinc661_Definition_SelectByName(s_definitionEditor, GUI_STATUS_LABEL);
+    Arinc661_DefinitionEditor_SelectByName(s_definitionEditor, GUI_STATUS_LABEL);
     Settle();
     assert(BoundsOf(GUI_STATUS_LABEL, &minimum, &maximum));
     assert(BoundsOf(GUI_SECONDARY_LABEL, &other_minimum, &other_maximum));
@@ -420,21 +420,21 @@ int main(int argc, char** argv)
     /* Delete removes the selection; undo brings it back */
     Press(ImGuiKey_Delete);
     assert((widget_count - 2) == s_definitionEditor->documents[s_definitionEditor->activeDocumentIndex].definition.widgetCount);
-    Arinc661_Definition_Undo(s_definitionEditor);
+    Arinc661_DefinitionEditor_Undo(s_definitionEditor);
     Settle();
     assert(widget_count == s_definitionEditor->documents[s_definitionEditor->activeDocumentIndex].definition.widgetCount);
 
     /* Play mode and the animation time draw frames and restore cleanly */
-    Arinc661_Definition_BeginPlay(s_definitionEditor);
+    Arinc661_DefinitionEditor_BeginPlay(s_definitionEditor);
     Settle();
-    Arinc661_Definition_EndPlay(s_definitionEditor);
-    Arinc661_Definition_SetAnimationTime(s_definitionEditor, 1.5f);
+    Arinc661_DefinitionEditor_EndPlay(s_definitionEditor);
+    Arinc661_DefinitionEditor_SetAnimationTime(s_definitionEditor, 1.5f);
     Settle();
-    Arinc661_Definition_SetAnimationTime(s_definitionEditor, -1.0f);
+    Arinc661_DefinitionEditor_SetAnimationTime(s_definitionEditor, -1.0f);
     Settle();
 
     /* Hidden and locked widgets: a locked widget is not picked by a click */
-    Arinc661_Definition_SelectByName(s_definitionEditor, GUI_STATUS_LABEL);
+    Arinc661_DefinitionEditor_SelectByName(s_definitionEditor, GUI_STATUS_LABEL);
     Settle();
     s_definitionEditor->documents[s_definitionEditor->activeDocumentIndex].isLocked[secondary_index] = TRUE;
     Settle();

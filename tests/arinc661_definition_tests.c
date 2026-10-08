@@ -493,7 +493,7 @@ static void TestDefinitionBinaryBlocks(void)
     Arinc661_Definition_Initialize(&definition, layers, 1, NULL, 0, properties, 8, blocks, sizeof(blocks));
     is_valid = Arinc661_Definition_ReadBinary(&definition, expected, sizeof(expected));
     assert(is_valid);
-    assert(2 == definition.charsetEncoding);
+    assert(ARINC661_CHARSET_ENCODING_UTF8 == definition.charsetEncoding);
     assert(1 == definition.layerCount);
     assert((16 + 32 + 36 + 12) == definition.blockByteCount);
     assert(0 == memcmp(blocks, &expected[16], definition.blockByteCount));
@@ -509,7 +509,7 @@ static void TestDefinitionBinaryBlocks(void)
     assert(NULL != strstr((const char_t*)output, "<charset-encoding name=\"A661_UTF8\"/>"));
     is_valid = Arinc661_Definition_Read(&definition, output, byte_count, c_workspace, sizeof(c_workspace));
     assert(is_valid);
-    assert(2 == definition.charsetEncoding);
+    assert(ARINC661_CHARSET_ENCODING_UTF8 == definition.charsetEncoding);
     assert(0 == definition.blockByteCount);
 
     /* Every truncation is rejected without reading past the input */

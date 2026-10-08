@@ -3349,12 +3349,12 @@ static void DrawEmbeddedDefinition(Arinc661_Configuration_Document_t* document, 
             ImFormatString(label, sizeof(label), DEFINITION_CLOSED_NODE_FORMAT, application->dFPath);
             if (ImGui::Selectable(label))
             {
-                Arinc661_Definition_LoadFile(context->definitionEditor, application->dFPath);
+                Arinc661_DefinitionEditor_LoadFile(context->definitionEditor, application->dFPath);
             }
         }
         else
         {
-            if (Arinc661_Definition_DrawDocumentHierarchy(context->definitionEditor, definition.documentIndex))
+            if (Arinc661_DefinitionEditor_DrawDocumentHierarchy(context->definitionEditor, definition.documentIndex))
             {
                 context->isDefinitionFocused = TRUE;
                 context->hasFocusRequest     = TRUE;
@@ -3389,7 +3389,7 @@ static void DrawDefinitionLayers(Arinc661_Configuration_Editor_t* editor, const 
     {
         ImGui::SeparatorText(LAYERS_SECTION_LABEL);
         has_window = Arinc661_Configuration_Window(editor, (uint32_t)(document - editor->documents), application->window, NULL, &pixel_width, &pixel_height, &units_per_pixel_x, &units_per_pixel_y);
-        for (layer_index = 0; Arinc661_Definition_LayerAt(editor->context->definitionEditor, definition.documentIndex, layer_index, &layer_id, &layer_name, &layer_width, &layer_height); ++layer_index)
+        for (layer_index = 0; Arinc661_DefinitionEditor_LayerAt(editor->context->definitionEditor, definition.documentIndex, layer_index, &layer_id, &layer_name, &layer_width, &layer_height); ++layer_index)
         {
             ImFormatString(label, sizeof(label), LAYER_ROW_FORMAT, layer_id, layer_name, (float64_t)layer_width, (float64_t)layer_height);
             is_too_big = !!(has_window && ((layer_width > ((float32_t)pixel_width * units_per_pixel_x * 1.001f)) || (layer_height > ((float32_t)pixel_height * units_per_pixel_y * 1.001f))));
@@ -3401,7 +3401,7 @@ static void DrawDefinitionLayers(Arinc661_Configuration_Editor_t* editor, const 
             ImGui::PushID((int)layer_index);
             if (ImGui::Selectable(label))
             {
-                Arinc661_Definition_SelectLayer(editor->context->definitionEditor, definition.documentIndex, layer_index);
+                Arinc661_DefinitionEditor_SelectLayer(editor->context->definitionEditor, definition.documentIndex, layer_index);
                 editor->context->isDefinitionFocused = TRUE;
                 editor->context->hasFocusRequest     = TRUE;
             }
@@ -4433,7 +4433,7 @@ static void DrawScenePane(Arinc661_Configuration_Editor_t* owner, Arinc661_Confi
                     {
                         if (owner->previewBounds[play_slot].widgetIndex == play_index)
                         {
-                            (void)Arinc661_Definition_Interact(owner->context->definitionEditor, owner->previewDocuments[play_slot], play_index,
+                            (void)Arinc661_DefinitionEditor_Interact(owner->context->definitionEditor, owner->previewDocuments[play_slot], play_index,
                                                                (mouse_position.x - owner->previewBounds[play_slot].minimum.x) / ImMax(1.0f, owner->previewBounds[play_slot].maximum.x - owner->previewBounds[play_slot].minimum.x),
                                                                (owner->previewBounds[play_slot].maximum.y - mouse_position.y) / ImMax(1.0f, owner->previewBounds[play_slot].maximum.y - owner->previewBounds[play_slot].minimum.y));
                             break;
@@ -4456,7 +4456,7 @@ static void DrawScenePane(Arinc661_Configuration_Editor_t* owner, Arinc661_Confi
                         {
                             if (owner->previewBounds[pick_slot].widgetIndex == pick_index)
                             {
-                                Arinc661_Definition_SelectWidget(owner->context->definitionEditor, owner->previewDocuments[pick_slot], pick_index);
+                                Arinc661_DefinitionEditor_SelectWidget(owner->context->definitionEditor, owner->previewDocuments[pick_slot], pick_index);
                                 owner->context->isDefinitionFocused = TRUE;
                                 owner->context->hasFocusRequest     = TRUE;
                                 break;
@@ -5251,11 +5251,11 @@ static void DrawWindowPreview(Arinc661_Configuration_Editor_t* editor, Arinc661_
             transform.f = areaMax.y;
             FACEOE_Gfx_DrawList_Clear(&editor->drawList);
             FACEOE_Gfx_DrawList_SetTransform(&editor->drawList, &transform);
-            document_index = Arinc661_Definition_FindDocument(editor->context->definitionEditor, application->dFPath);
-            if (ARINC661_DEFINITION_NO_DOCUMENT != document_index)
+            document_index = Arinc661_DefinitionEditor_FindDocument(editor->context->definitionEditor, application->dFPath);
+            if (ARINC661_DEFINITION_EDITOR_NO_DOCUMENT != document_index)
             {
                 bounds_count = 0;
-                if (Arinc661_Definition_RecordDocumentBounds(editor->context->definitionEditor, document_index, &editor->drawList, ImGui::GetFontSize(), &editor->previewBounds[editor->previewBoundsCount], ARINC661_CONFIGURATION_MAX_PREVIEW_BOUNDS - editor->previewBoundsCount, &bounds_count))
+                if (Arinc661_DefinitionEditor_RecordDocumentBounds(editor->context->definitionEditor, document_index, &editor->drawList, ImGui::GetFontSize(), &editor->previewBounds[editor->previewBoundsCount], ARINC661_CONFIGURATION_MAX_PREVIEW_BOUNDS - editor->previewBoundsCount, &bounds_count))
                 {
                     for (bounds_index = 0; bounds_index < bounds_count; ++bounds_index)
                     {
@@ -5265,7 +5265,7 @@ static void DrawWindowPreview(Arinc661_Configuration_Editor_t* editor, Arinc661_
                     drawList->PushClipRect(ImVec2(minimum.x, minimum.y), ImVec2(maximum.x, maximum.y), true);
                     Arinc661_Gfx_ImGui_Render(&editor->drawList, drawList);
                     // Outline the widget selected in the Definition File editor so both views agree
-                    if (Arinc661_Definition_SelectedWidgetIndex(editor->context->definitionEditor, document_index, &selected_widget))
+                    if (Arinc661_DefinitionEditor_SelectedWidgetIndex(editor->context->definitionEditor, document_index, &selected_widget))
                     {
                         for (bounds_index = 0; bounds_index < bounds_count; ++bounds_index)
                         {

@@ -92,7 +92,7 @@ static bool_t FileExistsInFolder(const Arinc661_Context_t* context, const char_t
  * \par Details:
  *  Both editors keep a pointer to the context so their inspectors and scenes can consult it.
  */
-void Arinc661_Context_Initialize(Arinc661_Context_t* context, Arinc661_Configuration_Editor_t* configurationEditor, Arinc661_Definition_Editor_t* definitionEditor)
+void Arinc661_Context_Initialize(Arinc661_Context_t* context, Arinc661_Configuration_Editor_t* configurationEditor, Arinc661_DefinitionEditor_t* definitionEditor)
 {
     LOGASSERT(NULL != context);
     LOGASSERT(NULL != configurationEditor);
@@ -101,7 +101,7 @@ void Arinc661_Context_Initialize(Arinc661_Context_t* context, Arinc661_Configura
     context->configurationEditor = configurationEditor;
     context->definitionEditor    = definitionEditor;
     Arinc661_Configuration_SetContext(configurationEditor, context);
-    Arinc661_Definition_SetContext(definitionEditor, context);
+    Arinc661_DefinitionEditor_SetContext(definitionEditor, context);
 }
 
 /*************************************************************************************************/
@@ -126,13 +126,13 @@ bool_t Arinc661_Context_FindDefinition(const Arinc661_Context_t* context, const 
             break;
         }
     }
-    definition->documentIndex = Arinc661_Definition_FindDocument(context->definitionEditor, fileName);
-    definition->isOpen        = (ARINC661_DEFINITION_NO_DOCUMENT != definition->documentIndex);
+    definition->documentIndex = Arinc661_DefinitionEditor_FindDocument(context->definitionEditor, fileName);
+    definition->isOpen        = (ARINC661_DEFINITION_EDITOR_NO_DOCUMENT != definition->documentIndex);
     if (definition->isOpen)
     {
-        definition->hasApplicationId = Arinc661_Definition_DocumentApplicationId(context->definitionEditor, definition->documentIndex, &definition->applicationId);
-        definition->layerCount       = Arinc661_Definition_Document(context->definitionEditor, definition->documentIndex)->layerCount;
-        definition->widgetCount      = Arinc661_Definition_Document(context->definitionEditor, definition->documentIndex)->widgetCount;
+        definition->hasApplicationId = Arinc661_DefinitionEditor_DocumentApplicationId(context->definitionEditor, definition->documentIndex, &definition->applicationId);
+        definition->layerCount       = Arinc661_DefinitionEditor_Document(context->definitionEditor, definition->documentIndex)->layerCount;
+        definition->widgetCount      = Arinc661_DefinitionEditor_Document(context->definitionEditor, definition->documentIndex)->widgetCount;
     }
 
     return !!(definition->isInFolder || definition->isOpen);
@@ -147,10 +147,10 @@ void Arinc661_Context_ShowDefinition(Arinc661_Context_t* context, const char_t* 
 {
     LOGASSERT(NULL != context);
     LOGASSERT(NULL != fileName);
-    Arinc661_Definition_LoadFile(context->definitionEditor, fileName);
-    if (ARINC661_DEFINITION_NO_DOCUMENT != Arinc661_Definition_FindDocument(context->definitionEditor, fileName))
+    Arinc661_DefinitionEditor_LoadFile(context->definitionEditor, fileName);
+    if (ARINC661_DEFINITION_EDITOR_NO_DOCUMENT != Arinc661_DefinitionEditor_FindDocument(context->definitionEditor, fileName))
     {
-        Arinc661_Definition_SelectDocument(context->definitionEditor, Arinc661_Definition_FindDocument(context->definitionEditor, fileName));
+        Arinc661_DefinitionEditor_SelectDocument(context->definitionEditor, Arinc661_DefinitionEditor_FindDocument(context->definitionEditor, fileName));
     }
     context->isDefinitionFocused = TRUE;
     context->hasFocusRequest     = TRUE;
@@ -238,10 +238,10 @@ bool_t Arinc661_Context_RecordDefinition(const Arinc661_Context_t* context, cons
     LOGASSERT(NULL != fileName);
     LOGASSERT(NULL != drawList);
     has_recorded   = FALSE;
-    document_index = Arinc661_Definition_FindDocument(context->definitionEditor, fileName);
-    if (ARINC661_DEFINITION_NO_DOCUMENT != document_index)
+    document_index = Arinc661_DefinitionEditor_FindDocument(context->definitionEditor, fileName);
+    if (ARINC661_DEFINITION_EDITOR_NO_DOCUMENT != document_index)
     {
-        has_recorded = Arinc661_Definition_RecordDocument(context->definitionEditor, document_index, drawList, fontSize);
+        has_recorded = Arinc661_DefinitionEditor_RecordDocument(context->definitionEditor, document_index, drawList, fontSize);
     }
 
     return has_recorded;
@@ -296,7 +296,7 @@ static void AddProblem(Arinc661_Context_t* context, bool_t isError, Arinc661_Con
  */
 static bool_t FileExistsInFolder(const Arinc661_Context_t* context, const char_t* fileName)
 {
-    char_t path[ARINC661_DEFINITION_MAX_FILE_PATH_BYTES];
+    char_t path[ARINC661_DEFINITION_EDITOR_MAX_FILE_PATH_BYTES];
     DWORD  attributes;
 
     (void)snprintf(path, sizeof(path), "%s\\%s", context->definitionEditor->folderPath, fileName);
@@ -385,7 +385,7 @@ uint32_t Arinc661_Context_Check(Arinc661_Context_t* context)
             // Layer size against the window's size in layer units
             if (Arinc661_Configuration_Window(context->configurationEditor, application.documentIndex, application.windowId, &window_index, &pixel_width, &pixel_height, &units_per_pixel_x, &units_per_pixel_y))
             {
-                model = Arinc661_Definition_Document(context->definitionEditor, definition.documentIndex);
+                model = Arinc661_DefinitionEditor_Document(context->definitionEditor, definition.documentIndex);
                 for (layer_index = 0; (NULL != model) && (layer_index < model->layerCount); ++layer_index)
                 {
                     Arinc661_Scene_LayerSize(model, layer_index, &layer_width, &layer_height);
@@ -434,9 +434,9 @@ uint32_t Arinc661_Context_Check(Arinc661_Context_t* context)
         }
     }
     // Open Definition Files nobody references, and duplicate ApplicationIds across them
-    for (document_index = 0; document_index < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS; ++document_index)
+    for (document_index = 0; document_index < ARINC661_DEFINITION_EDITOR_MAX_OPEN_DOCUMENTS; ++document_index)
     {
-        document_name = Arinc661_Definition_DocumentName(context->definitionEditor, document_index);
+        document_name = Arinc661_DefinitionEditor_DocumentName(context->definitionEditor, document_index);
         if (NULL == document_name)
         {
             continue;
@@ -455,13 +455,13 @@ uint32_t Arinc661_Context_Check(Arinc661_Context_t* context)
             (void)snprintf(text, sizeof(text), "%s is open but no user application references it; set a dFPath to it or create one from its inspector.", document_name);
             AddProblem(context, FALSE, ARINC661_CONTEXT_TARGET_DEFINITION, document_index, 0, text);
         }
-        if (Arinc661_Definition_DocumentApplicationId(context->definitionEditor, document_index, &application_id))
+        if (Arinc661_DefinitionEditor_DocumentApplicationId(context->definitionEditor, document_index, &application_id))
         {
-            for (other_document = document_index + 1; other_document < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS; ++other_document)
+            for (other_document = document_index + 1; other_document < ARINC661_DEFINITION_EDITOR_MAX_OPEN_DOCUMENTS; ++other_document)
             {
-                if (Arinc661_Definition_DocumentApplicationId(context->definitionEditor, other_document, &other_id) && (other_id == application_id))
+                if (Arinc661_DefinitionEditor_DocumentApplicationId(context->definitionEditor, other_document, &other_id) && (other_id == application_id))
                 {
-                    (void)snprintf(text, sizeof(text), "%s and %s both carry ApplicationId %lld; a CDS cannot tell them apart.", document_name, Arinc661_Definition_DocumentName(context->definitionEditor, other_document), (long long)application_id);
+                    (void)snprintf(text, sizeof(text), "%s and %s both carry ApplicationId %lld; a CDS cannot tell them apart.", document_name, Arinc661_DefinitionEditor_DocumentName(context->definitionEditor, other_document), (long long)application_id);
                     AddProblem(context, TRUE, ARINC661_CONTEXT_TARGET_DEFINITION, other_document, 0, text);
                 }
             }
@@ -469,9 +469,9 @@ uint32_t Arinc661_Context_Check(Arinc661_Context_t* context)
     }
 
     // Inside each Definition File: references, parent rules, identifier uniqueness
-    for (document_index = 0; document_index < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS; ++document_index)
+    for (document_index = 0; document_index < ARINC661_DEFINITION_EDITOR_MAX_OPEN_DOCUMENTS; ++document_index)
     {
-        for (index = 0; Arinc661_Definition_ProblemAt(context->definitionEditor, document_index, index, text, sizeof(text), &widget_index, &layer_index); ++index)
+        for (index = 0; Arinc661_DefinitionEditor_ProblemAt(context->definitionEditor, document_index, index, text, sizeof(text), &widget_index, &layer_index); ++index)
         {
             if (UINT32_MAX != widget_index)
             {
@@ -488,25 +488,25 @@ uint32_t Arinc661_Context_Check(Arinc661_Context_t* context)
         }
     }
     // Across files of one application: LayerId must be unique
-    for (document_index = 0; document_index < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS; ++document_index)
+    for (document_index = 0; document_index < ARINC661_DEFINITION_EDITOR_MAX_OPEN_DOCUMENTS; ++document_index)
     {
-        if (FALSE == Arinc661_Definition_DocumentApplicationId(context->definitionEditor, document_index, &application_id))
+        if (FALSE == Arinc661_DefinitionEditor_DocumentApplicationId(context->definitionEditor, document_index, &application_id))
         {
             continue;
         }
-        for (other_document = document_index + 1; other_document < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS; ++other_document)
+        for (other_document = document_index + 1; other_document < ARINC661_DEFINITION_EDITOR_MAX_OPEN_DOCUMENTS; ++other_document)
         {
-            if ((FALSE == Arinc661_Definition_DocumentApplicationId(context->definitionEditor, other_document, &other_id)) || (other_id != application_id))
+            if ((FALSE == Arinc661_DefinitionEditor_DocumentApplicationId(context->definitionEditor, other_document, &other_id)) || (other_id != application_id))
             {
                 continue;
             }
-            for (layer_index = 0; Arinc661_Definition_LayerIdAt(context->definitionEditor, document_index, layer_index, &layer_id); ++layer_index)
+            for (layer_index = 0; Arinc661_DefinitionEditor_LayerIdAt(context->definitionEditor, document_index, layer_index, &layer_id); ++layer_index)
             {
-                for (index = 0; Arinc661_Definition_LayerIdAt(context->definitionEditor, other_document, index, &other_layer_id); ++index)
+                for (index = 0; Arinc661_DefinitionEditor_LayerIdAt(context->definitionEditor, other_document, index, &other_layer_id); ++index)
                 {
                     if (other_layer_id == layer_id)
                     {
-                        (void)snprintf(text, sizeof(text), "%s and %s both define LayerId %lld for application %lld; layer ids must be unique per application.", Arinc661_Definition_DocumentName(context->definitionEditor, document_index), Arinc661_Definition_DocumentName(context->definitionEditor, other_document), (long long)layer_id, (long long)application_id);
+                        (void)snprintf(text, sizeof(text), "%s and %s both define LayerId %lld for application %lld; layer ids must be unique per application.", Arinc661_DefinitionEditor_DocumentName(context->definitionEditor, document_index), Arinc661_DefinitionEditor_DocumentName(context->definitionEditor, other_document), (long long)layer_id, (long long)application_id);
                         AddProblem(context, TRUE, ARINC661_CONTEXT_TARGET_LAYER, other_document, index, text);
                     }
                 }
@@ -522,7 +522,7 @@ uint32_t Arinc661_Context_Check(Arinc661_Context_t* context)
         }
         if (Arinc661_Context_FindDefinition(context, application.dFPath, &definition) && definition.isOpen)
         {
-            has_map_source = Arinc661_Definition_HasMapSource(context->definitionEditor, definition.documentIndex);
+            has_map_source = Arinc661_DefinitionEditor_HasMapSource(context->definitionEditor, definition.documentIndex);
             if (map_source_layer && (FALSE == has_map_source))
             {
                 (void)snprintf(text, sizeof(text), "%s: application %lld sets mapSourceLayer but %s holds no MapHorz_Source or MapVert_Source widget.", application.documentName, (long long)application.applicationId, application.dFPath);
@@ -571,17 +571,17 @@ void Arinc661_Context_ShowProblem(Arinc661_Context_t* context, const Arinc661_Co
             context->hasFocusRequest     = TRUE;
             break;
         case ARINC661_CONTEXT_TARGET_DEFINITION:
-            Arinc661_Definition_SelectDocument(context->definitionEditor, problem->documentIndex);
+            Arinc661_DefinitionEditor_SelectDocument(context->definitionEditor, problem->documentIndex);
             context->isDefinitionFocused = TRUE;
             context->hasFocusRequest     = TRUE;
             break;
         case ARINC661_CONTEXT_TARGET_LAYER:
-            Arinc661_Definition_SelectLayer(context->definitionEditor, problem->documentIndex, problem->itemIndex);
+            Arinc661_DefinitionEditor_SelectLayer(context->definitionEditor, problem->documentIndex, problem->itemIndex);
             context->isDefinitionFocused = TRUE;
             context->hasFocusRequest     = TRUE;
             break;
         case ARINC661_CONTEXT_TARGET_WIDGET:
-            Arinc661_Definition_SelectWidget(context->definitionEditor, problem->documentIndex, problem->itemIndex);
+            Arinc661_DefinitionEditor_SelectWidget(context->definitionEditor, problem->documentIndex, problem->itemIndex);
             context->isDefinitionFocused = TRUE;
             context->hasFocusRequest     = TRUE;
             break;
@@ -611,16 +611,16 @@ uint32_t Arinc661_Context_OpenReferencedDefinitions(Arinc661_Context_t* context)
     {
         if (Arinc661_Context_FindDefinition(context, application.dFPath, &definition) && definition.isInFolder && (FALSE == definition.isOpen))
         {
-            Arinc661_Definition_LoadFile(context->definitionEditor, application.dFPath);
-            if (ARINC661_DEFINITION_NO_DOCUMENT != Arinc661_Definition_FindDocument(context->definitionEditor, application.dFPath))
+            Arinc661_DefinitionEditor_LoadFile(context->definitionEditor, application.dFPath);
+            if (ARINC661_DEFINITION_EDITOR_NO_DOCUMENT != Arinc661_DefinitionEditor_FindDocument(context->definitionEditor, application.dFPath))
             {
                 opened += 1;
             }
         }
     }
-    if ((0 < opened) && (UINT32_MAX != active) && (active < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS) && (NULL != Arinc661_Definition_DocumentName(context->definitionEditor, active)))
+    if ((0 < opened) && (UINT32_MAX != active) && (active < ARINC661_DEFINITION_EDITOR_MAX_OPEN_DOCUMENTS) && (NULL != Arinc661_DefinitionEditor_DocumentName(context->definitionEditor, active)))
     {
-        Arinc661_Definition_SelectDocument(context->definitionEditor, active);
+        Arinc661_DefinitionEditor_SelectDocument(context->definitionEditor, active);
     }
 
     return opened;
@@ -660,7 +660,7 @@ bool_t Arinc661_Context_CreateDefinitionFor(Arinc661_Context_t* context, const A
         layer_width  = ((float32_t)pixel_width * units_per_pixel_x);
         layer_height = ((float32_t)pixel_height * units_per_pixel_y);
     }
-    is_created = Arinc661_Definition_CreateFor(context->definitionEditor, file_name, application->applicationId, layer_width, layer_height);
+    is_created = Arinc661_DefinitionEditor_CreateFor(context->definitionEditor, file_name, application->applicationId, layer_width, layer_height);
     if (is_created)
     {
         if ('\0' == application->dFPath[0])
@@ -689,10 +689,10 @@ bool_t Arinc661_Context_CreateUserApplicationFor(Arinc661_Context_t* context, ui
 
     LOGASSERT(NULL != context);
     is_created = FALSE;
-    file_name  = Arinc661_Definition_DocumentName(context->definitionEditor, definitionDocument);
+    file_name  = Arinc661_DefinitionEditor_DocumentName(context->definitionEditor, definitionDocument);
     if (NULL != file_name)
     {
-        if (FALSE == Arinc661_Definition_DocumentApplicationId(context->definitionEditor, definitionDocument, &application_id))
+        if (FALSE == Arinc661_DefinitionEditor_DocumentApplicationId(context->definitionEditor, definitionDocument, &application_id))
         {
             application_id = 1;
             for (application_index = 0; Arinc661_Context_UserApplication(context, application_index, &application); ++application_index)
@@ -774,7 +774,7 @@ uint32_t Arinc661_Context_FollowRenames(Arinc661_Context_t* context)
 
     LOGASSERT(NULL != context);
     count = 0;
-    if (Arinc661_Definition_TakeRename(context->definitionEditor, &previous_name, &current_name))
+    if (Arinc661_DefinitionEditor_TakeRename(context->definitionEditor, &previous_name, &current_name))
     {
         count = Arinc661_Configuration_RepointDefinition(context->configurationEditor, previous_name, current_name);
         context->definitionEditor->renamedFrom[0] = '\0';
@@ -796,10 +796,10 @@ uint32_t Arinc661_Context_DefinitionByApplicationId(const Arinc661_Context_t* co
     int64_t  candidate;
 
     LOGASSERT(NULL != context);
-    found = ARINC661_DEFINITION_NO_DOCUMENT;
-    for (document_index = 0; document_index < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS; ++document_index)
+    found = ARINC661_DEFINITION_EDITOR_NO_DOCUMENT;
+    for (document_index = 0; document_index < ARINC661_DEFINITION_EDITOR_MAX_OPEN_DOCUMENTS; ++document_index)
     {
-        if (Arinc661_Definition_DocumentApplicationId(context->definitionEditor, document_index, &candidate) && (candidate == applicationId))
+        if (Arinc661_DefinitionEditor_DocumentApplicationId(context->definitionEditor, document_index, &candidate) && (candidate == applicationId))
         {
             found = document_index;
             break;
@@ -896,7 +896,7 @@ uint32_t Arinc661_Context_DocumentErrors(const Arinc661_Context_t* context, bool
  */
 uint32_t Arinc661_Context_Build(Arinc661_Context_t* context, char_t* report, uint32_t capacity)
 {
-    char_t   path[ARINC661_DEFINITION_MAX_FILE_PATH_BYTES];
+    char_t   path[ARINC661_DEFINITION_EDITOR_MAX_FILE_PATH_BYTES];
     uint32_t document_index;
     uint32_t errors;
     size_t   used;
@@ -907,19 +907,19 @@ uint32_t Arinc661_Context_Build(Arinc661_Context_t* context, char_t* report, uin
     used      = 0;
     (void)Arinc661_Context_Check(context);
     errors = context->errorCount;
-    for (document_index = 0; document_index < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS; ++document_index)
+    for (document_index = 0; document_index < ARINC661_DEFINITION_EDITOR_MAX_OPEN_DOCUMENTS; ++document_index)
     {
-        if (NULL == Arinc661_Definition_DocumentName(context->definitionEditor, document_index))
+        if (NULL == Arinc661_DefinitionEditor_DocumentName(context->definitionEditor, document_index))
         {
             continue;
         }
-        if (Arinc661_Definition_ExportBinary(context->definitionEditor, document_index, path, sizeof(path)))
+        if (Arinc661_DefinitionEditor_ExportBinary(context->definitionEditor, document_index, path, sizeof(path)))
         {
             used += (size_t)snprintf(&report[used], capacity - used, "Wrote %s\n", path);
         }
         else
         {
-            used += (size_t)snprintf(&report[used], capacity - used, "Could not write the binary form of %s\n", Arinc661_Definition_DocumentName(context->definitionEditor, document_index));
+            used += (size_t)snprintf(&report[used], capacity - used, "Could not write the binary form of %s\n", Arinc661_DefinitionEditor_DocumentName(context->definitionEditor, document_index));
             errors += 1;
         }
         if (used >= capacity)

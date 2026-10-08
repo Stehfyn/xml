@@ -1081,8 +1081,8 @@ typedef struct XmlWorkspace_s
  */
 typedef struct CharsetEncoding_s
 {
-    const char_t* name;  ///< Name attribute of the charset-encoding element
-    uint32_t      value; ///< Value in Part 1-7, Table 4.6-13
+    const char_t*              name;  ///< Name attribute of the charset-encoding element
+    Arinc661_CharsetEncoding_t value; ///< Value in Part 1-7, Table 4.6-13
 } CharsetEncoding_t;
 
 /*************************************************************************************************/
@@ -1351,9 +1351,9 @@ typedef struct BinaryRegionHeader_s
  */
 static const CharsetEncoding_t c_charsetEncodings[] =
 {
-    {CONSTANT_A661_ASCII_EXTENDED, 1},
-    {CONSTANT_A661_UTF8,           2},
-    {CONSTANT_A661_GBK,            3}
+    {CONSTANT_A661_ASCII_EXTENDED, ARINC661_CHARSET_ENCODING_ASCII_EXTENDED},
+    {CONSTANT_A661_UTF8,           ARINC661_CHARSET_ENCODING_UTF8},
+    {CONSTANT_A661_GBK,            ARINC661_CHARSET_ENCODING_GBK}
 };
 
 /*************************************************************************************************/
@@ -5470,12 +5470,12 @@ static bool_t WriteBinaryHeader(const Arinc661_Definition_t* definition, byte_t*
  * \param[out]    buffer            Output bytes
  * \param[in]     capacity          Output buffer capacity
  * \param[in,out] offset            Byte offset of the block, advanced past it
- * \param[in]     charsetEncoding   A661_Charset_Encoding value (Table 4.6-13)
+ * \param[in]     charsetEncoding   Charset encoding to write
  *
- * \retval        TRUE              if the encoding fits its field and the block fits the buffer.
+ * \retval        TRUE              if the encoding is one of Table 4.6-13 and the block fits the buffer.
  * \retval        FALSE             otherwise.
  */
-static bool_t WriteBinaryCharsetBlock(byte_t* buffer, uint64_t capacity, uint64_t* offset, uint32_t charsetEncoding);
+static bool_t WriteBinaryCharsetBlock(byte_t* buffer, uint64_t capacity, uint64_t* offset, Arinc661_CharsetEncoding_t charsetEncoding);
 
 /*************************************************************************************************/
 /**
@@ -5921,7 +5921,7 @@ static void ResetDefinition(Arinc661_Definition_t* definition)
     definition->widgetCount     = 0;
     definition->propertyCount   = 0;
     definition->blockByteCount  = 0;
-    definition->charsetEncoding = 0;
+    definition->charsetEncoding = ARINC661_CHARSET_ENCODING_NONE;
 }
 
 /*************************************************************************************************/
@@ -7667,14 +7667,14 @@ static bool_t WriteBinaryHeader(const Arinc661_Definition_t* definition, byte_t*
  * 000000    UnusedPad
  * \endverbatim
  */
-static bool_t WriteBinaryCharsetBlock(byte_t* buffer, uint64_t capacity, uint64_t* offset, uint32_t charsetEncoding)
+static bool_t WriteBinaryCharsetBlock(byte_t* buffer, uint64_t capacity, uint64_t* offset, Arinc661_CharsetEncoding_t charsetEncoding)
 {
-    bool_t is_encoding_valid;
+    bool_t is_encoding_known;
     bool_t is_valid;
 
-    is_encoding_valid = (UINT16_MAX >= charsetEncoding);
+    is_encoding_known = (ARINC661_CHARSET_ENCODING_ASCII_EXTENDED <= charsetEncoding) && (ARINC661_CHARSET_ENCODING_GBK >= charsetEncoding);
 
-    is_valid = is_encoding_valid;
+    is_valid = is_encoding_known;
     if (is_valid)
     {
         is_valid = WriteUnsigned(buffer, capacity, (*offset), (BINARY_BEGIN_CHARSET_BLOCK << BINARY_BLOCK_CODE_SHIFT) | charsetEncoding, BINARY_ULONG_BYTES);
@@ -9630,7 +9630,7 @@ bool_t Arinc661_Definition_Read(Arinc661_Definition_t* definition, byte_t* buffe
             else if (HasElementName(layer_node, DF_ELEMENT_CHARSET_ENCODING))
             {
                 // Select the Table 4.6-13 encoding by name (section 6.2.1) and allow one per file
-                is_valid = (0 == definition->charsetEncoding);
+                is_valid = (ARINC661_CHARSET_ENCODING_NONE == definition->charsetEncoding);
                 if (is_valid)
                 {
                     is_valid = CopyAttribute(layer_node, XML_ATTRIBUTE_NAME, charset_name, sizeof(charset_name));
@@ -9645,7 +9645,7 @@ bool_t Arinc661_Definition_Read(Arinc661_Definition_t* definition, byte_t* buffe
                             break;
                         }
                     }
-                    is_valid = (0 != definition->charsetEncoding);
+                    is_valid = (ARINC661_CHARSET_ENCODING_NONE != definition->charsetEncoding);
                 }
                 if (FALSE == is_valid)
                 {
@@ -9764,7 +9764,7 @@ uint64_t Arinc661_Definition_Write(const Arinc661_Definition_t* definition, byte
     {
         is_valid = AppendIntegerAttribute(&xml, root, XML_ATTRIBUTE_SUPPLEMENT_VERSION, definition->supplementVersion);
     }
-    if (is_valid && (0 != definition->charsetEncoding))
+    if (is_valid && (ARINC661_CHARSET_ENCODING_NONE != definition->charsetEncoding))
     {
         // Place the charset-encoding element before the model and layers (section 6.2.1)
         charset_node = AppendElement(&xml, DF_ELEMENT_CHARSET_ENCODING);
@@ -9913,9 +9913,11 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
     uint64_t offset;
     uint64_t block_index;
     uint32_t block_code;
+    uint32_t encoding;
     bool_t   has_footer;
     bool_t   has_block_word;
     bool_t   has_charset_bytes;
+    bool_t   is_encoding_known;
     bool_t   is_valid;
 
     LOGASSERT(NULL != definition);
@@ -9964,11 +9966,16 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
             {
                 // Read the block as code, pad, encoding, end code, pad (Table 4.5.3.2-6) and allow one per file
                 has_charset_bytes = (sizeof(BinaryCharsetBlock_t) <= (sizeOfBinaryBuffer - offset));
-                is_valid          = has_charset_bytes && (BINARY_END_CHARSET_BLOCK == bufferToReadBinaryFrom[offset + OFFSET_OF(BinaryCharsetBlock_t, endCode)]) && (0 == definition->charsetEncoding);
+                is_valid          = has_charset_bytes && (BINARY_END_CHARSET_BLOCK == bufferToReadBinaryFrom[offset + OFFSET_OF(BinaryCharsetBlock_t, endCode)]) && (ARINC661_CHARSET_ENCODING_NONE == definition->charsetEncoding);
                 if (is_valid)
                 {
-                    definition->charsetEncoding = ReadUnsigned(bufferToReadBinaryFrom, offset + OFFSET_OF(BinaryCharsetBlock_t, encoding), BINARY_USHORT_BYTES);
-                    is_valid                    = (0 != definition->charsetEncoding);
+                    encoding          = ReadUnsigned(bufferToReadBinaryFrom, offset + OFFSET_OF(BinaryCharsetBlock_t, encoding), BINARY_USHORT_BYTES);
+                    is_encoding_known = (ARINC661_CHARSET_ENCODING_ASCII_EXTENDED <= encoding) && (ARINC661_CHARSET_ENCODING_GBK >= encoding);
+                    is_valid          = is_encoding_known;
+                }
+                if (is_valid)
+                {
+                    definition->charsetEncoding = (Arinc661_CharsetEncoding_t)encoding;
                     offset                     += sizeof(BinaryCharsetBlock_t);
                 }
             }
@@ -10039,13 +10046,16 @@ uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition
     LOGASSERT((NULL != definition->widgets) || (0 == definition->widgetCount));
     LOGASSERT((NULL != definition->properties) || (0 == definition->propertyCount));
     LOGASSERT((NULL != definition->blocks) || (0 == definition->blockByteCount));
-    // Keep zero as the failure result until the complete file is written
-    byte_count = 0;
-    offset     = 0;
-    is_valid   = WriteBinaryHeader(definition, bufferToWriteBinaryTo, capacityOfBinaryBuffer, &offset);
-    if (is_valid && (0 != definition->charsetEncoding))
+
+    offset = 0;
+
+    is_valid = WriteBinaryHeader(definition, bufferToWriteBinaryTo, capacityOfBinaryBuffer, &offset);
+    if (is_valid)
     {
-        is_valid = WriteBinaryCharsetBlock(bufferToWriteBinaryTo, capacityOfBinaryBuffer, &offset, definition->charsetEncoding);
+        if (ARINC661_CHARSET_ENCODING_NONE != definition->charsetEncoding)
+        {
+            is_valid = WriteBinaryCharsetBlock(bufferToWriteBinaryTo, capacityOfBinaryBuffer, &offset, definition->charsetEncoding);
+        }
     }
     if (is_valid)
     {
@@ -10063,6 +10073,10 @@ uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition
     if (is_valid)
     {
         byte_count = offset;
+    }
+    else
+    {
+        byte_count = 0;
     }
 
     return byte_count;

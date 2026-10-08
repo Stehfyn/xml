@@ -459,7 +459,7 @@ typedef struct WindowThreadState_s
     HANDLE                           presentStoppedEvent;                                  ///< Signals when the presenter releases its device context.
     HGLRC                            presentContext;                                       ///< OpenGL context used by the presenter thread.
     Arinc661_Configuration_Editor_t* configurationEditor;                                  ///< FACE display management configuration editor.
-    Arinc661_Definition_Editor_t*    definitionEditor;                                     ///< ARINC 661 Definition File editor.
+    Arinc661_DefinitionEditor_t*     definitionEditor;                                     ///< ARINC 661 Definition File editor.
     Arinc661_Context_t*              context;                                              ///< Shared application context across both editors.
     bool_t                           isHelpOpen;                                           ///< TRUE while the Help window is shown.
     char_t                           helpFilter[MAX_HELP_FILTER_BYTES];                    ///< Search text of the Help window.
@@ -1439,7 +1439,7 @@ static void ClassifyFolderFile(const char_t* fileName, void* context)
     {
         return;
     }
-    is_definition    = Arinc661_Definition_IsDefinitionFile(head, (uint64_t)byte_count);
+    is_definition    = Arinc661_DefinitionEditor_IsDefinitionFile(head, (uint64_t)byte_count);
     is_configuration = FALSE;
     if (FALSE == is_definition)
     {
@@ -1504,7 +1504,7 @@ static void ScanFolder(WindowThreadState_t* window)
     Arinc661_Configuration_ClearDefinitionFiles(window->configurationEditor);
     window->context->definitionFileCount = 0;
     Arinc661_Configuration_SetFolderPath(window->configurationEditor, window->folderPath);
-    Arinc661_Definition_SetFolderPath(window->definitionEditor, window->folderPath);
+    Arinc661_DefinitionEditor_SetFolderPath(window->definitionEditor, window->folderPath);
     window->isFolderReadable = FALSE;
     if ('\0' != window->folderPath[0])
     {
@@ -1532,9 +1532,9 @@ static void DrawToolbar(WindowThreadState_t* window)
 
     if (window->isDefinitionActive)
     {
-        has_active = Arinc661_Definition_HasActiveDocument(window->definitionEditor, &is_dirty, &has_free);
-        Arinc661_Definition_History(window->definitionEditor, &can_undo, &can_redo);
-        has_selection = (NULL != Arinc661_Definition_SelectedType(window->definitionEditor));
+        has_active = Arinc661_DefinitionEditor_HasActiveDocument(window->definitionEditor, &is_dirty, &has_free);
+        Arinc661_DefinitionEditor_History(window->definitionEditor, &can_undo, &can_redo);
+        has_selection = (NULL != Arinc661_DefinitionEditor_SelectedType(window->definitionEditor));
     }
     else
     {
@@ -1553,7 +1553,7 @@ static void DrawToolbar(WindowThreadState_t* window)
     {
         if (window->isDefinitionActive)
         {
-            Arinc661_Definition_CreateDocument(window->definitionEditor);
+            Arinc661_DefinitionEditor_CreateDocument(window->definitionEditor);
         }
         else
         {
@@ -1571,14 +1571,14 @@ static void DrawToolbar(WindowThreadState_t* window)
     if (Arinc661_Icons_Button(ARINC661_ICON_SAVE_ALL, SAVE_ALL_LABEL, SAVE_ALL_SHORTCUT_LABEL, is_dirty, FALSE))
     {
         Arinc661_Configuration_SaveAllDocuments(window->configurationEditor);
-        Arinc661_Definition_SaveAllDocuments(window->definitionEditor);
+        Arinc661_DefinitionEditor_SaveAllDocuments(window->definitionEditor);
     }
     Arinc661_Icons_Gap();
     if (Arinc661_Icons_Button(ARINC661_ICON_UNDO, UNDO_LABEL, UNDO_SHORTCUT_LABEL, can_undo, FALSE))
     {
         if (window->isDefinitionActive)
         {
-            Arinc661_Definition_Undo(window->definitionEditor);
+            Arinc661_DefinitionEditor_Undo(window->definitionEditor);
         }
         else
         {
@@ -1589,7 +1589,7 @@ static void DrawToolbar(WindowThreadState_t* window)
     {
         if (window->isDefinitionActive)
         {
-            Arinc661_Definition_Redo(window->definitionEditor);
+            Arinc661_DefinitionEditor_Redo(window->definitionEditor);
         }
         else
         {
@@ -1601,36 +1601,36 @@ static void DrawToolbar(WindowThreadState_t* window)
     {
         if (Arinc661_Icons_Button(ARINC661_ICON_ADD_LAYER, ADD_LAYER_LABEL, NULL, has_active, FALSE))
         {
-            Arinc661_Definition_AddLayer(window->definitionEditor);
+            Arinc661_DefinitionEditor_AddLayer(window->definitionEditor);
         }
         if (Arinc661_Icons_Button(ARINC661_ICON_ADD_WIDGET, ADD_WIDGET_LABEL, NULL, has_active, FALSE))
         {
-            Arinc661_Definition_AddWidget(window->definitionEditor);
+            Arinc661_DefinitionEditor_AddWidget(window->definitionEditor);
         }
         if (Arinc661_Icons_Button(ARINC661_ICON_ADD_EXTENSION, ADD_EXTENSION_LABEL, NULL, has_selection, FALSE))
         {
-            Arinc661_Definition_AddExtension(window->definitionEditor);
+            Arinc661_DefinitionEditor_AddExtension(window->definitionEditor);
         }
         if (Arinc661_Icons_Button(ARINC661_ICON_DUPLICATE, DUPLICATE_LABEL, DUPLICATE_SHORTCUT_LABEL, has_selection, FALSE))
         {
-            Arinc661_Definition_DuplicateSelection(window->definitionEditor);
+            Arinc661_DefinitionEditor_DuplicateSelection(window->definitionEditor);
         }
         if (Arinc661_Icons_Button(ARINC661_ICON_DELETE, DELETE_LABEL, DELETE_SHORTCUT_LABEL, has_active, FALSE))
         {
-            Arinc661_Definition_DeleteSelection(window->definitionEditor);
+            Arinc661_DefinitionEditor_DeleteSelection(window->definitionEditor);
         }
         Arinc661_Icons_Gap();
-        if (Arinc661_Icons_Button(ARINC661_ICON_GRID, GRID_LABEL, GRID_SHORTCUT_LABEL, TRUE, Arinc661_Definition_Grid(window->definitionEditor, FALSE)))
+        if (Arinc661_Icons_Button(ARINC661_ICON_GRID, GRID_LABEL, GRID_SHORTCUT_LABEL, TRUE, Arinc661_DefinitionEditor_Grid(window->definitionEditor, FALSE)))
         {
-            (void)Arinc661_Definition_Grid(window->definitionEditor, TRUE);
+            (void)Arinc661_DefinitionEditor_Grid(window->definitionEditor, TRUE);
         }
-        if (Arinc661_Icons_Button(ARINC661_ICON_SNAP, SNAP_LABEL, SNAP_SHORTCUT_LABEL, TRUE, Arinc661_Definition_Snap(window->definitionEditor, FALSE)))
+        if (Arinc661_Icons_Button(ARINC661_ICON_SNAP, SNAP_LABEL, SNAP_SHORTCUT_LABEL, TRUE, Arinc661_DefinitionEditor_Snap(window->definitionEditor, FALSE)))
         {
-            (void)Arinc661_Definition_Snap(window->definitionEditor, TRUE);
+            (void)Arinc661_DefinitionEditor_Snap(window->definitionEditor, TRUE);
         }
         if (Arinc661_Icons_Button(ARINC661_ICON_FIT, FIT_LABEL, FIT_SHORTCUT_LABEL, has_active, FALSE))
         {
-            Arinc661_Definition_FitView(window->definitionEditor);
+            Arinc661_DefinitionEditor_FitView(window->definitionEditor);
         }
     }
     else
@@ -1693,7 +1693,7 @@ static const char_t* SelectionTopic(const WindowThreadState_t* window)
 
     if (window->isDefinitionActive)
     {
-        topic = Arinc661_Definition_SelectedType(window->definitionEditor);
+        topic = Arinc661_DefinitionEditor_SelectedType(window->definitionEditor);
     }
     else
     {
@@ -2030,7 +2030,7 @@ static void DrawPageMenu(WindowThreadState_t* window)
     const char_t* play_label;
 
     has_active_configuration = Arinc661_Configuration_HasActiveDocument(window->configurationEditor, &has_dirty_configuration, &has_free_configuration);
-    has_active_definition    = Arinc661_Definition_HasActiveDocument(window->definitionEditor, &has_dirty_definition, &has_free_definition);
+    has_active_definition    = Arinc661_DefinitionEditor_HasActiveDocument(window->definitionEditor, &has_dirty_definition, &has_free_definition);
     has_active = has_active_configuration;
     is_dirty   = !!(has_dirty_configuration || has_dirty_definition);
     if (window->isDefinitionActive)
@@ -2048,7 +2048,7 @@ static void DrawPageMenu(WindowThreadState_t* window)
             }
             if (ImGui::MenuItem(NEW_DEFINITION_LABEL, NEW_DEFINITION_SHORTCUT, false, has_free_definition))
             {
-                Arinc661_Definition_CreateDocument(window->definitionEditor);
+                Arinc661_DefinitionEditor_CreateDocument(window->definitionEditor);
                 window->isDefinitionActive = TRUE;
             }
             if (ImGui::MenuItem(NEW_APPLICATION_LABEL, NULL, false, has_active_configuration && has_free_definition))
@@ -2106,14 +2106,14 @@ static void DrawPageMenu(WindowThreadState_t* window)
             if (ImGui::MenuItem(SAVE_ALL_LABEL, SAVE_ALL_SHORTCUT_LABEL, false, is_dirty))
             {
                 Arinc661_Configuration_SaveAllDocuments(window->configurationEditor);
-                Arinc661_Definition_SaveAllDocuments(window->definitionEditor);
+                Arinc661_DefinitionEditor_SaveAllDocuments(window->definitionEditor);
             }
             ImGui::Separator();
             if (ImGui::MenuItem(CLOSE_LABEL, CLOSE_SHORTCUT_LABEL, false, has_active))
             {
                 if (window->isDefinitionActive)
                 {
-                    Arinc661_Definition_CloseActiveDocument(window->definitionEditor);
+                    Arinc661_DefinitionEditor_CloseActiveDocument(window->definitionEditor);
                 }
                 else
                 {
@@ -2124,8 +2124,8 @@ static void DrawPageMenu(WindowThreadState_t* window)
         }
         if (window->isDefinitionActive)
         {
-            Arinc661_Definition_History(window->definitionEditor, &can_undo, &can_redo);
-            has_selection = (NULL != Arinc661_Definition_SelectedType(window->definitionEditor));
+            Arinc661_DefinitionEditor_History(window->definitionEditor, &can_undo, &can_redo);
+            has_selection = (NULL != Arinc661_DefinitionEditor_SelectedType(window->definitionEditor));
         }
         else
         {
@@ -2138,7 +2138,7 @@ static void DrawPageMenu(WindowThreadState_t* window)
             {
                 if (window->isDefinitionActive)
                 {
-                    Arinc661_Definition_Undo(window->definitionEditor);
+                    Arinc661_DefinitionEditor_Undo(window->definitionEditor);
                 }
                 else
                 {
@@ -2149,7 +2149,7 @@ static void DrawPageMenu(WindowThreadState_t* window)
             {
                 if (window->isDefinitionActive)
                 {
-                    Arinc661_Definition_Redo(window->definitionEditor);
+                    Arinc661_DefinitionEditor_Redo(window->definitionEditor);
                 }
                 else
                 {
@@ -2161,15 +2161,15 @@ static void DrawPageMenu(WindowThreadState_t* window)
             {
                 if (ImGui::MenuItem(ADD_LAYER_LABEL, NULL, false, has_active))
                 {
-                    Arinc661_Definition_AddLayer(window->definitionEditor);
+                    Arinc661_DefinitionEditor_AddLayer(window->definitionEditor);
                 }
                 if (ImGui::MenuItem(ADD_WIDGET_LABEL, NULL, false, has_active))
                 {
-                    Arinc661_Definition_AddWidget(window->definitionEditor);
+                    Arinc661_DefinitionEditor_AddWidget(window->definitionEditor);
                 }
                 if (ImGui::MenuItem(ADD_EXTENSION_LABEL, NULL, false, has_selection))
                 {
-                    Arinc661_Definition_AddExtension(window->definitionEditor);
+                    Arinc661_DefinitionEditor_AddExtension(window->definitionEditor);
                 }
             }
             else
@@ -2194,21 +2194,21 @@ static void DrawPageMenu(WindowThreadState_t* window)
             ImGui::Separator();
             if (ImGui::MenuItem(COPY_LABEL, COPY_SHORTCUT_LABEL, false, window->isDefinitionActive && has_selection))
             {
-                (void)Arinc661_Definition_Copy(window->definitionEditor);
+                (void)Arinc661_DefinitionEditor_Copy(window->definitionEditor);
             }
             if (ImGui::MenuItem(PASTE_LABEL, PASTE_SHORTCUT_LABEL, false, window->isDefinitionActive && (0 < window->definitionEditor->clipboardWidgetCount)))
             {
-                (void)Arinc661_Definition_Paste(window->definitionEditor);
+                (void)Arinc661_DefinitionEditor_Paste(window->definitionEditor);
             }
             if (ImGui::MenuItem(RENAME_LABEL, RENAME_SHORTCUT_LABEL, false, window->isDefinitionActive && has_selection))
             {
-                Arinc661_Definition_BeginRename(window->definitionEditor);
+                Arinc661_DefinitionEditor_BeginRename(window->definitionEditor);
             }
             if (ImGui::MenuItem(DUPLICATE_LABEL, DUPLICATE_SHORTCUT_LABEL, false, has_selection))
             {
                 if (window->isDefinitionActive)
                 {
-                    Arinc661_Definition_DuplicateSelection(window->definitionEditor);
+                    Arinc661_DefinitionEditor_DuplicateSelection(window->definitionEditor);
                 }
                 else
                 {
@@ -2219,7 +2219,7 @@ static void DrawPageMenu(WindowThreadState_t* window)
             {
                 if (window->isDefinitionActive)
                 {
-                    Arinc661_Definition_DeleteSelection(window->definitionEditor);
+                    Arinc661_DefinitionEditor_DeleteSelection(window->definitionEditor);
                 }
                 else
                 {
@@ -2249,17 +2249,17 @@ static void DrawPageMenu(WindowThreadState_t* window)
                 window->commandFilter[0] = '\0';
             }
             ImGui::Separator();
-            if (ImGui::MenuItem(GRID_LABEL, GRID_SHORTCUT_LABEL, Arinc661_Definition_Grid(window->definitionEditor, FALSE)))
+            if (ImGui::MenuItem(GRID_LABEL, GRID_SHORTCUT_LABEL, Arinc661_DefinitionEditor_Grid(window->definitionEditor, FALSE)))
             {
-                (void)Arinc661_Definition_Grid(window->definitionEditor, TRUE);
+                (void)Arinc661_DefinitionEditor_Grid(window->definitionEditor, TRUE);
             }
-            if (ImGui::MenuItem(SNAP_LABEL, SNAP_SHORTCUT_LABEL, Arinc661_Definition_Snap(window->definitionEditor, FALSE)))
+            if (ImGui::MenuItem(SNAP_LABEL, SNAP_SHORTCUT_LABEL, Arinc661_DefinitionEditor_Snap(window->definitionEditor, FALSE)))
             {
-                (void)Arinc661_Definition_Snap(window->definitionEditor, TRUE);
+                (void)Arinc661_DefinitionEditor_Snap(window->definitionEditor, TRUE);
             }
             if (ImGui::MenuItem(FIT_LABEL, FIT_SHORTCUT_LABEL))
             {
-                Arinc661_Definition_FitView(window->definitionEditor);
+                Arinc661_DefinitionEditor_FitView(window->definitionEditor);
             }
             ImGui::Separator();
             ImGui::SetNextItemWidth(160.0f);
@@ -2356,7 +2356,7 @@ static void DrawPageMenu(WindowThreadState_t* window)
     {
         if (window->isDefinitionActive)
         {
-            Arinc661_Definition_Undo(window->definitionEditor);
+            Arinc661_DefinitionEditor_Undo(window->definitionEditor);
         }
         else
         {
@@ -2367,7 +2367,7 @@ static void DrawPageMenu(WindowThreadState_t* window)
     {
         if (window->isDefinitionActive)
         {
-            Arinc661_Definition_Redo(window->definitionEditor);
+            Arinc661_DefinitionEditor_Redo(window->definitionEditor);
         }
         else
         {
@@ -2376,15 +2376,15 @@ static void DrawPageMenu(WindowThreadState_t* window)
     }
     if (window->isDefinitionActive && ImGui::Shortcut(COPY_CHORD, SHORTCUT_FLAGS))
     {
-        (void)Arinc661_Definition_Copy(window->definitionEditor);
+        (void)Arinc661_DefinitionEditor_Copy(window->definitionEditor);
     }
     if (window->isDefinitionActive && ImGui::Shortcut(PASTE_CHORD, SHORTCUT_FLAGS))
     {
-        (void)Arinc661_Definition_Paste(window->definitionEditor);
+        (void)Arinc661_DefinitionEditor_Paste(window->definitionEditor);
     }
     if (window->isDefinitionActive && ImGui::Shortcut(RENAME_CHORD, SHORTCUT_FLAGS))
     {
-        Arinc661_Definition_BeginRename(window->definitionEditor);
+        Arinc661_DefinitionEditor_BeginRename(window->definitionEditor);
     }
     if (ImGui::Shortcut(OPEN_FILE_CHORD, SHORTCUT_FLAGS))
     {
@@ -2407,7 +2407,7 @@ static void DrawPageMenu(WindowThreadState_t* window)
     {
         if (window->isDefinitionActive)
         {
-            Arinc661_Definition_DuplicateSelection(window->definitionEditor);
+            Arinc661_DefinitionEditor_DuplicateSelection(window->definitionEditor);
         }
         else
         {
@@ -2429,7 +2429,7 @@ static void DrawPageMenu(WindowThreadState_t* window)
     }
     if (ImGui::Shortcut(NEW_DEFINITION_CHORD, SHORTCUT_FLAGS) && has_free_definition)
     {
-        Arinc661_Definition_CreateDocument(window->definitionEditor);
+        Arinc661_DefinitionEditor_CreateDocument(window->definitionEditor);
         window->isDefinitionActive = TRUE;
     }
     if (ImGui::Shortcut(SAVE_CHORD, SHORTCUT_FLAGS) && has_active)
@@ -2439,13 +2439,13 @@ static void DrawPageMenu(WindowThreadState_t* window)
     if (ImGui::Shortcut(SAVE_ALL_CHORD, SHORTCUT_FLAGS) && is_dirty)
     {
         Arinc661_Configuration_SaveAllDocuments(window->configurationEditor);
-        Arinc661_Definition_SaveAllDocuments(window->definitionEditor);
+        Arinc661_DefinitionEditor_SaveAllDocuments(window->definitionEditor);
     }
     if (ImGui::Shortcut(CLOSE_CHORD, SHORTCUT_FLAGS) && has_active)
     {
         if (window->isDefinitionActive)
         {
-            Arinc661_Definition_CloseActiveDocument(window->definitionEditor);
+            Arinc661_DefinitionEditor_CloseActiveDocument(window->definitionEditor);
         }
         else
         {
@@ -2586,7 +2586,7 @@ static const char_t* FileState(const WindowThreadState_t* window, uint32_t fileI
 
     if (window->fileIsDefinition[fileIndex])
     {
-        for (slot = 0; slot < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS; ++slot)
+        for (slot = 0; slot < ARINC661_DEFINITION_EDITOR_MAX_OPEN_DOCUMENTS; ++slot)
         {
             if (window->definitionEditor->documents[slot].isLoaded && (0 == _stricmp(window->definitionEditor->documents[slot].documentName, window->fileNames[fileIndex])))
             {
@@ -2630,15 +2630,15 @@ static void SaveActive(WindowThreadState_t* window)
     if (window->isDefinitionActive)
     {
         errors = Arinc661_Context_DocumentErrors(window->context, TRUE, window->definitionEditor->activeDocumentIndex);
-        Arinc661_Definition_SaveActiveDocument(window->definitionEditor);
+        Arinc661_DefinitionEditor_SaveActiveDocument(window->definitionEditor);
         if (0 < errors)
         {
             (void)snprintf(note, sizeof(note), SAVED_WITH_ERRORS_FORMAT, (unsigned)errors);
-            Arinc661_Definition_SetStatusNote(window->definitionEditor, note);
+            Arinc661_DefinitionEditor_SetStatusNote(window->definitionEditor, note);
         }
         else
         {
-            Arinc661_Definition_SetStatusNote(window->definitionEditor, NULL);
+            Arinc661_DefinitionEditor_SetStatusNote(window->definitionEditor, NULL);
         }
     }
     else
@@ -2865,8 +2865,8 @@ static void DrawPageHierarchy(WindowThreadState_t* window)
         {
             ImGui::PushID(DEFINITION_SECTION_ID);
             ImGui::BeginGroup();
-            Arinc661_Definition_DrawDocumentTabs(window->definitionEditor);
-            Arinc661_Definition_DrawHierarchy(window->definitionEditor);
+            Arinc661_DefinitionEditor_DrawDocumentTabs(window->definitionEditor);
+            Arinc661_DefinitionEditor_DrawHierarchy(window->definitionEditor);
             ImGui::EndGroup();
             if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem | ImGuiHoveredFlags_AllowWhenOverlapped))
             {
@@ -2949,7 +2949,7 @@ static void DrawEditors(WindowThreadState_t* window)
                     {
                         ImGui::TextColored(PLAY_BANNER_COLOR, "%s", PLAY_BANNER_LABEL);
                     }
-                    if ((FALSE == Arinc661_Configuration_HasActiveDocument(window->configurationEditor, &is_dirty, &has_free)) && (FALSE == Arinc661_Definition_HasActiveDocument(window->definitionEditor, &is_dirty, &has_free)))
+                    if ((FALSE == Arinc661_Configuration_HasActiveDocument(window->configurationEditor, &is_dirty, &has_free)) && (FALSE == Arinc661_DefinitionEditor_HasActiveDocument(window->definitionEditor, &is_dirty, &has_free)))
                     {
                         DrawStartPage(window);
                         break;
@@ -2960,10 +2960,10 @@ static void DrawEditors(WindowThreadState_t* window)
                     {
                         stats_list = &window->definitionEditor->drawList;
                     }
-                    ImGui::TextDisabled(STATS_FORMAT, (unsigned)Arinc661_Definition_WidgetCount(window->definitionEditor), (unsigned)stats_list->commandCount, (unsigned)stats_list->pointCount, (float64_t)(ImGui::GetIO().DeltaTime * 1000.0f));
+                    ImGui::TextDisabled(STATS_FORMAT, (unsigned)Arinc661_DefinitionEditor_WidgetCount(window->definitionEditor), (unsigned)stats_list->commandCount, (unsigned)stats_list->pointCount, (float64_t)(ImGui::GetIO().DeltaTime * 1000.0f));
                     if (window->isDefinitionActive && (FALSE == window->definitionEditor->isPlaying))
                     {
-                        Arinc661_Definition_DrawScene(window->definitionEditor);
+                        Arinc661_DefinitionEditor_DrawScene(window->definitionEditor);
                     }
                     else
                     {
@@ -2973,7 +2973,7 @@ static void DrawEditors(WindowThreadState_t* window)
                 case PANEL_INDEX_INSPECTOR:
                     if (window->isDefinitionActive)
                     {
-                        Arinc661_Definition_DrawInspector(window->definitionEditor);
+                        Arinc661_DefinitionEditor_DrawInspector(window->definitionEditor);
                     }
                     else
                     {
@@ -3017,9 +3017,9 @@ static void DrawEditors(WindowThreadState_t* window)
     }
     (void)Arinc661_Context_FollowRenames(window->context);
     Arinc661_Configuration_EndFrame(window->configurationEditor);
-    Arinc661_Definition_EndFrame(window->definitionEditor);
+    Arinc661_DefinitionEditor_EndFrame(window->definitionEditor);
     Arinc661_Configuration_DrawDialogs(window->configurationEditor);
-    Arinc661_Definition_DrawDialogs(window->definitionEditor);
+    Arinc661_DefinitionEditor_DrawDialogs(window->definitionEditor);
     SavePreferences(window);
 }
 
@@ -3116,7 +3116,7 @@ static void DrawPalette(WindowThreadState_t* window)
             ImGui::PushID((int)(50000 + character));
             if (ImGui::Selectable(upper_filter))
             {
-                if (Arinc661_Definition_LoadPrefab(window->definitionEditor, window->prefabNames[character]))
+                if (Arinc661_DefinitionEditor_LoadPrefab(window->definitionEditor, window->prefabNames[character]))
                 {
                     window->isDefinitionActive = TRUE;
                 }
@@ -3188,11 +3188,11 @@ static void DrawPalette(WindowThreadState_t* window)
             {
                 if (is_extension)
                 {
-                    Arinc661_Definition_AddExtensionOfType(window->definitionEditor, type_name);
+                    Arinc661_DefinitionEditor_AddExtensionOfType(window->definitionEditor, type_name);
                 }
                 else
                 {
-                    Arinc661_Definition_AddWidgetOfType(window->definitionEditor, type_name);
+                    Arinc661_DefinitionEditor_AddWidgetOfType(window->definitionEditor, type_name);
                 }
                 window->isDefinitionActive = TRUE;
             }
@@ -3319,7 +3319,7 @@ static void OpenFolderFile(WindowThreadState_t* window, const char_t* name, bool
 
     if (isDefinition)
     {
-        Arinc661_Definition_LoadFile(window->definitionEditor, name);
+        Arinc661_DefinitionEditor_LoadFile(window->definitionEditor, name);
         window->isDefinitionActive = TRUE;
     }
     else
@@ -3545,9 +3545,9 @@ static void RevealInExplorer(WindowThreadState_t* window)
     const char_t* name;
 
     name = NULL;
-    if (window->isDefinitionActive && (window->definitionEditor->activeDocumentIndex < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS))
+    if (window->isDefinitionActive && (window->definitionEditor->activeDocumentIndex < ARINC661_DEFINITION_EDITOR_MAX_OPEN_DOCUMENTS))
     {
-        name = Arinc661_Definition_DocumentName(window->definitionEditor, window->definitionEditor->activeDocumentIndex);
+        name = Arinc661_DefinitionEditor_DocumentName(window->definitionEditor, window->definitionEditor->activeDocumentIndex);
     }
     else if ((FALSE == window->isDefinitionActive) && (window->configurationEditor->activeDocumentIndex < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS))
     {
@@ -3577,7 +3577,7 @@ static void DrawHistory(WindowThreadState_t* window)
     uint32_t current;
     uint32_t index;
 
-    count = Arinc661_Definition_HistoryCount(window->definitionEditor, &current);
+    count = Arinc661_DefinitionEditor_HistoryCount(window->definitionEditor, &current);
     if (0 == count)
     {
         ImGui::TextDisabled("%s", HISTORY_EMPTY_LABEL);
@@ -3587,11 +3587,11 @@ static void DrawHistory(WindowThreadState_t* window)
     {
         if (index == current)
         {
-            (void)snprintf(label, sizeof(label), "%u  %s%s", (unsigned)index, Arinc661_Definition_HistoryLabel(window->definitionEditor, index), HISTORY_CURRENT_MARK);
+            (void)snprintf(label, sizeof(label), "%u  %s%s", (unsigned)index, Arinc661_DefinitionEditor_HistoryLabel(window->definitionEditor, index), HISTORY_CURRENT_MARK);
         }
         else
         {
-            (void)snprintf(label, sizeof(label), "%u  %s", (unsigned)index, Arinc661_Definition_HistoryLabel(window->definitionEditor, index));
+            (void)snprintf(label, sizeof(label), "%u  %s", (unsigned)index, Arinc661_DefinitionEditor_HistoryLabel(window->definitionEditor, index));
         }
         ImGui::PushID((int)index);
         if (index > current)
@@ -3600,7 +3600,7 @@ static void DrawHistory(WindowThreadState_t* window)
         }
         if (ImGui::Selectable(label, index == current))
         {
-            Arinc661_Definition_GoToHistory(window->definitionEditor, index);
+            Arinc661_DefinitionEditor_GoToHistory(window->definitionEditor, index);
         }
         if (index > current)
         {
@@ -3952,8 +3952,8 @@ static void DrawSavePrefabPopup(WindowThreadState_t* window)
         }
         if (ImGui::InputTextWithHint("##prefab name", SAVE_PREFAB_NAME_HINT, window->prefabName, sizeof(window->prefabName), ImGuiInputTextFlags_EnterReturnsTrue) || ImGui::Button(SAVE_PREFAB_OK_LABEL))
         {
-            (void)Arinc661_Definition_Copy(window->definitionEditor);
-            if (Arinc661_Definition_SavePrefab(window->definitionEditor, window->prefabName, path, sizeof(path)))
+            (void)Arinc661_DefinitionEditor_Copy(window->definitionEditor);
+            if (Arinc661_DefinitionEditor_SavePrefab(window->definitionEditor, window->prefabName, path, sizeof(path)))
             {
                 (void)snprintf(note, sizeof(note), SAVE_PREFAB_NOTE_FORMAT, path);
                 AppendLog(window, note);
@@ -4000,7 +4000,7 @@ static void DrawStartPage(WindowThreadState_t* window)
     ImGui::SameLine();
     if (ImGui::Button(NEW_DEFINITION_LABEL, ImVec2(ImMax(START_BUTTON_WIDTH, ImGui::CalcTextSize(NEW_APPLICATION_LABEL).x + ImGui::GetStyle().FramePadding.x * 4.0f), 0.0f)))
     {
-        Arinc661_Definition_CreateDocument(window->definitionEditor);
+        Arinc661_DefinitionEditor_CreateDocument(window->definitionEditor);
         window->isDefinitionActive = TRUE;
     }
     ImGui::SameLine();
@@ -4067,7 +4067,7 @@ static void DrawTimeline(WindowThreadState_t* window)
     char_t        label[ARINC661_MAX_NAME_BYTES + 64];
 
     window->timelineLength = 0.0f;
-    for (index = 0; Arinc661_Definition_AnimationAt(window->definitionEditor, index, &name, &type, &delay, &duration); ++index)
+    for (index = 0; Arinc661_DefinitionEditor_AnimationAt(window->definitionEditor, index, &name, &type, &delay, &duration); ++index)
     {
         end = (delay + duration);
         if (window->timelineLength < end)
@@ -4079,7 +4079,7 @@ static void DrawTimeline(WindowThreadState_t* window)
     {
         ImGui::TextWrapped("%s", TIMELINE_EMPTY_LABEL);
         window->isTimelinePlaying = FALSE;
-        Arinc661_Definition_SetAnimationTime(window->definitionEditor, -1.0f);
+        Arinc661_DefinitionEditor_SetAnimationTime(window->definitionEditor, -1.0f);
         return;
     }
     if (window->isTimelinePlaying)
@@ -4098,7 +4098,7 @@ static void DrawTimeline(WindowThreadState_t* window)
     {
         window->isTimelinePlaying = FALSE;
         window->timelineTime      = 0.0f;
-        Arinc661_Definition_SetAnimationTime(window->definitionEditor, -1.0f);
+        Arinc661_DefinitionEditor_SetAnimationTime(window->definitionEditor, -1.0f);
     }
     ImGui::SameLine();
     ImGui::Checkbox(TIMELINE_LOOP_LABEL, (bool*)&window->isTimelineLooping);
@@ -4106,7 +4106,7 @@ static void DrawTimeline(WindowThreadState_t* window)
     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
     if (ImGui::SliderFloat(TIMELINE_TIME_LABEL, &window->timelineTime, 0.0f, ImMax(window->timelineLength, 0.001f), "%.2f s"))
     {
-        Arinc661_Definition_SetAnimationTime(window->definitionEditor, window->timelineTime);
+        Arinc661_DefinitionEditor_SetAnimationTime(window->definitionEditor, window->timelineTime);
     }
     if (window->isTimelinePlaying)
     {
@@ -4123,18 +4123,18 @@ static void DrawTimeline(WindowThreadState_t* window)
                 window->isTimelinePlaying = FALSE;
             }
         }
-        Arinc661_Definition_SetAnimationTime(window->definitionEditor, window->timelineTime);
+        Arinc661_DefinitionEditor_SetAnimationTime(window->definitionEditor, window->timelineTime);
     }
     draw_list  = ImGui::GetWindowDrawList();
     // Name column as wide as the longest label so bars never cross text
     name_width = TIMELINE_NAME_WIDTH;
-    for (index = 0; Arinc661_Definition_AnimationAt(window->definitionEditor, index, &name, &type, &delay, &duration); ++index)
+    for (index = 0; Arinc661_DefinitionEditor_AnimationAt(window->definitionEditor, index, &name, &type, &delay, &duration); ++index)
     {
         (void)snprintf(label, sizeof(label), "%s (%s)", name, type + 5);
         name_width = ImMax(name_width, ImGui::CalcTextSize(label).x + ImGui::GetStyle().ItemSpacing.x * 2.0f);
     }
     axis_width = ImMax(50.0f, ImGui::GetContentRegionAvail().x - name_width);
-    for (index = 0; Arinc661_Definition_AnimationAt(window->definitionEditor, index, &name, &type, &delay, &duration); ++index)
+    for (index = 0; Arinc661_DefinitionEditor_AnimationAt(window->definitionEditor, index, &name, &type, &delay, &duration); ++index)
     {
         row_min  = ImGui::GetCursorScreenPos();
         axis_min = ImVec2(row_min.x + name_width, row_min.y);
@@ -4158,11 +4158,11 @@ static void TogglePlay(WindowThreadState_t* window)
 {
     if (window->definitionEditor->isPlaying)
     {
-        Arinc661_Definition_EndPlay(window->definitionEditor);
+        Arinc661_DefinitionEditor_EndPlay(window->definitionEditor);
     }
     else
     {
-        Arinc661_Definition_BeginPlay(window->definitionEditor);
+        Arinc661_DefinitionEditor_BeginPlay(window->definitionEditor);
         window->isDefinitionActive = FALSE;
     }
 }
@@ -4267,14 +4267,14 @@ static void DrawCommandPalette(WindowThreadState_t* window)
                     if (ImGui::Selectable(label) || (runs_first && (0 == shown)))
                     {
                         if (0 == strncmp(c_commands[index], NEW_CONFIGURATION_LABEL, sizeof(NEW_CONFIGURATION_LABEL))) { Arinc661_Configuration_CreateDocument(window->configurationEditor); window->isDefinitionActive = FALSE; }
-                        else if (0 == strncmp(c_commands[index], NEW_DEFINITION_LABEL, sizeof(NEW_DEFINITION_LABEL))) { Arinc661_Definition_CreateDocument(window->definitionEditor); window->isDefinitionActive = TRUE; }
+                        else if (0 == strncmp(c_commands[index], NEW_DEFINITION_LABEL, sizeof(NEW_DEFINITION_LABEL))) { Arinc661_DefinitionEditor_CreateDocument(window->definitionEditor); window->isDefinitionActive = TRUE; }
                         else if (0 == strncmp(c_commands[index], NEW_APPLICATION_LABEL, sizeof(NEW_APPLICATION_LABEL))) { (void)Arinc661_Context_NewApplication(window->context); }
                         else if (0 == strncmp(c_commands[index], SAVE_LABEL, sizeof(SAVE_LABEL))) { SaveActive(window); }
-                        else if (0 == strncmp(c_commands[index], SAVE_ALL_LABEL, sizeof(SAVE_ALL_LABEL))) { Arinc661_Configuration_SaveAllDocuments(window->configurationEditor); Arinc661_Definition_SaveAllDocuments(window->definitionEditor); }
+                        else if (0 == strncmp(c_commands[index], SAVE_ALL_LABEL, sizeof(SAVE_ALL_LABEL))) { Arinc661_Configuration_SaveAllDocuments(window->configurationEditor); Arinc661_DefinitionEditor_SaveAllDocuments(window->definitionEditor); }
                         else if (0 == strncmp(c_commands[index], BUILD_LABEL, sizeof(BUILD_LABEL))) { BuildAll(window); }
                         else if (0 == strncmp(c_commands[index], PLAY_LABEL, sizeof(PLAY_LABEL))) { TogglePlay(window); }
-                        else if (0 == strncmp(c_commands[index], UNDO_LABEL, sizeof(UNDO_LABEL))) { if (window->isDefinitionActive) { Arinc661_Definition_Undo(window->definitionEditor); } else { Arinc661_Configuration_Undo(window->configurationEditor); } }
-                        else if (0 == strncmp(c_commands[index], REDO_LABEL, sizeof(REDO_LABEL))) { if (window->isDefinitionActive) { Arinc661_Definition_Redo(window->definitionEditor); } else { Arinc661_Configuration_Redo(window->configurationEditor); } }
+                        else if (0 == strncmp(c_commands[index], UNDO_LABEL, sizeof(UNDO_LABEL))) { if (window->isDefinitionActive) { Arinc661_DefinitionEditor_Undo(window->definitionEditor); } else { Arinc661_Configuration_Undo(window->configurationEditor); } }
+                        else if (0 == strncmp(c_commands[index], REDO_LABEL, sizeof(REDO_LABEL))) { if (window->isDefinitionActive) { Arinc661_DefinitionEditor_Redo(window->definitionEditor); } else { Arinc661_Configuration_Redo(window->configurationEditor); } }
                         else if (0 == strncmp(c_commands[index], OPEN_REFERENCED_LABEL, sizeof(OPEN_REFERENCED_LABEL))) { (void)Arinc661_Context_OpenReferencedDefinitions(window->context); }
                         else if (0 == strncmp(c_commands[index], RESET_LAYOUT_LABEL, sizeof(RESET_LAYOUT_LABEL))) { window->resetsLayout = TRUE; }
                         else if (0 == strncmp(c_commands[index], HELP_CONTEXT_LABEL, sizeof(HELP_CONTEXT_LABEL))) { OpenWindowsHelp(window, HH_DISPLAY_TOPIC_COMMAND); }
@@ -4307,7 +4307,7 @@ static void DrawCommandPalette(WindowThreadState_t* window)
                 }
             }
             // Widgets of the active Definition File
-            definition = Arinc661_Definition_Document(window->definitionEditor, window->definitionEditor->activeDocumentIndex);
+            definition = Arinc661_DefinitionEditor_Document(window->definitionEditor, window->definitionEditor->activeDocumentIndex);
             for (index = 0; (NULL != definition) && ('\0' != upper_filter[0]) && (index < definition->widgetCount); ++index)
             {
                 for (character = 0; character < sizeof(upper_item); ++character)
@@ -4324,7 +4324,7 @@ static void DrawCommandPalette(WindowThreadState_t* window)
                     ImGui::PushID((int)(100000 + index));
                     if (ImGui::Selectable(label) || (runs_first && (0 == shown)))
                     {
-                        Arinc661_Definition_SelectWidget(window->definitionEditor, window->definitionEditor->activeDocumentIndex, index);
+                        Arinc661_DefinitionEditor_SelectWidget(window->definitionEditor, window->definitionEditor->activeDocumentIndex, index);
                         window->isDefinitionActive = TRUE;
                         window->isPaletteOpen      = FALSE;
                     }
@@ -4566,7 +4566,7 @@ static void DrawStatusBar(WindowThreadState_t* window)
     status_text = Arinc661_Configuration_StatusText(window->configurationEditor);
     if (window->isDefinitionActive)
     {
-        status_text = Arinc661_Definition_StatusText(window->definitionEditor);
+        status_text = Arinc661_DefinitionEditor_StatusText(window->definitionEditor);
     }
     AppendLog(window, status_text);
     if ('\0' == status_text[0])
@@ -4586,7 +4586,7 @@ static void DrawStatusBar(WindowThreadState_t* window)
         ImGui::TextColored(PROBLEM_ERROR_COLOR, "%s", window->saveNote);
     }
     Arinc661_Configuration_SelectionText(window->configurationEditor, configuration_crumb, sizeof(configuration_crumb));
-    Arinc661_Definition_SelectionText(window->definitionEditor, definition_crumb, sizeof(definition_crumb));
+    Arinc661_DefinitionEditor_SelectionText(window->definitionEditor, definition_crumb, sizeof(definition_crumb));
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
     ImGui::TextWrapped(CONTEXT_BAR_FORMAT, configuration_crumb, definition_crumb);
     ImGui::PopStyleColor();
@@ -5032,7 +5032,7 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
 
     window->configurationEditor = (Arinc661_Configuration_Editor_t*)OS_CALLOC(sizeof(Arinc661_Configuration_Editor_t));
     Arinc661_Configuration_Initialize(window->configurationEditor);
-    window->definitionEditor = (Arinc661_Definition_Editor_t*)OS_CALLOC(sizeof(Arinc661_Definition_Editor_t));
+    window->definitionEditor = (Arinc661_DefinitionEditor_t*)OS_CALLOC(sizeof(Arinc661_DefinitionEditor_t));
     Arinc661_Definition_Initialize(window->definitionEditor);
     window->isHelpOpen    = FALSE;
     window->helpFilter[0] = 0;
@@ -5084,10 +5084,10 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
     }
     if (NULL != g_openDefinition)
     {
-        Arinc661_Definition_LoadFile(window->definitionEditor, g_openDefinition);
+        Arinc661_DefinitionEditor_LoadFile(window->definitionEditor, g_openDefinition);
         if (NULL != g_selectName)
         {
-            Arinc661_Definition_SelectByName(window->definitionEditor, g_selectName);
+            Arinc661_DefinitionEditor_SelectByName(window->definitionEditor, g_selectName);
         }
     }
     window->isDefinitionActive = g_focusDefinition;
@@ -5103,7 +5103,7 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
     if (0.0f <= g_startTime)
     {
         window->timelineTime = g_startTime;
-        Arinc661_Definition_SetAnimationTime(window->definitionEditor, g_startTime);
+        Arinc661_DefinitionEditor_SetAnimationTime(window->definitionEditor, g_startTime);
     }
     if (g_startsPlaying)
     {

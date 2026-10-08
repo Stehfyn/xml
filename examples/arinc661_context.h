@@ -37,7 +37,7 @@ extern "C"
 **===============================================================================================*/
 
 struct Arinc661_Configuration_Editor_s;
-struct Arinc661_Definition_Editor_s;
+struct Arinc661_DefinitionEditor_s;
 
 /*************************************************************************************************/
 /**
@@ -79,7 +79,7 @@ typedef struct Arinc661_Context_Problem_s
 typedef struct Arinc661_Context_s
 {
     struct Arinc661_Configuration_Editor_s* configurationEditor;                                                                          ///< Configuration editor, never NULL once set up.
-    struct Arinc661_Definition_Editor_s*    definitionEditor;                                                                             ///< Definition File editor, never NULL once set up.
+    struct Arinc661_DefinitionEditor_s*     definitionEditor;                                                                             ///< Definition File editor, never NULL once set up.
     uint32_t                                definitionFileCount;                                                                          ///< Valid Definition Files in the shared folder.
     char_t                                  definitionFiles[ARINC661_CONTEXT_MAX_DEFINITION_FILES][ARINC661_CONTEXT_MAX_FILE_NAME_BYTES]; ///< Their names.
     bool_t                                  isDefinitionFocused;                                                                          ///< TRUE when the last focus request named the Definition File section.
@@ -140,7 +140,7 @@ typedef struct Arinc661_Context_Definition_s
  *
  * \retval        None
  */
-void Arinc661_Context_Initialize(Arinc661_Context_t* context, struct Arinc661_Configuration_Editor_s* configurationEditor, struct Arinc661_Definition_Editor_s* definitionEditor);
+void Arinc661_Context_Initialize(Arinc661_Context_t* context, struct Arinc661_Configuration_Editor_s* configurationEditor, struct Arinc661_DefinitionEditor_s* definitionEditor);
 
 /*************************************************************************************************/
 /**
@@ -324,7 +324,7 @@ uint32_t Arinc661_Context_FollowRenames(Arinc661_Context_t* context);
  * \param[in] context         Context
  * \param[in] applicationId   ApplicationId value
  *
- * \retval    uint32_t   Definition File document slot, or ARINC661_DEFINITION_NO_DOCUMENT.
+ * \retval    uint32_t   Definition File document slot, or ARINC661_DEFINITION_EDITOR_NO_DOCUMENT.
  */
 uint32_t Arinc661_Context_DefinitionByApplicationId(const Arinc661_Context_t* context, int64_t applicationId);
 
