@@ -110,9 +110,9 @@ typedef struct KindName_s
 typedef enum ChildMode_e
 {
     CHILD_ALL,      ///< Every child as it is
-    CHILD_IDENT,    ///< Only the child whose WidgetIdent matches; the rest hidden
+    CHILD_IDENT,    ///< Only the child whose WidgetIdent matches; the rest hidden, or faded when showsHidden is set
     CHILD_MENU_BAR, ///< Children laid along the bar
-    CHILD_TABS      ///< Tabbed panels share the content area; only the active one is visible
+    CHILD_TABS      ///< Tabbed panels share the content area; the inactive ones are hidden, or faded when showsHidden is set
 } ChildMode_t;
 
 /** Position and size handed to a child by its container's layout. */
@@ -125,7 +125,7 @@ typedef struct Layout_s
     float32_t height;
 } Layout_t;
 
-/** Children policy produced by a container's handler. */
+/** How DrawChildren presents a container's children; set while the container is drawn. */
 typedef struct Children_s
 {
     ChildMode_t mode;
@@ -201,7 +201,7 @@ static const KindName_t c_kindNames[] =
     {"A661_TRANSLATION_CONTAINER", KIND_TRANSLATION_CONTAINER}, {"A661_TREE", KIND_TREE}, {"A661_WATCHDOG_CONTAINER", KIND_WATCHDOG_CONTAINER}
 };
 
-/** Colours for ColorIndex values; the CDS colour table is not part of the Definition File. */
+/** Colors for ColorIndex values; the CDS color table is not part of the Definition File. */
 static const FACEOE_Gfx_Color_t c_palette[RENDERER_PALETTE_COUNT] =
 {
     FACEOE_GFX_RGBA(255, 255, 255, 255), FACEOE_GFX_RGBA(0, 0, 0, 255),       FACEOE_GFX_RGBA(255, 60, 60, 255),   FACEOE_GFX_RGBA(60, 255, 60, 255),
@@ -219,9 +219,9 @@ static const FACEOE_Gfx_Color_t c_palette[RENDERER_PALETTE_COUNT] =
 /**
  * \brief Returns the widget a widget node stands for.
  *
- * \param node   Widget node in the scene
+ * \param[in] node   Widget node in the scene
  *
- * \retval const Arinc661_Widget_t*   The widget.
+ * \retval    const Arinc661_Widget_t*   The widget.
  */
 static const Arinc661_Widget_t* WidgetOf(const FACEOE_Utl_Node_t* node);
 
@@ -229,9 +229,9 @@ static const Arinc661_Widget_t* WidgetOf(const FACEOE_Utl_Node_t* node);
 /**
  * \brief Returns the first property node of a layer or widget node.
  *
- * \param node   Layer or widget node in the scene
+ * \param[in] node   Layer or widget node in the scene
  *
- * \retval const FACEOE_Utl_Node_t*   First property node, or NULL.
+ * \retval    const FACEOE_Utl_Node_t*   First property node, or NULL.
  */
 static const FACEOE_Utl_Node_t* GetFirstProperty(const FACEOE_Utl_Node_t* node);
 
@@ -239,20 +239,20 @@ static const FACEOE_Utl_Node_t* GetFirstProperty(const FACEOE_Utl_Node_t* node);
 /**
  * \brief Returns the first widget or extension node below a layer or widget node.
  *
- * \param node   Layer or widget node in the scene
+ * \param[in] node   Layer or widget node in the scene
  *
- * \retval const FACEOE_Utl_Node_t*   First widget or extension node, or NULL.
+ * \retval    const FACEOE_Utl_Node_t*   First widget or extension node, or NULL.
  */
 static const FACEOE_Utl_Node_t* GetFirstChild(const FACEOE_Utl_Node_t* node);
 
 /*************************************************************************************************/
 /**
- * \brief Returns the node of a layer of a scene.
+ * \brief Returns a layer's node.
  *
- * \param scene        Scene
- * \param layerIndex   Layer array index
+ * \param[in] scene        Scene
+ * \param[in] layerIndex   Layer array index
  *
- * \retval const FACEOE_Utl_Node_t*   Layer node, or NULL.
+ * \retval    const FACEOE_Utl_Node_t*   Layer node, or NULL.
  */
 static const FACEOE_Utl_Node_t* FindLayer(const Arinc661_Scene_t* scene, uint32_t layerIndex);
 
@@ -260,10 +260,10 @@ static const FACEOE_Utl_Node_t* FindLayer(const Arinc661_Scene_t* scene, uint32_
 /**
  * \brief Lists the rotation, scale, and translation animations below a node, in drawing order.
  *
- * \param renderer   Drawing state
- * \param node       Layer or widget node in the scene
+ * \param[in,out] renderer   Drawing state
+ * \param[in]     node       Layer or widget node in the scene
  *
- * \retval None
+ * \retval        None
  */
 static void CollectAnimations(Renderer_t* renderer, const FACEOE_Utl_Node_t* node);
 
@@ -271,9 +271,9 @@ static void CollectAnimations(Renderer_t* renderer, const FACEOE_Utl_Node_t* nod
 /**
  * \brief Maps a widget type name to its kind.
  *
- * \param type   Widget or extension type name
+ * \param[in] type   Widget or extension type name
  *
- * \retval Kind_t   Kind, or KIND_UNKNOWN.
+ * \retval    Kind_t   Kind, or KIND_UNKNOWN.
  */
 static Kind_t KindOf(const char_t* type);
 
@@ -281,11 +281,11 @@ static Kind_t KindOf(const char_t* type);
 /**
  * \brief Returns the n-th same-named property value of a widget, or NULL.
  *
- * \param node          Widget node in the scene
- * \param name          Property or element name
- * \param occurrence    Index among same-named properties
+ * \param[in] node         Widget node in the scene
+ * \param[in] name         Property name
+ * \param[in] occurrence   Index among same-named properties
  *
- * \retval const char_t*   Value, or NULL.
+ * \retval    const char_t*   Value, or NULL.
  */
 static const char_t* Value(const FACEOE_Utl_Node_t* node, const char_t* name, uint32_t occurrence);
 
@@ -293,10 +293,10 @@ static const char_t* Value(const FACEOE_Utl_Node_t* node, const char_t* name, ui
 /**
  * \brief Counts the same-named properties of a widget.
  *
- * \param node          Widget node in the scene
- * \param name          Property or element name
+ * \param[in] node   Widget node in the scene
+ * \param[in] name   Property name
  *
- * \retval uint32_t   Number of same-named properties.
+ * \retval    uint32_t   Number of same-named properties.
  */
 static uint32_t Occurrences(const FACEOE_Utl_Node_t* node, const char_t* name);
 
@@ -304,10 +304,10 @@ static uint32_t Occurrences(const FACEOE_Utl_Node_t* node, const char_t* name);
 /**
  * \brief Returns a widget's first same-named property value, or an empty string.
  *
- * \param node          Widget node in the scene
- * \param name          Property or element name
+ * \param[in] node   Widget node in the scene
+ * \param[in] name   Property name
  *
- * \retval const char_t*   Value, or an empty string.
+ * \retval    const char_t*   Value, or an empty string.
  */
 static const char_t* Text(const FACEOE_Utl_Node_t* node, const char_t* name);
 
@@ -315,11 +315,11 @@ static const char_t* Text(const FACEOE_Utl_Node_t* node, const char_t* name);
 /**
  * \brief Reads a decimal or a constant name as a number.
  *
- * \param text     Text
- * \param number   Number
+ * \param[in]  text     Text
+ * \param[out] number   Receives the number
  *
- * \retval TRUE   if the text is a decimal or a known constant.
- * \retval FALSE  otherwise.
+ * \retval     TRUE    if the text is a decimal or a known constant.
+ * \retval     FALSE   otherwise.
  */
 static bool_t ScanNumber(const char_t* text, float32_t* number);
 
@@ -327,12 +327,12 @@ static bool_t ScanNumber(const char_t* text, float32_t* number);
 /**
  * \brief Reads a widget's first same-named property as a number.
  *
- * \param node          Widget node in the scene
- * \param name          Property or element name
- * \param number        Number
+ * \param[in]  node     Widget node in the scene
+ * \param[in]  name     Property name
+ * \param[out] number   Receives the number
  *
- * \retval TRUE   if the property exists and is numeric.
- * \retval FALSE  otherwise.
+ * \retval     TRUE    if the property exists and is numeric.
+ * \retval     FALSE   otherwise.
  */
 static bool_t Number(const FACEOE_Utl_Node_t* node, const char_t* name, float32_t* number);
 
@@ -340,11 +340,11 @@ static bool_t Number(const FACEOE_Utl_Node_t* node, const char_t* name, float32_
 /**
  * \brief Reads a number with a fallback.
  *
- * \param node          Widget node in the scene
- * \param name          Property or element name
- * \param fallback      Fallback
+ * \param[in] node       Widget node in the scene
+ * \param[in] name       Property name
+ * \param[in] fallback   Fallback
  *
- * \retval float32_t   Value, or the fallback.
+ * \retval    float32_t   Value, or the fallback.
  */
 static float32_t NumberOr(const FACEOE_Utl_Node_t* node, const char_t* name, float32_t fallback);
 
@@ -352,12 +352,12 @@ static float32_t NumberOr(const FACEOE_Utl_Node_t* node, const char_t* name, flo
 /**
  * \brief Reads the n-th same-named property as a number with a fallback.
  *
- * \param node          Widget node in the scene
- * \param name          Property or element name
- * \param occurrence    Index among same-named properties
- * \param fallback      Fallback
+ * \param[in] node         Widget node in the scene
+ * \param[in] name         Property name
+ * \param[in] occurrence   Index among same-named properties
+ * \param[in] fallback     Fallback
  *
- * \retval float32_t   Value, or the fallback.
+ * \retval    float32_t   Value, or the fallback.
  */
 static float32_t NumberAt(const FACEOE_Utl_Node_t* node, const char_t* name, uint32_t occurrence, float32_t fallback);
 
@@ -365,12 +365,12 @@ static float32_t NumberAt(const FACEOE_Utl_Node_t* node, const char_t* name, uin
 /**
  * \brief Tests the first same-named property against a constant.
  *
- * \param node           Widget node in the scene
- * \param name           Property or element name
- * \param constantName   Constant name
+ * \param[in] node           Widget node in the scene
+ * \param[in] name           Property name
+ * \param[in] constantName   Constant name
  *
- * \retval TRUE   if the property equals the constant.
- * \retval FALSE  otherwise.
+ * \retval    TRUE    if the property equals the constant.
+ * \retval    FALSE   otherwise.
  */
 static bool_t Is(const FACEOE_Utl_Node_t* node, const char_t* name, const char_t* constantName);
 
@@ -378,13 +378,13 @@ static bool_t Is(const FACEOE_Utl_Node_t* node, const char_t* name, const char_t
 /**
  * \brief Tests whether a property equals a constant, by name or by value.
  *
- * \param node           Widget node in the scene
- * \param name           Property or element name
- * \param occurrence     Index among same-named properties
- * \param constantName   Constant name
+ * \param[in] node           Widget node in the scene
+ * \param[in] name           Property name
+ * \param[in] occurrence     Index among same-named properties
+ * \param[in] constantName   Constant name
  *
- * \retval TRUE   if the property equals the constant.
- * \retval FALSE  otherwise.
+ * \retval    TRUE    if the property equals the constant.
+ * \retval    FALSE   otherwise.
  */
 static bool_t IsAt(const FACEOE_Utl_Node_t* node, const char_t* name, uint32_t occurrence, const char_t* constantName);
 
@@ -392,20 +392,20 @@ static bool_t IsAt(const FACEOE_Utl_Node_t* node, const char_t* name, uint32_t o
 /**
  * \brief Reads a widget's WidgetIdent, or -1.
  *
- * \param node          Widget node in the scene
+ * \param[in] node   Widget node in the scene
  *
- * \retval int64_t   WidgetIdent, or -1 when missing.
+ * \retval    int64_t   WidgetIdent, or -1 when missing.
  */
 static int64_t Ident(const FACEOE_Utl_Node_t* node);
 
 /*************************************************************************************************/
 /**
- * \brief Applies the inherited alpha to a colour.
+ * \brief Applies the inherited alpha to a color.
  *
- * \param color   Colour
- * \param alpha   Alpha
+ * \param[in] color   Color
+ * \param[in] alpha   Alpha
  *
- * \retval FACEOE_Gfx_Color_t   Colour with its alpha scaled.
+ * \retval    FACEOE_Gfx_Color_t   Color with its alpha scaled.
  */
 static FACEOE_Gfx_Color_t Fade(FACEOE_Gfx_Color_t color, float32_t alpha);
 
@@ -413,10 +413,10 @@ static FACEOE_Gfx_Color_t Fade(FACEOE_Gfx_Color_t color, float32_t alpha);
 /**
  * \brief Resolves a widget's ColorIndex through the palette.
  *
- * \param node          Widget node in the scene
- * \param alpha         Alpha
+ * \param[in] node    Widget node in the scene
+ * \param[in] alpha   Alpha
  *
- * \retval FACEOE_Gfx_Color_t   Palette colour for the ColorIndex, faded.
+ * \retval    FACEOE_Gfx_Color_t   Palette color for the ColorIndex, faded.
  */
 static FACEOE_Gfx_Color_t IndexColor(const FACEOE_Utl_Node_t* node, float32_t alpha);
 
@@ -424,14 +424,14 @@ static FACEOE_Gfx_Color_t IndexColor(const FACEOE_Utl_Node_t* node, float32_t al
 /**
  * \brief Reads a widget's reference point and size, or takes them from the container's layout.
  *
- * \param node          Widget node in the scene
- * \param layout        Layout
- * \param x             X in layer units
- * \param y             Y in layer units
- * \param width         Width
- * \param height        Height
+ * \param[in]  node     Widget node in the scene
+ * \param[in]  layout   Container's layout, or NULL
+ * \param[out] x        Receives X in layer units
+ * \param[out] y        Receives Y in layer units
+ * \param[out] width    Receives the width
+ * \param[out] height   Receives the height
  *
- * \retval None
+ * \retval     None
  */
 static void Rect(const FACEOE_Utl_Node_t* node, const Layout_t* layout, float32_t* x, float32_t* y, float32_t* width, float32_t* height);
 
@@ -439,12 +439,12 @@ static void Rect(const FACEOE_Utl_Node_t* node, const Layout_t* layout, float32_
 /**
  * \brief Grows output bounds by a mapped local point.
  *
- * \param renderer Drawing state
- * \param bounds   Bounds
- * \param x        X in layer units
- * \param y        Y in layer units
+ * \param[in]     renderer   Drawing state
+ * \param[in,out] bounds     Bounds
+ * \param[in]     x          X in layer units
+ * \param[in]     y          Y in layer units
  *
- * \retval None
+ * \retval        None
  */
 static void Extend(const Renderer_t* renderer, Bounds_t* bounds, float32_t x, float32_t y);
 
@@ -452,14 +452,14 @@ static void Extend(const Renderer_t* renderer, Bounds_t* bounds, float32_t x, fl
 /**
  * \brief Grows output bounds by a local box.
  *
- * \param renderer Drawing state
- * \param bounds   Bounds
- * \param x        X in layer units
- * \param y        Y in layer units
- * \param width    Width
- * \param height   Height
+ * \param[in]     renderer   Drawing state
+ * \param[in,out] bounds     Bounds
+ * \param[in]     x          X in layer units
+ * \param[in]     y          Y in layer units
+ * \param[in]     width      Width
+ * \param[in]     height     Height
  *
- * \retval None
+ * \retval        None
  */
 static void ExtendBox(const Renderer_t* renderer, Bounds_t* bounds, float32_t x, float32_t y, float32_t width, float32_t height);
 
@@ -467,10 +467,10 @@ static void ExtendBox(const Renderer_t* renderer, Bounds_t* bounds, float32_t x,
 /**
  * \brief Picks a font size that fits a local height, in output units.
  *
- * \param renderer Drawing state
- * \param height   Height
+ * \param[in] renderer   Drawing state
+ * \param[in] height     Height
  *
- * \retval float32_t   Font size in output units.
+ * \retval    float32_t   Font size in output units.
  */
 static float32_t FontFor(const Renderer_t* renderer, float32_t height);
 
@@ -478,12 +478,12 @@ static float32_t FontFor(const Renderer_t* renderer, float32_t height);
 /**
  * \brief Converts an Alignment constant to box alignments.
  *
- * \param node          Widget node in the scene
- * \param name          Property or element name
- * \param horizontal    Horizontal
- * \param vertical      Vertical
+ * \param[in]  node         Widget node in the scene
+ * \param[in]  name         Name of the property holding the constant
+ * \param[out] horizontal   Receives the horizontal alignment
+ * \param[out] vertical     Receives the vertical alignment
  *
- * \retval None
+ * \retval     None
  */
 static void AlignOf(const FACEOE_Utl_Node_t* node, const char_t* name, FACEOE_Gfx_Align_t* horizontal, FACEOE_Gfx_Align_t* vertical);
 
@@ -491,18 +491,18 @@ static void AlignOf(const FACEOE_Utl_Node_t* node, const char_t* name, FACEOE_Gf
 /**
  * \brief Records text in a local box with a font that fits the box.
  *
- * \param renderer     Drawing state
- * \param x            X in layer units
- * \param y            Y in layer units
- * \param width        Width
- * \param height       Height
- * \param text         Text
- * \param horizontal   Horizontal
- * \param vertical     Vertical
- * \param radians      Radians
- * \param color        Colour
+ * \param[in] renderer     Drawing state
+ * \param[in] x            X in layer units
+ * \param[in] y            Y in layer units
+ * \param[in] width        Width
+ * \param[in] height       Height
+ * \param[in] text         Text; nothing is recorded when empty
+ * \param[in] horizontal   Horizontal alignment
+ * \param[in] vertical     Vertical alignment
+ * \param[in] radians      Rotation in radians
+ * \param[in] color        Color
  *
- * \retval None
+ * \retval    None
  */
 static void BoxText(const Renderer_t* renderer, float32_t x, float32_t y, float32_t width, float32_t height, const char_t* text, FACEOE_Gfx_Align_t horizontal, FACEOE_Gfx_Align_t vertical, float32_t radians, FACEOE_Gfx_Color_t color);
 
@@ -510,17 +510,17 @@ static void BoxText(const Renderer_t* renderer, float32_t x, float32_t y, float3
 /**
  * \brief Records a filled, outlined local box and grows the bounds.
  *
- * \param renderer Drawing state
- * \param x        X in layer units
- * \param y        Y in layer units
- * \param width    Width
- * \param height   Height
- * \param fill     Fill
- * \param border   Border
- * \param alpha    Alpha
- * \param bounds   Bounds
+ * \param[in]     renderer   Drawing state
+ * \param[in]     x          X in layer units
+ * \param[in]     y          Y in layer units
+ * \param[in]     width      Width
+ * \param[in]     height     Height
+ * \param[in]     fill       Fill color; not filled when its alpha is zero
+ * \param[in]     border     Border color
+ * \param[in]     alpha      Alpha
+ * \param[in,out] bounds     Bounds
  *
- * \retval None
+ * \retval        None
  */
 static void Frame(const Renderer_t* renderer, float32_t x, float32_t y, float32_t width, float32_t height, FACEOE_Gfx_Color_t fill, FACEOE_Gfx_Color_t border, float32_t alpha, Bounds_t* bounds);
 
@@ -528,16 +528,16 @@ static void Frame(const Renderer_t* renderer, float32_t x, float32_t y, float32_
 /**
  * \brief Records a dashed local box and grows the bounds.
  *
- * \param renderer Drawing state
- * \param x        X in layer units
- * \param y        Y in layer units
- * \param width    Width
- * \param height   Height
- * \param color    Colour
- * \param alpha    Alpha
- * \param bounds   Bounds
+ * \param[in]     renderer   Drawing state
+ * \param[in]     x          X in layer units
+ * \param[in]     y          Y in layer units
+ * \param[in]     width      Width
+ * \param[in]     height     Height
+ * \param[in]     color      Color
+ * \param[in]     alpha      Alpha
+ * \param[in,out] bounds     Bounds
  *
- * \retval None
+ * \retval        None
  */
 static void Dashed(const Renderer_t* renderer, float32_t x, float32_t y, float32_t width, float32_t height, FACEOE_Gfx_Color_t color, float32_t alpha, Bounds_t* bounds);
 
@@ -545,15 +545,15 @@ static void Dashed(const Renderer_t* renderer, float32_t x, float32_t y, float32
 /**
  * \brief Records a reference-point marker: a circle, a cross, and a heading tick.
  *
- * \param renderer  Drawing state
- * \param x         X in layer units
- * \param y         Y in layer units
- * \param radians   Radians
- * \param color     Colour
- * \param alpha     Alpha
- * \param bounds    Bounds
+ * \param[in]     renderer   Drawing state
+ * \param[in]     x          X in layer units
+ * \param[in]     y          Y in layer units
+ * \param[in]     radians    Heading tick direction in radians
+ * \param[in]     color      Color
+ * \param[in]     alpha      Alpha
+ * \param[in,out] bounds     Bounds
  *
- * \retval None
+ * \retval        None
  */
 static void Marker(const Renderer_t* renderer, float32_t x, float32_t y, float32_t radians, FACEOE_Gfx_Color_t color, float32_t alpha, Bounds_t* bounds);
 
@@ -561,35 +561,36 @@ static void Marker(const Renderer_t* renderer, float32_t x, float32_t y, float32
 /**
  * \brief Records a picture or source placeholder: a box with diagonals and a caption.
  *
- * \param renderer  Drawing state
- * \param x         X in layer units
- * \param y         Y in layer units
- * \param width     Width
- * \param height    Height
- * \param caption   Caption
- * \param alpha     Alpha
- * \param bounds    Bounds
+ * \param[in]     renderer   Drawing state
+ * \param[in]     x          X in layer units
+ * \param[in]     y          Y in layer units
+ * \param[in]     width      Width
+ * \param[in]     height     Height
+ * \param[in]     caption    Caption
+ * \param[in]     alpha      Alpha
+ * \param[in,out] bounds     Bounds
  *
- * \retval None
+ * \retval        None
  */
 static void Placeholder(const Renderer_t* renderer, float32_t x, float32_t y, float32_t width, float32_t height, const char_t* caption, float32_t alpha, Bounds_t* bounds);
 
 /*************************************************************************************************/
 /**
- * \brief Records a scrollbar on the side named by a Top/Bottom/Left/Right property.
+ * \brief Records a scrollbar on the side a property names: A661_LEFT, A661_RIGHT, A661_TOP, or
+ *  A661_BOTTOM; any other value records nothing.
  *
- * \param renderer      Drawing state
- * \param node          Widget node in the scene
- * \param name          Property or element name
- * \param x             X in layer units
- * \param y             Y in layer units
- * \param width         Width
- * \param height        Height
- * \param fraction      Fraction
- * \param start         Start
- * \param alpha         Alpha
+ * \param[in] renderer   Drawing state
+ * \param[in] node       Widget node in the scene
+ * \param[in] name       Name of the property naming the side
+ * \param[in] x          X in layer units
+ * \param[in] y          Y in layer units
+ * \param[in] width      Width
+ * \param[in] height     Height
+ * \param[in] fraction   Visible fraction of the content, clamped to 0.05 to 1
+ * \param[in] start      Fraction of the content before the visible part
+ * \param[in] alpha      Alpha
  *
- * \retval None
+ * \retval    None
  */
 static void Scrollbar(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, const char_t* name, float32_t x, float32_t y, float32_t width, float32_t height, float32_t fraction, float32_t start, float32_t alpha);
 
@@ -597,12 +598,12 @@ static void Scrollbar(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node,
 /**
  * \brief Records a chip for a widget without geometry along the layer's left edge.
  *
- * \param renderer      Drawing state
- * \param node          Widget node in the scene
- * \param alpha         Alpha
- * \param bounds        Bounds
+ * \param[in,out] renderer   Drawing state
+ * \param[in]     node       Widget node in the scene
+ * \param[in]     alpha      Alpha
+ * \param[in,out] bounds     Bounds
  *
- * \retval None
+ * \retval        None
  */
 static void Chip(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, float32_t alpha, Bounds_t* bounds);
 
@@ -610,23 +611,23 @@ static void Chip(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, float32_t 
 /**
  * \brief Counts the extensions attached to a widget.
  *
- * \param renderer      Drawing state
- * \param node          Widget node in the scene
+ * \param[in] node   Widget node in the scene
  *
- * \retval uint32_t   Number of extensions attached to the widget.
+ * \retval    uint32_t   Number of extensions attached to the widget.
  */
 static uint32_t ExtensionCount(const FACEOE_Utl_Node_t* node);
 
 /*************************************************************************************************/
 /**
- * \brief Reports the widget's bounds and labels it with its name and extension count.
+ * \brief Reports a widget's bounds and, when names are shown, labels it with its name and
+ *  extension count.
  *
- * \param renderer      Drawing state
- * \param node          Widget node in the scene
- * \param bounds        Bounds
- * \param alpha         Alpha
+ * \param[in,out] renderer   Drawing state
+ * \param[in]     node       Widget node in the scene
+ * \param[in]     bounds     Bounds; nothing is reported when empty
+ * \param[in]     alpha      Alpha
  *
- * \retval None
+ * \retval        None
  */
 static void Record(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, const Bounds_t* bounds, float32_t alpha);
 
@@ -634,20 +635,20 @@ static void Record(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, const Bo
 /**
  * \brief Records a button face with an optional picture or symbol box beside its label.
  *
- * \param renderer       Drawing state
- * \param node           Widget node in the scene
- * \param layout         Layout
- * \param label          Row label
- * \param iconName       Icon name
- * \param iconPosition   Icon position
- * \param alpha          Alpha
- * \param bounds         Bounds
- * \param x              X in layer units
- * \param y              Y in layer units
- * \param width          Width
- * \param height         Height
+ * \param[in]     renderer       Drawing state
+ * \param[in]     node           Widget node in the scene
+ * \param[in]     layout         Container's layout, or NULL
+ * \param[in]     label          Label text, or NULL
+ * \param[in]     iconName       Name of the property naming the picture or symbol, or NULL
+ * \param[in]     iconPosition   Name of the property naming the icon's side
+ * \param[in]     alpha          Alpha
+ * \param[in,out] bounds         Bounds
+ * \param[out]    x              Receives the face's X in layer units
+ * \param[out]    y              Receives the face's Y in layer units
+ * \param[out]    width          Receives the face's width
+ * \param[out]    height         Receives the face's height
  *
- * \retval None
+ * \retval        None
  */
 static void Button(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, const Layout_t* layout, const char_t* label, const char_t* iconName, const char_t* iconPosition, float32_t alpha, Bounds_t* bounds, float32_t* x, float32_t* y, float32_t* width, float32_t* height);
 
@@ -655,36 +656,36 @@ static void Button(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, co
 /**
  * \brief Records the rows of a list from a string array, highlighting the selected entry.
  *
- * \param renderer      Drawing state
- * \param node          Widget node in the scene
- * \param arrayName     Array name
- * \param enableName    Enable name
- * \param first         First
- * \param count         Count
- * \param selected      Selected
- * \param x             X in layer units
- * \param y             Y in layer units
- * \param width         Width
- * \param height        Height
- * \param align         Align
- * \param alpha         Alpha
+ * \param[in] renderer     Drawing state
+ * \param[in] node         Widget node in the scene
+ * \param[in] arrayName    Name of the string array property
+ * \param[in] enableName   Name of the per-entry enable array property, or NULL
+ * \param[in] first        Zero-based first entry to record
+ * \param[in] count        Number of entries
+ * \param[in] selected     One-based selected entry, or zero for none
+ * \param[in] x            X in layer units
+ * \param[in] y            Y in layer units
+ * \param[in] width        Width
+ * \param[in] height       Height
+ * \param[in] align        Horizontal alignment
+ * \param[in] alpha        Alpha
  *
- * \retval None
+ * \retval    None
  */
 static void EntryRows(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, const char_t* arrayName, const char_t* enableName, uint32_t first, uint32_t count, uint32_t selected, float32_t x, float32_t y, float32_t width, float32_t height, FACEOE_Gfx_Align_t align, float32_t alpha);
 
 /*************************************************************************************************/
 /**
- * \brief Records a formatted numeric field with its legend: EditBoxNumeric, BCD, and NumericReadout.
+ * \brief Records a formatted numeric field with its legend: EditBoxNumeric, EditBoxNumericBCD, and NumericReadout.
  *
- * \param renderer      Drawing state
- * \param node          Widget node in the scene
- * \param layout        Layout
- * \param radians       Radians
- * \param alpha         Alpha
- * \param bounds        Bounds
+ * \param[in]     renderer   Drawing state
+ * \param[in]     node       Widget node in the scene
+ * \param[in]     layout     Container's layout, or NULL
+ * \param[in]     radians    Rotation about the reference point in radians
+ * \param[in]     alpha      Alpha
+ * \param[in,out] bounds     Bounds
  *
- * \retval None
+ * \retval        None
  */
 static void NumericBox(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, const Layout_t* layout, float32_t radians, float32_t alpha, Bounds_t* bounds);
 
@@ -692,13 +693,13 @@ static void NumericBox(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node
 /**
  * \brief Records a graphics primitive: GpLine, GpLinePolar, GpArcCircle, GpArcEllipse, GpCrown, GpRectangle, GpTriangle, GpPolyline, GpTriangleFan, GpTriangleStrip.
  *
- * \param renderer      Drawing state
- * \param node          Widget node in the scene
- * \param kind          Kind
- * \param alpha         Alpha
- * \param bounds        Bounds
+ * \param[in]     renderer   Drawing state
+ * \param[in]     node       Widget node in the scene
+ * \param[in]     kind       Primitive kind
+ * \param[in]     alpha      Alpha
+ * \param[in,out] bounds     Bounds
  *
- * \retval None
+ * \retval        None
  */
 static void DrawGp(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, Kind_t kind, float32_t alpha, Bounds_t* bounds);
 
@@ -706,13 +707,13 @@ static void DrawGp(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, Ki
 /**
  * \brief Records a slider: track, major and minor ticks, labels, and the thumb at Value.
  *
- * \param renderer      Drawing state
- * \param node          Widget node in the scene
- * \param layout        Layout
- * \param alpha         Alpha
- * \param bounds        Bounds
+ * \param[in]     renderer   Drawing state
+ * \param[in]     node       Widget node in the scene
+ * \param[in]     layout     Container's layout, or NULL
+ * \param[in]     alpha      Alpha
+ * \param[in,out] bounds     Bounds
  *
- * \retval None
+ * \retval        None
  */
 static void DrawSlider(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, const Layout_t* layout, float32_t alpha, Bounds_t* bounds);
 
@@ -720,13 +721,13 @@ static void DrawSlider(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node
 /**
  * \brief Records a tree: entries indented by their ParentArray depth, collapsed under closed parents.
  *
- * \param renderer      Drawing state
- * \param node          Widget node in the scene
- * \param layout        Layout
- * \param alpha         Alpha
- * \param bounds        Bounds
+ * \param[in]     renderer   Drawing state
+ * \param[in]     node       Widget node in the scene
+ * \param[in]     layout     Container's layout, or NULL
+ * \param[in]     alpha      Alpha
+ * \param[in,out] bounds     Bounds
  *
- * \retval None
+ * \retval        None
  */
 static void DrawTree(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, const Layout_t* layout, float32_t alpha, Bounds_t* bounds);
 
@@ -734,12 +735,12 @@ static void DrawTree(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, 
 /**
  * \brief Records a MapBoundary: sections of arc, vertical, or horizontal lines around the origin.
  *
- * \param renderer      Drawing state
- * \param node          Widget node in the scene
- * \param alpha         Alpha
- * \param bounds        Bounds
+ * \param[in]     renderer   Drawing state
+ * \param[in]     node       Widget node in the scene
+ * \param[in]     alpha      Alpha
+ * \param[in,out] bounds     Bounds
  *
- * \retval None
+ * \retval        None
  */
 static void DrawMapBoundary(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, float32_t alpha, Bounds_t* bounds);
 
@@ -747,12 +748,12 @@ static void DrawMapBoundary(const Renderer_t* renderer, const FACEOE_Utl_Node_t*
 /**
  * \brief Records a MapGrid: CountX by CountY cells of IncrementX by IncrementY, offset so the cell at (OffsetX, OffsetY) sits on the display reference point.
  *
- * \param renderer      Drawing state
- * \param node          Widget node in the scene
- * \param alpha         Alpha
- * \param bounds        Bounds
+ * \param[in]     renderer   Drawing state
+ * \param[in]     node       Widget node in the scene
+ * \param[in]     alpha      Alpha
+ * \param[in,out] bounds     Bounds
  *
- * \retval None
+ * \retval        None
  */
 static void DrawMapGrid(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, float32_t alpha, Bounds_t* bounds);
 
@@ -760,14 +761,14 @@ static void DrawMapGrid(const Renderer_t* renderer, const FACEOE_Utl_Node_t* nod
 /**
  * \brief Records a TabbedPanelGroup: a tab strip on TabPosition with one tab per TabbedPanel child, and the content area the active child fills.
  *
- * \param renderer      Drawing state
- * \param node          Widget node in the scene
- * \param layout        Layout
- * \param alpha         Alpha
- * \param bounds        Bounds
- * \param children      Children
+ * \param[in]     renderer   Drawing state
+ * \param[in]     node       Widget node in the scene
+ * \param[in]     layout     Container's layout, or NULL
+ * \param[in]     alpha      Alpha
+ * \param[in,out] bounds     Bounds
+ * \param[in,out] children   Receives the tab policy and the content area
  *
- * \retval None
+ * \retval        None
  */
 static void DrawTabbedGroup(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, const Layout_t* layout, float32_t alpha, Bounds_t* bounds, Children_t* children);
 
@@ -775,10 +776,10 @@ static void DrawTabbedGroup(const Renderer_t* renderer, const FACEOE_Utl_Node_t*
 /**
  * \brief Applies the layer's transform animations that target a widget at the options' animation time.
  *
- * \param renderer      Drawing state
- * \param node          Widget node in the scene
+ * \param[in,out] renderer   Drawing state
+ * \param[in]     node       Widget node in the scene
  *
- * \retval None
+ * \retval        None
  */
 static void ApplyAnimations(Renderer_t* renderer, const FACEOE_Utl_Node_t* node);
 
@@ -786,25 +787,25 @@ static void ApplyAnimations(Renderer_t* renderer, const FACEOE_Utl_Node_t* node)
 /**
  * \brief Records one widget by its Creation Structure, then its children through the policy its kind imposes.
  *
- * \param renderer      Drawing state
- * \param node          Widget node in the scene
- * \param alpha         Alpha
- * \param layout        Layout
+ * \param[in,out] renderer   Drawing state
+ * \param[in]     node       Widget node in the scene
+ * \param[in]     alpha      Alpha inherited from the container
+ * \param[in]     layout     Container's layout, or NULL
  *
- * \retval None
+ * \retval        None
  */
 static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, float32_t alpha, const Layout_t* layout);
 
 /*************************************************************************************************/
 /**
- * \brief Records a container's children in scene order under its policy.
+ * \brief Records a container's children, extensions excluded, in scene order under its policy.
  *
- * \param renderer      Drawing state
- * \param node          Widget node in the scene
- * \param alpha         Alpha
- * \param children      Children
+ * \param[in,out] renderer   Drawing state
+ * \param[in]     node       Widget node in the scene
+ * \param[in]     alpha      Container's alpha
+ * \param[in,out] children   Policy set by the container; a menu bar's offset advances per child
  *
- * \retval None
+ * \retval        None
  */
 static void DrawChildren(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, float32_t alpha, Children_t* children);
 
@@ -841,7 +842,7 @@ static const FACEOE_Utl_Node_t* GetFirstChild(const FACEOE_Utl_Node_t* node)
 
 /*************************************************************************************************/
 /**
- * \brief Returns the node of a layer of a scene; the root's children after its model node are the layers in array order.
+ * \brief Returns a layer's node; the root's children after its model node are the layers in array order.
  */
 static const FACEOE_Utl_Node_t* FindLayer(const Arinc661_Scene_t* scene, uint32_t layerIndex)
 {
@@ -1122,7 +1123,7 @@ static int64_t Ident(const FACEOE_Utl_Node_t* node)
 
 /*************************************************************************************************/
 /**
- * \brief Applies the inherited alpha to a colour.
+ * \brief Applies the inherited alpha to a color.
  */
 static FACEOE_Gfx_Color_t Fade(FACEOE_Gfx_Color_t color, float32_t alpha)
 {
@@ -1334,7 +1335,8 @@ static void Placeholder(const Renderer_t* renderer, float32_t x, float32_t y, fl
 
 /*************************************************************************************************/
 /**
- * \brief Records a scrollbar on the side named by a Top/Bottom/Left/Right property.
+ * \brief Records a scrollbar on the side a property names: A661_LEFT, A661_RIGHT, A661_TOP, or
+ *  A661_BOTTOM; any other value records nothing.
  */
 static void Scrollbar(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, const char_t* name, float32_t x, float32_t y, float32_t width, float32_t height, float32_t fraction, float32_t start, float32_t alpha)
 {
@@ -1467,7 +1469,8 @@ static uint32_t ExtensionCount(const FACEOE_Utl_Node_t* node)
 
 /*************************************************************************************************/
 /**
- * \brief Reports the widget's bounds and labels it with its name and extension count.
+ * \brief Reports a widget's bounds and, when names are shown, labels it with its name and
+ *  extension count.
  */
 static void Record(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, const Bounds_t* bounds, float32_t alpha)
 {
@@ -1630,7 +1633,8 @@ static void EntryRows(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node,
 
 /*************************************************************************************************/
 /**
- * \brief Records a formatted numeric field with its legend: EditBoxNumeric, BCD, and NumericReadout.
+ * \brief Records a formatted numeric field with its legend: EditBoxNumeric, EditBoxNumericBCD,
+ *  and NumericReadout.
  */
 static void NumericBox(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, const Layout_t* layout, float32_t radians, float32_t alpha, Bounds_t* bounds)
 {
@@ -1786,7 +1790,7 @@ static void DrawGp(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, Ki
             ExtendBox(renderer, bounds, x - radius, y - radius, 2.0f * radius, 2.0f * radius);
             break;
         case KIND_GP_ARC_ELLIPSE:
-            // Take SizeX and SizeY as the full axes of the ellipse centred on the reference point
+            // Take SizeX and SizeY as the full axes of the ellipse centered on the reference point
             if (has_halo)
             {
                 FACEOE_Gfx_DrawList_Arc(renderer->drawList, x, y, width * 0.5f, height * 0.5f, start, end, FALSE, halo, thickness + 2.0f);
@@ -1846,7 +1850,7 @@ static void DrawGp(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, Ki
         case KIND_GP_POLYLINE:
         case KIND_GP_TRIANGLE_FAN:
         case KIND_GP_TRIANGLE_STRIP:
-            // Read vertices as alternating X and Y; bound the pairs by NumberOfVertices
+            // Read vertices as alternating X and Y; bound the pairs by NumberOfVertices, the values present, and RENDERER_MAX_POINTS
             count = (uint32_t)NumberOr(node, "NumberOfVertices", 0.0f);
             if ((Occurrences(node, "Vertices") / 2) < count)
             {
@@ -2271,7 +2275,7 @@ static void DrawMapBoundary(const Renderer_t* renderer, const FACEOE_Utl_Node_t*
         {
             angle  = ((begin + (sweep * ((float32_t)step / (float32_t)step_count))) * RENDERER_DEGREES);
             radius = distance;
-            // Meet a line at perpendicular distance D along the ray at D over the cosine of the angle to its normal
+            // A line at perpendicular distance D crosses the ray at D divided by the cosine of the angle to its normal; cap at 4 D
             if (is_vertical && (0.001f < fabsf(cosf(angle))))
             {
                 radius = (distance / fabsf(cosf(angle)));
@@ -2878,7 +2882,7 @@ static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, floa
             case KIND_TOGGLE_BUTTON:
             case KIND_PICTURE_TOGGLE_BUTTON:
             case KIND_SYMBOL_TOGGLE_BUTTON:
-                // Show the alternate label and picture of a selected toggle with AlternateFlag
+                // Show the alternate label of a selected toggle with AlternateFlag set
                 text = Value(node, "LabelString", 0);
                 if (Is(node, "ToggleState", "A661_SELECTED") && Is(node, "AlternateFlag", "A661_TRUE") && (NULL != Value(node, "AlternateLabelString", 0)))
                 {
@@ -2961,7 +2965,7 @@ static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, floa
                 FACEOE_Gfx_DrawList_Line(renderer->drawList, x + width - box - RENDERER_PAD, y + (height * 0.5f) - (box * 0.4f), x + width - RENDERER_PAD, y + (height * 0.5f) + (box * 0.4f), Fade(COLOR_TEXT, alpha), RENDERER_THICK);
                 if (renderer->options->showsHidden)
                 {
-                    // Show the selecting area closed and dashed where OpeningMode opens it
+                    // Show the closed selecting area dashed, where OpeningMode would open it
                     area_width  = NumberOr(node, "SelectingAreaWidth", width);
                     area_height = NumberOr(node, "SelectingAreaHeight", height * 3.0f);
                     area_x      = x;
@@ -3070,7 +3074,7 @@ static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, floa
                 Chip(renderer, node, alpha, &bounds);
                 break;
             default:
-                // Draw connectors, data scaling, animations, focus, event, buffer, receiver, monitor, proxy, map sources and item lists as chips
+                // Draw connectors, data scaling, animations, focus, event, buffer, receiver, monitor, proxy, map sources, item lists, and unknown types as chips
                 Chip(renderer, node, alpha, &bounds);
                 break;
         }
@@ -3091,7 +3095,7 @@ static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, floa
 
 /*************************************************************************************************/
 /**
- * \brief Records a container's children in scene order under its policy.
+ * \brief Records a container's children, extensions excluded, in scene order under its policy.
  */
 static void DrawChildren(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, float32_t alpha, Children_t* children)
 {
@@ -3212,7 +3216,8 @@ void Arinc661_Renderer_DrawLayer(const Arinc661_Scene_t* scene, uint32_t layerIn
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Ties go to the later entry, which was drawn on top.
+ *  Ties go to the later entry. A widget's bounds follow its children's, so a container wins
+ *  a tie with its child, and a later sibling, drawn on top, wins over an earlier one.
  */
 const Arinc661_Widget_t* Arinc661_Renderer_Pick(const Arinc661_Renderer_Bounds_t* bounds, uint32_t count, FACEOE_Gfx_Point_t point)
 {
@@ -3484,7 +3489,7 @@ void Arinc661_Renderer_FormatNumber(const char_t* format, float64_t value, char_
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Missing or non-positive values fall back to 100 mm.
+ *  A missing Width or Height, or one below 1, falls back to 100 mm.
  */
 void Arinc661_Renderer_GetLayerSize(const Arinc661_Scene_t* scene, uint32_t layerIndex, float32_t* width, float32_t* height)
 {

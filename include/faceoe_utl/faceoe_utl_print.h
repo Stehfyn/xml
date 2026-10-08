@@ -42,8 +42,8 @@
  * \brief Prints a signed 64-bit value as decimal text, the inverse of FACEOE_Utl_Scan_Int64.
  *
  * \par Details:
- *  A negative value starts with a minus sign; a positive value has no sign,
- *  for example -20 prints "-20" and INT64_MIN prints "-9223372036854775808".
+ *  Only a negative value has a sign; for example, -20 prints "-20" and
+ *  INT64_MIN prints "-9223372036854775808".
  *
  * \par Requirements:
  *  - 001 This function shall return the number of characters printed, excluding the zero terminator.
@@ -64,7 +64,7 @@ int32_t FACEOE_Utl_Print_Int64(char_t* a, uint32_t capacity, int64_t v);
  * \brief Prints an unsigned 64-bit value as decimal text.
  *
  * \par Details:
- *  For example 10000 prints "10000" and UINT64_MAX prints "18446744073709551615".
+ *  For example, 10000 prints "10000" and UINT64_MAX prints "18446744073709551615".
  *
  * \par Requirements:
  *  - 001 This function shall return the number of characters printed, excluding the zero terminator.
@@ -92,7 +92,7 @@ int32_t FACEOE_Utl_Print_Uint64(char_t* a, uint32_t capacity, uint64_t v);
  * \par Requirements:
  *  - 001 This function shall return the number of characters printed, excluding the zero terminator.
  *  - 002 This function shall print an empty string and return -1 when the text and its terminator do not fit.
- *  - 003 This function shall fail an assertion if a is NULL or capacity is zero.
+ *  - 003 This function shall fail an assertion if a is NULL, capacity is zero, or fractionalDigits exceeds INT32_MAX.
  *
  * \param[out] a                  Non-NULL destination text
  * \param[in]  capacity           Destination bytes, including the terminator

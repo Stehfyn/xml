@@ -47,7 +47,8 @@
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Uses the opened directory descriptor to inspect entries without composing full paths.
+ *  Inspects entries with fstatat on the open directory, so no full paths are built; an entry
+ *  that cannot be inspected is skipped.
  */
 bool_t OS_File_EnumerateFiles(const char_t* folderPath, OS_File_Visitor_t visitor, void* context)
 {

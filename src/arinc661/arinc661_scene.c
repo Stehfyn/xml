@@ -87,8 +87,9 @@ static FACEOE_Utl_Node_t* AddOwner(Arinc661_Scene_t* scene, const void* item)
  * nodes[2 + (2 * L) + (2 * W) + k]                properties[k]
  * \endverbatim
  *
- *  A widget is placed only under a node already in the scene, which an earlier parent always
- *  is, so leaving one widget out leaves out everything below it.
+ *  A parent widget is an earlier entry, so it is already placed or left out when its child is
+ *  reached; a widget is placed only under a parent in the scene, so leaving one widget out
+ *  leaves out everything below it.
  */
 bool_t Arinc661_Scene_Build(Arinc661_Scene_t* scene, FACEOE_Utl_Node_t* nodes, uint32_t nodeCapacity, const Arinc661_Layer_t* layers, uint32_t layerCount, const Arinc661_Widget_t* widgets, uint32_t widgetCount, const Arinc661_Property_t* properties, uint32_t propertyCount, const byte_t* omitFlags)
 {

@@ -53,8 +53,10 @@ static uint32_t CountOwned(const Arinc661_DefinitionEditor_Document_t* document,
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Builds two layers with nested widgets and extensions, checks array order and ownership
- *  after each insertion and removal, and confirms the result still writes as binary.
+ *  Checks the editor model without a window: array order and ownership after insertions and
+ *  removals, parameter seeding for every widget and extension type, duplication, moves,
+ *  history, play mode, the animation list, binary export, and prefabs. The edited definition
+ *  is written as binary along the way.
  */
 int main(void)
 {
@@ -83,12 +85,12 @@ int main(void)
 
     Os_Diagnostics_Initialize();
     editor = (Arinc661_DefinitionEditor_t*)OS_CALLOC(sizeof(Arinc661_DefinitionEditor_t));
-    Arinc661_Definition_Initialize(editor);
+    Arinc661_DefinitionEditor_Initialize(editor);
     CreateDocument(editor);
     document = &editor->documents[0];
     assert(document->isLoaded);
 
-    /* Two layers; the first gets a panel with a label child, an extension on the panel, and a sibling */
+    /* Two layers; the first gets a panel with a child panel and an extension (new widgets start as panels) */
     AddLayer(document);
     AddLayer(document);
     assert(2 == document->definition.layerCount);
@@ -100,11 +102,11 @@ int main(void)
     assert(0 == document->widgets[1].parentWidgetIndex);
     assert(FALSE == document->widgets[2].isExtension);
     assert(0 == document->widgets[2].parentWidgetIndex);
-    /* WidgetIdent plus the eight Table 3.3.27-2 parameters; the extension takes a type Table 8.4 allows on a panel, fully seeded */
+    /* The child has WidgetIdent plus the eight Table 3.3.27-2 parameters; the extension takes a type Table 8.4 allows on a panel */
     assert(9 == CountOwned(document, ARINC661_PROPERTY_WIDGET, 2));
     assert(Arinc661_Definition_ExtensionApplies(document->widgets[1].type, "A661_PANEL"));
     assert(Arinc661_Definition_FindType(document->widgets[1].type, TRUE, &extension_parameter_count));
-    /* Every single-valued parameter is seeded; arrays start empty */
+    /* Every single-valued extension parameter is seeded; arrays start empty */
     single_count = 0;
     for (extension_index = 0; extension_index < extension_parameter_count; ++extension_index)
     {
@@ -133,7 +135,7 @@ int main(void)
     assert(TRUE == IsDescendant(document, 3, 0));
     assert(FALSE == IsDescendant(document, 4, 2));
 
-    /* The model writes as a binary Definition File, including the extension directly after its widget */
+    /* The definition writes as binary, with the extension command directly after the 32-byte panel command */
     byte_count = Arinc661_Definition_WriteBinary(&document->definition, document->outputBuffer, sizeof(document->outputBuffer));
     assert(0 < byte_count);
     assert(0xCA == document->outputBuffer[16 + 32]);
@@ -160,7 +162,7 @@ int main(void)
     byte_count = Arinc661_Definition_WriteBinary(&document->definition, document->outputBuffer, sizeof(document->outputBuffer));
     assert(0 < byte_count);
 
-    /* Property removal keeps the remaining order; the XML form round-trips the edited document */
+    /* Removing a property leaves the others; the edited definition round-trips through XML */
     RemovePropertyAt(document, FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, 0, PROPERTY_VISIBLE));
     assert(14 == CountOwned(document, ARINC661_PROPERTY_WIDGET, 0));
     assert(INVALID_HIERARCHY_INDEX == FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, 0, PROPERTY_VISIBLE));
@@ -253,7 +255,7 @@ int main(void)
     assert(0 != strncmp(document->properties[FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, 0, PROPERTY_WIDGET_IDENT)].value, document->properties[FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, 4, PROPERTY_WIDGET_IDENT)].value, ARINC661_MAX_PROPERTY_BYTES));
     assert(0 < Arinc661_Definition_WriteBinary(&document->definition, document->outputBuffer, sizeof(document->outputBuffer)));
 
-    /* Moving the grandchild (3) under the copied panel (4) re-parents it and keeps its properties */
+    /* Moving the grandchild (3) under the copied panel (4) re-parents and selects it */
     assert(MoveWidgetSubtree(document, 3, 0, 4));
     assert(8 == document->definition.widgetCount);
     assert(SELECTION_WIDGET == document->selectedKind);
@@ -265,7 +267,7 @@ int main(void)
     /* Moving a top-level panel to the layer is a no-op */
     assert(FALSE == MoveWidgetSubtree(document, 0, 0, INVALID_HIERARCHY_INDEX));
 
-    /* History: each committed change is one undo step; undo and redo restore the arrays */
+    /* History: each committed change is one undo step; undo and redo restore the arrays; a new change clears redo */
     ClearHistory(document);
     CommitHistory(document);
     assert(0 == document->undoCount);
@@ -285,7 +287,7 @@ int main(void)
     AddWidget(document, 0, INVALID_HIERARCHY_INDEX, FALSE);
     CommitHistory(document);
     assert(0 == document->redoCount);
-    /* History states carry labels: the open state, then the addition */
+    /* History states carry labels, the open state then the addition, and GoToHistory moves between them */
     assert(2 == Arinc661_DefinitionEditor_HistoryCount(editor, &history_index));
     assert(1 == history_index);
     assert(0 == strncmp(HISTORY_OPEN_LABEL, Arinc661_DefinitionEditor_HistoryLabel(editor, 0), sizeof(HISTORY_OPEN_LABEL)));
@@ -297,7 +299,7 @@ int main(void)
     ClearHistory(document);
     assert(NULL == document->shadow);
 
-    /* Play mode: interaction flips a toggle and wraps a one-state button; stopping restores both */
+    /* Play mode: interaction flips a toggle, advances a multi-state button to state 1, and ignores a panel; stopping restores the values and the dirty flag */
     AddWidget(document, 0, INVALID_HIERARCHY_INDEX, FALSE);
     strcpy(document->widgets[9].type, "A661_TOGGLE_BUTTON");
     assert(ConformParameters(document, 9));
@@ -319,7 +321,7 @@ int main(void)
     assert(FALSE == document->isDirty);
     assert(0 == strncmp("A661_UNSELECTED", document->properties[FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, 9, "ToggleState")].value, sizeof("A661_UNSELECTED")));
 
-    /* Animations are listed in seconds */
+    /* The animation list gives delay and duration in seconds */
     AddWidget(document, 0, INVALID_HIERARCHY_INDEX, FALSE);
     strcpy(document->widgets[11].type, "A661_ANIMATION_ROTATION");
     assert(ConformParameters(document, 11));
@@ -331,7 +333,7 @@ int main(void)
     assert(2.0f == animation_duration);
     assert(FALSE == Arinc661_DefinitionEditor_AnimationAt(editor, 1, &animation_name, &animation_type, &animation_delay, &animation_duration));
 
-    /* Export writes the binary twin beside the XML path */
+    /* Export writes the .bin file beside the XML path; a slot without a document is refused */
     strcpy(document->documentPath, "arinc661_editor_export_test.xml");
     assert(Arinc661_DefinitionEditor_ExportBinary(editor, 0, export_path, sizeof(export_path)));
     assert(0 == strncmp("arinc661_editor_export_test.bin", export_path, sizeof("arinc661_editor_export_test.bin")));
@@ -341,7 +343,7 @@ int main(void)
     (void)remove(export_path);
     assert(FALSE == Arinc661_DefinitionEditor_ExportBinary(editor, 1, export_path, sizeof(export_path)));
 
-    /* A prefab round trip: the selected panel subtree is saved, then pasted back from the file */
+    /* A prefab round trip: the selected panel subtree is saved, then pasted back from the file; a name with a slash is refused */
     strcpy(editor->folderPath, ".");
     SelectOnly(document, 0);
     widget_count_before = document->definition.widgetCount;

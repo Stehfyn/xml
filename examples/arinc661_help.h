@@ -60,7 +60,7 @@ bool_t Arinc661_Help_GetType(const char_t* type, const char_t** description, con
  *
  * \param[in]  type            Widget or extension type name
  * \param[in]  parameterName   Parameter name
- * \param[out] change          D, R, or DR: settable at definition time, run time, or both
+ * \param[out] change          D, R, or DR: settable at definition time, run time, or both; may be NULL
  *
  * \retval     const char_t*   Description, or an empty string.
  */

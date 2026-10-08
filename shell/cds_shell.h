@@ -17,12 +17,12 @@
 ** 3.1 Macros
 **===============================================================================================*/
 
-/* Class identifiers the installer registers; the strings are the same identifiers for the registry. */
+/* Registry string forms of the class identifiers the installer registers; they match the CLSIDs in cds_shell.c. */
 #define ARINC661_SHELL_CLSID_DEFINITION_OVERLAY_TEXT    L"{B490275C-C09C-4CEC-91AD-3A9EEDE63F4E}"
 #define ARINC661_SHELL_CLSID_CONFIGURATION_OVERLAY_TEXT L"{A484FF8A-8CAE-41D2-B056-0B0BE5D884CC}"
 #define ARINC661_SHELL_CLSID_CONTEXT_MENU_TEXT          L"{FB3A3DF2-C819-45BF-9043-3E7E6C2BA68C}"
 
-/** Registry key, under HKLM and HKCU Software, where the installer writes the editor's folder. */
+/** Registry key, under HKCU or HKLM, whose InstallDir value the installer sets to the editor's folder. */
 #define ARINC661_SHELL_SETTINGS_KEY                     L"Software\\FACEOE\\CDS Editor"
 #define ARINC661_SHELL_INSTALL_DIR_VALUE                L"InstallDir"
 #define ARINC661_SHELL_EDITOR_EXECUTABLE                L"cds-editor.exe"
@@ -57,12 +57,12 @@ typedef enum Arinc661_Shell_Kind_e
  * \brief Tells what a file is from its extension and its first bytes.
  *
  * \par Details:
- *  Only .xml and .bin files are read, and only their head: a binary Definition File starts
- *  with A661_DF_MAGIC_NUMBER, an XML one has a661_df as its document element, and a FACE
- *  configuration has configuration as its document element. Everything else is NONE without
- *  touching the file, so Explorer's listing stays fast.
+ *  Only .xml and .bin files are read, and only their first 4096 bytes: a .bin Definition File
+ *  starts with A661_DF_MAGIC_NUMBER, an .xml one has a661_df as its document element, and an
+ *  .xml FACE configuration has configuration as its document element. Files with other
+ *  extensions are NONE without being opened, so Explorer's listing stays fast.
  *
- * \param[in] path   Full path
+ * \param[in] path   Non-NULL full path
  *
  * \retval    Arinc661_Shell_Kind_t   The kind.
  */

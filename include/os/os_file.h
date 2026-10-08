@@ -25,7 +25,7 @@
 /**
  * \brief Visits one filename while OS_File_EnumerateFiles is running.
  *
- * \param[in] fileName   Filename without its containing folder
+ * \param[in] fileName   UTF-8 filename without its folder
  * \param[in] context    Caller-owned context
  *
  * \retval    None
@@ -52,7 +52,7 @@ typedef void (*OS_File_Visitor_t)(const char_t* fileName, void* context);
  *  The file is read in binary mode. A short read at end of file, including an empty file,
  *  succeeds. The buffer is not zero-terminated.
  *
- * \param[in]  filePath     Non-NULL path to the file
+ * \param[in]  filePath     Non-NULL UTF-8 path to the file
  * \param[out] buffer       Non-NULL destination buffer
  * \param[in]  bufferSize   Maximum number of bytes to read
  *
@@ -68,7 +68,7 @@ int32_t OS_File_ReadFile(const char_t* filePath, byte_t* buffer, uint32_t buffer
  * \par Details:
  *  The file is written in binary mode. An empty buffer creates or truncates the file.
  *
- * \param[in] dstPath    Non-NULL path to the file
+ * \param[in] dstPath    Non-NULL UTF-8 path to the file
  * \param[in] buf        Non-NULL source buffer
  * \param[in] numBytes   Number of bytes to write
  *
@@ -84,12 +84,12 @@ int32_t OS_File_WriteFile(const char_t* dstPath, const byte_t* buf, uint32_t num
  * \par Details:
  *  The filename passed to visitor is valid only during that callback. An empty folder succeeds.
  *
- * \param[in] folderPath   Non-NULL folder path
+ * \param[in] folderPath   Non-NULL UTF-8 folder path
  * \param[in] visitor      Non-NULL callback invoked for each file
- * \param[in] context      Caller-owned callback context
+ * \param[in] context      Caller-owned context passed to visitor
  *
  * \retval    TRUE         if the folder was enumerated successfully.
- * \retval    FALSE        if the folder could not be read.
+ * \retval    FALSE        if the folder could not be opened or fully enumerated.
  */
 bool_t OS_File_EnumerateFiles(const char_t* folderPath, OS_File_Visitor_t visitor, void* context);
 

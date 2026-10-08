@@ -7,8 +7,8 @@
 
 /**
  * FACE Technical Standard, Edition 3.1, Appendix H.3.1: a UserApplication names its window and
- * its Definition File (dFPath). ARINC 661 Part 1-7, section 6.5.1.2: the Definition File's
- * ApplicationId property identifies that User Application.
+ * its Definition File (dFPath). ARINC 661 Part 1-7, Table 4.5.3.2-2 (AppliIdent) and the
+ * section 6.5.1.2 example: the a661_df ApplicationId property identifies that User Application.
  */
 
 /*=================================================================================================
@@ -48,9 +48,9 @@ typedef enum Arinc661_Context_Target_e
     ARINC661_CONTEXT_TARGET_NONE,             ///< Nothing to select
     ARINC661_CONTEXT_TARGET_USER_APPLICATION, ///< A user application of a configuration
     ARINC661_CONTEXT_TARGET_WINDOW,           ///< A window of a configuration
-    ARINC661_CONTEXT_TARGET_DEFINITION,       ///< A Definition File document
-    ARINC661_CONTEXT_TARGET_LAYER,            ///< A layer of a Definition File document
-    ARINC661_CONTEXT_TARGET_WIDGET            ///< A widget of a Definition File document
+    ARINC661_CONTEXT_TARGET_DEFINITION,       ///< An open Definition File
+    ARINC661_CONTEXT_TARGET_LAYER,            ///< A layer of an open definition
+    ARINC661_CONTEXT_TARGET_WIDGET            ///< A widget of an open definition
 } Arinc661_Context_Target_t;
 
 /*************************************************************************************************/
@@ -60,9 +60,9 @@ typedef enum Arinc661_Context_Target_e
 typedef struct Arinc661_Context_Problem_s
 {
     char_t                    text[ARINC661_CONTEXT_MAX_PROBLEM_BYTES]; ///< What is wrong and where
-    Arinc661_Context_Target_t target;                                   ///< Where it points
+    Arinc661_Context_Target_t target;                                   ///< Kind of item it points at
     uint32_t                  documentIndex;                            ///< Document slot of the target
-    uint32_t                  itemIndex;                                ///< Array index of the target item
+    uint32_t                  itemIndex;                                ///< Array index of the target item; 0 for a document
     bool_t                    isError;                                  ///< TRUE for a defect, FALSE for a warning
 } Arinc661_Context_Problem_t;
 
@@ -71,21 +71,21 @@ typedef struct Arinc661_Context_Problem_s
  * \brief Application state shared by the configuration and Definition File editors.
  *
  * \par Details:
- *  The host owns one context, points it at both editors, and keeps the folder's valid
- *  Definition Files in it. Either editor may ask the context about the other editor's
- *  documents, request that a document be opened and focused, or have a Definition File
- *  drawn into a rectangle.
+ *  The host owns one context, attaches it to both editors, and keeps the names of the folder's
+ *  valid Definition Files in it. Either editor may ask the context about the other editor's
+ *  documents, request that a document be opened and focused, or have an open Definition File
+ *  recorded into a draw list.
  */
 typedef struct Arinc661_Context_s
 {
-    struct Arinc661_Configuration_Editor_s* configurationEditor;                                                                          ///< Configuration editor, never NULL once set up.
-    struct Arinc661_DefinitionEditor_s*     definitionEditor;                                                                             ///< Definition File editor, never NULL once set up.
+    struct Arinc661_Configuration_Editor_s* configurationEditor;                                                                          ///< Configuration editor, never NULL once initialized.
+    struct Arinc661_DefinitionEditor_s*     definitionEditor;                                                                             ///< Definition File editor, never NULL once initialized.
     uint32_t                                definitionFileCount;                                                                          ///< Valid Definition Files in the shared folder.
     char_t                                  definitionFiles[ARINC661_CONTEXT_MAX_DEFINITION_FILES][ARINC661_CONTEXT_MAX_FILE_NAME_BYTES]; ///< Their names.
     bool_t                                  isDefinitionFocused;                                                                          ///< TRUE when the last focus request named the Definition File section.
-    bool_t                                  hasFocusRequest;                                                                              ///< TRUE until the host moves the focus as requested.
+    bool_t                                  hasFocusRequest;                                                                              ///< TRUE until the host takes the focus request.
     Arinc661_Context_Problem_t              problems[ARINC661_CONTEXT_MAX_PROBLEMS];                                                      ///< Problems found by the last check.
-    uint32_t                                problemCount;                                                                                 ///< Problems found.
+    uint32_t                                problemCount;                                                                                 ///< Entries in problems.
     uint32_t                                errorCount;                                                                                   ///< Problems that are errors.
 } Arinc661_Context_t;
 
@@ -95,7 +95,7 @@ typedef struct Arinc661_Context_s
  */
 typedef struct Arinc661_Context_UserApplication_s
 {
-    const char_t* documentName;     ///< Configuration document holding the user application.
+    const char_t* documentName;     ///< File name of the configuration holding the user application.
     uint32_t      documentIndex;    ///< Configuration document slot.
     uint32_t      applicationIndex; ///< Index in that document's user application array.
     int64_t       applicationId;    ///< FACE applicationId.
@@ -111,7 +111,7 @@ typedef struct Arinc661_Context_Definition_s
 {
     bool_t   isInFolder;       ///< TRUE when the shared folder holds a valid Definition File of that name.
     bool_t   isOpen;           ///< TRUE when the Definition File editor has it open.
-    uint32_t documentIndex;    ///< Definition File document slot when open.
+    uint32_t documentIndex;    ///< Document slot, or ARINC661_DEFINITION_EDITOR_NO_DOCUMENT when not open.
     bool_t   hasApplicationId; ///< TRUE when the open document carries a numeric ApplicationId.
     int64_t  applicationId;    ///< That ApplicationId.
     uint32_t layerCount;       ///< Layers of the open document.
@@ -150,14 +150,14 @@ void Arinc661_Context_Initialize(Arinc661_Context_t* context, struct Arinc661_Co
  * \param[in]  fileName     Definition File name, as a user application's dFPath
  * \param[out] definition   Findings
  *
- * \retval     TRUE         if the name is known to the folder or is open.
- * \retval     FALSE        otherwise; the findings are cleared.
+ * \retval     TRUE         if the folder holds the file or it is open.
+ * \retval     FALSE        otherwise.
  */
 bool_t Arinc661_Context_FindDefinition(const Arinc661_Context_t* context, const char_t* fileName, Arinc661_Context_Definition_t* definition);
 
 /*************************************************************************************************/
 /**
- * \brief Opens, or selects, a Definition File and moves the focus to it.
+ * \brief Opens or selects a Definition File and moves the focus to it.
  *
  * \param[in,out] context    Context
  * \param[in]     fileName   Definition File name in the shared folder
@@ -231,11 +231,14 @@ bool_t Arinc661_Context_TakeFocusRequest(Arinc661_Context_t* context, bool_t* is
  * \brief Checks every open document against the others and fills the problem list.
  *
  * \par Details:
- *  Errors: a user application whose dFPath names no known file; an ApplicationId that differs
- *  from the applicationId; two Definition Files carrying the same ApplicationId; a user
- *  application whose window does not exist. Warnings: a referenced file that is not open; a
- *  layer larger than its window; a window no user application targets; an open Definition
- *  File no user application references.
+ *  Errors: an empty dFPath or one naming no known file; an ApplicationId that is missing or
+ *  differs from the applicationId; a missing window; an applicationId used twice in one
+ *  configuration; two open files sharing an ApplicationId, or a LayerId under one
+ *  ApplicationId; every problem Arinc661_DefinitionEditor_ProblemAt reports. Warnings: a
+ *  referenced file that is not open; a file without layers; a layer larger than its window; a
+ *  window no user application targets; an open file no user application references; a
+ *  mapSourceLayer flag that disagrees with the file; a styleFilePath not in the folder; a user
+ *  application that starts hidden.
  *
  * \param[in,out] context   Context
  *
@@ -292,7 +295,7 @@ bool_t Arinc661_Context_CreateUserApplicationFor(Arinc661_Context_t* context, ui
 
 /*************************************************************************************************/
 /**
- * \brief Reports the window frames of the user applications referencing a Definition File.
+ * \brief Reports the window size of the index-th user application referencing a Definition File.
  *
  * \param[in]  context          Context
  * \param[in]  fileName         Definition File name
@@ -360,7 +363,7 @@ uint32_t Arinc661_Context_DocumentErrors(const Arinc661_Context_t* context, bool
  * \param[out]    report     Multi-line report
  * \param[in]     capacity   Bytes in report
  *
- * \retval        uint32_t   Number of errors found; zero means a clean build.
+ * \retval        uint32_t   Check errors plus failed writes; zero means a clean build.
  */
 uint32_t Arinc661_Context_Build(Arinc661_Context_t* context, char_t* report, uint32_t capacity);
 

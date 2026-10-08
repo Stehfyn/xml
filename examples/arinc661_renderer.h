@@ -40,7 +40,7 @@ extern "C" {
  */
 typedef struct Arinc661_Renderer_Bounds_s
 {
-    const Arinc661_Widget_t* widget;  ///< Widget the scene node stands for
+    const Arinc661_Widget_t* widget;  ///< Widget the bounds enclose
     FACEOE_Gfx_Point_t       minimum; ///< Top-left in output units
     FACEOE_Gfx_Point_t       maximum; ///< Bottom-right in output units
 } Arinc661_Renderer_Bounds_t;
@@ -58,7 +58,7 @@ typedef struct Arinc661_Renderer_Options_s
     float32_t                   fontSize;          ///< Host font size in output units
     Arinc661_Renderer_Bounds_t* bounds;            ///< Caller's bounds storage, or NULL
     uint32_t                    boundsCapacity;    ///< Bounds slots
-    uint32_t                    boundsCount;       ///< Result: bounds written, in drawing order
+    uint32_t                    boundsCount;       ///< Result: bounds written; a widget's entry follows its children's
     float32_t                   animationTime;     ///< Seconds into the layer's animations, or negative to draw the rest state
 } Arinc661_Renderer_Options_t;
 
@@ -81,12 +81,12 @@ typedef struct Arinc661_Renderer_Options_s
  * \par Details:
  *  The draw list's current transform maps layer units (0.01 mm, Y up) to output units; the
  *  caller sets it before the call. Widgets are recorded in scene order, children after their
- *  container, so later widgets overdraw earlier ones as in section 3.1.4.
+ *  container, so later widgets overdraw earlier ones as in section 2.3.2.3.
  *
  * \param[in]     scene        Scene to draw
- * \param[in]     layerIndex   Layer to draw
+ * \param[in]     layerIndex   Array index of the layer to draw
  * \param[in,out] drawList     Target draw list
- * \param[in,out] options      Drawing options and bounds output
+ * \param[in,out] options      Drawing options; boundsCount is reset, then counts the bounds written
  *
  * \retval        None
  */
@@ -100,7 +100,7 @@ void Arinc661_Renderer_DrawLayer(const Arinc661_Scene_t* scene, uint32_t layerIn
  * \param[in] count    Number of bounds
  * \param[in] point    Output-space point
  *
- * \retval    const Arinc661_Widget_t*   Widget, or NULL.
+ * \retval    const Arinc661_Widget_t*   Widget of those bounds, or NULL.
  */
 const Arinc661_Widget_t* Arinc661_Renderer_Pick(const Arinc661_Renderer_Bounds_t* bounds, uint32_t count, FACEOE_Gfx_Point_t point);
 
@@ -110,8 +110,8 @@ const Arinc661_Widget_t* Arinc661_Renderer_Pick(const Arinc661_Renderer_Bounds_t
  *
  * \par Details:
  *  Part 1-7, section 3.2.6: `#` always shows a digit, `_` shows only significant digits,
- *  `~` replaces insignificant digits with a figure space, `+` places the sign, `.` separates
- *  the parts, and any other character is a mask character.
+ *  `~` replaces insignificant digits with a space (the specification's figure space), `+`
+ *  places the sign, `.` separates the parts, and any other character is a mask character.
  *
  * \param[in]  format     Format string
  * \param[in]  value      Value to format
@@ -127,7 +127,7 @@ void Arinc661_Renderer_FormatNumber(const char_t* format, float64_t value, char_
  * \brief Reads a layer's Width and Height in 0.01 mm.
  *
  * \param[in]  scene        Scene
- * \param[in]  layerIndex   Layer
+ * \param[in]  layerIndex   Array index of the layer
  * \param[out] width        Width, at least 1
  * \param[out] height       Height, at least 1
  *

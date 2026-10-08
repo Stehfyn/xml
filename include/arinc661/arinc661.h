@@ -10,7 +10,7 @@
  * https://saemobilus.sae.org/standards/arinc661-6-cockpit-display-system-interfaces-user-systems
  * J661-hosted Supplement 6 strict XML Definition File schema (a661Strict.xsd):
  * https://j661.sourceforge.net/articles/articles/resources/a661Strict.xsd
- * ARINC 661 Part 1, Supplement 7, Creation Structure tables and Table 4.6-13.
+ * ARINC 661 Part 1, Supplement 7, Creation Structure tables, Table 3.3-1, and Table 4.6-13.
  */
 
 /*=================================================================================================
@@ -46,9 +46,9 @@
  */
 typedef enum Arinc661_PropertyOwner_e
 {
-    ARINC661_PROPERTY_DEFINITION, ///< The definition itself, such as ApplicationId; ownerIndex is zero
-    ARINC661_PROPERTY_LAYER,      ///< layers[ownerIndex], such as LayerId and ContextNumber
-    ARINC661_PROPERTY_WIDGET      ///< widgets[ownerIndex], such as WidgetIdent and Creation Structure parameter values
+    ARINC661_PROPERTY_DEFINITION, ///< The definition, for properties such as ApplicationId; ownerIndex is zero
+    ARINC661_PROPERTY_LAYER,      ///< layers[ownerIndex], for properties such as LayerId and ContextNumber
+    ARINC661_PROPERTY_WIDGET      ///< widgets[ownerIndex], a widget or extension, for WidgetIdent and Creation Structure parameter values
 } Arinc661_PropertyOwner_t;
 
 /*************************************************************************************************/
@@ -72,10 +72,11 @@ typedef struct Arinc661_Property_s
 
 /*************************************************************************************************/
 /**
- * \brief One layer of a definition; its widgets point to it through layerIndex.
+ * \brief One layer of a definition; it holds the widgets whose layerIndex names it.
  *
  * \par Details:
- *  Holds only the name. LayerId and ContextNumber are properties the layer owns.
+ *  Holds only the name. LayerId, ContextNumber, and the layer's other values are properties
+ *  the layer owns.
  *  Binary form: one layer block (Table 4.5.3.2-4). XML form: a661Strict.xsd
  *  dfType/a661_layer (layerType).
  */
@@ -89,22 +90,21 @@ typedef struct Arinc661_Layer_s
  * \brief One widget, or one extension of a widget, in a definition.
  *
  * \par Details:
- *  layerIndex names the layer the widget is in. parentWidgetIndex names the widget
- *  it is nested in, or is UINT32_MAX for a widget placed directly in its layer. An
- *  extension (section 8) is an entry with isExtension set whose parentWidgetIndex
- *  names the widget it extends, and whose type names the extension. A widget's
- *  values, including its WidgetIdent, and an extension's values are properties
- *  they own; an extension has no WidgetIdent of its own. Binary
- *  form: one A661_CMD_CREATE or A661_CMD_EXTEND command (Tables 4.5.3.3.1 and
- *  4.5.3.3.2). XML form: a661Strict.xsd layerType/a661_widget, the nested
- *  widgetType/a661_widget, and a661_extension.
+ *  layerIndex names the layer the widget is in. parentWidgetIndex names the earlier
+ *  widget it is nested in, or is UINT32_MAX for a widget placed directly in its layer.
+ *  An extension (section 8) is an entry with isExtension set: parentWidgetIndex names
+ *  the widget it extends, and type names the extension type. A widget's values,
+ *  including its WidgetIdent, are properties it owns; so are an extension's values,
+ *  but an extension has no WidgetIdent. Binary form: one A661_CMD_CREATE or
+ *  A661_CMD_EXTEND command (Tables 4.5.3.3.1 and 4.5.3.3.2). XML form: a661Strict.xsd
+ *  layerType/a661_widget, the nested widgetType/a661_widget, and a661_extension.
  */
 typedef struct Arinc661_Widget_s
 {
     char_t   name[ARINC661_MAX_NAME_BYTES]; ///< Zero-terminated optional widget name
     char_t   type[ARINC661_MAX_NAME_BYTES]; ///< Zero-terminated required widget type
-    uint32_t layerIndex;                    ///< Array index of the owning layer
-    uint32_t parentWidgetIndex;             ///< Earlier parent widget array index, or UINT32_MAX for a direct layer child
+    uint32_t layerIndex;                    ///< Array index of the layer holding the widget
+    uint32_t parentWidgetIndex;             ///< Array index of the earlier parent widget, or UINT32_MAX for a widget placed directly in the layer
     bool_t   isExtension;                   ///< TRUE for an extension of widgets[parentWidgetIndex]; type then names the extension
 } Arinc661_Widget_t;
 
@@ -132,17 +132,17 @@ typedef enum Arinc661_CharsetEncoding_e
 
 /*************************************************************************************************/
 /**
- * \brief How a Creation Structure parameter is encoded in the binary form (Part 1-7, section 3.3 data types).
+ * \brief How a Creation Structure parameter is encoded in the binary form (Part 1-7, Table 3.3-1), and the text its property value holds.
  */
 typedef enum Arinc661_ParameterKind_e
 {
     ARINC661_PARAMETER_UCHAR,        ///< Unsigned 8-bit integer; decimal or constant name
     ARINC661_PARAMETER_USHORT,       ///< Unsigned 16-bit integer; decimal or constant name
-    ARINC661_PARAMETER_LONG,         ///< Signed 32-bit integer
-    ARINC661_PARAMETER_ULONG,        ///< Unsigned 32-bit integer
-    ARINC661_PARAMETER_FLOAT,        ///< IEEE 754 single precision decimal
-    ARINC661_PARAMETER_FR180,        ///< Angle in degrees, -180 to 180
-    ARINC661_PARAMETER_FR32768,      ///< Fraction of 32768
+    ARINC661_PARAMETER_LONG,         ///< Signed 32-bit integer; decimal or constant name
+    ARINC661_PARAMETER_ULONG,        ///< Unsigned 32-bit integer; decimal or constant name
+    ARINC661_PARAMETER_FLOAT,        ///< IEEE 754 single precision; decimal
+    ARINC661_PARAMETER_FR180,        ///< fr(180) scaled integer; decimal degrees, -180 to 180
+    ARINC661_PARAMETER_FR32768,      ///< fr(32768) scaled integer; decimal, -32768 to 32768
     ARINC661_PARAMETER_STRING,       ///< Text
     ARINC661_PARAMETER_BYTES,        ///< Fixed byte count as hexadecimal digits
     ARINC661_PARAMETER_SIZED_BYTES,  ///< StaticParamBuffer entry as hexadecimal digits
@@ -156,7 +156,8 @@ typedef enum Arinc661_ParameterKind_e
  *
  * \par Details:
  *  Describes a parameter, not a value: Arinc661_Definition_GetParameter returns one
- *  per row of the type's Creation Structure table (sections 3 and 8). A widget's
+ *  per named row of the type's Creation Structure table (sections 3 and 8), without
+ *  WidgetType, WidgetIdent, ParentIdent, ExtensionType, and unused pads. A widget's
  *  value for the parameter is the property it owns with the same name. An array
  *  parameter is counted by the parameter named countName, with elementsPerEntry
  *  elements per entry.

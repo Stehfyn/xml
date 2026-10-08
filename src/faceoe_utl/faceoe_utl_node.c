@@ -58,7 +58,7 @@ void FACEOE_Utl_Node_Initialize(FACEOE_Utl_Node_t* node, const void* item)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Keeping the last child makes appending constant time, so building a tree of n nodes is O(n).
+ *  Keeping the last child makes appending constant time. Cycles are not checked.
  */
 void FACEOE_Utl_Node_AppendChild(FACEOE_Utl_Node_t* parent, FACEOE_Utl_Node_t* child)
 {

@@ -35,8 +35,8 @@
 #define CHAR_GT  ('>') ///< Greater-than sign.
 
 /* XML 1.0 section 2.3, production [10] AttValue, and section 2.8, [25] Eq. */
-#define QUOTE_QUOT ('"')  ///< Double-quoted literal delimiter.
-#define EQ         ('=')  ///< Eq also permits surrounding S.
+#define QUOTE_QUOT ('"')  ///< Double quote, the attribute value delimiter.
+#define EQ         ('=')  ///< Equals sign; Eq also permits surrounding S, which the reader rejects.
 
 /* XML 1.0 section 2.8, productions [23] XMLDecl, [24] VersionInfo, [26] VersionNum. */
 #define DECL_OPEN    ("<?xml")   ///< XMLDecl opening delimiter; S follows.
@@ -103,7 +103,7 @@ typedef struct XmlReader_s
     FACEOE_Utl_Xml_Document_t*  document;          ///< Document receiving parsed nodes.
     byte_t*                     bytes;             ///< Input with one writable terminating byte.
     uint64_t                    byteCount;         ///< Number of input bytes.
-    uint64_t                    position;          ///< Offset of the next markup span.
+    uint64_t                    position;          ///< Offset of the next unread byte.
     FACEOE_Utl_Xml_Node_t*      nodes;             ///< Caller-owned node storage.
     uint32_t                    nodeCapacity;      ///< Number of nodes available.
     uint32_t                    nodeCount;         ///< Number of nodes used.
@@ -150,7 +150,7 @@ static const XmlCodePointRange_t c_xmlNameStartCharRanges[] =
 
 /*************************************************************************************************/
 /**
- * \brief Additional ranges from XML 1.0 (Fifth Edition), production [4a] NameChar.
+ * \brief Ranges that XML 1.0 (Fifth Edition) production [4a] NameChar adds to NameStartChar.
  *
  * \par Details:
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-NameChar
@@ -188,7 +188,7 @@ static bool_t InRange(uint32_t codePoint, uint32_t first, uint32_t last);
  *
  * \param[in]     bytes              Non-NULL UTF-8 byte span
  * \param[in]     numBytes           Number of bytes in the span
- * \param[in]     offset             Current byte offset
+ * \param[in]     offset             Offset of the code point's first byte
  * \param[out]    decodedByteCount   Number of bytes decoded, or zero on failure
  *
  * \retval        0..0x10FFFF   decoded code point when decodedByteCount is nonzero; U+0000 is valid UTF-8.
@@ -222,22 +222,22 @@ static bool_t IsChar(uint32_t codePoint);
  * \param[in] utf8Text    Non-NULL UTF-8 byte span
  * \param[in] byteCount   Number of bytes in the span
  *
- * \retval    TRUE        if the complete string is valid XML character data.
+ * \retval    TRUE        if the span is valid UTF-8 and every code point is a Char.
  * \retval    FALSE       otherwise
  */
 static bool_t IsString(const byte_t* utf8Text, uint32_t byteCount);
 
 /*************************************************************************************************/
 /**
- * \brief Checks whether a decoded code point is a permitted XML 1.0 whitespace character.
+ * \brief Checks whether a code point or byte is XML 1.0 whitespace.
  *
  * \par Details:
  *  XML 1.0 (Fifth Edition), production [3] S:
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-S
  *
- * \param[in] codePoint   Decoded Unicode code point to classify
+ * \param[in] codePoint   Code point or byte to classify
  *
- * \retval    TRUE        if the code point is a permitted XML 1.0 whitespace character.
+ * \retval    TRUE        if the code point is space, tab, CR, or LF.
  * \retval    FALSE       otherwise
  */
 static bool_t IsWhitespace(uint32_t codePoint);
@@ -281,9 +281,9 @@ static bool_t IsNameChar(uint32_t codePoint);
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-Name
  *
  * \param[in] utf8Text    Non-NULL UTF-8 byte span
- * \param[in] byteCount   Nonzero number of bytes in the span
+ * \param[in] byteCount   Number of bytes in the span, 1 to FACEOE_UTL_XML_MAX_NAME_BYTES
  *
- * \retval    TRUE        if the complete string is a permitted XML 1.0 Name.
+ * \retval    TRUE        if the span is a permitted XML 1.0 Name.
  * \retval    FALSE       otherwise
  */
 static bool_t IsName(const byte_t* utf8Text, uint32_t byteCount);
@@ -309,7 +309,7 @@ static bool_t IsAttributeValueChar(uint32_t codePoint);
  * \brief Finds an attribute with the requested name.
  *
  * \param[in] node            Element whose attributes are searched
- * \param[in] attribute       Attribute to be appended; must not already be linked
+ * \param[in] attribute       Attribute being appended, asserted absent from the list, or NULL
  * \param[in] name            Name bytes to find
  * \param[in] nameByteCount   Number of name bytes
  *
@@ -349,7 +349,7 @@ static const FACEOE_Utl_Xml_Node_t* FindRootNode(const FACEOE_Utl_Xml_Document_t
  * \param[in]     bytes       UTF-8 bytes
  * \param[in]     byteCount   Number of bytes
  * \param[in,out] position    Offset of the next unread byte
- * \param[in]     token       XML token
+ * \param[in]     token       Zero-terminated token of fewer than TOKEN_MAX_BYTES bytes
  *
  * \retval        TRUE        if the token was read.
  * \retval        FALSE       otherwise
@@ -363,13 +363,13 @@ static bool_t ReadToken(const byte_t* bytes, uint64_t byteCount, uint64_t* posit
  * \par Details:
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-S
  *
- * \param[in]     bytes       UTF-8 bytes
- * \param[in]     byteCount   Number of bytes
- * \param[in,out] position    Offset of the next unread byte
- * \param[in]     mustReachEnd TRUE when only trailing whitespace is allowed
+ * \param[in]     bytes          UTF-8 bytes
+ * \param[in]     byteCount      Number of bytes
+ * \param[in,out] position       Offset of the next unread byte
+ * \param[in]     mustReachEnd   TRUE when only whitespace may remain
  *
- * \retval        TRUE        if the scan is in bounds and satisfies mustReachEnd.
- * \retval        FALSE       otherwise
+ * \retval        TRUE           if position does not start beyond byteCount and mustReachEnd is satisfied.
+ * \retval        FALSE          otherwise
  */
 static bool_t ReadWhitespace(const byte_t* bytes, uint64_t byteCount, uint64_t* position, bool_t mustReachEnd);
 
@@ -383,7 +383,7 @@ static bool_t ReadWhitespace(const byte_t* bytes, uint64_t byteCount, uint64_t* 
  * \param[in]     bytes           UTF-8 bytes
  * \param[in]     byteCount       Number of bytes
  * \param[in,out] position        Offset of the next unread byte
- * \param[out]    name            Name bytes
+ * \param[out]    name            Pointer to the name within bytes
  * \param[out]    nameByteCount   Number of name bytes
  *
  * \retval        TRUE            if the name is valid.
@@ -401,8 +401,8 @@ static bool_t ReadName(const byte_t* bytes, uint64_t byteCount, uint64_t* positi
  *
  * \param[in]     bytes       UTF-8 bytes
  * \param[in]     byteCount   Number of bytes
- * \param[in,out] position    Offset of the next unread byte
- * \param[out]    value       Value bytes
+ * \param[in,out] position    Offset of the =
+ * \param[out]    value       Pointer to the value within bytes, without quotes
  * \param[out]    numBytes    Number of value bytes
  *
  * \retval        TRUE        if the quoted value is valid.
@@ -479,14 +479,14 @@ static bool_t ReadElementEnd(const byte_t* markup, uint64_t markupByteCount, uin
 
 /*************************************************************************************************/
 /**
- * \brief Reads the next markup span, including the whitespace after its tag.
+ * \brief Reads the next markup span: the bytes from a < up to the next < or zero byte.
  *
  * \param[in,out] reader           Shared input position and markup count
- * \param[out]    markup           Pointer to the beginning of the input span
+ * \param[out]    markup           Pointer to the span's <
  * \param[out]    markupByteCount  Number of bytes in the span
  *
- * \retval        TRUE             if a span was read within the document's markup limit.
- * \retval        FALSE            otherwise
+ * \retval        TRUE             if a span was read.
+ * \retval        FALSE            if the markup limit is reached, the input is exhausted, or the next byte is not <.
  */
 static bool_t ReadMarkup(XmlReader_t* reader, const byte_t** markup, uint64_t* markupByteCount);
 
@@ -514,12 +514,12 @@ static bool_t ReadRootNode(XmlReader_t* reader);
 
 /*************************************************************************************************/
 /**
- * \brief Writes a null-terminated XML token.
+ * \brief Writes a zero-terminated XML token without its terminator.
  *
  * \param[in,out] output      Caller-provided byte storage
  * \param[in]     capacity    Number of bytes in output
  * \param[in,out] byteCount   Number of bytes already written
- * \param[in]     token       XML token
+ * \param[in]     token       Zero-terminated token of fewer than TOKEN_MAX_BYTES bytes
  *
  * \retval        TRUE        if the token fits.
  * \retval        FALSE       otherwise
@@ -587,7 +587,7 @@ static bool_t WriteElementEnd(byte_t* output, uint64_t capacity, uint64_t* byteC
  * \param[in,out] byteCount  Number of bytes already written
  * \param[in]     root       Root element to write
  *
- * \retval        TRUE       if the element is valid and fits.
+ * \retval        TRUE       if the subtree is valid, within the node and depth limits, and fits.
  * \retval        FALSE      otherwise
  */
 static bool_t WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCount, const FACEOE_Utl_Xml_Node_t* root);
@@ -608,13 +608,13 @@ static bool_t WriteRootNode(byte_t* output, uint64_t capacity, uint64_t* byteCou
 
 /*************************************************************************************************/
 /**
- * \brief Appends an exact byte span to the caller's output buffer.
+ * \brief Appends a byte span to the caller's output buffer.
  *
  * \param[in,out] output      Caller-provided byte storage
  * \param[in]     capacity    Number of bytes in output
  * \param[in,out] byteCount   Number of bytes already written
  * \param[in]     bytes       Bytes to append
- * \param[in]     numBytes    Number of bytes to append
+ * \param[in]     numBytes    Nonzero number of bytes to append
  *
  * \retval        TRUE        if the bytes fit.
  * \retval        FALSE       otherwise
@@ -656,7 +656,7 @@ static bool_t WriteIndent(byte_t* output, uint64_t capacity, uint64_t* byteCount
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
+ *  Also classifies UTF-8 leading bytes.
  */
 static bool_t InRange(uint32_t codePoint, uint32_t first, uint32_t last)
 {
@@ -676,7 +676,7 @@ static bool_t InRange(uint32_t codePoint, uint32_t first, uint32_t last)
  *  between the ASCII letters A and B is decoded as follows:
  *
  * \code{.txt}
- * Byte index:        0  1  2  3  4
+ * Byte index:       0  1  2  3  4
  * Input bytes:     41 E2 82 AC 42   (hexadecimal)
  * Offset:              1
  *
@@ -748,7 +748,7 @@ static uint32_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t offs
         }
         else
         {
-            // Reject standalone continuation bytes and unsupported leading-byte patterns
+            // Reject continuation bytes, overlong leads C0 and C1, and leads F5 through FF
             is_valid = FALSE;
         }
 
@@ -809,7 +809,7 @@ static uint32_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t offs
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
+ *  Excludes surrogates, U+FFFE, U+FFFF, and C0 controls other than tab, LF, and CR.
  */
 static bool_t IsChar(uint32_t codePoint)
 {
@@ -826,7 +826,7 @@ static bool_t IsChar(uint32_t codePoint)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Empty strings are permitted as attribute values.
+ *  An empty span is valid, since attribute values may be empty.
  */
 static bool_t IsString(const byte_t* utf8Text, uint32_t byteCount)
 {
@@ -862,7 +862,7 @@ static bool_t IsString(const byte_t* utf8Text, uint32_t byteCount)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
+ *  Other Unicode spaces, such as U+00A0, are not XML whitespace.
  */
 static bool_t IsWhitespace(uint32_t codePoint)
 {
@@ -877,7 +877,7 @@ static bool_t IsWhitespace(uint32_t codePoint)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
+ *  Searches c_xmlNameStartCharRanges.
  */
 static bool_t IsNameStartChar(uint32_t codePoint)
 {
@@ -907,7 +907,7 @@ static bool_t IsNameStartChar(uint32_t codePoint)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
+ *  Accepts any NameStartChar, then searches c_xmlNameCharRanges.
  */
 static bool_t IsNameChar(uint32_t codePoint)
 {
@@ -994,7 +994,7 @@ static bool_t IsName(const byte_t* utf8Text, uint32_t byteCount)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Checks the literal-character branch of AttValue for double quotes.
+ *  Implements the [^<&"] branch of AttValue, limited to Char.
  */
 static bool_t IsAttributeValueChar(uint32_t codePoint)
 {
@@ -1018,7 +1018,8 @@ static bool_t IsAttributeValueChar(uint32_t codePoint)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Compares byte contents only when the names have the same byte count.
+ *  Compares bytes only when the names have the same byte count. Asserts that the
+ *  list holds exactly attributeCount attributes when the name is absent.
  */
 static const FACEOE_Utl_Xml_Attribute_t* FindAttribute(const FACEOE_Utl_Xml_Node_t* node, const FACEOE_Utl_Xml_Attribute_t* attribute, const byte_t* name, uint32_t nameByteCount)
 {
@@ -1060,7 +1061,7 @@ static const FACEOE_Utl_Xml_Attribute_t* FindAttribute(const FACEOE_Utl_Xml_Node
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
+ *  Asserts if the chain from parent holds more than FACEOE_UTL_XML_NODE_MAX_DEPTH nodes without child.
  */
 static const FACEOE_Utl_Xml_Node_t* FindAncestor(const FACEOE_Utl_Xml_Node_t* parent, const FACEOE_Utl_Xml_Node_t* child)
 {
@@ -1098,7 +1099,7 @@ static const FACEOE_Utl_Xml_Node_t* FindAncestor(const FACEOE_Utl_Xml_Node_t* pa
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
+ *  Asserts if the type is absent and more than FACEOE_UTL_XML_DOCUMENT_MAX_ROOT_NODES nodes are linked.
  */
 static const FACEOE_Utl_Xml_Node_t* FindRootNode(const FACEOE_Utl_Xml_Document_t* document, FACEOE_Utl_Xml_NodeType_t type)
 {
@@ -1155,10 +1156,10 @@ static const FACEOE_Utl_Xml_Node_t* FindRootNode(const FACEOE_Utl_Xml_Document_t
  *  With <panel> instead, the same token fails at position 6 and leaves position
  *  unchanged, so the caller can try ">" at that offset.
  *
- *  The token's zero terminator must occur within TOKEN_MAX_BYTES and is not part
- *  of the match. Input bytes are bounded by byteCount and need no zero terminator.
- *  A mismatched byte, incomplete input, or missing token terminator returns FALSE
- *  without advancing position, even when an initial part of the token matches.
+ *  The token's zero terminator must occur within TOKEN_MAX_BYTES and is not matched.
+ *  Input is bounded by byteCount and needs no terminator. A mismatch, short input,
+ *  or missing token terminator returns FALSE with position unchanged, even after a
+ *  partial match.
  */
 static bool_t ReadToken(const byte_t* bytes, uint64_t byteCount, uint64_t* position, const char_t* token)
 {
@@ -1235,8 +1236,8 @@ static bool_t ReadToken(const byte_t* bytes, uint64_t byteCount, uint64_t* posit
  * Initial position:  0
  *
  * mustReachEnd   Return   Final position
- * FALSE         TRUE     5 (the '<' before button)
- * TRUE          FALSE    5 (the '<' before button)
+ * FALSE          TRUE     5 (the '<' before button)
+ * TRUE           FALSE    5 (the '<' before button)
  * \endverbatim
  *
  *  With mustReachEnd set, all remaining bytes must be whitespace. For example,
@@ -1301,11 +1302,9 @@ static bool_t ReadWhitespace(const byte_t* bytes, uint64_t byteCount, uint64_t* 
  *  or whitespace. The scan ends at XML whitespace, =, /, >, or byteCount and
  *  leaves any delimiter unread. Leading whitespace is not skipped.
  *
- *  The name must be nonempty, fit within FACEOE_UTL_XML_MAX_NAME_BYTES, and contain
- *  valid UTF-8 code points permitted by the XML name rules. On success, name
- *  points into the original input and nameByteCount gives its length in bytes;
- *  no bytes are copied or zero terminator added. On failure, position, name,
- *  and nameByteCount remain unchanged.
+ *  The name must be nonempty, fit within FACEOE_UTL_XML_MAX_NAME_BYTES, and be a
+ *  valid UTF-8 XML Name. On success, name points into bytes; nothing is copied.
+ *  On failure, position, name, and nameByteCount are unchanged.
  */
 static bool_t ReadName(const byte_t* bytes, uint64_t byteCount, uint64_t* position, const byte_t** name, uint32_t* nameByteCount)
 {
@@ -1366,7 +1365,8 @@ static bool_t ReadName(const byte_t* bytes, uint64_t byteCount, uint64_t* positi
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The caller checks the value's characters before appending an attribute.
+ *  Whitespace around = is rejected. The value's characters are not checked;
+ *  ReadAttribute checks them before appending.
  */
 static bool_t ReadAttributeValue(const byte_t* bytes, uint64_t byteCount, uint64_t* position, const byte_t** value, uint32_t* numBytes)
 {
@@ -1445,7 +1445,8 @@ static bool_t ReadAttributeValue(const byte_t* bytes, uint64_t byteCount, uint64
 /*************************************************************************************************/
 /**
  * \par Details:
- *  FACEOE_Utl_Xml_AppendAttribute checks attribute names, values, and uniqueness.
+ *  Checks the value and uniqueness first, so invalid input returns FALSE instead of
+ *  failing an assertion in FACEOE_Utl_Xml_AppendAttribute.
  */
 static bool_t ReadAttribute(const byte_t* markup, uint64_t markupByteCount, uint64_t* position, FACEOE_Utl_Xml_Node_t* node, FACEOE_Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity, uint32_t* attributeCount)
 {
@@ -1487,7 +1488,7 @@ static bool_t ReadAttribute(const byte_t* markup, uint64_t markupByteCount, uint
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Placement in the document is checked by ReadRootNode.
+ *  Accepts only <?xml, whitespace, then version="1.0"?>. ReadRootNode checks placement.
  */
 static bool_t ReadDeclaration(const byte_t* markup, uint64_t markupByteCount, uint64_t* position, FACEOE_Utl_Xml_Node_t* node)
 {
@@ -1537,7 +1538,8 @@ static bool_t ReadDeclaration(const byte_t* markup, uint64_t markupByteCount, ui
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Reads attributes in source order before the tag's closing delimiter.
+ *  Reads attributes in source order. Whitespace is accepted only before each
+ *  attribute, not before > or />.
  */
 static bool_t ReadElementStart(const byte_t* markup, uint64_t markupByteCount, uint64_t* position, FACEOE_Utl_Xml_Node_t* node, FACEOE_Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity, uint32_t* attributeCount, bool_t* isStartTag)
 {
@@ -1616,7 +1618,8 @@ static bool_t ReadElementStart(const byte_t* markup, uint64_t markupByteCount, u
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The caller moves to the parent element only after the end tag matches.
+ *  Accepts whitespace before >, as ETag allows. The caller moves to the parent
+ *  element only after the end tag matches.
  */
 static bool_t ReadElementEnd(const byte_t* markup, uint64_t markupByteCount, uint64_t* position, const FACEOE_Utl_Xml_Node_t* node)
 {
@@ -1652,8 +1655,8 @@ static bool_t ReadElementEnd(const byte_t* markup, uint64_t markupByteCount, uin
 /*************************************************************************************************/
 /**
  * \par Details:
- *  FACEOE_Utl_StrStr finds the next <. Its temporary zero terminator is restored here
- *  before any caller parses the span, including when parsing later fails.
+ *  FACEOE_Utl_StrStr finds the next <, which is replaced by a zero byte while strnlen
+ *  measures the span and restored before returning.
  */
 static bool_t ReadMarkup(XmlReader_t* reader, const byte_t** markup, uint64_t* markupByteCount)
 {
@@ -1717,7 +1720,7 @@ static bool_t ReadMarkup(XmlReader_t* reader, const byte_t** markup, uint64_t* m
  * Markup                 Parent after reading
  * <menu>                 menu
  * <group>                group
- * <item name="open"/>     group
+ * <item name="open"/>    group
  * </group>               menu
  * <separator/>           menu
  * </menu>                NULL (root complete)
@@ -1942,7 +1945,7 @@ static bool_t WriteToken(byte_t* output, uint64_t capacity, uint64_t* byteCount,
  * <?xml version="1.0"?>
  * \endcode
  *
- *  The declaration node has no name and a zero name byte count.
+ *  Returns FALSE if the node has a name or a nonzero name byte count.
  *  FACEOE_Utl_Xml_WriteDocument appends the line feed after this declaration.
  */
 static bool_t WriteDeclaration(byte_t* output, uint64_t capacity, uint64_t* byteCount, const FACEOE_Utl_Xml_Node_t* node)
@@ -2007,7 +2010,8 @@ static bool_t WriteDeclaration(byte_t* output, uint64_t capacity, uint64_t* byte
  * <setting name="brightness" value="80"/>
  * \endcode
  *
- *  Attributes retain their insertion order and use double-quoted literal values.
+ *  The name and each attribute are validated before they are written. Attributes
+ *  keep their append order, with values copied literally inside double quotes.
  *  WriteElement supplies indentation, line feeds, and any descendants.
  */
 static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byteCount, const FACEOE_Utl_Xml_Node_t* node)
@@ -2055,7 +2059,7 @@ static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byt
             break;
         }
 
-        // The list must contain every attribute included in the declared count
+        // The list must hold at least attributeCount attributes
         is_valid = (NULL != current_attribute);
 
         if (is_valid)
@@ -2122,7 +2126,7 @@ static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byt
 
     if (is_valid)
     {
-        // Reject extra linked attributes beyond the declared count
+        // Reject attributes linked beyond attributeCount
         is_valid = (NULL == current_attribute);
     }
     if (is_valid)
@@ -2340,7 +2344,7 @@ static bool_t WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCoun
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Dispatches top-level nodes; element descendants use the iterative element writer.
+ *  Dispatches on node type; an unknown type returns FALSE.
  */
 static bool_t WriteRootNode(byte_t* output, uint64_t capacity, uint64_t* byteCount, const FACEOE_Utl_Xml_Node_t* node)
 {
@@ -2407,7 +2411,7 @@ static bool_t WriteBytes(byte_t* output, uint64_t capacity, uint64_t* byteCount,
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
+ *  Writes through WriteBytes with a one-byte span.
  */
 static bool_t WriteByte(byte_t* output, uint64_t capacity, uint64_t* byteCount, byte_t value)
 {
@@ -2498,7 +2502,7 @@ bool_t FACEOE_Utl_Xml_IsAttributeValue(const byte_t* utf8Text, uint32_t byteCoun
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
+ *  FACEOE_Utl_Xml_AppendAttribute validates the name and value.
  */
 void FACEOE_Utl_Xml_InitializeAttribute(FACEOE_Utl_Xml_Attribute_t* attribute, const byte_t* name, uint32_t nameByteCount, const byte_t* value, uint32_t valueByteCount)
 {
@@ -2516,7 +2520,7 @@ void FACEOE_Utl_Xml_InitializeAttribute(FACEOE_Utl_Xml_Attribute_t* attribute, c
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
+ *  FACEOE_Utl_Xml_WriteDocument validates element names.
  */
 void FACEOE_Utl_Xml_InitializeNode(FACEOE_Utl_Xml_Node_t* node, FACEOE_Utl_Xml_NodeType_t type, const byte_t* name, uint32_t nameByteCount)
 {
@@ -2538,7 +2542,7 @@ void FACEOE_Utl_Xml_InitializeNode(FACEOE_Utl_Xml_Node_t* node, FACEOE_Utl_Xml_N
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
+ *  FACEOE_Utl_Xml_ReadDocument requires a document in this empty state.
  */
 void FACEOE_Utl_Xml_InitializeDocument(FACEOE_Utl_Xml_Document_t* document)
 {
@@ -2551,7 +2555,6 @@ void FACEOE_Utl_Xml_InitializeDocument(FACEOE_Utl_Xml_Document_t* document)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Appends an initialized attribute to an element, preserving insertion order.
  *  For example, appending id="start" and then enabled="true" to a childless
  *  button element produces this tag when the document is written:
  *
@@ -2565,14 +2568,8 @@ void FACEOE_Utl_Xml_InitializeDocument(FACEOE_Utl_Xml_Document_t* document)
  * button.attributeCount = 2
  * \endverbatim
  *
- *  The first append sets both list endpoints; later appends link the previous
- *  last attribute to the new one. Each append increments attributeCount.
- *  The attribute and its name/value bytes remain in caller-owned storage.
- *
- *  Assertions check the element type, attribute limit, name, value, and absence
- *  of an existing attribute with the same name or identity. The writer copies
- *  values literally, so they must contain valid XML characters and exclude
- *  less-than signs, ampersands, double quotes, tabs, line feeds, and carriage returns.
+ *  The name and value are checked here, not only when written, so an invalid
+ *  attribute fails an assertion at the call that adds it. Nothing is copied.
  */
 void FACEOE_Utl_Xml_AppendAttribute(FACEOE_Utl_Xml_Node_t* node, FACEOE_Utl_Xml_Attribute_t* attribute)
 {
@@ -2621,8 +2618,7 @@ void FACEOE_Utl_Xml_AppendAttribute(FACEOE_Utl_Xml_Node_t* node, FACEOE_Utl_Xml_
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Appends an unlinked element to a parent's child list, preserving insertion
- *  order. For example, appending a button and then a label to an empty panel
+ *  For example, appending a button and then a label to an empty panel
  *  produces this subtree when the document is written:
  *
  * \code{.xml}
@@ -2635,18 +2631,13 @@ void FACEOE_Utl_Xml_AppendAttribute(FACEOE_Utl_Xml_Node_t* node, FACEOE_Utl_Xml_
  * \verbatim
  * panel.firstChild -> button -> label -> NULL  (nextSibling links)
  * panel.lastChild  -> label
- * button.parent   -> panel
- * label.parent    -> panel
+ * button.parent    -> panel
+ * label.parent     -> panel
  * \endverbatim
  *
- *  The first append sets both child-list endpoints; later appends link the
- *  previous last child to the new one. The new child's parent is set to parent,
- *  while any attributes and descendants already belonging to the child remain
- *  attached. All nodes remain in caller-owned storage.
- *
- *  Assertions require element nodes and an unlinked child. Searching the parent's
- *  ancestor chain also rejects attaching the parent itself or one of its ancestors,
- *  either of which would create a cycle.
+ *  The child keeps its attributes and descendants. Searching the parent's ancestor
+ *  chain rejects appending the parent itself or one of its ancestors, either of
+ *  which would create a cycle.
  */
 void FACEOE_Utl_Xml_AppendChild(FACEOE_Utl_Xml_Node_t* parent, FACEOE_Utl_Xml_Node_t* child)
 {
@@ -2683,9 +2674,8 @@ void FACEOE_Utl_Xml_AppendChild(FACEOE_Utl_Xml_Node_t* parent, FACEOE_Utl_Xml_No
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Appends an unlinked node to the document's top-level list. For example,
- *  appending an XML declaration and then a childless panel element to an empty
- *  document produces this output when the document is written:
+ *  For example, appending an XML declaration and then a childless panel element
+ *  to an empty document produces this output when the document is written:
  *
  * \code{.xml}
  * <?xml version="1.0"?>
@@ -2699,13 +2689,8 @@ void FACEOE_Utl_Xml_AppendChild(FACEOE_Utl_Xml_Node_t* parent, FACEOE_Utl_Xml_No
  * panel.parent       = NULL
  * \endverbatim
  *
- *  The first append sets both list endpoints; later appends link the previous
- *  last node to the new one. Top-level nodes keep a NULL parent, and all node
- *  storage remains caller-owned. The element's existing subtree stays attached.
- *
- *  Assertions allow an optional declaration only as the first node and at most
- *  one root element. Appending just the element to an empty document is also
- *  valid; in that case, firstNode and lastNode both point to the element.
+ *  The element keeps its subtree. The declaration is optional; appending only the
+ *  element leaves firstNode and lastNode both pointing to it.
  */
 void FACEOE_Utl_Xml_AppendNode(FACEOE_Utl_Xml_Document_t* document, FACEOE_Utl_Xml_Node_t* node)
 {
@@ -2836,7 +2821,7 @@ uint64_t FACEOE_Utl_Xml_ReadDocument(FACEOE_Utl_Xml_Document_t* document, byte_t
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Writes the supplied declaration and element tree in source order, for example:
+ *  Writes the declaration and element tree in append order, for example:
  *
  * \code{.xml}
  * <?xml version="1.0"?>

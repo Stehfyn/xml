@@ -4,7 +4,8 @@
 
 /**
  * FACE Technical Standard, Edition 3.1, Appendix H.3.1, UserApplication: applicationId, window,
- * and dFPath. ARINC 661 Part 1-7, section 6.5.1.2: ApplicationId property of a661_df.
+ * and dFPath. ARINC 661 Part 1-7, Table 4.5.3.2-2 (AppliIdent) and the section 6.5.1.2
+ * example: ApplicationId property of a661_df.
  */
 
 /*=================================================================================================
@@ -12,8 +13,6 @@
 **===============================================================================================*/
 
 #include "arinc661_context.h"
-#include "arinc661_definition_editor.h"
-
 #include "arinc661_configuration.h"
 #include "arinc661_definition_editor.h"
 
@@ -65,7 +64,7 @@ static void AddProblem(Arinc661_Context_t* context, bool_t isError, Arinc661_Con
 
 /*************************************************************************************************/
 /**
- * \brief Tests whether a file of that name sits in the shared folder.
+ * \brief Tests whether a file of that name exists in the Definition File editor's folder.
  *
  * \param[in] context    Context
  * \param[in] fileName   File name
@@ -103,8 +102,8 @@ void Arinc661_Context_Initialize(Arinc661_Context_t* context, Arinc661_Configura
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Names are compared ignoring case, as the file system does. An open document answers with
- *  its ApplicationId and counts even when the folder list has not been refreshed yet.
+ *  Names are compared ignoring case, as the file system does. An open document also reports
+ *  its ApplicationId and counts, and is found even before the folder list is refreshed.
  */
 bool_t Arinc661_Context_FindDefinition(const Arinc661_Context_t* context, const char_t* fileName, Arinc661_Context_Definition_t* definition)
 {
@@ -155,7 +154,7 @@ void Arinc661_Context_ShowDefinition(Arinc661_Context_t* context, const char_t* 
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Walks every open configuration document.
+ *  Sums over every configuration document slot; an empty slot counts zero.
  */
 uint32_t Arinc661_Context_UserApplicationCount(const Arinc661_Context_t* context)
 {
@@ -222,8 +221,8 @@ void Arinc661_Context_ShowUserApplication(Arinc661_Context_t* context, const Ari
 /*************************************************************************************************/
 /**
  * \par Details:
- *  A file that is not open records nothing, so the configuration scene stays honest about
- *  what the application knows.
+ *  A file that is not open records nothing, so the configuration scene previews only open
+ *  documents.
  */
 bool_t Arinc661_Context_RecordDefinition(const Arinc661_Context_t* context, const char_t* fileName, FACEOE_Gfx_DrawList_t* drawList, float32_t fontSize)
 {
@@ -288,7 +287,7 @@ static void AddProblem(Arinc661_Context_t* context, bool_t isError, Arinc661_Con
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Joins the Definition File editor's folder path and the name and asks the OS.
+ *  Any file system entry of that name counts, including a folder.
  */
 static bool_t FileExistsInFolder(const Arinc661_Context_t* context, const char_t* fileName)
 {
@@ -304,7 +303,8 @@ static bool_t FileExistsInFolder(const Arinc661_Context_t* context, const char_t
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Runs the user application checks first, then the window and Definition File checks.
+ *  Order: user applications, windows, open Definition Files, problems inside each document,
+ *  LayerIds shared across files, then each user application's FACE flags.
  */
 uint32_t Arinc661_Context_Check(Arinc661_Context_t* context)
 {
@@ -380,7 +380,7 @@ uint32_t Arinc661_Context_Check(Arinc661_Context_t* context)
                 (void)snprintf(text, sizeof(text), "%s has no layers; application %lld shows nothing.", application.dFPath, (long long)application.applicationId);
                 AddProblem(context, FALSE, ARINC661_CONTEXT_TARGET_DEFINITION, definition.documentIndex, 0, text);
             }
-            // Layer size against the window's size in layer units
+            // Each layer against the window size in 0.01 mm, with 0.1% tolerance
             if (Arinc661_Configuration_Window(context->configurationEditor, application.documentIndex, application.windowId, &window_index, &pixel_width, &pixel_height, &units_per_pixel_x, &units_per_pixel_y))
             {
                 model = Arinc661_DefinitionEditor_Document(context->definitionEditor, definition.documentIndex);
@@ -413,7 +413,7 @@ uint32_t Arinc661_Context_Check(Arinc661_Context_t* context)
             }
         }
     }
-    // Windows nobody targets
+    // Windows no user application targets
     for (document_index = 0; document_index < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS; ++document_index)
     {
         for (window_index = 0; Arinc661_Configuration_WindowAt(context->configurationEditor, document_index, window_index, &window_id, &window_name); ++window_index)
@@ -434,7 +434,7 @@ uint32_t Arinc661_Context_Check(Arinc661_Context_t* context)
             }
         }
     }
-    // Open Definition Files nobody references, and duplicate ApplicationIds across them
+    // Unreferenced open Definition Files (when any user application exists), shared ApplicationIds
     for (document_index = 0; document_index < ARINC661_DEFINITION_EDITOR_MAX_OPEN_DOCUMENTS; ++document_index)
     {
         document_name = Arinc661_DefinitionEditor_DocumentName(context->definitionEditor, document_index);
@@ -469,7 +469,7 @@ uint32_t Arinc661_Context_Check(Arinc661_Context_t* context)
         }
     }
 
-    // Inside each Definition File: references, parent rules, identifier uniqueness
+    // Inside each open definition: references, parent rules, identifier uniqueness
     for (document_index = 0; document_index < ARINC661_DEFINITION_EDITOR_MAX_OPEN_DOCUMENTS; ++document_index)
     {
         for (index = 0; Arinc661_DefinitionEditor_ProblemAt(context->definitionEditor, document_index, index, text, sizeof(text), &widget_index, &layer_index); ++index)
@@ -488,7 +488,7 @@ uint32_t Arinc661_Context_Check(Arinc661_Context_t* context)
             }
         }
     }
-    // Across files of one application: LayerId must be unique
+    // LayerId must be unique across open files carrying the same ApplicationId
     for (document_index = 0; document_index < ARINC661_DEFINITION_EDITOR_MAX_OPEN_DOCUMENTS; ++document_index)
     {
         if (FALSE == Arinc661_DefinitionEditor_DocumentApplicationId(context->definitionEditor, document_index, &application_id))
@@ -514,7 +514,7 @@ uint32_t Arinc661_Context_Check(Arinc661_Context_t* context)
             }
         }
     }
-    // FACE flags against the file: mapSourceLayer and styleFilePath
+    // FACE mapSourceLayer, styleFilePath, and visible
     for (application_index = 0; Arinc661_Context_UserApplication(context, application_index, &application); ++application_index)
     {
         if (FALSE == Arinc661_Configuration_UserApplicationDetails(context->configurationEditor, application.documentIndex, application.applicationIndex, &map_source_layer, &is_visible, &style_path))
@@ -594,8 +594,8 @@ void Arinc661_Context_ShowProblem(Arinc661_Context_t* context, const Arinc661_Co
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Loads each referenced file present in the folder that is not open yet; the active
- *  document stays where it was.
+ *  Loads each referenced file that is in the folder but not open; the active document stays
+ *  active.
  */
 uint32_t Arinc661_Context_OpenReferencedDefinitions(Arinc661_Context_t* context)
 {
@@ -630,8 +630,9 @@ uint32_t Arinc661_Context_OpenReferencedDefinitions(Arinc661_Context_t* context)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The layer takes the window's size converted to 0.01 mm; a user application without a
- *  dFPath gets one named after its applicationId.
+ *  The layer takes the window's size in 0.01 mm, or 100 mm square when the window is missing.
+ *  Without a dFPath the file is named application_<applicationId>.xml, and the user
+ *  application is pointed at it.
  */
 bool_t Arinc661_Context_CreateDefinitionFor(Arinc661_Context_t* context, const Arinc661_Context_UserApplication_t* application)
 {
@@ -666,7 +667,7 @@ bool_t Arinc661_Context_CreateDefinitionFor(Arinc661_Context_t* context, const A
     {
         if ('\0' == application->dFPath[0])
         {
-            (void)Arinc661_Configuration_RepointDefinition(context->configurationEditor, "", file_name);
+            (void)Arinc661_Configuration_SetDefinitionPath(context->configurationEditor, application->documentIndex, application->applicationIndex, file_name);
         }
         context->isDefinitionFocused = TRUE;
         context->hasFocusRequest     = TRUE;
@@ -678,7 +679,8 @@ bool_t Arinc661_Context_CreateDefinitionFor(Arinc661_Context_t* context, const A
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The user application takes the Definition File's ApplicationId, or the next free id.
+ *  The user application takes the Definition File's ApplicationId, or one above the highest
+ *  applicationId in the configuration.
  */
 bool_t Arinc661_Context_CreateUserApplicationFor(Arinc661_Context_t* context, uint32_t definitionDocument, uint32_t configurationDocument, int64_t windowId)
 {
@@ -718,8 +720,8 @@ bool_t Arinc661_Context_CreateUserApplicationFor(Arinc661_Context_t* context, ui
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Counts through the user applications that name the file and returns the index-th one's
- *  window in layer units.
+ *  Counts the user applications naming the file, ignoring case, and reports the index-th one's
+ *  window size in 0.01 mm.
  */
 bool_t Arinc661_Context_WindowFrame(const Arinc661_Context_t* context, const char_t* fileName, uint32_t index, float32_t* widthUnits, float32_t* heightUnits, char_t* label, uint32_t labelCapacity)
 {
@@ -765,7 +767,7 @@ bool_t Arinc661_Context_WindowFrame(const Arinc661_Context_t* context, const cha
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Consumes the Definition File editor's rename record.
+ *  Takes the Definition File editor's rename record and clears its names after use.
  */
 uint32_t Arinc661_Context_FollowRenames(Arinc661_Context_t* context)
 {
@@ -788,7 +790,7 @@ uint32_t Arinc661_Context_FollowRenames(Arinc661_Context_t* context)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  First open document whose ApplicationId equals the value.
+ *  Returns the first open document with that ApplicationId.
  */
 uint32_t Arinc661_Context_DefinitionByApplicationId(const Arinc661_Context_t* context, int64_t applicationId)
 {
@@ -813,9 +815,9 @@ uint32_t Arinc661_Context_DefinitionByApplicationId(const Arinc661_Context_t* co
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Works on the active configuration: a window is added when none exists, the user
- *  application is added for the selected or first window, then the Definition File is
- *  created through Arinc661_Context_CreateDefinitionFor.
+ *  Works on the active configuration: a window is added when none exists, a user application
+ *  is added, and Arinc661_Context_CreateDefinitionFor creates its Definition File. Nothing is
+ *  created when the configuration has no room for another user application.
  */
 bool_t Arinc661_Context_NewApplication(Arinc661_Context_t* context)
 {
@@ -823,8 +825,10 @@ bool_t Arinc661_Context_NewApplication(Arinc661_Context_t* context)
     uint32_t                           configuration;
     uint32_t                           application_index;
     uint32_t                           count;
+    uint32_t                           previous_count;
     int64_t                            window_id;
     const char_t*                      window_name;
+    bool_t                             is_added;
     bool_t                             is_created;
 
     LOGASSERT(NULL != context);
@@ -838,9 +842,11 @@ bool_t Arinc661_Context_NewApplication(Arinc661_Context_t* context)
         }
         if (Arinc661_Configuration_WindowAt(context->configurationEditor, configuration, 0, &window_id, &window_name))
         {
+            previous_count = Arinc661_Configuration_UserApplicationCount(context->configurationEditor, configuration);
             Arinc661_Configuration_AddUserApplication(context->configurationEditor);
-            count = Arinc661_Configuration_UserApplicationCount(context->configurationEditor, configuration);
-            if (0 < count)
+            count    = Arinc661_Configuration_UserApplicationCount(context->configurationEditor, configuration);
+            is_added = (previous_count < count);
+            if (is_added)
             {
                 // The new user application is the last one; name its file after its id
                 application_index = 0;
@@ -862,7 +868,7 @@ bool_t Arinc661_Context_NewApplication(Arinc661_Context_t* context)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Counts errors whose target document matches, by editor side.
+ *  Layer and widget targets count toward their Definition File.
  */
 uint32_t Arinc661_Context_DocumentErrors(const Arinc661_Context_t* context, bool_t isDefinition, uint32_t documentIndex)
 {
@@ -893,7 +899,8 @@ uint32_t Arinc661_Context_DocumentErrors(const Arinc661_Context_t* context, bool
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Runs the check first; binaries are written whatever the result so the report shows both.
+ *  Runs the check first; binaries are written whatever its result, and the report ends with
+ *  the error and warning counts.
  */
 uint32_t Arinc661_Context_Build(Arinc661_Context_t* context, char_t* report, uint32_t capacity)
 {

@@ -26,8 +26,7 @@
  * \brief Caller-owned tree node holding a pointer to a caller's item.
  *
  * \par Details:
- *  A tree is its root node, and every node is the root of its subtree. Children are kept in
- *  the order they were appended.
+ *  Children are linked in the order they were appended.
  */
 typedef struct FACEOE_Utl_Node_s
 {
@@ -71,7 +70,7 @@ void FACEOE_Utl_Node_Initialize(FACEOE_Utl_Node_t* node, const void* item);
  * \brief Appends an unlinked node as the last child of a node.
  *
  * \par Requirements:
- *  - 001 This function shall link child after the existing children of parent.
+ *  - 001 This function shall link child after the existing children of parent and set its parent link.
  *  - 002 This function shall fail an assertion if parent or child is NULL, or child already has a parent or next sibling.
  *
  * \param[in,out] parent   Node receiving the child

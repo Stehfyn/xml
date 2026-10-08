@@ -34,7 +34,7 @@ void RunArinc661SceneTests(void);
 
 /*************************************************************************************************/
 /**
- * \brief Sets a widget's place in the hierarchy.
+ * \brief Clears a widget and sets its layer, parent, and extension flag.
  */
 static void SetWidget(Arinc661_Widget_t* widget, uint32_t layerIndex, uint32_t parentWidgetIndex, bool_t isExtension)
 {
@@ -46,7 +46,7 @@ static void SetWidget(Arinc661_Widget_t* widget, uint32_t layerIndex, uint32_t p
 
 /*************************************************************************************************/
 /**
- * \brief Sets a property's owner.
+ * \brief Clears a property and sets its owner.
  */
 static void SetProperty(Arinc661_Property_t* property, Arinc661_PropertyOwner_t owner, uint32_t ownerIndex)
 {
@@ -62,8 +62,10 @@ static void SetProperty(Arinc661_Property_t* property, Arinc661_PropertyOwner_t 
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Builds two layers holding a widget with a nested widget, an extension, and an omitted
- *  subtree, plus a widget whose parent comes later, and checks every link the renderer walks.
+ *  Checks Arinc661_Scene_Build: too few nodes leave only the root; the tree holds model nodes
+ *  with their properties, a panel with a nested label and an extension, and a widget in the
+ *  second layer; it leaves out a widget whose parent comes later, an omitted subtree, and a
+ *  property whose owner is not in the arrays; without omit flags the omitted subtree returns.
  */
 void RunArinc661SceneTests(void)
 {
@@ -94,7 +96,7 @@ void RunArinc661SceneTests(void)
     SetProperty(&properties[4], ARINC661_PROPERTY_WIDGET, 1);
     SetProperty(&properties[5], ARINC661_PROPERTY_WIDGET, TEST_WIDGETS); // owner not in the arrays
 
-    // Too few nodes leaves only the root
+    // Too few nodes leave only the root
     assert(FALSE == Arinc661_Scene_Build(&scene, nodes, COUNT_OF(nodes) - 1, layers, TEST_LAYERS, widgets, TEST_WIDGETS, properties, TEST_PROPERTIES, omit_flags));
     assert(NULL == scene.root->firstChild);
 

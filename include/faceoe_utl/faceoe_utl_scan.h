@@ -57,7 +57,7 @@
  * \param[in]  a   Non-NULL text, readable through the first non-digit or NUL
  * \param[out] v   Non-NULL destination, written only on success
  *
- * \retval     -1             The prefix is missing, malformed, too long, or out of range.
+ * \retval     -1             The prefix has no digits, is too long, or is out of range.
  * \retval     1..INT32_MAX   Number of characters consumed.
  */
 int32_t FACEOE_Utl_Scan_Int64(const char_t* a, int64_t* v);
@@ -69,7 +69,7 @@ int32_t FACEOE_Utl_Scan_Int64(const char_t* a, int64_t* v);
  * \par Details:
  *  XML Schema decimal permits an optional sign, decimal digits, and an optional
  *  decimal point. At least one digit is required. Scanning stops at the first
- *  character outside this form. Exponents and leading whitespace are not consumed.
+ *  character outside this form, so an exponent is not consumed. Leading whitespace is rejected.
  *  https://www.w3.org/TR/xmlschema-2/#decimal
  *
  * \par Requirements:
@@ -80,7 +80,7 @@ int32_t FACEOE_Utl_Scan_Int64(const char_t* a, int64_t* v);
  * \param[in]  a   Non-NULL text, readable through the first non-decimal character or NUL
  * \param[out] v   Non-NULL destination, written only on success
  *
- * \retval     -1             The prefix is missing, malformed, too long, or out of range.
+ * \retval     -1             The prefix has no digits, is too long, or is out of range.
  * \retval     1..INT32_MAX   Number of characters consumed.
  */
 int32_t FACEOE_Utl_Scan_Float(const char_t* a, float64_t* v);

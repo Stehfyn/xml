@@ -45,7 +45,7 @@ static Arinc661_Renderer_Bounds_t s_bounds[TEST_MAX_WIDGETS];
 
 /*************************************************************************************************/
 /**
- * \brief Builds the scene of a definition.
+ * \brief Builds the scene of a definition in s_sceneNodes, asserting that it succeeds.
  */
 static void BuildScene(const Arinc661_Definition_t* definition, Arinc661_Scene_t* scene)
 {
@@ -71,8 +71,8 @@ static void Prop(Arinc661_Definition_t* definition, uint32_t widgetIndex, const 
 
 /*************************************************************************************************/
 /**
- * \brief Appends a widget of a type under a parent and seeds every Creation Structure parameter
- *  with a value the scene can read.
+ * \brief Appends a widget named w<ident> under a parent, with its WidgetIdent and a drawable value
+ *  for every Creation Structure parameter (three entries per array), and returns its index.
  */
 static uint32_t Widget(Arinc661_Definition_t* definition, const char_t* type, uint32_t parent, uint32_t ident)
 {
@@ -168,7 +168,7 @@ static uint32_t CountKind(const FACEOE_Gfx_DrawList_t* list, FACEOE_Gfx_CommandK
 
 /*************************************************************************************************/
 /**
- * \brief Finds the text of the first text command containing a fragment.
+ * \brief Checks whether any text command contains a fragment.
  */
 static bool_t HasText(const FACEOE_Gfx_DrawList_t* list, const char_t* fragment)
 {
@@ -195,8 +195,9 @@ static bool_t HasText(const FACEOE_Gfx_DrawList_t* list, const char_t* fragment)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Format strings follow the section 3.2.6 examples; every widget type draws without overflow
- *  and reports bounds; containers transform their children; picking finds the smallest widget.
+ *  Checks number formats against the section 3.2.6 examples, the default layer size, child
+ *  bounds through a panel and a rotation container, picking, hiding, and that every widget
+ *  type draws with balanced stacks.
  */
 void RunArinc661RendererTests(void)
 {
@@ -218,7 +219,7 @@ void RunArinc661RendererTests(void)
     float32_t                   height;
     bool_t                      has_bounds;
 
-    // Section 3.2.6 examples
+    // Section 3.2.6 examples, then edge cases
     Arinc661_Renderer_FormatNumber("+____.__", -123.40, text, sizeof(text));
     assert(0 == strncmp("-123.4", text, sizeof("-123.4")));
     Arinc661_Renderer_FormatNumber("+____.##", 123.40, text, sizeof(text));
@@ -304,7 +305,7 @@ void RunArinc661RendererTests(void)
     assert(0 == list.clipDepth);
     assert(2 == options.boundsCount);
     assert(HasText(&list, "Hello"));
-    // Child bounds (first recorded, since children record before their container) at screen (150..350, 650..850)
+    // A widget's bounds are recorded after its children's, so the label's come first: screen (150..350, 650..850)
     assert(&definition.widgets[child] == options.bounds[0].widget);
     assert(150.0f == options.bounds[0].minimum.x);
     assert(650.0f == options.bounds[0].minimum.y);
@@ -382,7 +383,7 @@ void RunArinc661RendererTests(void)
     assert(has_bounds);
     assert(0 == list.transformDepth);
 
-    // Every widget type draws, records bounds, and leaves the stacks balanced
+    // Every widget type draws without overflow, balances the stacks, records bounds for each widget, and draws a polygon and its name
     for (type_index = 0; type_index < Arinc661_Definition_GetTypeCount(FALSE); ++type_index)
     {
         definition.widgetCount   = 0;

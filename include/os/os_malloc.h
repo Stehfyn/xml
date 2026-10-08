@@ -37,7 +37,7 @@
 
 /*************************************************************************************************/
 /**
- * \brief Allocates zero-initialized storage that remains owned for process lifetime.
+ * \brief Allocates zero-initialized storage that lives until the process exits.
  *
  * \param[in] size   Nonzero allocation size in bytes
  *

@@ -27,7 +27,7 @@ uint64_t Os_Time_GetNanoseconds(void);
 /**
  * \brief Suspends execution until a monotonic nanosecond deadline.
  *
- * \param[in] deadlineNanoseconds   Absolute deadline returned by the monotonic clock
+ * \param[in] deadlineNanoseconds   Absolute deadline on the Os_Time_GetNanoseconds clock; a past deadline returns at once
  *
  * \retval    None
  */

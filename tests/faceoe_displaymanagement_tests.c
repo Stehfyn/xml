@@ -12,7 +12,8 @@ static uint64_t c_workspace[FACEOE_DISPLAYMANAGEMENT_WORKSPACE_BYTES / sizeof(ui
 
 /*************************************************************************************************/
 /**
- * \brief Checks in-memory configuration conversion and typed values.
+ * \brief Checks reading, writing, and rereading every configuration element, exact scale round trips,
+ *        an empty window name left out, and a scale with an exponent rejected.
  */
 static void TestConfiguration(void)
 {
@@ -83,6 +84,16 @@ static void TestConfiguration(void)
     assert(1.0e-40f == windows[0].scalingFactor.xScale);
     assert(FLT_MAX == windows[0].scalingFactor.yScale);
 
+    /* An empty window name is left out, like an empty external source name, and reads back empty */
+    windows[0].name[0] = '\0';
+    output_byte_count = FACEOE_DisplayManagement_WriteConfiguration(&configuration, output, sizeof(output) - 1, c_workspace, sizeof(c_workspace));
+    assert(0 < output_byte_count);
+    output[output_byte_count] = '\0';
+    assert(NULL == strstr((const char_t*)output, "name=\"\""));
+    is_valid = FACEOE_DisplayManagement_ReadConfiguration(&configuration, output, output_byte_count, c_workspace, sizeof(c_workspace));
+    assert(is_valid);
+    assert('\0' == windows[0].name[0]);
+
     /* A scale with an exponent is rejected */
     scale_text = strstr((char_t*)input, "xScale=\"20.0\"");
     assert(NULL != scale_text);
@@ -94,7 +105,7 @@ static void TestConfiguration(void)
 
 /*************************************************************************************************/
 /**
- * \brief Checks signed identifier bounds without relying on errno.
+ * \brief Checks signed 64-bit integer limits, overflow, and trailing characters.
  */
 static void TestIntegerBounds(void)
 {
@@ -124,7 +135,7 @@ static void TestIntegerBounds(void)
 
 /*************************************************************************************************/
 /**
- * \brief Checks configuration schema hints and declaration-free round trips.
+ * \brief Checks schema location and XML declaration handling on read and write.
  */
 static void TestConfigurationSchema(void)
 {
@@ -185,7 +196,7 @@ static void TestConfigurationSchema(void)
     assert(configuration.hasXmlDeclaration);
     assert(0 == strncmp(configuration.schemaLocation, "schemas/display.xsd", sizeof("schemas/display.xsd")));
 
-    // Reusing a result clears absent metadata; writing still supplies the default hint
+    // Rereading clears the declaration flag and schema location; writing then uses H3.xsd
     strcpy((char_t*)input, "<configuration/>");
     is_valid = FACEOE_DisplayManagement_ReadConfiguration(&configuration, input, strnlen((const char_t*)input, sizeof(input)), c_workspace, sizeof(c_workspace));
     assert(is_valid);
@@ -209,7 +220,7 @@ static void TestConfigurationSchema(void)
         assert('\0' == configuration.schemaLocation[0]);
     }
 
-    // An oversized schema location must fail without leaving published metadata
+    // An oversized schema location fails and leaves schemaLocation empty
     strcpy((char_t*)input, "<configuration xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:noNamespaceSchemaLocation=\"");
     byte_count = strnlen((const char_t*)input, sizeof(input));
     memset(input + byte_count, 'a', FACEOE_DISPLAYMANAGEMENT_MAX_PATH_BYTES);

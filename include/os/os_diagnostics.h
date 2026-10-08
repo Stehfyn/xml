@@ -37,8 +37,9 @@
 /**
  * \brief Initializes process-wide operating-system diagnostics.
  *
- * Windows routes CRT diagnostics to stderr and installs an unhandled-exception logger. Other
- * supported platforms require no additional initialization.
+ * On Windows, suppresses error dialogs, routes CRT reports to stderr, makes invalid CRT
+ * parameters and SIGABRT exit with EXIT_FAILURE, and logs unhandled exceptions with their
+ * stack frames. Other platforms need no initialization.
  *
  * \retval        None
  */
@@ -47,13 +48,13 @@ void Os_Diagnostics_Initialize(void);
 #if defined(_WIN32)
 /*************************************************************************************************/
 /**
- * \brief Runs the diagnostics self-check.
+ * \brief Initializes diagnostics and calls entry inside a structured-exception handler.
  *
- * \param int    Int
- * \param argc   Argc
- * \param argv   Argv
+ * \param[in] entry   Non-NULL program entry point
+ * \param[in] argc    Argument count passed to entry
+ * \param[in] argv    Argument vector passed to entry
  *
- * \retval int   Zero on success, non-zero on failure.
+ * \retval    int     entry's result, or EXIT_FAILURE after an unhandled exception is logged.
  */
 int Os_Diagnostics_Run(int (*entry)(int, char_t**), int argc, char_t** argv);
 #endif

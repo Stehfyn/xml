@@ -65,7 +65,7 @@ typedef struct OverlayHandler_s
  */
 typedef struct ContextMenuHandler_s
 {
-    IShellExtInit         init;           ///< Initialisation interface
+    IShellExtInit         init;           ///< Initialization interface
     IContextMenu          menu;           ///< Menu interface
     LONG                  references;     ///< Reference count
     wchar_t               path[MAX_PATH]; ///< The selected file
@@ -104,7 +104,7 @@ static LONG      s_objectCount; ///< Live objects and server locks, for DllCanUn
 
 /*************************************************************************************************/
 /**
- * \brief Finds the document element of an XML head, skipping the declaration and comments.
+ * \brief Finds the document element of an XML head, skipping every <?...> and <!...> construct.
  *
  * \param[in] text    Bytes
  * \param[in] count   Bytes available
@@ -257,8 +257,12 @@ static size_t DocumentElement(const char* text, size_t count)
         }
         if (((index + 1) < count) && (('?' == text[index + 1]) || ('!' == text[index + 1])))
         {
-            while ((index < count) && ('>' != text[index]))
+            while (index < count)
             {
+                if ('>' == text[index])
+                {
+                    break;
+                }
                 index += 1;
             }
             continue;
@@ -312,8 +316,12 @@ static BOOL EditorPath(wchar_t* path, size_t capacity)
     roots[1] = HKEY_LOCAL_MACHINE;
     is_found = FALSE;
     path[0]  = L'\0';
-    for (index = 0; (index < 2) && (FALSE == is_found); ++index)
+    for (index = 0; index < (sizeof(roots) / sizeof(roots[0])); ++index)
     {
+        if (is_found)
+        {
+            break;
+        }
         if (ERROR_SUCCESS == RegOpenKeyExW(roots[index], ARINC661_SHELL_SETTINGS_KEY, 0, KEY_READ, &key))
         {
             byte_count = (DWORD)((capacity - 1) * sizeof(wchar_t));
@@ -370,6 +378,11 @@ static OverlayHandler_t* NewOverlayHandler(Arinc661_Shell_Kind_t kind)
     return handler;
 }
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Hands out the handler, with a new reference, for IUnknown and IShellIconOverlayIdentifier.
+ */
 static HRESULT STDMETHODCALLTYPE Overlay_QueryInterface(IShellIconOverlayIdentifier* self, REFIID riid, void** object)
 {
     if (NULL == object)
@@ -387,6 +400,11 @@ static HRESULT STDMETHODCALLTYPE Overlay_QueryInterface(IShellIconOverlayIdentif
     return E_NOINTERFACE;
 }
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Adds a reference to the overlay handler.
+ */
 static ULONG STDMETHODCALLTYPE Overlay_AddRef(IShellIconOverlayIdentifier* self)
 {
     OverlayHandler_t* handler;
@@ -396,6 +414,11 @@ static ULONG STDMETHODCALLTYPE Overlay_AddRef(IShellIconOverlayIdentifier* self)
     return (ULONG)InterlockedIncrement(&handler->references);
 }
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Frees the overlay handler when the last reference goes.
+ */
 static ULONG STDMETHODCALLTYPE Overlay_Release(IShellIconOverlayIdentifier* self)
 {
     OverlayHandler_t* handler;
@@ -466,6 +489,11 @@ static HRESULT STDMETHODCALLTYPE Overlay_GetOverlayInfo(IShellIconOverlayIdentif
     return S_OK;
 }
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Asks for priority 0, the highest.
+ */
 static HRESULT STDMETHODCALLTYPE Overlay_GetPriority(IShellIconOverlayIdentifier* self, int* priority)
 {
     (void)self;
@@ -507,7 +535,7 @@ static ContextMenuHandler_t* NewContextMenuHandler(void)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Each interface of the object is handed out from its own vtable slot.
+ *  IUnknown and IShellExtInit map to the init member, IContextMenu to the menu member; both share one reference count.
  */
 static HRESULT ContextMenu_Query(ContextMenuHandler_t* handler, REFIID riid, void** object)
 {
@@ -532,11 +560,21 @@ static HRESULT ContextMenu_Query(ContextMenuHandler_t* handler, REFIID riid, voi
     return E_NOINTERFACE;
 }
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Adds a reference to the context menu handler.
+ */
 static ULONG ContextMenu_AddRef(ContextMenuHandler_t* handler)
 {
     return (ULONG)InterlockedIncrement(&handler->references);
 }
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Frees the context menu handler when the last reference goes.
+ */
 static ULONG ContextMenu_Release(ContextMenuHandler_t* handler)
 {
     LONG references;
@@ -551,16 +589,31 @@ static ULONG ContextMenu_Release(ContextMenuHandler_t* handler)
     return (ULONG)references;
 }
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Forwards to the context menu handler holding this IShellExtInit.
+ */
 static HRESULT STDMETHODCALLTYPE Init_QueryInterface(IShellExtInit* self, REFIID riid, void** object)
 {
     return ContextMenu_Query(CONTAINING_RECORD(self, ContextMenuHandler_t, init), riid, object);
 }
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Forwards to the context menu handler holding this IShellExtInit.
+ */
 static ULONG STDMETHODCALLTYPE Init_AddRef(IShellExtInit* self)
 {
     return ContextMenu_AddRef(CONTAINING_RECORD(self, ContextMenuHandler_t, init));
 }
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Forwards to the context menu handler holding this IShellExtInit.
+ */
 static ULONG STDMETHODCALLTYPE Init_Release(IShellExtInit* self)
 {
     return ContextMenu_Release(CONTAINING_RECORD(self, ContextMenuHandler_t, init));
@@ -619,16 +672,31 @@ static HRESULT STDMETHODCALLTYPE Init_Initialize(IShellExtInit* self, PCIDLIST_A
     return S_OK;
 }
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Forwards to the context menu handler holding this IContextMenu.
+ */
 static HRESULT STDMETHODCALLTYPE Menu_QueryInterface(IContextMenu* self, REFIID riid, void** object)
 {
     return ContextMenu_Query(CONTAINING_RECORD(self, ContextMenuHandler_t, menu), riid, object);
 }
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Forwards to the context menu handler holding this IContextMenu.
+ */
 static ULONG STDMETHODCALLTYPE Menu_AddRef(IContextMenu* self)
 {
     return ContextMenu_AddRef(CONTAINING_RECORD(self, ContextMenuHandler_t, menu));
 }
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Forwards to the context menu handler holding this IContextMenu.
+ */
 static ULONG STDMETHODCALLTYPE Menu_Release(IContextMenu* self)
 {
     return ContextMenu_Release(CONTAINING_RECORD(self, ContextMenuHandler_t, menu));
@@ -637,7 +705,7 @@ static ULONG STDMETHODCALLTYPE Menu_Release(IContextMenu* self)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  One item at the top of the menu followed by a separator.
+ *  Inserts one item and a separator at the shell's index; adds nothing for a default-only query.
  */
 static HRESULT STDMETHODCALLTYPE Menu_QueryContextMenu(IContextMenu* self, HMENU menu, UINT index, UINT firstCommand, UINT lastCommand, UINT flags)
 {
@@ -736,6 +804,11 @@ static HRESULT STDMETHODCALLTYPE Menu_GetCommandString(IContextMenu* self, UINT_
 /* Class factory                                                                                 */
 /*----------------------------------------------------------------------------------------------*/
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Hands out the factory, with a new reference, for IUnknown and IClassFactory.
+ */
 static HRESULT STDMETHODCALLTYPE Factory_QueryInterface(IClassFactory* self, REFIID riid, void** object)
 {
     if (NULL == object)
@@ -753,6 +826,11 @@ static HRESULT STDMETHODCALLTYPE Factory_QueryInterface(IClassFactory* self, REF
     return E_NOINTERFACE;
 }
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Adds a reference to the factory.
+ */
 static ULONG STDMETHODCALLTYPE Factory_AddRef(IClassFactory* self)
 {
     ClassFactory_t* factory;
@@ -762,6 +840,11 @@ static ULONG STDMETHODCALLTYPE Factory_AddRef(IClassFactory* self)
     return (ULONG)InterlockedIncrement(&factory->references);
 }
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Frees the factory when the last reference goes.
+ */
 static ULONG STDMETHODCALLTYPE Factory_Release(IClassFactory* self)
 {
     ClassFactory_t* factory;
@@ -829,6 +912,11 @@ static HRESULT STDMETHODCALLTYPE Factory_CreateInstance(IClassFactory* self, IUn
     return result;
 }
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Counts a lock as a live object, so DllCanUnloadNow keeps the DLL loaded while it holds.
+ */
 static HRESULT STDMETHODCALLTYPE Factory_LockServer(IClassFactory* self, BOOL lock)
 {
     (void)self;
@@ -851,7 +939,7 @@ static HRESULT STDMETHODCALLTYPE Factory_LockServer(IClassFactory* self, BOOL lo
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The read is a single small block; a file that cannot be opened is NONE.
+ *  The read is a single small block; a file that cannot be opened or read is NONE.
  */
 Arinc661_Shell_Kind_t Arinc661_Shell_Sniff(const wchar_t* path)
 {

@@ -42,7 +42,7 @@
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The root is taken like any other node, so the storage holds nodeCapacity - 1 more.
+ *  The root is taken with FACEOE_Utl_Tree_AddNode, leaving nodeCapacity - 1 nodes for later calls.
  */
 void FACEOE_Utl_Tree_Initialize(FACEOE_Utl_Tree_t* tree, FACEOE_Utl_Node_t* nodes, uint32_t nodeCapacity, const void* rootItem)
 {

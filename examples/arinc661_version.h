@@ -15,8 +15,9 @@
 ** 3.1 Macros
 **===============================================================================================*/
 
-/* One place for the product version: the resources, the About box, the updater, and the
-   installer read it from here. Bump all four numbers together. */
+/* Product version and names for the resources, the About box, and the update check. Keep the
+   four numbers, ARINC661_EDITOR_VERSION_TEXT, and Package/@Version in installer/cds_editor.wxs
+   in step; the installer does not read this file. */
 #define ARINC661_EDITOR_VERSION_MAJOR    1
 #define ARINC661_EDITOR_VERSION_MINOR    0
 #define ARINC661_EDITOR_VERSION_PATCH    0

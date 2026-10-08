@@ -64,7 +64,7 @@
 #define DWMWA_IMMERSIVE_DARK_MODE_OLD (19)
 #define BUILD_DARK_MODE           (17763) /* Windows 10 1809: dark title bar (attribute 19) and DarkMode_Explorer */
 #define BUILD_DARK_MODE_ATTRIBUTE (19041) /* Windows 10 2004: the documented attribute 20 */
-#define BUILD_DARK_MODE_APP_MODE  (18362) /* Windows 10 1903: uxtheme 135 takes the PreferredAppMode enum */
+#define BUILD_DARK_MODE_APP_MODE  (18362) /* Windows 10 1903: uxtheme ordinal 135 takes the PreferredAppMode enum */
 #define UXTHEME_ORDINAL_APP_MODE  (135)
 #define UXTHEME_ORDINAL_FLUSH_MENUS (136)
 #define APP_MODE_FORCE_DARK       (2)
@@ -182,16 +182,16 @@ typedef enum Mode_e
 /** How a control follows its window's size. */
 typedef struct Anchor_s
 {
-    int      id;      ///< Control
+    int      id;      ///< Control id
     uint32_t anchors; ///< ANCHOR_* bits: a set edge keeps its distance from that side
 } Anchor_t;
 
-/** One row of the file grid. */
+/** One file of the package, as the file tree shows it. */
 typedef struct FileRow_s
 {
-    wchar_t name[MAX_TEXT];  ///< Shown name
-    wchar_t size[32];        ///< Size text, or a dash
-    wchar_t where[MAX_TEXT]; ///< Destination text
+    wchar_t name[MAX_TEXT];  ///< Long file name
+    wchar_t size[32];        ///< Formatted size
+    wchar_t where[MAX_TEXT]; ///< WHERE_PROGRAM or WHERE_EXAMPLES
 } FileRow_t;
 
 /** Everything the wizard remembers between pages. */
@@ -208,25 +208,25 @@ typedef struct Setup_s
     bool_t     isElevated;                 ///< TRUE when running as administrator
     bool_t     isInstalled;                ///< TRUE when a copy is registered
     bool_t     isAccepted;                 ///< TRUE once the license is accepted
-    bool_t     isCancelRequested;          ///< TRUE while the installer should stop
+    bool_t     isCancelRequested;          ///< TRUE once the user confirmed Cancel during installation
     bool_t     isDone;                     ///< TRUE once the installer finished
     uint32_t   options;                    ///< OPTION_* bits
     uint32_t   result;                     ///< Windows Installer result
     wchar_t    folder[MAX_PATH];           ///< Destination folder
-    wchar_t    packagePath[MAX_PATH];      ///< Extracted MSI
-    wchar_t    productCode[64];            ///< Installed product, when any
-    FileRow_t  rows[MAX_FILE_ROWS];        ///< File rows
+    wchar_t    packagePath[MAX_PATH];      ///< Path of the extracted MSI
+    wchar_t    productCode[64];            ///< Product code of the installed copy, when any
+    FileRow_t  rows[MAX_FILE_ROWS];        ///< Files of the package
     HTREEITEM  folderItem;                 ///< Tree node of the destination folder, renamed as the folder box changes
     SIZE       minimumFrame;               ///< Frame window size as the template made it
     uint32_t   rowCount;                   ///< Rows filled
-    uint32_t   fileCount;                  ///< Rows that are files
+    uint32_t   fileCount;                  ///< Files counted in the files group caption
     uint64_t   totalBytes;                 ///< Bytes of the files
     HICON      icon;                       ///< Product icon, drawn into the banner and the side panel
     HIMAGELIST treeImages;                 ///< Icons of the file tree, at the frame's DPI
     HBRUSH     pageBrush;                  ///< Page background in dark mode
     HBRUSH     wellBrush;                  ///< Edit and list background in dark mode
     HFONT      headlineFont;               ///< Large page headline
-    HFONT      textFont;                   ///< The dialog font, for painting the header and group captions
+    HFONT      textFont;                   ///< The dialog font, for painting header, group box, and check box text
     HFONT      boldFont;                   ///< Section headings of the options page
     HANDLE     thread;                     ///< Installer thread
     int32_t    progressTotal;              ///< Ticks the installer announced
@@ -254,9 +254,9 @@ static Setup_t s_setup;
 /**
  * \brief Reads the elevated relaunch arguments, when present.
  *
- * \param[in] commandLine   Command line
+ * \param[in] commandLine   Full command line, program name first
  *
- * \retval    TRUE          if the process was relaunched elevated with a job to do.
+ * \retval    TRUE          if the command line carries the relaunch arguments.
  * \retval    FALSE         otherwise.
  */
 static bool_t ParseElevatedArguments(const wchar_t* commandLine);
@@ -290,7 +290,23 @@ static uint32_t ReadBuildNumber(void);
  * \retval FALSE   otherwise.
  */
 static bool_t ReadsDarkTheme(void);
+
+/*************************************************************************************************/
+/**
+ * \brief Makes popup menus, the system menu included, follow the setup's theme.
+ *
+ * \retval None
+ */
 static void ApplyMenuTheme(void);
+
+/*************************************************************************************************/
+/**
+ * \brief Switches the frame between the dark and the light theme.
+ *
+ * \param[in] isDark   TRUE for the dark theme
+ *
+ * \retval    None
+ */
 static void ApplyTheme(bool_t isDark);
 
 /*************************************************************************************************/
@@ -312,7 +328,7 @@ static void FindInstalledProduct(void);
 
 /*************************************************************************************************/
 /**
- * \brief Reads the package's File table into the grid rows.
+ * \brief Reads the package's File table into the file rows.
  *
  * \retval None
  */
@@ -332,7 +348,7 @@ static void FormatSize(uint64_t bytes, wchar_t* text, uint32_t capacity);
 
 /*************************************************************************************************/
 /**
- * \brief Frame dialog procedure: navigation, theme colours, installer messages.
+ * \brief Frame dialog procedure: navigation, theme colors, installer messages.
  */
 static INT_PTR CALLBACK FrameProcedure(HWND window, UINT message, WPARAM wordParameter, LPARAM longParameter);
 
@@ -402,7 +418,7 @@ static void ThemePage(HWND page);
 
 /*************************************************************************************************/
 /**
- * \brief Answers WM_CTLCOLOR* for dark pages.
+ * \brief Answers WM_CTLCOLOR* for the frame and the pages.
  *
  * \param[in] message         WM_CTLCOLOR* message
  * \param[in] deviceContext   Control's device context
@@ -426,7 +442,7 @@ static void PaintDarkChrome(HWND window, HDC deviceContext);
 
 /*************************************************************************************************/
 /**
- * \brief Repaints a themed check box's label in the dark text colour after the theme drew it.
+ * \brief Repaints a themed check box's label in the dark text color after the theme drew it.
  *
  * \param[in] draw   Custom draw notification of the check box
  *
@@ -439,6 +455,11 @@ static LRESULT PaintCheckBoxLabel(const NMCUSTOMDRAW* draw);
  * \brief Subclass of the list header: paints it dark with light column names.
  */
 static LRESULT CALLBACK HeaderProcedure(HWND window, UINT message, WPARAM wordParameter, LPARAM longParameter, UINT_PTR subclassId, DWORD_PTR reference);
+
+/*************************************************************************************************/
+/**
+ * \brief Subclass of the tree, list, and edit: paints their non-client ring in the well color.
+ */
 static LRESULT CALLBACK WellProcedure(HWND window, UINT message, WPARAM wordParameter, LPARAM longParameter, UINT_PTR subclassId, DWORD_PTR reference);
 
 /*************************************************************************************************/
@@ -453,7 +474,7 @@ static void CreateFonts(HWND frame);
 
 /*************************************************************************************************/
 /**
- * \brief Draws a banner or side image stretched into its control.
+ * \brief Paints the banner or side image into its control.
  *
  * \param[in] item   Draw item of an owner-drawn static
  *
@@ -479,7 +500,7 @@ static void FillFileTree(HWND page);
  * \param[in] tree     Tree view
  * \param[in] parent   Parent node, or TVI_ROOT
  * \param[in] text     Node text
- * \param[in] icon     System image list index
+ * \param[in] icon     Index in the tree's image list, or -1
  *
  * \retval    HTREEITEM   The node.
  */
@@ -487,7 +508,7 @@ static HTREEITEM AddTreeNode(HWND tree, HTREEITEM parent, const wchar_t* text, i
 
 /*************************************************************************************************/
 /**
- * \brief Looks up the shell icon of a file name or a folder in the system image list.
+ * \brief Adds the shell's small icon for a file name or a folder to the tree's image list.
  *
  * \param[in] name       File name, used for its extension
  * \param[in] isFolder   TRUE for a folder icon
@@ -495,6 +516,13 @@ static HTREEITEM AddTreeNode(HWND tree, HTREEITEM parent, const wchar_t* text, i
  * \retval    int        Image index, or -1.
  */
 static int ShellIconIndex(const wchar_t* name, bool_t isFolder);
+
+/*************************************************************************************************/
+/**
+ * \brief Adds the product icon to the tree's image list.
+ *
+ * \retval int   Image index, or -1.
+ */
 static int ProductIconIndex(void);
 
 /*************************************************************************************************/
@@ -527,7 +555,7 @@ static void BeginInstall(void);
 
 /*************************************************************************************************/
 /**
- * \brief Installer thread: runs Windows Installer on the package.
+ * \brief Installer thread: runs Windows Installer for the chosen mode.
  *
  * \param[in] parameter   Unused
  *
@@ -537,7 +565,7 @@ static DWORD WINAPI InstallThread(LPVOID parameter);
 
 /*************************************************************************************************/
 /**
- * \brief Windows Installer external UI handler: progress and actions to the frame.
+ * \brief Windows Installer external UI handler: progress and actions go to the frame, errors to a message box.
  */
 static INT CALLBACK InstallerHandler(LPVOID context, UINT messageType, MSIHANDLE record);
 
@@ -556,7 +584,7 @@ static void LaunchEditor(void);
 /*************************************************************************************************/
 /**
  * \par Details:
- *  /elevated <install|repair|remove> "<folder>" <options>
+ *  /elevated <install|repair|remove> "<folder>" <options> [/light|/dark]; wWinMain reads the theme switch.
  */
 static bool_t ParseElevatedArguments(const wchar_t* commandLine)
 {
@@ -719,9 +747,9 @@ static void ApplyMenuTheme(void)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Everything of the frame that depends on the theme: the brushes, the title bar (asked of DWM
- *  by the attribute number of this build), the wizard buttons, the popup menus, and the etched
- *  line that dark mode paints itself. The page is not touched; callers recreate it.
+ *  Updates everything on the frame that depends on the theme: the brushes, the title bar (DWM
+ *  attribute number by build), the wizard buttons, the popup menus, and the etched line, which
+ *  dark mode hides and paints itself. The page is not touched; callers recreate it.
  */
 static void ApplyTheme(bool_t isDark)
 {
@@ -821,7 +849,8 @@ static void FindInstalledProduct(void)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The long name follows the bar of a short|long file name; the directory id names the place.
+ *  The long name follows the bar of a short|long file name; the directory id picks the place.
+ *  Reads at most MAX_FILE_ROWS files.
  */
 static void ReadFileRows(void)
 {
@@ -845,8 +874,12 @@ static void ReadFileRows(void)
     view = 0;
     if ((ERROR_SUCCESS == MsiDatabaseOpenViewW(database, FILE_QUERY, &view)) && (ERROR_SUCCESS == MsiViewExecute(view, 0)))
     {
-        while ((s_setup.rowCount < MAX_FILE_ROWS) && (ERROR_SUCCESS == MsiViewFetch(view, &record)))
+        while (s_setup.rowCount < MAX_FILE_ROWS)
         {
+            if (ERROR_SUCCESS != MsiViewFetch(view, &record))
+            {
+                break;
+            }
             length = COUNT_OF(name);
             (void)MsiRecordGetStringW(record, 1, name, &length);
             size   = MsiRecordGetInteger(record, 2);
@@ -1271,7 +1304,7 @@ static INT_PTR CALLBACK PageProcedure(HWND window, UINT message, WPARAM wordPara
         case IDC_FOLDER:
             if ((EN_CHANGE == HIWORD(wordParameter)) && (NULL != s_setup.folderItem))
             {
-                // The tree's root follows the folder box
+                // The destination folder node follows the folder box
                 GetDlgItemTextW(window, IDC_FOLDER, text, COUNT_OF(text));
                 (void)memset(&tree_item, 0, sizeof(tree_item));
                 tree_item.mask    = TVIF_TEXT | TVIF_HANDLE;
@@ -1532,8 +1565,9 @@ static void UpdateButtons(void)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Push buttons, edits, lists, and scroll bars take the dark Explorer theme. Check boxes and
- *  group boxes drop their theme so WM_CTLCOLORSTATIC can colour their text.
+ *  Buttons, edits, lists, trees, scroll bars, and progress bars take the dark Explorer theme.
+ *  Group boxes and etched lines are hidden for PaintDarkChrome to draw, and edits, lists, and
+ *  trees lose their light border.
  */
 static void ThemePage(HWND page)
 {
@@ -1613,9 +1647,9 @@ static void ThemePage(HWND page)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Hidden group boxes become a one pixel frame with their caption cut into the top edge;
- *  hidden etched statics become one pixel lines; edits and lists get a one pixel frame just
- *  outside their client area.
+ *  Hidden group boxes become a one-pixel frame with their caption cut into the top edge;
+ *  hidden etched statics become one-pixel lines; editable or scrolling edits, lists, and trees
+ *  get a one-pixel frame just outside the control.
  */
 static void PaintDarkChrome(HWND window, HDC deviceContext)
 {
@@ -1684,7 +1718,7 @@ static void PaintDarkChrome(HWND window, HDC deviceContext)
 /**
  * \par Details:
  *  The theme draws the box dark but the label black; after its paint the label area is filled
- *  with the page colour and the text drawn again in the dark theme's text colour.
+ *  with the page color and the text drawn again in the dark theme's text color.
  */
 static LRESULT PaintCheckBoxLabel(const NMCUSTOMDRAW* draw)
 {
@@ -1748,9 +1782,9 @@ static LRESULT PaintCheckBoxLabel(const NMCUSTOMDRAW* draw)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The themed tree, list, and edit keep a one pixel non-client ring that the theme paints light
+ *  The themed tree, list, and edit keep a one-pixel non-client ring that the theme paints light
  *  until a focus change repaints it; after the default paint, which also draws the scroll bars,
- *  the ring is painted in the well colour so only the page's own frame shows.
+ *  the ring is painted in the well color so only the page's own frame shows.
  */
 static LRESULT CALLBACK WellProcedure(HWND window, UINT message, WPARAM wordParameter, LPARAM longParameter, UINT_PTR subclassId, DWORD_PTR reference)
 {
@@ -1889,7 +1923,8 @@ static void CreateFonts(HWND frame)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Notes and the version line are muted; edits and lists sit in a darker well.
+ *  Notes and the version line are muted and text over the banner or side image is transparent;
+ *  in dark mode, edits and lists sit in a darker well.
  */
 static INT_PTR ControlColor(UINT message, HDC deviceContext, HWND control)
 {
@@ -1959,10 +1994,10 @@ static INT_PTR ControlColor(UINT message, HDC deviceContext, HWND control)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The banner is the page colour with a dark brand block and the icon at the right; the side
- *  panel is a vertical gradient from the brand dark to a deep blue, the icon, the product name,
- *  and the three bars of the icon. Measures are pixels at the frame's DPI, so a larger window
- *  gains content space while the art keeps its size.
+ *  The banner is the page color with a dark brand block and the icon at the right; the side
+ *  panel has a vertical gradient strip from the brand dark to a deep blue, the icon, the product
+ *  name, a subtitle, and three bars echoing the icon. Measures are 96-DPI pixels scaled to the
+ *  frame's DPI, so a larger window gains content space while the art keeps its size.
  */
 static void DrawImage(const DRAWITEMSTRUCT* item)
 {
@@ -2088,8 +2123,9 @@ static void DrawImage(const DRAWITEMSTRUCT* item)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The tree gets its own image list, filled from the shell's icon for each name; the editor and
- *  its shortcuts show the product icon, which is not installed yet. Every node starts expanded.
+ *  The tree gets its own image list, filled from the shell's icon for each name; the editor, the
+ *  shell extension, and the shortcuts show the product icon, which the shell cannot supply before
+ *  installation. Every node starts expanded.
  */
 static void FillFileTree(HWND page)
 {
@@ -2234,7 +2270,7 @@ static int ShellIconIndex(const wchar_t* name, bool_t isFolder)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The product icon at the tree's size, from this executable's resources.
+ *  Adds the product icon from this executable's resources to the tree's image list, at the tree's size.
  */
 static int ProductIconIndex(void)
 {
@@ -2574,10 +2610,11 @@ static void LaunchEditor(void)
  *
  * \param[in] instance          This program
  * \param[in] previousInstance  Unused
- * \param[in] commandLine       Unused; the wide command line is read instead
+ * \param[in] commandLine       Unused; GetCommandLineW is read instead
  * \param[in] showCommand       Unused
  *
- * \retval    int               Zero when Setup finished, one when the user left.
+ * \retval    int               Zero when Setup finished or handed off to its elevated copy; one when
+ *                              the user canceled or the package could not be unpacked.
  */
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE previousInstance, PWSTR commandLine, int showCommand)
 {
@@ -2595,7 +2632,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE previousInstance, PWSTR comman
     s_setup.build      = ReadBuildNumber();
     // Dark drawing needs 1809 or later; older systems stay light whatever the theme says
     s_setup.isDark     = (bool_t)(ReadsDarkTheme() && (BUILD_DARK_MODE <= s_setup.build));
-    // /light and /dark force a theme, for support and for screenshots
+    // /light and /dark force a theme, for the elevated copy, support, and screenshots
     if (NULL != wcsstr(GetCommandLineW(), THEME_LIGHT_SWITCH))
     {
         s_setup.isDark = FALSE;

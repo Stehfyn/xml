@@ -16,7 +16,7 @@
 
 /*************************************************************************************************/
 /**
- * \brief Runs the ARINC 661 Definition File tests.
+ * \brief Runs the ARINC 661 definition tests.
  *
  * \retval None
  */
@@ -24,7 +24,7 @@ void RunArinc661Tests(void);
 
 /*************************************************************************************************/
 /**
- * \brief Runs the FACE display management tests.
+ * \brief Runs the FACEOE display management tests.
  *
  * \retval None
  */
@@ -56,7 +56,7 @@ void RunArinc661RendererTests(void);
 
 /*************************************************************************************************/
 /**
- * \brief Runs the editor updater tests.
+ * \brief Runs the editor update tests.
  *
  * \retval None
  */
@@ -65,7 +65,12 @@ void RunArinc661UpdateTests(void);
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Exercises XML name validation through the public document writer.
+ *  Writes a document holding one empty element, to check the writer's name validation.
+ *
+ * \param[in] name            Element name bytes
+ * \param[in] nameByteCount   Number of bytes in name
+ *
+ * \retval    uint64_t   Number of bytes written, or zero when the writer rejects the name.
  */
 static uint64_t WriteTestElement(const byte_t* name, uint32_t nameByteCount)
 {
@@ -83,7 +88,7 @@ static uint64_t WriteTestElement(const byte_t* name, uint32_t nameByteCount)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Checks counted UTF-8 strings and names.
+ *  Checks attribute value and element name validation of counted UTF-8 byte spans.
  */
 static void TestXmlByteSpans(void)
 {
@@ -124,7 +129,7 @@ static void TestXmlByteSpans(void)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Checks caller-owned node initialization and forward links used during serialization.
+ *  Checks node and attribute initialization and the links set by AppendAttribute and AppendChild.
  */
 static void TestXmlNodeInitialization(void)
 {
@@ -187,7 +192,7 @@ static void TestXmlNodeInitialization(void)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Node initializers store names that the writer will validate later.
+ *  Checks that node initialization stores an invalid name as given, leaving validation to the writer.
  */
 static void TestDeferredNodeContentValidation(void)
 {
@@ -203,7 +208,8 @@ static void TestDeferredNodeContentValidation(void)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Builds a document in source order, checks its serialized bytes, and writes an XML artifact.
+ *  Checks the bytes written for a declaration and nested elements with attributes, then saves
+ *  them to faceoe_utl_xml_document.xml.
  */
 static void TestXmlDocumentWrite(void)
 {
@@ -274,7 +280,7 @@ static void TestXmlDocumentWrite(void)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Writes a schema-instance declaration and a qualified schema-location attribute.
+ *  Checks writing an xmlns:xsi namespace declaration and an xsi:noNamespaceSchemaLocation attribute.
  */
 static void TestXmlSchemaLocationWrite(void)
 {
@@ -354,7 +360,8 @@ static void TestXmlDocumentRoundTrip(void)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Returns zero for invalid XML and insufficient storage.
+ *  Checks that writing returns zero for a short buffer or an invalid name, and reading returns
+ *  zero for a mismatched end tag, too little node storage, or trailing text.
  */
 static void TestXmlDocumentFailures(void)
 {
@@ -402,7 +409,8 @@ static void TestXmlDocumentFailures(void)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Checks declaration placement, element closure, shared storage limits, and input preservation.
+ *  Checks declaration placement, element closure, attribute rules, storage limits, and that the
+ *  reader leaves the input unchanged and zeroes the byte after it.
  */
 static void TestXmlReaderBoundaries(void)
 {
@@ -468,7 +476,8 @@ static void TestXmlReaderBoundaries(void)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The markup limit includes the declaration and both opening and closing element tags.
+ *  Checks that the reader accepts FACEOE_UTL_XML_DOCUMENT_MAX_NODES markup spans and rejects one
+ *  more; the declaration and each opening and closing tag count as one span.
  */
 static void TestXmlReaderMarkupLimit(void)
 {
@@ -506,7 +515,8 @@ static void TestXmlReaderMarkupLimit(void)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Checks numeric prefixes, signed bounds, and XML Schema decimal syntax.
+ *  Checks numeric prefixes, int64 bounds, XML Schema decimal syntax, and that a failed scan
+ *  leaves the value unchanged.
  */
 static void TestNumberScanning(void)
 {
@@ -651,7 +661,8 @@ static void TestPrint(void)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Runs the XML, number scanning, and ARINC 661 utility checks.
+ *  Runs the utility tests, then the ARINC 661, display management, graphics, scene, renderer,
+ *  and update tests.
  */
 int main(void)
 {

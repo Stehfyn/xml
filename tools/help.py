@@ -1,12 +1,12 @@
 # Generates examples/arinc661_help.c and help.json from the ARINC 661 Part 1-7 text.
-# Usage: pdftotext -raw ARINC_SPECIFICATION_661P1-7.pdf raw.txt ; python tools/help.py   (run in the folder holding raw.txt)
+# Usage: pdftotext -raw ARINC_SPECIFICATION_661P1-7.pdf raw.txt, then run this script in the folder holding raw.txt.
 import re, json, sys
 raw = open('raw.txt', encoding='utf-8', errors='replace', newline='').read().replace(chr(13), '').split(chr(10))
 
-# widget library body: from first "3.3.1 " heading in body to the Supplement change notes
+# Widget library body: starts at the "3.3.1 ActiveArea" heading past the table of contents; end is not used
 start = next(i for i, l in enumerate(raw) if re.match(r'^3\.3\.1 ActiveArea$', l) and i > 3000)
 end = next(i for i, l in enumerate(raw) if re.match(r'^4\.0 ', l) and i > start) if any(re.match(r'^4\.0 ', l) for l in raw[start:]) else len(raw)
-# also extension sections (8.x)
+# The body runs to the end of the text, so the section 8 extensions are included
 body = raw[start:]
 heading_re = re.compile(r'^(3\.\d+\.\d+(\.\d+)?|8\.\d+\.\d+) ([A-Z][A-Za-z0-9_]+)$')
 skip_re = re.compile(r'^(ARINC SPECIFICATION|SUPPLEMENT|\d+\.0 WIDGET (LIBRARY|EXTENSIONS)|Parameters Change Description|Commonly used parameters|Specific [Pp]arameters.*|Parameters$|Change Description$|Figure .*|Possible Widgets for Extension:.*|See Table 8\.4\.)')
@@ -32,7 +32,7 @@ while i < n:
     mode = None
     params = []
     code = None
-    # scan until Creation Structure table or next heading
+    # Scan until the Creation Structure table or the next heading
     while j < n and not heading_re.match(body[j]):
         l = body[j].replace(chr(12), '').strip()
         if re.search(r'Creation Structure is defined in Table', l) or re.match(r'^Table .* Creation Structure', l):
@@ -90,7 +90,7 @@ while i < n:
         }
     i = j if j > i else i + 1
 
-# extensions: section 8 tables use "Extension Parameters" naming; try to capture by A661_*_EXTENSION codes
+# Section 8 extensions come through the same loop, keyed by their ExtensionType row
 print(len(widgets), file=sys.stderr)
 json.dump(widgets, open('help.json', 'w'), indent=1)
 
@@ -104,7 +104,8 @@ out.append('''/*================================================================
 
 /**
  * ARINC 661 Part 1-7, sections 3.3 to 3.10 and 8: the Categories, Description, Restriction, and
- * Parameters table of every widget and extension. Generated from the specification text.
+ * Parameters table of every widget and extension. Generated from the specification text by
+ * tools/help.py.
  */
 
 /*=================================================================================================
@@ -145,8 +146,8 @@ typedef struct HelpWidget_s
     const char_t* categories;     ///< Categories, comma separated
     const char_t* description;    ///< Description paragraph
     const char_t* restriction;    ///< Restriction paragraph, or empty
-    uint32_t      firstParameter; ///< Index into c_helpParameters
-    uint32_t      parameterCount; ///< Rows
+    uint32_t      firstParameter; ///< Index of the section's first row in c_helpParameters
+    uint32_t      parameterCount; ///< Number of the section's rows
 } HelpWidget_t;
 
 /*=================================================================================================
@@ -181,6 +182,14 @@ out.append('''};
 ** 3.5 Static function prototypes
 **===============================================================================================*/
 
+/*************************************************************************************************/
+/**
+ * \\brief Finds the help section of a widget or extension type.
+ *
+ * \\param[in] type   Widget or extension type name
+ *
+ * \\retval    const HelpWidget_t*   Help section, or NULL when the type has none.
+ */
 static const HelpWidget_t* FindHelp(const char_t* type);
 
 /*=================================================================================================
@@ -189,7 +198,8 @@ static const HelpWidget_t* FindHelp(const char_t* type);
 
 /*************************************************************************************************/
 /**
- * \\brief Finds a widget's help section by type name.
+ * \\par Details:
+ *  Compares at most ARINC661_MAX_NAME_BYTES characters.
  */
 static const HelpWidget_t* FindHelp(const char_t* type)
 {
@@ -243,8 +253,8 @@ bool_t Arinc661_Help_GetType(const char_t* type, const char_t** description, con
 /*************************************************************************************************/
 /**
  * \\par Details:
- *  Looks the parameter up in the widget's own table first, then in any table, since the
- *  common parameters of section 3.1.3 are described once per widget.
+ *  Looks the parameter up in the type's own table first, then in every table, since a
+ *  table may omit the common parameters of section 3.1.3.
  */
 const char_t* Arinc661_Help_GetParameter(const char_t* type, const char_t* parameterName, const char_t** change)
 {
@@ -294,7 +304,7 @@ const char_t* Arinc661_Help_GetParameter(const char_t* type, const char_t* param
     return description;
 }
 ''')
-open(r'C:\dev\xml\examples\arinc661_help.c', 'w', encoding='utf-8', newline='\n').write('\n'.join(out))
+open(r'C:\dev\xml\examples\arinc661_help.c', 'w', encoding='utf-8', newline='\r\n').write('\n'.join(out))
 print('widgets', len(widgets), 'params', count, file=sys.stderr)
 missing = [c for c in widgets if not widgets[c]['description']]
 print('no description:', missing, file=sys.stderr)

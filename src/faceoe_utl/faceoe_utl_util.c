@@ -9,7 +9,7 @@
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
+ *  Compares str2 at each position of str1 in turn, so the cost is O(length of str1 * length of str2).
  */
 const char_t* FACEOE_Utl_StrStr(const char_t* str1, const char_t* str2, bool_t caseInsensitive)
 {
@@ -34,7 +34,7 @@ const char_t* FACEOE_Utl_StrStr(const char_t* str1, const char_t* str2, bool_t c
         {
             if(TRUE == caseInsensitive)
             {
-                if (tolower(str2[search_idx]) != tolower(str1[str1_base_index + search_idx]))
+                if (tolower((unsigned char)str2[search_idx]) != tolower((unsigned char)str1[str1_base_index + search_idx]))
                 {
                     break;
                 }
@@ -65,8 +65,8 @@ const char_t* FACEOE_Utl_StrStr(const char_t* str1, const char_t* str2, bool_t c
 /**
  * \par Details:
  *  Unlike strchr, the search stops at sizeOfStr characters and never returns the
- *  terminator; for example, searching "1.5" for '.' returns a pointer to "5"'s
- *  neighbor at index 1, and searching it for '\0' returns NULL.
+ *  terminator; for example, searching "1.5" for '.' returns &str[1], and
+ *  searching it for '\0' returns NULL.
  */
 const char_t* FACEOE_Utl_StrChr(const char_t* str, char_t character, uint64_t sizeOfStr)
 {
@@ -99,7 +99,7 @@ const char_t* FACEOE_Utl_StrChr(const char_t* str, char_t character, uint64_t si
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
+ *  The scan stops at dstSize - 1 characters so the part and its terminator fit in outStr.
  */
 uint64_t FACEOE_Utl_StrSplit(const char_t* str, char_t* outStr, char_t delim, uint64_t dstSize)
 {
@@ -110,6 +110,7 @@ uint64_t FACEOE_Utl_StrSplit(const char_t* str, char_t* outStr, char_t delim, ui
     LOGASSERT(NULL != outStr);
     LOGASSERT(2 <= dstSize);
 
+    iterator = str;
     if ((delim == *iterator) || ('\0' == *iterator))
     {
         return 0;
@@ -138,7 +139,7 @@ uint64_t FACEOE_Utl_StrSplit(const char_t* str, char_t* outStr, char_t delim, ui
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
+ *  Moves the trimmed text to the start of str with memmove.
  */
 void FACEOE_Utl_StrTrim(char_t* str)
 {
@@ -154,8 +155,12 @@ void FACEOE_Utl_StrTrim(char_t* str)
         return;
     }
 
-    while (*str_trim_search && isspace(*str_trim_search))
+    while ('\0' != (*str_trim_search))
     {
+        if (0 == isspace((unsigned char)(*str_trim_search)))
+        {
+            break;
+        }
         ++str_trim_search;
     }
 
@@ -163,7 +168,7 @@ void FACEOE_Utl_StrTrim(char_t* str)
 
     while (*str_trim_search) 
     {
-        if(!isspace(*str_trim_search))
+        if(!isspace((unsigned char)(*str_trim_search)))
         {
             str_trimmed_end = str_trim_search;
         }

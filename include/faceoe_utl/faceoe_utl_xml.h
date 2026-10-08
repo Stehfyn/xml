@@ -22,15 +22,15 @@
 ** 3.1 Macros
 **===============================================================================================*/
 
-/* Arbitrarily chosen storage and traversal limits; these are not XML specification limits. */
-#define FACEOE_UTL_XML_MAX_NAME_BYTES          (1024UL)    ///< Maximum UTF-8 bytes in an element or attribute name, excluding a zero terminator
-#define FACEOE_UTL_XML_MAX_VALUE_BYTES         (1048576UL) ///< Maximum UTF-8 bytes in an attribute value, excluding quotes and a zero terminator
+/* Implementation limits, not XML specification limits. */
+#define FACEOE_UTL_XML_MAX_NAME_BYTES          (1024UL)    ///< Maximum UTF-8 bytes in an element or attribute name.
+#define FACEOE_UTL_XML_MAX_VALUE_BYTES         (1048576UL) ///< Maximum UTF-8 bytes in an attribute value, excluding the quotes.
 #define FACEOE_UTL_XML_NODE_MAX_ATTRIBUTES     (256UL)     ///< Maximum attributes on one element.
-#define FACEOE_UTL_XML_NODE_MAX_DEPTH          (65536UL)   ///< Maximum ancestor links checked when appending a child.
+#define FACEOE_UTL_XML_NODE_MAX_DEPTH          (65536UL)   ///< Maximum nesting depth written, and ancestor links checked when appending a child.
 #define FACEOE_UTL_XML_DOCUMENT_MAX_NODES      (4096UL)    ///< Maximum element nodes visited by the writer or markup spans read by the reader.
 
-/* Nominally one document element, or two top-level nodes when an XML declaration provides version information. */
-#define FACEOE_UTL_XML_DOCUMENT_MAX_ROOT_NODES (2UL)       ///< Maximum top-level nodes: one document element plus an optional XML declaration
+/* Production [1] document has one root element; an optional XML declaration may precede it. */
+#define FACEOE_UTL_XML_DOCUMENT_MAX_ROOT_NODES (2UL)       ///< Maximum top-level nodes: an optional XML declaration and one root element.
 
 /*=================================================================================================
 ** 3.2 Types
@@ -38,7 +38,7 @@
 
 /*************************************************************************************************/
 /**
- * \brief XML 1.0 node type.
+ * \brief Supported XML 1.0 node kinds.
  */
 typedef enum FACEOE_Utl_Xml_NodeType_e
 {
@@ -48,27 +48,27 @@ typedef enum FACEOE_Utl_Xml_NodeType_e
 
 /*************************************************************************************************/
 /**
- * \brief Caller-owned XML attribute for an element's forward list.
+ * \brief Caller-owned XML attribute, linked into an element's attribute list.
  */
 typedef struct FACEOE_Utl_Xml_Attribute_s
 {
-    const byte_t*                      name;           ///< Pointer to UTF-8 XML name bytes
+    const byte_t*                      name;           ///< Pointer to the UTF-8 name bytes.
     uint32_t                           nameByteCount;  ///< Number of name bytes.
-    const byte_t*                      value;          ///< Pointer to UTF-8 XML value bytes
+    const byte_t*                      value;          ///< Pointer to the UTF-8 value bytes, without quotes.
     uint32_t                           valueByteCount; ///< Number of value bytes.
-    struct FACEOE_Utl_Xml_Attribute_s* next;           ///< Next attribute in insertion order, or NULL.
+    struct FACEOE_Utl_Xml_Attribute_s* next;           ///< Next attribute in append order, or NULL.
 } FACEOE_Utl_Xml_Attribute_t;
 
 /*************************************************************************************************/
 /**
- * \brief Caller-owned XML node with pointers to strings and forward links for serialization.
+ * \brief Caller-owned XML node; its name and attributes point to caller-owned bytes.
  */
 typedef struct FACEOE_Utl_Xml_Node_s
 {
     FACEOE_Utl_Xml_NodeType_t     type;           ///< Kind of XML node.
-    const byte_t*                 name;           ///< Pointer to the element name; NULL for the XML declaration
+    const byte_t*                 name;           ///< Pointer to the element name; NULL for the XML declaration.
     uint32_t                      nameByteCount;  ///< Number of name bytes; zero when name is NULL.
-    struct FACEOE_Utl_Xml_Node_s* parent;         ///< Parent set when appended, or NULL.
+    struct FACEOE_Utl_Xml_Node_s* parent;         ///< Parent element, or NULL for a top-level or unlinked node.
     struct FACEOE_Utl_Xml_Node_s* firstChild;     ///< First child of an element, or NULL.
     struct FACEOE_Utl_Xml_Node_s* lastChild;      ///< Last child of an element, or NULL.
     struct FACEOE_Utl_Xml_Node_s* nextSibling;    ///< Next node at the same level, or NULL.
@@ -107,16 +107,14 @@ typedef struct FACEOE_Utl_Xml_Document_s
  *  XML 1.0 (Fifth Edition), production [10] AttValue:
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-AttValue
  *
- *  The writer uses double quotes and does not escape values. Apostrophes and > are allowed;
- *  <, &, and double quotes cannot appear literally. Tabs, line feeds, and carriage
- *  returns are permitted literally but require character references to preserve
- *  their value. This validator accepts only the directly writable, lossless subset.
- *  XML 1.0 section 3.3.3 describes normalization of literal attribute whitespace:
+ *  The writer uses double quotes and does not escape values, so <, &, and double
+ *  quotes cannot appear. Tab, LF, and CR may appear literally, but attribute-value
+ *  normalization (XML 1.0 section 3.3.3) turns them into spaces, so they are rejected:
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#AVNormalize
  *
  * \par Requirements:
  *  - 001 This function shall accept an empty span and reject invalid UTF-8 or non-Char code points.
- *  - 002 This function shall return FALSE for nonliteral characters and for tab, LF, and CR.
+ *  - 002 This function shall return FALSE for <, &, double quote, tab, LF, and CR.
  *  - 003 This function shall fail an assertion if utf8Text is NULL or byteCount exceeds FACEOE_UTL_XML_MAX_VALUE_BYTES.
  *
  * \param[in] utf8Text    Non-NULL UTF-8 byte span
@@ -151,15 +149,15 @@ void FACEOE_Utl_Xml_InitializeAttribute(FACEOE_Utl_Xml_Attribute_t* attribute, c
 /**
  * \brief Initializes caller-provided storage as an unlinked XML node.
  *
+ * \par Details:
+ *  An element has a name; the XML declaration has a NULL name and zero byte count.
+ *
  * \par Requirements:
  *  - 001 This function shall store type, name, and its byte count without checking XML syntax or length.
  *  - 002 This function shall store the name pointer without copying its bytes; the caller shall keep a non-NULL name valid while referenced.
  *  - 003 This function shall clear the node's tree and attribute links.
- *  - 004 This function shall require a zero byte count when name is NULL.
+ *  - 004 This function shall fail an assertion if name is NULL and nameByteCount is nonzero.
  *  - 005 This function shall fail an assertion if node is NULL.
- *
- * \par Details:
- *  Elements use name. The XML declaration uses a NULL name.
  *
  * \param[out] node            Uninitialized caller-owned node storage
  * \param[in]  type            XML node kind
@@ -186,12 +184,12 @@ void FACEOE_Utl_Xml_InitializeDocument(FACEOE_Utl_Xml_Document_t* document);
 
 /*************************************************************************************************/
 /**
- * \brief Appends an initialized caller-owned attribute while constructing a serializable element.
+ * \brief Appends an initialized, unlinked attribute as the last attribute of an element.
  *
  * \par Requirements:
- *  - 001 This function shall require a valid XML name and an XML character value without <, &, ", or whitespace other than spaces.
- *  - 002 This function shall enforce FACEOE_UTL_XML_NODE_MAX_ATTRIBUTES and preserve the pointers to the name and value byte spans.
- *  - 003 This function shall fail an assertion for NULL arguments, a non-element node, a duplicate name, or an attribute already linked to the element.
+ *  - 001 This function shall fail an assertion unless the name is an XML Name of at most FACEOE_UTL_XML_MAX_NAME_BYTES and the value passes FACEOE_Utl_Xml_IsAttributeValue.
+ *  - 002 This function shall fail an assertion if the element already has FACEOE_UTL_XML_NODE_MAX_ATTRIBUTES attributes.
+ *  - 003 This function shall fail an assertion for NULL arguments, a NULL name or value, a non-element node, a duplicate name, or an already linked attribute.
  *
  * \param[in,out] node        Element receiving the attribute
  * \param[in,out] attribute   Initialized, unlinked caller-owned attribute
@@ -202,15 +200,15 @@ void FACEOE_Utl_Xml_AppendAttribute(FACEOE_Utl_Xml_Node_t* node, FACEOE_Utl_Xml_
 
 /*************************************************************************************************/
 /**
- * \brief Appends a caller-owned child while constructing a serializable element.
+ * \brief Appends an unlinked element as the last child of an element.
  *
  * \par Requirements:
  *  - 001 This function shall preserve the order in which children are appended.
- *  - 002 This function shall check at most FACEOE_UTL_XML_NODE_MAX_DEPTH ancestor links.
- *  - 003 This function shall fail an assertion for NULL arguments, a non-element parent or child, an attached child, or a cycle.
+ *  - 002 This function shall fail an assertion if parent and its ancestors number more than FACEOE_UTL_XML_NODE_MAX_DEPTH.
+ *  - 003 This function shall fail an assertion for NULL arguments, a non-element parent or child, a child with a parent or next sibling, or a cycle.
  *
  * \param[in,out] parent   Element receiving the child
- * \param[in,out] child    Unlinked caller-owned child
+ * \param[in,out] child    Unlinked caller-owned element
  *
  * \retval        None
  */
@@ -218,7 +216,7 @@ void FACEOE_Utl_Xml_AppendChild(FACEOE_Utl_Xml_Node_t* parent, FACEOE_Utl_Xml_No
 
 /*************************************************************************************************/
 /**
- * \brief Appends a caller-owned top-level node in source order.
+ * \brief Appends an unlinked node as the last top-level node of a document.
  *
  * \par Details:
  *  XML 1.0 (Fifth Edition), productions [1] document and [23] XMLDecl:
@@ -230,7 +228,7 @@ void FACEOE_Utl_Xml_AppendChild(FACEOE_Utl_Xml_Node_t* parent, FACEOE_Utl_Xml_No
  *  - 002 This function shall fail an assertion if document or node is NULL.
  *  - 003 This function shall fail an assertion if node has a parent or next sibling, or is document->lastNode.
  *  - 004 This function shall fail an assertion for a type other than XML declaration or element.
- *  - 005 This function shall fail an assertion unless an XML declaration is the first node.
+ *  - 005 This function shall fail an assertion for an XML declaration appended to a nonempty document.
  *  - 006 This function shall fail an assertion for a second element.
  *
  * \param[in,out] document   Document receiving the node
@@ -242,7 +240,7 @@ void FACEOE_Utl_Xml_AppendNode(FACEOE_Utl_Xml_Document_t* document, FACEOE_Utl_X
 
 /*************************************************************************************************/
 /**
- * \brief Reads a UTF-8 element tree in the form FACEOE_Utl_Xml_WriteDocument writes into caller-owned nodes and attributes.
+ * \brief Reads a UTF-8 document, in the form FACEOE_Utl_Xml_WriteDocument writes, into caller-owned nodes and attributes.
  *
  * \par Details:
  *  XML 1.0 (Fifth Edition), productions [1] document, [23] XMLDecl, and [39] element:
@@ -250,10 +248,11 @@ void FACEOE_Utl_Xml_AppendNode(FACEOE_Utl_Xml_Document_t* document, FACEOE_Utl_X
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-XMLDecl
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-element
  *
- *  The input buffer holds an optional XML declaration with version="1.0" and no other
- *  fields, then one element tree. Attribute values are double-quoted and contain
- *  no references and no whitespace other than spaces. Whitespace between tags is
- *  not stored, so writing the document reproduces the writer's formatting.
+ *  The input holds an optional XML declaration at byte zero with version="1.0" and no
+ *  other fields, then one element tree, with only whitespace between and around tags.
+ *  Attribute values are double-quoted with no whitespace around =, and contain no
+ *  references and no whitespace other than spaces. Whitespace between tags is not
+ *  stored, so writing the document reproduces the writer's formatting.
  *  The reader writes a zero terminator at bufferToReadDocumentFrom[sizeOfDocumentBuffer]
  *  and uses FACEOE_Utl_StrStr to find each <. Name and value pointers refer to bytes in the buffer.
  *  The caller keeps bufferToReadDocumentFrom, nodes, and attributes valid while the
@@ -261,7 +260,7 @@ void FACEOE_Utl_Xml_AppendNode(FACEOE_Utl_Xml_Document_t* document, FACEOE_Utl_X
  *
  * \par Requirements:
  *  - 001 This function shall append nodes and attributes in source order.
- *  - 002 This function shall return zero for input outside the supported form or for insufficient storage.
+ *  - 002 This function shall return zero for input outside the supported form, insufficient storage, or more than FACEOE_UTL_XML_DOCUMENT_MAX_NODES markup spans.
  *  - 003 This function shall fail an assertion if document, bufferToReadDocumentFrom, nodes, or attributes is NULL, or if document is not empty.
  *
  * \param[in,out] document                   Initialized, empty document
@@ -272,7 +271,7 @@ void FACEOE_Utl_Xml_AppendNode(FACEOE_Utl_Xml_Document_t* document, FACEOE_Utl_X
  * \param[out]    attributes                 Caller-owned attribute storage
  * \param[in]     attributeCapacity          Number of attributes in attributes
  *
- * \retval        uint64_t   Number of bytes read, or zero on failure. The document may contain partial results on failure.
+ * \retval        uint64_t   sizeOfDocumentBuffer on success, or zero on failure. The document may contain partial results on failure.
  */
 uint64_t FACEOE_Utl_Xml_ReadDocument(FACEOE_Utl_Xml_Document_t* document, byte_t* bufferToReadDocumentFrom, uint64_t sizeOfDocumentBuffer, FACEOE_Utl_Xml_Node_t* nodes, uint32_t nodeCapacity, FACEOE_Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity);
 
@@ -285,29 +284,27 @@ uint64_t FACEOE_Utl_Xml_ReadDocument(FACEOE_Utl_Xml_Document_t* document, byte_t
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-document
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-XMLDecl
  *
- *  Production [1] requires one document element. This function also writes the
- *  current node sequence before that element has been appended; such output is
- *  not a well-formed XML document.
+ *  Production [1] requires one root element. A document without one is still
+ *  written, but the output is not a well-formed XML document.
  *
- *  XML declaration markup is written with version="1.0".
  *  The writer uses LF line endings and four spaces per nesting level.
  *  The caller keeps nodes, attributes, and the byte spans they point to valid while
- *  serializing, with bufferToWriteDocumentIn disjoint from them.
+ *  writing, with bufferToWriteDocumentIn disjoint from them.
  *
  * \par Requirements:
- *  - 001 This function shall construct XML declaration markup.
+ *  - 001 This function shall write an XML declaration node as <?xml version="1.0"?>.
  *  - 002 This function shall write nodes, children, and attributes in append order.
  *  - 003 This function shall return the number of bytes written, without writing a zero terminator.
- *  - 004 This function shall place nested nodes on indented LF-separated lines.
- *  - 005 This function shall return zero for invalid element names or attribute content.
- *  - 006 This function shall return zero before writing beyond sizeOfDocumentBuffer.
+ *  - 004 This function shall end each top-level node with LF and place nested nodes on indented lines.
+ *  - 005 This function shall return zero for invalid names or attribute values, or for an element tree beyond FACEOE_UTL_XML_DOCUMENT_MAX_NODES nodes or FACEOE_UTL_XML_NODE_MAX_DEPTH levels.
+ *  - 006 This function shall return zero rather than write beyond sizeOfDocumentBuffer.
  *  - 007 This function shall fail an assertion if document or bufferToWriteDocumentIn is NULL.
  *
  * \param[in]  document                  Document to write
  * \param[out] bufferToWriteDocumentIn   Caller-provided byte storage
  * \param[in]  sizeOfDocumentBuffer      Number of bytes available in bufferToWriteDocumentIn
  *
- * \retval    uint64_t   Number of bytes written, or zero on failure. The buffer may contain partial output on failure.
+ * \retval     uint64_t   Number of bytes written, or zero on failure or for an empty document. The buffer may contain partial output on failure.
  */
 uint64_t FACEOE_Utl_Xml_WriteDocument(const FACEOE_Utl_Xml_Document_t* document, byte_t* bufferToWriteDocumentIn, uint64_t sizeOfDocumentBuffer);
 

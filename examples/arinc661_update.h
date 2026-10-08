@@ -41,26 +41,26 @@ typedef struct Arinc661_Update_Version_s
     uint32_t build; ///< Fourth number
 } Arinc661_Update_Version_t;
 
-/** What an update manifest says. */
+/** Contents of an update manifest. */
 typedef struct Arinc661_Update_Manifest_s
 {
     Arinc661_Update_Version_t version;                                        ///< Version offered
     char_t                    versionText[ARINC661_UPDATE_MAX_VERSION_BYTES]; ///< Version as written
-    char_t                    packageUrl[ARINC661_UPDATE_MAX_URL_BYTES];      ///< Where the MSI is
+    char_t                    packageUrl[ARINC661_UPDATE_MAX_URL_BYTES];      ///< MSI URL or path, resolved against the manifest's location
     char_t                    notes[ARINC661_UPDATE_MAX_NOTE_BYTES];          ///< One line of release notes, or empty
-    byte_t                    sha256[ARINC661_UPDATE_SHA256_BYTES];           ///< Expected digest of the MSI
+    byte_t                    sha256[ARINC661_UPDATE_SHA256_BYTES];           ///< Expected SHA-256 digest of the MSI
     bool_t                    hasSha256;                                      ///< TRUE when sha256 was given
 } Arinc661_Update_Manifest_t;
 
 /** Outcome of a check or a download. */
 typedef enum Arinc661_Update_Result_e
 {
-    ARINC661_UPDATE_RESULT_UP_TO_DATE,   ///< Installed version is the newest
+    ARINC661_UPDATE_RESULT_UP_TO_DATE,   ///< The offered version is not newer than the installed one
     ARINC661_UPDATE_RESULT_AVAILABLE,    ///< A newer version is offered
-    ARINC661_UPDATE_RESULT_UNREACHABLE,  ///< The manifest could not be fetched
-    ARINC661_UPDATE_RESULT_MALFORMED,    ///< The manifest could not be read
-    ARINC661_UPDATE_RESULT_DOWNLOADED,   ///< The package is on disk and verified
-    ARINC661_UPDATE_RESULT_CORRUPT       ///< The package failed its digest
+    ARINC661_UPDATE_RESULT_UNREACHABLE,  ///< The manifest or package could not be fetched or written
+    ARINC661_UPDATE_RESULT_MALFORMED,    ///< The manifest could not be parsed
+    ARINC661_UPDATE_RESULT_DOWNLOADED,   ///< The package is on disk, matching the manifest's digest if any
+    ARINC661_UPDATE_RESULT_CORRUPT       ///< The package does not match the manifest's digest
 } Arinc661_Update_Result_t;
 
 /*=================================================================================================
@@ -78,7 +78,7 @@ typedef enum Arinc661_Update_Result_e
  * \param[in]  text      Version text
  * \param[out] version   Parsed numbers; missing parts are zero
  *
- * \retval     TRUE      if at least one number was read and nothing else followed.
+ * \retval     TRUE      if the text is one to four dot-separated decimal numbers.
  * \retval     FALSE     otherwise.
  */
 bool_t Arinc661_Update_ParseVersion(const char_t* text, Arinc661_Update_Version_t* version);
@@ -87,10 +87,10 @@ bool_t Arinc661_Update_ParseVersion(const char_t* text, Arinc661_Update_Version_
 /**
  * \brief Orders two versions.
  *
- * \param[in] left    One version
- * \param[in] right   Another
+ * \param[in] left    First version
+ * \param[in] right   Second version
  *
- * \retval    int32_t   Negative, zero, or positive as left is below, equal to, or above right.
+ * \retval    int32_t   -1, 0, or 1 as left is below, equal to, or above right.
  */
 int32_t Arinc661_Update_CompareVersions(const Arinc661_Update_Version_t* left, const Arinc661_Update_Version_t* right);
 
@@ -99,15 +99,16 @@ int32_t Arinc661_Update_CompareVersions(const Arinc661_Update_Version_t* left, c
  * \brief Reads a manifest from its text.
  *
  * \par Details:
- *  Lines of key=value: version (required), msi (required; a URL, a UNC path, or a path relative
- *  to the manifest), sha256 (optional, 64 hex digits), notes (optional). Other lines are ignored.
+ *  Lines of key=value, keys ignoring case: version (required), msi (required; a URL, a UNC or
+ *  drive path, or a path relative to the manifest), sha256 (optional, 64 hex digits), notes
+ *  (optional). Other lines are ignored.
  *
  * \param[in]  text       Manifest text
  * \param[in]  byteCount  Bytes in text
  * \param[in]  baseUrl    Where the manifest came from, for a relative msi
  * \param[out] manifest   Parsed manifest
  *
- * \retval     TRUE       if version and msi were present and well formed.
+ * \retval     TRUE       if version and msi are present and valid, and any sha256 is valid.
  * \retval     FALSE      otherwise.
  */
 bool_t Arinc661_Update_ParseManifest(const char_t* text, uint32_t byteCount, const char_t* baseUrl, Arinc661_Update_Manifest_t* manifest);
@@ -117,13 +118,14 @@ bool_t Arinc661_Update_ParseManifest(const char_t* text, uint32_t byteCount, con
  * \brief Fetches a URL, a UNC path, or a local path into a buffer.
  *
  * \par Details:
- *  http and https go through WinHTTP with the system proxy; anything else is read as a file.
+ *  http and https go through WinHTTP with its default proxy configuration; anything else is
+ *  read as a file, up to capacity bytes.
  *
  * \param[in]  url        Source
  * \param[out] buffer     Bytes read
  * \param[in]  capacity   Bytes in buffer
  *
- * \retval     int32_t    Bytes read, or negative when the source could not be read or was too big.
+ * \retval     int32_t    Bytes read, or negative when the source could not be read or an http body did not fit.
  */
 int32_t Arinc661_Update_Fetch(const char_t* url, byte_t* buffer, uint32_t capacity);
 
@@ -141,10 +143,10 @@ Arinc661_Update_Result_t Arinc661_Update_Check(const char_t* manifestUrl, const 
 
 /*************************************************************************************************/
 /**
- * \brief Downloads the package of a manifest to the temporary folder and verifies its digest.
+ * \brief Downloads the package of a manifest, checks it against any digest, and writes it to the temporary folder.
  *
  * \param[in]  manifest   What to fetch
- * \param[out] path       Where the package was written
+ * \param[out] path       Path the package is written to
  * \param[in]  capacity   Bytes in path
  *
  * \retval     Arinc661_Update_Result_t   DOWNLOADED, UNREACHABLE, or CORRUPT.
@@ -172,7 +174,7 @@ bool_t Arinc661_Update_Apply(const char_t* packagePath, const char_t* relaunchPa
  * \brief Computes SHA-256 of a buffer.
  *
  * \param[in]  bytes       Data
- * \param[in]  byteCount   Bytes in data
+ * \param[in]  byteCount   Bytes in bytes
  * \param[out] digest      ARINC661_UPDATE_SHA256_BYTES written
  *
  * \retval     TRUE        if the digest was computed.

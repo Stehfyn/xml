@@ -135,7 +135,7 @@ int32_t FACEOE_Utl_Scan_Int64(const char_t* a, int64_t* v)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Validates the XML Schema decimal lexical form before using the C conversion.
+ *  Validates the XML Schema decimal form, then converts a zero-terminated copy with strtod.
  */
 int32_t FACEOE_Utl_Scan_Float(const char_t* a, float64_t* v)
 {

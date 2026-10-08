@@ -28,7 +28,7 @@
 #define FACEOE_DISPLAYMANAGEMENT_MAX_PATH_BYTES        (512UL)      ///< File path string capacity in bytes, including the zero terminator
 
 /* Arbitrarily chosen capacities for the XML arrays stored in the caller's workspace. */
-#define FACEOE_DISPLAYMANAGEMENT_XML_NODE_CAPACITY      (65536UL) ///< Temporary XML node slots for declarations, elements, and descendants
+#define FACEOE_DISPLAYMANAGEMENT_XML_NODE_CAPACITY      (65536UL) ///< Temporary XML node slots for the declaration and all elements
 #define FACEOE_DISPLAYMANAGEMENT_XML_ATTRIBUTE_CAPACITY (65536UL) ///< Temporary XML attribute slots shared by all elements
 
 /* Arbitrarily chosen default workspace size, with room for these XML arrays and formatted values. */
@@ -67,7 +67,7 @@ typedef struct FACEOE_DisplayManagement_Size_s
 {
     int64_t                         width;  ///< Width in units
     int64_t                         height; ///< Height in units
-    FACEOE_DisplayManagement_Unit_t units;  ///< Unit of both dimensions
+    FACEOE_DisplayManagement_Unit_t units;  ///< Unit of both dimensions; pixel when absent
 } FACEOE_DisplayManagement_Size_t;
 
 /*************************************************************************************************/
@@ -94,10 +94,10 @@ typedef struct FACEOE_DisplayManagement_Rectangle_s
  */
 typedef struct FACEOE_DisplayManagement_Scale_s
 {
-    float32_t                       xScale;   ///< Horizontal scaling factor
-    float32_t                       yScale;   ///< Vertical scaling factor
-    FACEOE_DisplayManagement_Unit_t baseUnit; ///< Units before scaling
-    FACEOE_DisplayManagement_Unit_t perUnit;  ///< Units after scaling
+    float32_t                       xScale;   ///< Horizontal baseUnits per perUnit
+    float32_t                       yScale;   ///< Vertical baseUnits per perUnit
+    FACEOE_DisplayManagement_Unit_t baseUnit; ///< Unit counted by the scale; screen when absent
+    FACEOE_DisplayManagement_Unit_t perUnit;  ///< Unit the scale is given per; pixel when absent
 } FACEOE_DisplayManagement_Scale_t;
 
 /*************************************************************************************************/
@@ -138,7 +138,7 @@ typedef struct FACEOE_DisplayManagement_Window_s
 {
     int64_t                              id;                                                          ///< Window identifier
     char_t                               name[FACEOE_DISPLAYMANAGEMENT_MAX_NAME_BYTES];               ///< Zero-terminated optional window name
-    char_t                               description[FACEOE_DISPLAYMANAGEMENT_MAX_DESCRIPTION_BYTES]; ///< Zero-terminated window description
+    char_t                               description[FACEOE_DISPLAYMANAGEMENT_MAX_DESCRIPTION_BYTES]; ///< Zero-terminated window description; empty when read, and must be empty to write
     FACEOE_DisplayManagement_Rectangle_t pixelArea;                                                   ///< Window pixel rectangle
     FACEOE_DisplayManagement_Scale_t     scalingFactor;                                               ///< Window scaling factor
     uint32_t                             layoutIndex;                                                 ///< Array index of the owning layout, not its XML id
@@ -157,8 +157,8 @@ typedef struct FACEOE_DisplayManagement_UserApplication_s
     int64_t window;                                                 ///< Destination window identifier
     char_t  dFPath[FACEOE_DISPLAYMANAGEMENT_MAX_PATH_BYTES];        ///< Zero-terminated Definition File path
     char_t  styleFilePath[FACEOE_DISPLAYMANAGEMENT_MAX_PATH_BYTES]; ///< Zero-terminated optional style file path
-    bool_t  mapSourceLayer;                                         ///< Map source layer setting
-    bool_t  visible;                                                ///< Initial visibility
+    bool_t  mapSourceLayer;                                         ///< mapSourceLayer attribute; FALSE when absent
+    bool_t  visible;                                                ///< TRUE when the definition is visible by default; FALSE when absent
 } FACEOE_DisplayManagement_UserApplication_t;
 
 /*************************************************************************************************/
@@ -170,7 +170,7 @@ typedef struct FACEOE_DisplayManagement_UserApplication_s
  */
 typedef struct FACEOE_DisplayManagement_ExternalSource_s
 {
-    uint32_t id;                                            ///< External source identifier
+    uint32_t id;                                            ///< External source identifier, 0 through UINT16_MAX
     char_t   name[FACEOE_DISPLAYMANAGEMENT_MAX_NAME_BYTES]; ///< Zero-terminated optional source name
     char_t   type[FACEOE_DISPLAYMANAGEMENT_MAX_NAME_BYTES]; ///< Zero-terminated optional source type
 } FACEOE_DisplayManagement_ExternalSource_t;
@@ -200,7 +200,7 @@ typedef struct FACEOE_DisplayManagement_Configuration_s
     uint32_t                                    userApplicationCount;                                    ///< User applications in use
     uint32_t                                    externalSourceCount;                                     ///< External sources in use
     bool_t                                      hasMetaData;                                             ///< TRUE when an empty metaData element is present
-    bool_t                                      hasXmlDeclaration;                                       ///< TRUE to preserve or write the optional XML declaration
+    bool_t                                      hasXmlDeclaration;                                       ///< TRUE when the optional XML declaration was read or is to be written
     char_t                                      schemaLocation[FACEOE_DISPLAYMANAGEMENT_MAX_PATH_BYTES]; ///< Zero-terminated no-namespace schema location; empty selects H3.xsd when writing
 } FACEOE_DisplayManagement_Configuration_t;
 
@@ -231,10 +231,10 @@ typedef struct FACEOE_DisplayManagement_Configuration_s
  *  xsi:noNamespaceSchemaLocation attribute is copied into schemaLocation;
  *  its xsi prefix must be bound to http://www.w3.org/2001/XMLSchema-instance.
  *  The schema hint is retained as text without loading or validating an XSD.
- *  Text content in metaData and description, and child elements of externalSource,
- *  are outside the supported XML form of FACEOE_Utl_Xml_ReadDocument.
- *  The input buffer must have one writable byte after byteCount bytes.
- *  The reader changes the input buffer while constructing the temporary XML tree.
+ *  FACEOE_Utl_Xml_ReadDocument does not support text content, such as in
+ *  metaData or description, and this function rejects externalSource children.
+ *  The input buffer must have one writable byte after byteCount bytes; the XML
+ *  reader writes a zero terminator there.
  *
  * \par Requirements:
  *  - 001 This function shall read screen, layout, window, user application, and external source values into caller-owned arrays.
@@ -251,7 +251,7 @@ typedef struct FACEOE_DisplayManagement_Configuration_s
  * \param[in]     workspaceSize   Number of temporary bytes
  *
  * \retval        TRUE        if the supported configuration values were read.
- * \retval        FALSE       if the XML or a supported value is invalid, or supplied storage is insufficient.
+ * \retval        FALSE       if the XML is invalid or unsupported, a value is invalid, or supplied storage is insufficient.
  */
 bool_t FACEOE_DisplayManagement_ReadConfiguration(FACEOE_DisplayManagement_Configuration_t* configuration, byte_t* buffer, uint64_t byteCount, void* workspace, uint64_t workspaceSize);
 
@@ -263,10 +263,9 @@ bool_t FACEOE_DisplayManagement_ReadConfiguration(FACEOE_DisplayManagement_Confi
  *  Writes the FACE Edition 3.1, Appendix H.3, DisplayManagement.xsd
  *  configuration element from typed values:
  *  https://www.vdl.afrl.af.mil/programs/arsenl/files/FACE%20Technical%20Standard%20v3.1.pdf
- *  metaData and window description are written as empty elements. A nonempty
- *  window description cannot be represented by FACEOE_Utl_Xml_WriteDocument and
- *  causes this function to return zero.
- *  Storage arrays and their string fields must remain valid until writing finishes.
+ *  metaData (when hasMetaData is TRUE) and each window description are written
+ *  as empty elements. FACEOE_Utl_Xml_WriteDocument cannot write text content, so
+ *  a nonempty window description makes this function return zero.
  *  The root includes xmlns:xsi and xsi:noNamespaceSchemaLocation. An empty
  *  schemaLocation selects H3.xsd. The XML declaration is written only when
  *  hasXmlDeclaration is TRUE.
@@ -282,7 +281,7 @@ bool_t FACEOE_DisplayManagement_ReadConfiguration(FACEOE_DisplayManagement_Confi
  *
  * \param[in]     configuration   Configuration data to write
  * \param[out]    buffer          Output XML bytes
- * \param[in]     capacity        Output buffer capacity
+ * \param[in]     capacity        Output buffer capacity in bytes
  * \param[in,out] workspace       Eight-byte-aligned temporary storage
  * \param[in]     workspaceSize   Number of temporary bytes
  *

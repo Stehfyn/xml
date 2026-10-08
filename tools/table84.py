@@ -1,4 +1,5 @@
-# Recovers Table 8.4 (Possible Widgets for Extension) from word positions in the PDF.
+# Recovers Table 8.4 (Possible Widgets for Extension) from word positions on PDF pages 514 to 517.
+# The PyMuPDF (fitz) and specification PDF paths below are machine-specific; set them before running.
 import sys, json, re
 sys.path.insert(0, r'C:\Users\Steph2\AppData\Local\Temp\claude\C--dev-xml\3a400e3d-0e09-4d44-bfab-3d76f970cff1\scratchpad\pdflib')
 import fitz
@@ -10,7 +11,7 @@ for pno in range(doc.page_count):
     if pno < 513 or pno > 516:
         continue
     words = page.get_text('words')  # x0,y0,x1,y1,word,block,line,wordno
-    # header columns: rotated extension names; take their x centre
+    # Header columns: rotated extension names; take their x center
     KNOWN = {'DirectionalTabbingExtension','CursorEventsExtension','LegendStringAlignmentExtension','VisibleChildIndexExtension','InitialFocusExtension','FocusStopExtension','CursorShapeExtension','PictureExtension','SymbolExtension','TicsArrayExtension','StyleSetExtension','StaticParamBufferExtension','MultiSelectionExtension','ExcludedRegionsExtension','BoundaryCheckExtension','ReorderExtension','WordWrapExtension','CursorEntryEventsExtension','MapHorzCoordSystemEventExtension','MapVertCoordSystemEventExtension'}
     headers = [(round((w[0] + w[2]) / 2, 1), w[4]) for w in words if w[4] in KNOWN]
     if len(headers) < 15:
@@ -18,7 +19,7 @@ for pno in range(doc.page_count):
     headers.sort()
     columns = [h[0] for h in headers]
     names = [h[1] for h in headers]
-    # widget rows: first word of a line at the left margin that is a widget name
+    # Widget rows: capitalized words left of x = 150, grouped by line and joined into a name
     xs = [w for w in words if w[4] == 'X']
     rows = {}
     for w in words:

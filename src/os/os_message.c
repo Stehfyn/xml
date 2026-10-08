@@ -13,7 +13,7 @@ static const char_t c_upperHexDigits[] = "0123456789ABCDEF";
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Append character.
+ *  Writes one character to the stream, or to the buffer while room remains; otherwise sets truncated.
  */
 static void AppendCharacter(Os_MessageBuilder_t* pMessage, int character)
 {
@@ -35,7 +35,7 @@ static void AppendCharacter(Os_MessageBuilder_t* pMessage, int character)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Append digits.
+ *  Appends value in base using pDigits, zero-padded to minimumDigits.
  */
 static void AppendDigits(Os_MessageBuilder_t* pMessage, uint64_t value, uint32_t base, uint32_t minimumDigits, const char_t* pDigits)
 {
@@ -62,7 +62,7 @@ static void AppendDigits(Os_MessageBuilder_t* pMessage, uint64_t value, uint32_t
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Starts a message in the builder's own storage.
+ *  Locks pStream so concurrent messages do not interleave.
  */
 void Os_MessageBuilder_Begin(Os_MessageBuilder_t* pMessage, FILE* pStream)
 {
@@ -81,7 +81,7 @@ void Os_MessageBuilder_Begin(Os_MessageBuilder_t* pMessage, FILE* pStream)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Starts a message in a caller buffer.
+ *  Leaves pBuffer holding an empty string.
  */
 void Os_MessageBuilder_BeginBuffer(Os_MessageBuilder_t* pMessage, char_t* pBuffer, size_t capacity)
 {
@@ -99,7 +99,7 @@ void Os_MessageBuilder_BeginBuffer(Os_MessageBuilder_t* pMessage, char_t* pBuffe
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Terminates the message and returns it.
+ *  A buffer message needs no action: every append keeps it null-terminated.
  */
 void Os_MessageBuilder_End(Os_MessageBuilder_t* pMessage)
 {
@@ -117,7 +117,7 @@ void Os_MessageBuilder_End(Os_MessageBuilder_t* pMessage)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Appends a string.
+ *  A stream message writes the whole string with fputs.
  */
 void Os_MessageBuilder_AppendString(Os_MessageBuilder_t* pMessage, const char_t* pString)
 {
@@ -138,7 +138,7 @@ void Os_MessageBuilder_AppendString(Os_MessageBuilder_t* pMessage, const char_t*
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Appends a wide string converted to UTF-8.
+ *  Joins UTF-16 surrogate pairs; an unpaired surrogate or a value above U+10FFFF becomes U+FFFD.
  */
 void Os_MessageBuilder_AppendWideString(Os_MessageBuilder_t* pMessage, const wchar_t* pString)
 {
@@ -194,7 +194,7 @@ void Os_MessageBuilder_AppendWideString(Os_MessageBuilder_t* pMessage, const wch
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Appends a signed integer in decimal.
+ *  Negates in unsigned arithmetic so INT64_MIN is printed correctly.
  */
 void Os_MessageBuilder_AppendInt(Os_MessageBuilder_t* pMessage, int64_t value)
 {
@@ -212,7 +212,7 @@ void Os_MessageBuilder_AppendInt(Os_MessageBuilder_t* pMessage, int64_t value)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Appends an unsigned integer in decimal.
+ *  None
  */
 void Os_MessageBuilder_AppendUint(Os_MessageBuilder_t* pMessage, uint64_t value)
 {
@@ -222,7 +222,7 @@ void Os_MessageBuilder_AppendUint(Os_MessageBuilder_t* pMessage, uint64_t value)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Appends an unsigned integer in hexadecimal.
+ *  None
  */
 void Os_MessageBuilder_AppendHex(Os_MessageBuilder_t* pMessage, uint64_t value, uint32_t minimumDigits, bool_t uppercase)
 {
@@ -239,7 +239,7 @@ void Os_MessageBuilder_AppendHex(Os_MessageBuilder_t* pMessage, uint64_t value, 
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Appends a pointer value.
+ *  Pads to the full width of uintptr_t.
  */
 void Os_MessageBuilder_AppendPointer(Os_MessageBuilder_t* pMessage, const void* pValue)
 {
@@ -250,7 +250,7 @@ void Os_MessageBuilder_AppendPointer(Os_MessageBuilder_t* pMessage, const void* 
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Appends a floating-point number.
+ *  Rounds to nine significant digits, drops trailing zeros, and prints at least two exponent digits.
  */
 void Os_MessageBuilder_AppendFloat(Os_MessageBuilder_t* pMessage, float value)
 {

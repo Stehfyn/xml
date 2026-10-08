@@ -26,7 +26,7 @@
 
 /*************************************************************************************************/
 /**
- * \brief Runs the updater tests.
+ * \brief Runs the editor update tests.
  *
  * \retval None
  */
@@ -39,9 +39,9 @@ void RunArinc661UpdateTests(void);
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Version parsing and ordering, manifest parsing with a relative package and a digest, then a
- *  check and a download through the file path branch against files written here, including a
- *  digest mismatch. The network branch is not exercised.
+ *  Checks version parsing and ordering, manifest parsing (relative package, digest, malformed
+ *  input), and a check and download through the file-path branch against files written here,
+ *  including a digest mismatch and missing files. The network branch is not exercised.
  */
 void RunArinc661UpdateTests(void)
 {
@@ -83,7 +83,7 @@ void RunArinc661UpdateTests(void)
     }
     assert(0 <= OS_File_WriteFile(PACKAGE_FILE, package, sizeof(package)));
 
-    /* Manifest with a relative package name resolves against the manifest's folder */
+    /* A relative package name resolves against the manifest's folder; a manifest lacking version, msi, or a valid digest is rejected */
     (void)snprintf(manifest_text, sizeof(manifest_text), "# comment\nversion = 9.1.0.0\r\nmsi=%s\nSHA256=%s\nnotes=Faster layers\n", PACKAGE_FILE, hex);
     assert(Arinc661_Update_ParseManifest(manifest_text, (uint32_t)strnlen(manifest_text, sizeof(manifest_text)), "C:\\share\\updates\\manifest.txt", &manifest));
     assert((9 == manifest.version.major) && (1 == manifest.version.minor));
@@ -99,7 +99,7 @@ void RunArinc661UpdateTests(void)
     assert(FALSE == Arinc661_Update_ParseManifest("version=1\n", 10, "x", &manifest));
     assert(FALSE == Arinc661_Update_ParseManifest("version=1\nmsi=a\nsha256=zz\n", 26, "x", &manifest));
 
-    /* Check through a file manifest beside the package in the working folder */
+    /* Check through a manifest file beside the package in the working folder */
     assert(0 <= OS_File_WriteFile(MANIFEST_FILE, (const byte_t*)manifest_text, (uint32_t)strnlen(manifest_text, sizeof(manifest_text))));
     assert(Arinc661_Update_ParseVersion("1.0.0.0", &left));
     assert(ARINC661_UPDATE_RESULT_AVAILABLE == Arinc661_Update_Check(MANIFEST_FILE, &left, &manifest));
@@ -107,7 +107,7 @@ void RunArinc661UpdateTests(void)
     assert(ARINC661_UPDATE_RESULT_UP_TO_DATE == Arinc661_Update_Check(MANIFEST_FILE, &left, &manifest));
     assert(ARINC661_UPDATE_RESULT_UNREACHABLE == Arinc661_Update_Check("no_such_manifest.txt", &left, &manifest));
 
-    /* Download verifies the digest and writes the package to the temporary folder */
+    /* Download verifies the digest and writes the package to the temporary folder; a wrong digest or a missing package fails */
     assert(ARINC661_UPDATE_RESULT_DOWNLOADED == Arinc661_Update_Download(&manifest, path, sizeof(path)));
     byte_count = OS_File_ReadFile(path, digest, sizeof(digest));
     assert((int32_t)sizeof(digest) == byte_count);

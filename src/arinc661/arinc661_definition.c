@@ -12,7 +12,7 @@
  * section 4.6 (constants), section 7 (picture blocks), section 8 (widget extensions),
  * section 9 (animation law blocks), and the Creation Structure tables in sections 3 and 8.
  * ARINC 661 Part 1-7, Table 8.4, Possible Widgets for Extension: which widget types each
- * extension may be attached to. Generated from the specification's word positions.
+ * extension may be attached to, generated from the column positions of the table's marks.
  */
 
 /*=================================================================================================
@@ -94,7 +94,7 @@
 
 /* ARINC 661 Part 1-7, section 4.5.3: 32-bit alignment of blocks and commands. */
 #define BINARY_WORD_BYTES           (4U)  ///< Blocks and commands are aligned to 32 bits
-#define BINARY_MAX_FIELDS           (40U) ///< Largest Creation Structure parameter count in the tables
+#define BINARY_MAX_FIELDS           (40U) ///< Upper bound on the entries of one field table, pads included
 
 /* ARINC 661 Part 1-7, section 3.3 data types: big-endian field widths. */
 #define BINARY_UCHAR_BYTES    (1U) ///< uchar
@@ -106,7 +106,7 @@
 #define BINARY_ANIMATION_VALUE_BYTES     (4U)  ///< FromValue and ToValue of AnimationOnParam, in the target parameter's encoding (Table 3.9.8-2)
 #define BINARY_BCD_VALUE_BYTES           (8U)  ///< BCD values and tics of EditBoxNumericBCD (Table 3.6.1-5)
 #define BINARY_STYLE_TEXT_BYTES          (12U) ///< DefaultStyleText of LabelComplex and ScrollList (Tables 3.3.21-2 and 3.3.37-2)
-#define BINARY_WIDGET_PARAM_RESULT_BYTES (20U) ///< One WidgetParamResultArray entry of EventHandler (Table 3.9.17-3)
+#define BINARY_WIDGET_PARAM_RESULT_BYTES (20U) ///< One EventHandler WidgetParamResultArray entry with a SourceWidgetParam_Struct source (Tables 3.9.17-4 and 3.9.17-5)
 
 /* Elements per counted entry of a Creation Structure array. */
 #define BINARY_ONE_PER_ENTRY  (1U) ///< elementsPerEntry of an array of single elements
@@ -1102,7 +1102,7 @@ typedef enum BinaryFieldType_e
     BINARY_FIELD_STRING,       ///< Zero-terminated bytes
     BINARY_FIELD_BYTES,        ///< Fixed number of bytes with no numeric type, given as hexadecimal digits
     BINARY_FIELD_ALIGN,        ///< Zero bytes up to the next 32-bit boundary
-    BINARY_FIELD_SIZED_BYTES,  ///< Table 8.6.5-3 StaticParamBuffer: byte count, pad, bytes, and alignment, given as hexadecimal digits
+    BINARY_FIELD_SIZED_BYTES,  ///< Table 8.6.5-3 StaticParamBuffer: byte count, pad, bytes, and alignment; only the bytes are given, as hexadecimal digits
     BINARY_FIELD_REGION,       ///< Tables 8.6.7-4 to 8.6.7-7 excluded region structure, sized by its type byte, given as hexadecimal digits
     BINARY_FIELD_LAYER_REQUEST ///< Table 3.9.17-6 LayerReqResult: LayerIdent, pad, CommandSize, and the request, given as hexadecimal digits
 } BinaryFieldType_t;
@@ -1151,7 +1151,7 @@ typedef struct BinaryWidget_s
 {
     const char_t*        name;       ///< Type name, for example A661_PANEL or A661_LEGEND_ALIGN_EXTENSION
     uint16_t             code;       ///< WidgetType value in Table 4.6-7, or ExtensionType value in Table 4.6-12
-    const BinaryField_t* fields;     ///< Creation Structure parameters, including unused pads
+    const BinaryField_t* fields;     ///< Creation Structure parameters, including unused pads and alignment
     uint32_t             fieldCount; ///< Number of parameters
 } BinaryWidget_t;
 
@@ -1165,7 +1165,10 @@ typedef struct BinaryConstant_s
     uint32_t      value; ///< Value in Tables 4.6-8, 4.6-10, 4.6-11, 4.6-13, 4.6-14, and 4.6-15
 } BinaryConstant_t;
 
-/** One extension and the widget types it applies to. */
+/*************************************************************************************************/
+/**
+ * \brief One extension and the widget types it may be attached to (Table 8.4).
+ */
 typedef struct ExtensionTargets_s
 {
     const char_t*        extension;   ///< Extension type name
@@ -1275,7 +1278,7 @@ typedef struct BinaryPicture_s
 
 /*************************************************************************************************/
 /**
- * \brief Start of every command, and all of A661_CMD_EXTEND (Table 4.5.3.3.2); parameters follow.
+ * \brief Start of every command and the whole fixed part of A661_CMD_EXTEND (Table 4.5.3.3.2); parameters follow.
  */
 #pragma pack(push, 1)
 typedef struct BinaryCommand_s
@@ -1376,9 +1379,8 @@ static const uint32_t c_pixelFormatBytes[] = {4, 2, 1};
  *  For example, Enable (Table 3.3.1-2) accepts A661_FALSE, A661_TRUE, and
  *  A661_TRUE_WITH_VALIDATION. A field points at its list through values and
  *  valueCount; fields whose lists match in content and order share one array.
- *  The library only hands the list out through Arinc661_Definition_GetParameter,
- *  for the editor's drop-down and default value. The numbers behind the names
- *  come from c_binaryConstants.
+ *  Only Arinc661_Definition_GetParameter hands the lists out. The numbers behind
+ *  the names come from c_binaryConstants.
  */
 static const char_t* const c_enableValues[] =
 {
@@ -1695,8 +1697,8 @@ static const BinaryArray_t c_styleSetArraySizeArray      = {PARAMETER_STYLE_SET_
  * \brief Creation Structure parameters, one array per widget type and then per extension type.
  *
  * \par Details:
- *  Transcribed from the Part 1-7 Creation Structure tables named in each group.
- *  Widget groups start after ParentIdent; extension groups start after
+ *  Transcribed from the Part 1-7 Creation Structure table named above each array.
+ *  Widget arrays start after ParentIdent; extension arrays start after
  *  ExtensionType. An array parameter points at the descriptor that names its
  *  count parameter and its elements per entry; arrays of pairs, such as Vertices and
  *  BufferStructure, alternate the two members. Arrays are padded to 32 bits
@@ -3908,7 +3910,7 @@ static const BinaryWidget_t c_binaryWidgets[] =
 
 /*************************************************************************************************/
 /**
- * \brief Supported widget extension types, with ExtensionType codes from Table 4.6-12.
+ * \brief Supported widget extension types in section 8 order, with ExtensionType codes from Table 4.6-12.
  */
 static const BinaryWidget_t c_binaryExtensions[] =
 {
@@ -4859,9 +4861,9 @@ static const ExtensionTargets_t c_extensionTargets[] =
 
 /*************************************************************************************************/
 /**
- * \brief Clears the published counts, block bytes, and charset of a Definition File.
+ * \brief Clears the counts, block byte count, and charset encoding of a definition.
  *
- * \param[in,out] definition   Definition File whose arrays and capacities are retained
+ * \param[in,out] definition   Definition whose arrays and capacities are kept
  */
 static void ResetDefinition(Arinc661_Definition_t* definition);
 
@@ -4886,7 +4888,7 @@ static bool_t InitializeXmlWorkspace(XmlWorkspace_t* xml, void* workspace, uint6
  * \param[in] name   Expected element name
  *
  * \retval    TRUE        if the node is an element with the expected name.
- * \retval    FALSE       if the type or name differs.
+ * \retval    FALSE       if the node is NULL, not an element, or differently named.
  */
 static bool_t HasElementName(const FACEOE_Utl_Xml_Node_t* node, const char_t* name);
 
@@ -4963,7 +4965,7 @@ static FACEOE_Utl_Xml_Node_t* AppendElement(XmlWorkspace_t* xml, const char_t* n
  * \param[in]     value   Attribute value
  *
  * \retval        TRUE        if the attribute was appended.
- * \retval        FALSE       if storage is exhausted or the value cannot be written directly.
+ * \retval        FALSE       if value is NULL, storage is exhausted, or the value cannot be written literally.
  */
 static bool_t AppendAttribute(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* node, const char_t* name, const char_t* value);
 
@@ -5022,18 +5024,18 @@ static FACEOE_Utl_Xml_Node_t* NextSubtreeNode(FACEOE_Utl_Xml_Node_t* root, FACEO
  *
  * \param[in] node   XML node to check
  *
- * \retval    TRUE   if the element is a model, prop, arrayprop, or an array entry form.
+ * \retval    TRUE   if the element is a model, prop, arrayprop, entry, xyentry, structentry, or field.
  * \retval    FALSE  otherwise.
  */
 static bool_t IsModelContent(const FACEOE_Utl_Xml_Node_t* node);
 
 /*************************************************************************************************/
 /**
- * \brief Appends one property whose name and value come from two XML elements.
+ * \brief Appends one property whose name and value may come from different XML elements.
  *
- * \param[in,out] definition       Caller-owned Definition File data
+ * \param[in,out] definition       Caller-owned definition
  * \param[in]     owner            Kind of entity containing the model
- * \param[in]     ownerIndex       Layer or widget index, or zero for the Definition File
+ * \param[in]     ownerIndex       Layer or widget index, or zero for the definition
  * \param[in]     nameNode         Element carrying the name attribute
  * \param[in]     valueNode        Element carrying the value
  * \param[in]     valueAttribute   Name of the value attribute, such as value or x
@@ -5047,10 +5049,10 @@ static bool_t AppendProperty(Arinc661_Definition_t* definition, Arinc661_Propert
 /**
  * \brief Reads the entries of one arrayprop element as properties sharing its name.
  *
- * \param[in,out] definition   Caller-owned Definition File data
+ * \param[in,out] definition   Caller-owned definition
  * \param[in]     array        XML arrayprop element
  * \param[in]     owner        Kind of entity containing the model
- * \param[in]     ownerIndex   Layer or widget index, or zero for the Definition File
+ * \param[in]     ownerIndex   Layer or widget index, or zero for the definition
  *
  * \retval        TRUE        if all entries fit the supplied storage.
  * \retval        FALSE       if an entry form is unsupported or storage was exceeded.
@@ -5059,18 +5061,18 @@ static bool_t ReadArrayProperty(Arinc661_Definition_t* definition, FACEOE_Utl_Xm
 
 /*************************************************************************************************/
 /**
- * \brief Reads direct prop and arrayprop children of one Definition File model.
+ * \brief Reads the direct prop and arrayprop children of one model.
  *
  * \par Details:
  *  Supplement 6 a661Strict.xsd, modelType/propType, and Part 1-7 section 6.2.4 arrayprop.
  *
- * \param[in,out] definition   Caller-owned Definition File data
+ * \param[in,out] definition   Caller-owned definition
  * \param[in]     model        XML model element
  * \param[in]     owner        Kind of entity containing the model
- * \param[in]     ownerIndex   Layer or widget index, or zero for the Definition File
+ * \param[in]     ownerIndex   Layer or widget index, or zero for the definition
  *
  * \retval        TRUE        if all properties fit the supplied storage.
- * \retval        FALSE       if property storage or string capacity was exceeded.
+ * \retval        FALSE       if the model is missing, has an unexpected child, or storage was exceeded.
  */
 static bool_t ReadProperties(Arinc661_Definition_t* definition, FACEOE_Utl_Xml_Node_t* model, Arinc661_PropertyOwner_t owner, uint32_t ownerIndex);
 
@@ -5078,7 +5080,7 @@ static bool_t ReadProperties(Arinc661_Definition_t* definition, FACEOE_Utl_Xml_N
 /**
  * \brief Finds the next property with the same owner and name as a given property.
  *
- * \param[in] definition      Definition File values
+ * \param[in] definition      Definition to search
  * \param[in] propertyIndex   Property whose owner and name are matched
  * \param[in] startIndex      First property index to examine
  *
@@ -5088,16 +5090,16 @@ static uint32_t FindSameNameProperty(const Arinc661_Definition_t* definition, ui
 
 /*************************************************************************************************/
 /**
- * \brief Writes properties for one Definition File model.
+ * \brief Appends the model element of one owner, with its properties.
  *
  * \par Details:
  *  Supplement 6 a661Strict.xsd, modelType/propType, and Part 1-7 section 6.2.4 arrayprop.
  *
  * \param[in,out] xml          Temporary XML tree and value storage
  * \param[in,out] parent       Element receiving its model child
- * \param[in]     definition   Definition File values
+ * \param[in]     definition   Definition to write
  * \param[in]     owner        Kind of property owner
- * \param[in]     ownerIndex   Layer or widget index, or zero for the Definition File
+ * \param[in]     ownerIndex   Layer or widget index, or zero for the definition
  *
  * \retval        TRUE        if the model and its properties were appended.
  * \retval        FALSE       if storage or a property value is invalid.
@@ -5115,7 +5117,7 @@ static bool_t WriteProperties(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent
  * \param[in]  sizeOfValue   Number of bytes to store, at most four
  *
  * \retval     TRUE          if the bytes fit the buffer.
- * \retval     FALSE         otherwise; nothing is stored and the offset is unchanged.
+ * \retval     FALSE         otherwise; nothing is stored.
  */
 static bool_t WriteUnsigned(byte_t* buffer, uint64_t capacity, uint64_t offset, uint32_t value, uint32_t sizeOfValue);
 
@@ -5248,9 +5250,9 @@ static const BinaryWidget_t* FindTypeByCode(uint32_t code, bool_t isExtension);
 /**
  * \brief Finds a property of one model by name and position among properties of that name.
  *
- * \param[in] definition   Definition File values
+ * \param[in] definition   Definition to search
  * \param[in] owner        Owning model kind
- * \param[in] ownerIndex   Layer or widget index, or zero for the Definition File
+ * \param[in] ownerIndex   Layer or widget index, or zero for the definition
  * \param[in] name         Zero-terminated property name
  * \param[in] occurrence   Zero for the first property of this name, one for the second, and so on
  *
@@ -5267,7 +5269,7 @@ static const Arinc661_Property_t* FindProperty(const Arinc661_Definition_t* defi
  * \param[in]  maximum    Largest accepted value
  * \param[out] value      Converted value
  *
- * \retval     TRUE       if the property is absent, or a number or constant name within the range.
+ * \retval     TRUE       if the value, zero for an absent property, is a number or constant name within the range.
  * \retval     FALSE      if the value is not numeric, not a known constant, or out of range.
  */
 static bool_t ScanInteger(const Arinc661_Property_t* property, int64_t minimum, int64_t maximum, int64_t* value);
@@ -5329,7 +5331,7 @@ static Arinc661_ParameterKind_t FieldTypeToParameterKind(BinaryFieldType_t field
  * \param[in]     maximum       Largest accepted value
  * \param[in]     sizeOfValue   Bytes of the encoded value
  *
- * \retval        TRUE          if the value was converted.
+ * \retval        TRUE          if the value was written.
  * \retval        FALSE         if the value does not fit the parameter or the buffer.
  */
 static bool_t WriteBinaryInteger(byte_t* buffer, uint64_t capacity, uint64_t* offset, const Arinc661_Property_t* property, int64_t minimum, int64_t maximum, uint32_t sizeOfValue);
@@ -5343,7 +5345,7 @@ static bool_t WriteBinaryInteger(byte_t* buffer, uint64_t capacity, uint64_t* of
  * \param[in,out] offset     Byte offset of the parameter, advanced past it
  * \param[in]     property   Property holding the value, or NULL for zero
  *
- * \retval        TRUE       if the value was converted.
+ * \retval        TRUE       if the value was written.
  * \retval        FALSE      if the value does not fit the parameter or the buffer.
  */
 static bool_t WriteBinaryFloat(byte_t* buffer, uint64_t capacity, uint64_t* offset, const Arinc661_Property_t* property);
@@ -5358,7 +5360,7 @@ static bool_t WriteBinaryFloat(byte_t* buffer, uint64_t capacity, uint64_t* offs
  * \param[in]     property   Property holding the value, or NULL for zero
  * \param[in]     range      BINARY_FR180_RANGE or BINARY_FR32768_RANGE
  *
- * \retval        TRUE       if the value was converted.
+ * \retval        TRUE       if the value was written.
  * \retval        FALSE      if the value does not fit the parameter or the buffer.
  */
 static bool_t WriteBinaryFraction(byte_t* buffer, uint64_t capacity, uint64_t* offset, const Arinc661_Property_t* property, float64_t range);
@@ -5373,7 +5375,7 @@ static bool_t WriteBinaryFraction(byte_t* buffer, uint64_t capacity, uint64_t* o
  * \param[in]     property      Property holding hexadecimal digits, or NULL for zeros
  * \param[in]     sizeOfValue   Bytes of the parameter
  *
- * \retval        TRUE          if the value was converted.
+ * \retval        TRUE          if the value was written.
  * \retval        FALSE         if the value does not fit the parameter or the buffer.
  */
 static bool_t WriteBinaryFixedBytes(byte_t* buffer, uint64_t capacity, uint64_t* offset, const Arinc661_Property_t* property, uint64_t sizeOfValue);
@@ -5387,8 +5389,8 @@ static bool_t WriteBinaryFixedBytes(byte_t* buffer, uint64_t capacity, uint64_t*
  * \param[in,out] offset     Byte offset of the parameter, advanced past it
  * \param[in]     text       Hexadecimal digits of the property value
  *
- * \retval        TRUE       if the digits were converted.
- * \retval        FALSE      if they are not hexadecimal or too many.
+ * \retval        TRUE       if the entry was written.
+ * \retval        FALSE      if the digits are invalid or too many, or the entry does not fit the buffer.
  */
 static bool_t WriteBinarySizedBytes(byte_t* buffer, uint64_t capacity, uint64_t* offset, const char_t* text);
 
@@ -5401,7 +5403,7 @@ static bool_t WriteBinarySizedBytes(byte_t* buffer, uint64_t capacity, uint64_t*
  * \param[in,out] offset     Byte offset of the parameter, advanced past it
  * \param[in]     text       Hexadecimal digits of the property value
  *
- * \retval        TRUE       if the digits hold a region of a known type and its full size.
+ * \retval        TRUE       if the digits hold exactly one region of a known type and it fits the buffer.
  * \retval        FALSE      otherwise.
  */
 static bool_t WriteBinaryRegion(byte_t* buffer, uint64_t capacity, uint64_t* offset, const char_t* text);
@@ -5444,8 +5446,8 @@ static bool_t WriteBinaryPad(byte_t* buffer, uint64_t capacity, uint64_t* offset
  * \param[in]     capacity   Output buffer capacity
  * \param[in,out] offset     Output byte offset, advanced past the parameter
  *
- * \retval        TRUE       if the value was converted.
- * \retval        FALSE      if the value does not fit the parameter type.
+ * \retval        TRUE       if the parameter was written.
+ * \retval        FALSE      if the value does not fit the parameter or the buffer.
  */
 static bool_t WriteBinaryField(const BinaryField_t* field, const Arinc661_Property_t* property, byte_t* buffer, uint64_t capacity, uint64_t* offset);
 
@@ -5453,7 +5455,7 @@ static bool_t WriteBinaryField(const BinaryField_t* field, const Arinc661_Proper
 /**
  * \brief Writes the Definition File header.
  *
- * \param[in]     definition   Definition File data to write
+ * \param[in]     definition   Definition to write
  * \param[out]    buffer       Output bytes
  * \param[in]     capacity     Output buffer capacity
  * \param[in,out] offset       Byte offset of the header, advanced past it
@@ -5481,7 +5483,7 @@ static bool_t WriteBinaryCharsetBlock(byte_t* buffer, uint64_t capacity, uint64_
 /**
  * \brief Appends the retained symbol, picture, and animation law blocks.
  *
- * \param[in]     definition   Definition File whose blocks are written
+ * \param[in]     definition   Definition whose blocks are written
  * \param[out]    buffer       Output bytes
  * \param[in]     capacity     Output buffer capacity
  * \param[in,out] offset       Byte offset of the first block, advanced past the last
@@ -5508,7 +5510,7 @@ static bool_t WriteBinaryFooter(byte_t* buffer, uint64_t capacity, uint64_t* off
 /**
  * \brief Appends one layer block with the commands of its widgets.
  *
- * \param[in]     definition   Definition File data to write
+ * \param[in]     definition   Definition to write
  * \param[in]     layerIndex   Layer to write
  * \param[out]    buffer       Output bytes
  * \param[in]     capacity     Output buffer capacity
@@ -5523,7 +5525,7 @@ static bool_t WriteBinaryLayer(const Arinc661_Definition_t* definition, uint32_t
 /**
  * \brief Appends the layer blocks of every layer, in array order.
  *
- * \param[in]     definition   Definition File data to write
+ * \param[in]     definition   Definition to write
  * \param[out]    buffer       Output bytes
  * \param[in]     capacity     Output buffer capacity
  * \param[in,out] offset       Byte offset of the first block, advanced past the last
@@ -5537,15 +5539,15 @@ static bool_t WriteBinaryLayers(const Arinc661_Definition_t* definition, byte_t*
 /**
  * \brief Appends the A661_CMD_CREATE or A661_CMD_EXTEND command of one widget array entry.
  *
- * \param[in]     definition        Definition File values
+ * \param[in]     definition        Definition to write
  * \param[in]     widgetIndex       Widget array index
  * \param[in]     lastWidgetIndex   Index of the most recent non-extension widget in this layer block, or UINT32_MAX
  * \param[out]    buffer            Output bytes
  * \param[in]     capacity          Output buffer capacity
  * \param[in,out] offset            Output byte offset, advanced past the command
  *
- * \retval        TRUE              if the command was built.
- * \retval        FALSE             if the type, parent, or a property is not supported.
+ * \retval        TRUE              if the command was written.
+ * \retval        FALSE             if the type, parent, or a property is not supported, or the command does not fit the buffer.
  */
 static bool_t WriteBinaryCommand(const Arinc661_Definition_t* definition, uint32_t widgetIndex, uint32_t lastWidgetIndex, byte_t* buffer, uint64_t capacity, uint64_t* offset);
 
@@ -5602,9 +5604,9 @@ static uint32_t FormatFraction(char_t* text, uint32_t capacity, int64_t lsbCount
 /**
  * \brief Appends a property with a counted value to the result.
  *
- * \param[in,out] definition    Caller-owned Definition File data
+ * \param[in,out] definition    Caller-owned definition
  * \param[in]     owner         Owning model kind
- * \param[in]     ownerIndex    Layer or widget index, or zero for the Definition File
+ * \param[in]     ownerIndex    Layer or widget index, or zero for the definition
  * \param[in]     name          Zero-terminated property name
  * \param[in]     value         Value bytes
  * \param[in]     sizeOfValue   Number of value bytes
@@ -5618,9 +5620,9 @@ static bool_t AddProperty(Arinc661_Definition_t* definition, Arinc661_PropertyOw
 /**
  * \brief Appends a property with a decimal integer value to the result.
  *
- * \param[in,out] definition   Caller-owned Definition File data
+ * \param[in,out] definition   Caller-owned definition
  * \param[in]     owner        Owning model kind
- * \param[in]     ownerIndex   Layer or widget index, or zero for the Definition File
+ * \param[in]     ownerIndex   Layer or widget index, or zero for the definition
  * \param[in]     name         Zero-terminated property name
  * \param[in]     value        Property value
  *
@@ -5631,9 +5633,9 @@ static bool_t AddIntegerProperty(Arinc661_Definition_t* definition, Arinc661_Pro
 
 /*************************************************************************************************/
 /**
- * \brief Appends a property holding bytes as uppercase hexadecimal digits to the newest widget.
+ * \brief Appends a property holding bytes as uppercase hexadecimal digits to the widget being read.
  *
- * \param[in,out] definition    Caller-owned Definition File data
+ * \param[in,out] definition    Caller-owned definition
  * \param[in]     name          Zero-terminated property name
  * \param[in]     value         Bytes to encode
  * \param[in]     sizeOfValue   Number of bytes in value
@@ -5647,7 +5649,7 @@ static bool_t AddHexProperty(Arinc661_Definition_t* definition, const char_t* na
 /**
  * \brief Reads a uchar, ushort, or ulong parameter as a decimal property.
  *
- * \param[in,out] definition    Definition File gaining a property of the widget being read
+ * \param[in,out] definition    Definition gaining a property of the widget being read
  * \param[in]     name          Parameter name
  * \param[in]     buffer        Input bytes
  * \param[in]     endOffset     Byte offset following the command
@@ -5663,7 +5665,7 @@ static bool_t ReadBinaryInteger(Arinc661_Definition_t* definition, const char_t*
 /**
  * \brief Reads a long parameter as a signed decimal property.
  *
- * \param[in,out] definition   Definition File gaining a property of the widget being read
+ * \param[in,out] definition   Definition gaining a property of the widget being read
  * \param[in]     name         Parameter name
  * \param[in]     buffer       Input bytes
  * \param[in]     endOffset    Byte offset following the command
@@ -5678,7 +5680,7 @@ static bool_t ReadBinaryLong(Arinc661_Definition_t* definition, const char_t* na
 /**
  * \brief Reads a float parameter as a decimal property.
  *
- * \param[in,out] definition   Definition File gaining a property of the widget being read
+ * \param[in,out] definition   Definition gaining a property of the widget being read
  * \param[in]     name         Parameter name
  * \param[in]     buffer       Input bytes
  * \param[in]     endOffset    Byte offset following the command
@@ -5693,7 +5695,7 @@ static bool_t ReadBinaryFloat(Arinc661_Definition_t* definition, const char_t* n
 /**
  * \brief Reads an fr(180) or fr(32768) parameter as a decimal property.
  *
- * \param[in,out] definition   Definition File gaining a property of the widget being read
+ * \param[in,out] definition   Definition gaining a property of the widget being read
  * \param[in]     name         Parameter name
  * \param[in]     buffer       Input bytes
  * \param[in]     endOffset    Byte offset following the command
@@ -5709,7 +5711,7 @@ static bool_t ReadBinaryFraction(Arinc661_Definition_t* definition, const char_t
 /**
  * \brief Reads a string parameter up to its zero terminator.
  *
- * \param[in,out] definition   Definition File gaining a property of the widget being read
+ * \param[in,out] definition   Definition gaining a property of the widget being read
  * \param[in]     name         Parameter name
  * \param[in]     buffer       Input bytes
  * \param[in]     endOffset    Byte offset following the command
@@ -5724,7 +5726,7 @@ static bool_t ReadBinaryString(Arinc661_Definition_t* definition, const char_t* 
 /**
  * \brief Reads a parameter of a fixed number of bytes as hexadecimal digits.
  *
- * \param[in,out] definition    Definition File gaining a property of the widget being read
+ * \param[in,out] definition    Definition gaining a property of the widget being read
  * \param[in]     name          Parameter name
  * \param[in]     buffer        Input bytes
  * \param[in]     endOffset     Byte offset following the command
@@ -5740,7 +5742,7 @@ static bool_t ReadBinaryFixedBytes(Arinc661_Definition_t* definition, const char
 /**
  * \brief Reads a StaticParamBuffer entry as hexadecimal digits of its bytes.
  *
- * \param[in,out] definition   Definition File gaining a property of the widget being read
+ * \param[in,out] definition   Definition gaining a property of the widget being read
  * \param[in]     name         Parameter name
  * \param[in]     buffer       Input bytes
  * \param[in]     endOffset    Byte offset following the command
@@ -5755,7 +5757,7 @@ static bool_t ReadBinarySizedBytes(Arinc661_Definition_t* definition, const char
 /**
  * \brief Reads a complete excluded region structure as hexadecimal digits.
  *
- * \param[in,out] definition   Definition File gaining a property of the widget being read
+ * \param[in,out] definition   Definition gaining a property of the widget being read
  * \param[in]     name         Parameter name
  * \param[in]     buffer       Input bytes
  * \param[in]     endOffset    Byte offset following the command
@@ -5770,7 +5772,7 @@ static bool_t ReadBinaryRegion(Arinc661_Definition_t* definition, const char_t* 
 /**
  * \brief Reads a complete LayerReqResult entry as hexadecimal digits.
  *
- * \param[in,out] definition   Definition File gaining a property of the widget being read
+ * \param[in,out] definition   Definition gaining a property of the widget being read
  * \param[in]     name         Parameter name
  * \param[in]     buffer       Input bytes
  * \param[in]     endOffset    Byte offset following the command
@@ -5808,16 +5810,16 @@ static bool_t ReadBinaryAlignment(uint64_t endOffset, uint64_t* offset);
 
 /*************************************************************************************************/
 /**
- * \brief Reads one Creation Structure parameter into a property of the newest widget.
+ * \brief Reads one Creation Structure parameter into a property of the widget being read.
  *
- * \param[in,out] definition   Caller-owned Definition File data
+ * \param[in,out] definition   Caller-owned definition
  * \param[in]     field        Parameter encoding
  * \param[in]     buffer       Input bytes
  * \param[in]     endOffset    Byte offset following the command
  * \param[in,out] offset       Input byte offset, advanced past the parameter
  *
  * \retval        TRUE         if the parameter was read.
- * \retval        FALSE        if the parameter exceeds the command or result storage.
+ * \retval        FALSE        if the parameter is malformed or exceeds the command or result storage.
  */
 static bool_t ReadBinaryField(Arinc661_Definition_t* definition, const BinaryField_t* field, const byte_t* buffer, uint64_t endOffset, uint64_t* offset);
 
@@ -5825,7 +5827,7 @@ static bool_t ReadBinaryField(Arinc661_Definition_t* definition, const BinaryFie
 /**
  * \brief Reads one A661_CMD_CREATE or A661_CMD_EXTEND command into the widget and property arrays.
  *
- * \param[in,out] definition           Caller-owned Definition File data
+ * \param[in,out] definition           Caller-owned definition
  * \param[in]     buffer               Input bytes
  * \param[in]     firstCommandOffset   Byte offset of the first command in this layer block
  * \param[in]     firstWidgetIndex     Widget array index of that first command
@@ -5834,7 +5836,7 @@ static bool_t ReadBinaryField(Arinc661_Definition_t* definition, const BinaryFie
  * \param[in]     commandSize          CommandSize of the command to read
  *
  * \retval        TRUE                 if the widget or extension was read.
- * \retval        FALSE                if the command, type, or parent is unknown, or storage is insufficient.
+ * \retval        FALSE                if the command, type, or parent is unknown, the parameters do not match CommandSize, or storage is insufficient.
  */
 static bool_t ReadBinaryCommand(Arinc661_Definition_t* definition, const byte_t* buffer, uint64_t firstCommandOffset, uint32_t firstWidgetIndex, uint32_t* lastWidgetIndex, uint64_t commandOffset, uint32_t commandSize);
 
@@ -5842,7 +5844,7 @@ static bool_t ReadBinaryCommand(Arinc661_Definition_t* definition, const byte_t*
 /**
  * \brief Reads one layer block into the layer, widget, and property arrays.
  *
- * \param[in,out] definition           Caller-owned Definition File data
+ * \param[in,out] definition           Caller-owned definition
  * \param[in]     buffer               Input bytes
  * \param[in]     sizeOfBinaryBuffer   Number of input bytes
  * \param[in,out] offset               Byte offset of the block, advanced past it
@@ -5875,7 +5877,7 @@ static bool_t ReadBinaryPicture(const byte_t* buffer, uint64_t sizeOfBinaryBuffe
  * \param[in,out] offset               Byte offset of the block, advanced past its end code
  *
  * \retval        TRUE                 if the block is well formed and complete.
- * \retval        FALSE                if it is truncated or uses an unknown pixel format.
+ * \retval        FALSE                if it is truncated, lacks an end code, or uses an unknown pixel format.
  */
 static bool_t ReadBinaryPictureBlock(const byte_t* buffer, uint64_t sizeOfBinaryBuffer, uint64_t* offset);
 
@@ -5896,7 +5898,7 @@ static bool_t ReadBinarySizedBlock(const byte_t* buffer, uint64_t sizeOfBinaryBu
 /**
  * \brief Copies a symbol, picture, or animation law block into the caller's block storage.
  *
- * \param[in,out] definition           Caller-owned Definition File data
+ * \param[in,out] definition           Caller-owned definition
  * \param[in]     buffer               Input bytes
  * \param[in]     sizeOfBinaryBuffer   Number of input bytes
  * \param[in,out] offset               Byte offset of the block, advanced past it
@@ -6299,7 +6301,7 @@ static const char_t* FormatInteger(XmlWorkspace_t* xml, int64_t value)
     int     byte_count;
 
     text = NULL;
-    // Reserve enough temporary room before formatting a signed 64-bit value
+    // Require room for any signed 64-bit value before formatting
     if (XML_INTEGER_TEXT_BYTES <= (xml->textCapacity - xml->textByteCount))
     {
         text       = (char_t*)&xml->text[xml->textByteCount];
@@ -6684,10 +6686,10 @@ static uint32_t FindSameNameProperty(const Arinc661_Definition_t* definition, ui
  * </model>
  * \endcode
  *
- *  Matching entries retain their order in the flat property array. Properties
- *  belonging to other definitions, layers, or widgets are skipped. Properties
- *  sharing a name are an array and are written once, at the position of the
- *  first, as an arrayprop with one entry per value:
+ *  Matching entries keep their order in the flat property array; properties of
+ *  other owners are skipped. Properties sharing a name are an array and are
+ *  written once, at the position of the first, as an arrayprop with one entry
+ *  per value:
  *
  * \code{.xml}
  * <arrayprop name="EntryList">
@@ -6748,7 +6750,7 @@ static bool_t WriteProperties(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent
                 }
                 if (is_valid && is_array)
                 {
-                    // Turn every later property with this name into an entry, in array order
+                    // Write every property with this name, this one first, as an entry in array order
                     entry_index = property_index;
                     for (element_index = 0; element_index < definition->propertyCount; ++element_index)
                     {
@@ -6791,7 +6793,7 @@ static bool_t WriteProperties(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Stores the most significant byte first, as required by section 4.5.1. A value
+ *  Stores the most significant byte first, as section 3.3 requires. A value
  *  that would extend past capacity is not stored, and FALSE is returned.
  */
 static bool_t WriteUnsigned(byte_t* buffer, uint64_t capacity, uint64_t offset, uint32_t value, uint32_t sizeOfValue)
@@ -6855,8 +6857,7 @@ static int64_t ToSigned32(uint32_t value)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Like WriteBytes in faceoe_utl_xml.c, the span is stored and the offset advanced
- *  only when the whole span fits.
+ *  Stores the span and advances the offset only when the whole span fits.
  */
 static bool_t WriteBytes(byte_t* buffer, uint64_t capacity, uint64_t* offset, const byte_t* bytes, uint64_t sizeOfBytes)
 {
@@ -6905,7 +6906,7 @@ static bool_t WriteBinaryAlignment(byte_t* buffer, uint64_t capacity, uint64_t* 
 /**
  * \par Details:
  *  For example, "YOU" is written as 59 4F 55 00. Every string keeps its
- *  terminator; the command is padded only after its last parameter.
+ *  terminator; no padding is added here.
  */
 static bool_t WriteBinaryString(byte_t* buffer, uint64_t capacity, uint64_t* offset, const char_t* text)
 {
@@ -7299,8 +7300,8 @@ static bool_t WriteBinaryFloat(byte_t* buffer, uint64_t capacity, uint64_t* offs
 /**
  * \par Details:
  *  The value is scaled by 2^31 / range and rounded, so an fr(180) "90" is written
- *  as 40 00 00 00. The full positive range is one LSB short of representable and
- *  is clamped to it.
+ *  as 40 00 00 00. A value of +range scales to 2^31, one past INT32_MAX, and is
+ *  clamped to INT32_MAX.
  */
 static bool_t WriteBinaryFraction(byte_t* buffer, uint64_t capacity, uint64_t* offset, const Arinc661_Property_t* property, float64_t range)
 {
@@ -7387,8 +7388,8 @@ static bool_t WriteBinarySizedBytes(byte_t* buffer, uint64_t capacity, uint64_t*
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Reads the structure size from its type byte, requiring both digits of that
- *  byte to be valid; for example a rectangle (type 01) takes 20 bytes:
+ *  Takes the structure size from its type byte, which must be 00 to 03; for
+ *  example, a rectangle (type 01) takes 20 bytes:
  *
  * \verbatim
  * "0001000000000000000000000000006400000064"  ->  00 01 0000 00000000 00000000 00000064 00000064
@@ -7503,8 +7504,8 @@ static bool_t WriteBinaryPad(byte_t* buffer, uint64_t capacity, uint64_t* offset
  * alignment                    zero bytes up to the next 32-bit boundary
  * \endverbatim
  *
- *  An absent property is written as zero or as an empty string. The fr() full
- *  positive range is one LSB short of representable and is clamped to it.
+ *  An absent property is written as zero or as an empty string. An fr() value of
+ *  +range is clamped to INT32_MAX.
  */
 static bool_t WriteBinaryField(const BinaryField_t* field, const Arinc661_Property_t* property, byte_t* buffer, uint64_t capacity, uint64_t* offset)
 {
@@ -7713,7 +7714,7 @@ static bool_t WriteBinaryOpaqueBlocks(const Arinc661_Definition_t* definition, b
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Writes the footer word of Table 4.5.3.2-1:
+ *  Writes the footer word of Table 4.5.3.2-3:
  *
  * \verbatim
  * E0        A661_DF_FOOTER
@@ -7806,7 +7807,7 @@ static bool_t WriteBinaryLayer(const Arinc661_Definition_t* definition, uint32_t
     if (is_valid)
     {
         (*offset) += sizeof(BinaryBlockEnd_t);
-        // Count the block header and the end code in Block Size
+        // Block Size counts the header and the end code and must fit 32 bits
         is_valid = (((*offset) - layer_offset) <= UINT32_MAX);
     }
     if (is_valid)
@@ -8086,8 +8087,8 @@ static uint32_t FormatReal(char_t* text, uint32_t capacity, float64_t value, int
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Scales to LSBs, rounds half away from zero, and clamps so that the full positive range,
- *  which is one LSB past representable, becomes INT32_MAX.
+ *  Scales to LSBs, rounds half away from zero, and clamps to the int32_t range, so +range,
+ *  which scales to 2^31, becomes INT32_MAX.
  */
 static int64_t EncodeFraction(float64_t value, float64_t range)
 {
@@ -8105,7 +8106,7 @@ static int64_t EncodeFraction(float64_t value, float64_t range)
 /**
  * \par Details:
  *  Tries each fractional digit count from zero up and keeps the first text that scans back
- *  to the identical single, so 0.1f becomes "0.1" rather than its 54-digit expansion while
+ *  to the identical single, so 0.1f becomes "0.1" rather than its 27-digit expansion while
  *  every bit of the value survives the round trip. The scanner reads xs:decimal, so no
  *  exponent form is produced.
  */
@@ -8556,11 +8557,12 @@ static bool_t ReadBinaryAlignment(uint64_t endOffset, uint64_t* offset)
  *
  *  Integers become decimal numbers; constant names such as A661_TRUE are not
  *  restored because the same number has different names for different
- *  parameters. Floats and fr() angles use the fewest decimal digits that
+ *  parameters. Floats and fr() values use the fewest decimal digits that
  *  reproduce the stored bits exactly. A string extends to its zero terminator,
  *  which must lie inside the command. Bytes without a numeric type, sized
- *  buffers, and excluded regions become uppercase hexadecimal digits. Unused
- *  pads and alignment bytes are skipped without checking their content.
+ *  buffers, excluded regions, and layer requests become uppercase hexadecimal
+ *  digits. Unused pads and alignment bytes are skipped without checking their
+ *  content.
  *  Each reader adds its property to widget widgetCount, the widget being read,
  *  which is counted only after all of its parameters.
  */
@@ -8694,9 +8696,9 @@ static bool_t ReadBinaryField(Arinc661_Definition_t* definition, const BinaryFie
  *  in element order. The element count comes from the parameter the table names
  *  as the count, read earlier in the same command.
  *
- *  The parameters must fill the command up to its 32-bit padding. Another
- *  length means the command follows a different supplement's structure, and
- *  returns FALSE.
+ *  The parameters must fill the command up to its 32-bit padding. Any other
+ *  length returns FALSE; such a command likely follows another supplement's
+ *  structure.
  */
 static bool_t ReadBinaryCommand(Arinc661_Definition_t* definition, const byte_t* buffer, uint64_t firstCommandOffset, uint32_t firstWidgetIndex, uint32_t* lastWidgetIndex, uint64_t commandOffset, uint32_t commandSize)
 {
@@ -8896,7 +8898,7 @@ static bool_t ReadBinaryLayer(Arinc661_Definition_t* definition, const byte_t* b
         definition->layerCount += 1;
         first_command_offset = (*offset) + sizeof(BinaryLayerBlock_t);
         cursor               = first_command_offset;
-        // Bound the walk by the two-word minimum command size
+        // Each command takes at least two words, so the input size bounds the walk
         for (command_index = 0; command_index < sizeOfBinaryBuffer; ++command_index)
         {
             if (cursor >= end_offset)
@@ -8983,8 +8985,8 @@ static bool_t ReadBinaryPicture(const byte_t* buffer, uint64_t sizeOfBinaryBuffe
  *  Table 7-2 with its pixel data padded to 32 bits, an optional reserved word,
  *  and the end code. Bytes per pixel and per color table entry follow
  *  Table 7-3; an implementation-dependent format cannot be read and
- *  returns FALSE. Appendix C shows the end code directly after the last
- *  picture, while Table 7-1 lists a reserved word before it, so both are accepted.
+ *  returns FALSE. Table 7-1 and the Appendix C-9 example put a reserved word
+ *  before the end code; a block without it is also accepted.
  */
 static bool_t ReadBinaryPictureBlock(const byte_t* buffer, uint64_t sizeOfBinaryBuffer, uint64_t* offset)
 {
@@ -9196,7 +9198,7 @@ uint32_t Arinc661_Definition_GetTypeCount(bool_t isExtension)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Widget types are in name order; extension types follow Table 4.6-12 order.
+ *  Widget types are in name order; extension types are in section 8 order.
  */
 const char_t* Arinc661_Definition_GetTypeName(bool_t isExtension, uint32_t typeIndex)
 {
@@ -9376,7 +9378,7 @@ bool_t Arinc661_Definition_ExtensionApplies(const char_t* extensionType, const c
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Lists the widget types in table order.
+ *  Widget types are in name order.
  */
 const char_t* Arinc661_Definition_GetExtensionTarget(const char_t* extensionType, uint32_t index)
 {
@@ -9441,9 +9443,9 @@ const char_t* Arinc661_Definition_GetExtensionTarget(const char_t* extensionType
  *
  *  Input may include an XML declaration; it is not retained in the result.
  *
- *  Versions must fit uint32_t. Failure clears layerCount, widgetCount, propertyCount,
- *  blockByteCount, and charsetEncoding; scalar fields and array entries may still
- *  contain partial data.
+ *  Both version attributes are required and must fit uint32_t. Failure clears
+ *  layerCount, widgetCount, propertyCount, blockByteCount, and charsetEncoding;
+ *  scalar fields and array entries may still contain partial data.
  */
 bool_t Arinc661_Definition_Read(Arinc661_Definition_t* definition, byte_t* bufferToReadXmlFrom, uint64_t sizeOfXmlBuffer, void* workspace, uint64_t workspaceSize)
 {
@@ -9523,13 +9525,13 @@ bool_t Arinc661_Definition_Read(Arinc661_Definition_t* definition, byte_t* buffe
     }
     if (is_valid)
     {
-        // Copy properties belonging to the Definition File itself
+        // Copy the properties of the definition itself
         model_node = FindChild(root, DF_ELEMENT_MODEL);
         is_valid   = ReadProperties(definition, model_node, ARINC661_PROPERTY_DEFINITION, 0);
     }
     if (is_valid)
     {
-        // Process layers in source order and walk each layer's complete subtree
+        // Process the root's children in source order and walk each layer's complete subtree
         layer_node = root->firstChild;
         for (layer_index = 0; layer_index < ARINC661_XML_NODE_CAPACITY; ++layer_index)
         {
@@ -9687,7 +9689,7 @@ bool_t Arinc661_Definition_Read(Arinc661_Definition_t* definition, byte_t* buffe
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Rebuilds a Definition File tree from layer, widget, and property arrays.
+ *  Builds the XML Definition File tree from layer, widget, and property arrays.
  *  For example, a layer with two sibling widgets can produce:
  *
  * \code{.xml}
@@ -9842,7 +9844,7 @@ uint64_t Arinc661_Definition_Write(const Arinc661_Definition_t* definition, byte
                     }
                     if (is_valid && (FALSE == widget->isExtension))
                     {
-                        // Omit the name attribute from a661_extension, which carries only its type (Table 6.2.3-3)
+                        // Omit the name attribute from a661_extension, which carries only its type (Table 6.2.3-3, moved to the electronic support files in Supplement 6)
                         is_valid = AppendAttribute(&xml, widget_node, XML_ATTRIBUTE_NAME, widget->name);
                     }
                     if (is_valid)
@@ -9955,7 +9957,7 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
     }
     if (is_valid)
     {
-        // Bound the walk by the one-word minimum block size
+        // Each block takes at least one word, so the input size bounds the walk
         for (block_index = 0; block_index < sizeOfBinaryBuffer; ++block_index)
         {
             has_block_word = (offset <= sizeOfBinaryBuffer) && (sizeof(BinaryBlockEnd_t) <= (sizeOfBinaryBuffer - offset));
@@ -10037,10 +10039,10 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
  * \endverbatim
  *
  *  ApplicationId, LayerId, and ContextNumber come from the properties of those
- *  names and default to zero; other Definition File and layer properties, and
- *  all names, have no binary representation and are not written. Writing stops
- *  at the first value that does not fit capacityOfBinaryBuffer, and zero is
- *  returned.
+ *  names and default to zero; other definition and layer properties, and all
+ *  names, have no binary representation and are not written. Writing stops at
+ *  the first value that is unsupported or does not fit capacityOfBinaryBuffer,
+ *  and zero is returned.
  */
 uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition, byte_t* bufferToWriteBinaryTo, uint64_t capacityOfBinaryBuffer)
 {

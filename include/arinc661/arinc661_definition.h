@@ -39,20 +39,23 @@
 
 /*************************************************************************************************/
 /**
- * \brief One ARINC 661 definition: its layers, its widgets, and the properties of all three, in caller-owned arrays.
+ * \brief One ARINC 661 definition: layers, widgets, and properties, in caller-owned arrays.
  *
  * \par Details:
- *  Read from and written to a Definition File in the XML form (a661Strict.xsd
- *  a661_df root, dfType) or the binary form (Table 4.5.3.2-1). The arrays are flat;
- *  widgets point to their layer and parent widget by array index, and properties
- *  to their owner, which together describe the tree:
+ *  A definition holds layers, a layer holds widgets, and a widget holds nested widgets
+ *  and extensions; the definition and each layer, widget, and extension own properties.
+ *  A definition is read from and written to a Definition File in the XML form
+ *  (a661Strict.xsd a661_df root, dfType) or the binary form (Table 4.5.3.2-1). The
+ *  arrays are flat: widgets point to their layer and parent widget by array index, and
+ *  properties to their owner through owner and ownerIndex, which together describe the
+ *  tree that Arinc661_Scene_Build links:
  *
  * \verbatim
- * definition         properties[] with owner DEFINITION              ApplicationId
- *   layers[i]        properties[] with owner LAYER, ownerIndex i     LayerId, ContextNumber
- *     widgets[j]     layerIndex i, parentWidgetIndex UINT32_MAX      properties[] with owner WIDGET, ownerIndex j
- *       widgets[k]   layerIndex i, parentWidgetIndex j               a widget nested in widgets[j]
- *       widgets[m]   layerIndex i, parentWidgetIndex j, isExtension  an extension of widgets[j]
+ * definition         properties with owner DEFINITION, such as ApplicationId
+ *   layers[i]        properties with owner LAYER and ownerIndex i, such as LayerId
+ *     widgets[j]     layerIndex i, parentWidgetIndex UINT32_MAX; properties with owner WIDGET and ownerIndex j
+ *       widgets[k]   layerIndex i, parentWidgetIndex j: a widget nested in widgets[j]
+ *       widgets[m]   layerIndex i, parentWidgetIndex j, isExtension: an extension of widgets[j]
  * \endverbatim
  *
  *  The binary form's symbol, picture, and animation law blocks are kept byte for
@@ -60,9 +63,9 @@
  */
 typedef struct Arinc661_Definition_s
 {
-    char_t                     name[ARINC661_MAX_NAME_BYTES]; ///< Zero-terminated optional name of the definition
-    uint32_t                   libraryVersion;                ///< Library version
-    uint32_t                   supplementVersion;             ///< Supplement version
+    char_t                     name[ARINC661_MAX_NAME_BYTES]; ///< Zero-terminated optional name of the definition (XML a661_df name)
+    uint32_t                   libraryVersion;                ///< Binary header LibraryVersion; XML a661_df library_version
+    uint32_t                   supplementVersion;             ///< Binary header SuppVersion; XML a661_df supp_version
     Arinc661_Layer_t*          layers;                        ///< Pointer to the caller's layer array
     Arinc661_Widget_t*         widgets;                       ///< Pointer to the caller's widget array
     Arinc661_Property_t*       properties;                    ///< Pointer to the caller's property array
@@ -74,8 +77,8 @@ typedef struct Arinc661_Definition_s
     uint32_t                   propertyCount;                 ///< Properties in use
     Arinc661_CharsetEncoding_t charsetEncoding;               ///< Charset encoding, or ARINC661_CHARSET_ENCODING_NONE when none is given
     byte_t*                    blocks;                        ///< Pointer to the caller's storage for the binary form's symbol, picture, and animation law blocks
-    uint64_t                   blockCapacity;                 ///< Block storage bytes
-    uint64_t                   blockByteCount;                ///< Block storage bytes in use
+    uint64_t                   blockCapacity;                 ///< Capacity of blocks in bytes
+    uint64_t                   blockByteCount;                ///< Bytes of blocks in use
 } Arinc661_Definition_t;
 
 /*=================================================================================================
@@ -92,9 +95,9 @@ typedef struct Arinc661_Definition_s
 
 /*************************************************************************************************/
 /**
- * \brief Attaches caller storage and starts an empty Definition File.
+ * \brief Attaches caller storage and starts an empty definition.
  *
- * \param[out] definition         Definition File
+ * \param[out] definition         Definition to initialize
  * \param[in]  layers             Layer storage
  * \param[in]  layerCapacity      Layer slots
  * \param[in]  widgets            Widget storage
@@ -217,7 +220,7 @@ const char_t* Arinc661_Definition_GetExtensionTarget(const char_t* extensionType
 
 /*************************************************************************************************/
 /**
- * \brief Reads an ARINC 661 Definition File from memory into caller-owned data.
+ * \brief Reads an XML ARINC 661 Definition File from memory into a definition.
  *
  * \par Details:
  *  Reads the ARINC 661 Supplement 6 XML Definition File form. The strict
@@ -241,27 +244,27 @@ const char_t* Arinc661_Definition_GetExtensionTarget(const char_t* extensionType
  *  changed by FACEOE_Utl_Xml_ReadDocument while parsing.
  *
  * \par Requirements:
- *  - 001 This function shall read Definition File, layer, widget, property, and array property values into caller-owned storage.
+ *  - 001 This function shall read the a661_df attributes, layers, widgets, properties, and array properties into caller-owned storage.
  *  - 002 This function shall clear all result counts when a supported value is invalid or a result array is too small.
  *  - 003 This function shall use only the supplied workspace for temporary XML storage.
  *  - 004 This function shall return FALSE when FACEOE_Utl_Xml_ReadDocument rejects the input.
  *  - 005 This function shall accept input with or without an XML declaration.
  *  - 006 This function shall fail an assertion if definition, bufferToReadXmlFrom, or workspace is NULL.
  *
- * \param[in,out] definition            Definition File with storage pointers and capacities initialized
+ * \param[in,out] definition            Definition with storage attached by Arinc661_Definition_Initialize
  * \param[in,out] bufferToReadXmlFrom   Input XML bytes, followed by one writable byte
  * \param[in]     sizeOfXmlBuffer       Number of input bytes, excluding the extra byte
  * \param[in,out] workspace             Eight-byte-aligned temporary storage
  * \param[in]     workspaceSize         Number of temporary bytes
  *
- * \retval        TRUE                  if the supported Definition File values were read.
+ * \retval        TRUE                  if the definition was read.
  * \retval        FALSE                 if the XML or a supported value is invalid, or supplied storage is insufficient.
  */
 bool_t Arinc661_Definition_Read(Arinc661_Definition_t* definition, byte_t* bufferToReadXmlFrom, uint64_t sizeOfXmlBuffer, void* workspace, uint64_t workspaceSize);
 
 /*************************************************************************************************/
 /**
- * \brief Writes caller-owned ARINC 661 Definition File data to memory.
+ * \brief Writes a definition to memory as an XML ARINC 661 Definition File.
  *
  * \par Details:
  *  Writes the ARINC 661 Supplement 6 XML Definition File form described by
@@ -272,14 +275,12 @@ bool_t Arinc661_Definition_Read(Arinc661_Definition_t* definition, byte_t* buffe
  *  with an entry child per value; a lone property is always written as a prop.
  *  An entry flagged isExtension is written as an a661_extension inside its parent
  *  widget. A charsetEncoding other than ARINC661_CHARSET_ENCODING_NONE writes a
- *  charset-encoding element. Binary
- *  blocks have no XML form here and are not written.
- *  The result is XML in the caller's output buffer.
+ *  charset-encoding element. Binary blocks have no XML form here and are not written.
  *  Storage arrays and their string fields must remain valid until writing finishes.
  *  Output starts with the a661_df element, without an XML declaration.
  *
  * \par Requirements:
- *  - 001 This function shall write Definition File, layer, widget, and property values from caller-owned data.
+ *  - 001 This function shall write the a661_df attributes, layers, widgets, and properties from caller-owned data.
  *  - 002 This function shall return the number of bytes written without adding a zero terminator.
  *  - 003 This function shall use only the supplied workspace for temporary XML storage.
  *  - 004 This function shall return zero when FACEOE_Utl_Xml_WriteDocument rejects the output capacity.
@@ -287,7 +288,7 @@ bool_t Arinc661_Definition_Read(Arinc661_Definition_t* definition, byte_t* buffe
  *  - 006 This function shall fail an assertion if definition, bufferToWriteXmlTo, or workspace is NULL.
  *  - 007 This function shall fail an assertion if a count exceeds its capacity, or an array with a nonzero count is NULL.
  *
- * \param[in]     definition            Definition File data to write
+ * \param[in]     definition            Definition to write
  * \param[out]    bufferToWriteXmlTo    Output XML bytes
  * \param[in]     capacityOfXmlBuffer   Output buffer capacity
  * \param[in,out] workspace             Eight-byte-aligned temporary storage
@@ -299,7 +300,7 @@ uint64_t Arinc661_Definition_Write(const Arinc661_Definition_t* definition, byte
 
 /*************************************************************************************************/
 /**
- * \brief Reads a binary ARINC 661 Definition File from memory into caller-owned data.
+ * \brief Reads a binary ARINC 661 Definition File from memory into a definition.
  *
  * \par Details:
  *  Reads the binary Definition File form of ARINC 661 Part 1, Supplement 7,
@@ -315,7 +316,7 @@ uint64_t Arinc661_Definition_Write(const Arinc661_Definition_t* definition, byte
  *  The charset encoding block sets charsetEncoding; symbol, picture, and
  *  animation law blocks are copied unchanged into blocks, so the file can be
  *  written back byte for byte. The binary form carries no names, so the
- *  Definition File, layer, and widget names are empty. String bytes are copied
+ *  definition, layer, and widget names are empty. String bytes are copied
  *  unchanged, whatever the character set encoding.
  *  Each array element becomes its own property, all sharing the array's name,
  *  in element order; arrays of pairs, such as Vertices and BufferStructure,
@@ -326,24 +327,24 @@ uint64_t Arinc661_Definition_Write(const Arinc661_Definition_t* definition, byte
  *  The result retains no pointers into the input buffer.
  *
  * \par Requirements:
- *  - 001 This function shall read Definition File, charset encoding, layer, widget, extension, and Creation Structure values into caller-owned storage.
+ *  - 001 This function shall read the header, charset encoding, layer, widget, extension, and Creation Structure values into caller-owned storage.
  *  - 002 This function shall retain symbol, picture, and animation law blocks unchanged in caller-owned storage.
  *  - 003 This function shall clear all result counts when the input is malformed or a result array is too small.
  *  - 004 This function shall not read outside the supplied input bytes.
  *  - 005 This function shall fail an assertion if definition or bufferToReadBinaryFrom is NULL, or blocks is NULL with a nonzero blockCapacity.
  *
- * \param[in,out] definition               Definition File with storage pointers and capacities initialized
+ * \param[in,out] definition               Definition with storage attached by Arinc661_Definition_Initialize
  * \param[in]     bufferToReadBinaryFrom   Input binary bytes
  * \param[in]     sizeOfBinaryBuffer       Number of input bytes
  *
- * \retval        TRUE                     if the supported Definition File values were read.
+ * \retval        TRUE                     if the definition was read.
  * \retval        FALSE                    if the input is malformed or unsupported, or supplied storage is insufficient.
  */
 bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const byte_t* bufferToReadBinaryFrom, uint64_t sizeOfBinaryBuffer);
 
 /*************************************************************************************************/
 /**
- * \brief Writes caller-owned ARINC 661 Definition File data to memory in binary form.
+ * \brief Writes a definition to memory as a binary ARINC 661 Definition File.
  *
  * \par Details:
  *  Writes the binary Definition File form of ARINC 661 Part 1, Supplement 7,
@@ -352,8 +353,8 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
  *  or a constant name from section 4.6, such as A661_TRUE or A661_CENTER; float
  *  and fr() parameters take a decimal value. Other symbolic values, such as
  *  color or font names, cannot be written. An absent property is written as zero
- *  or as an empty string. Names, and Definition File and layer properties other
- *  than ApplicationId, LayerId, and ContextNumber, are not written.
+ *  or as an empty string. Names, and definition and layer properties other than
+ *  ApplicationId, LayerId, and ContextNumber, are not written.
  *  An array takes its elements from the properties sharing its name, in order;
  *  their number must match the widget's count parameter, such as
  *  NumberOfEntries. Arrays of pairs, such as Vertices and BufferStructure,
@@ -362,8 +363,8 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
  *  take two hexadecimal digits per byte. An entry flagged isExtension is written
  *  as an A661_CMD_EXTEND command and must directly follow, in array order, the
  *  widget named by its parentWidgetIndex. A charsetEncoding other than
- *  ARINC661_CHARSET_ENCODING_NONE writes the
- *  charset encoding block, and blocks are written unchanged before the layers.
+ *  ARINC661_CHARSET_ENCODING_NONE writes the charset encoding block, and blocks are
+ *  written unchanged before the layers.
  *  A661_SELECTOR cannot be written because Table 4.6-7 assigns it no WidgetType code.
  *
  * \par Requirements:
@@ -374,7 +375,7 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
  *  - 005 This function shall fail an assertion if definition or bufferToWriteBinaryTo is NULL.
  *  - 006 This function shall fail an assertion if a count exceeds its capacity, or an array with a nonzero count is NULL.
  *
- * \param[in]     definition               Definition File data to write
+ * \param[in]     definition               Definition to write
  * \param[out]    bufferToWriteBinaryTo    Output binary bytes
  * \param[in]     capacityOfBinaryBuffer   Output buffer capacity
  *

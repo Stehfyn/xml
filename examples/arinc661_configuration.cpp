@@ -340,7 +340,7 @@ typedef enum SelectionKind_e
 
 /*************************************************************************************************/
 /**
- * \brief State shared with each XML filename shown in the list box.
+ * \brief State DrawXmlFileEntry shares across the XML file list's counting and drawing passes.
  */
 typedef struct XmlFileListContext_s
 {
@@ -351,7 +351,7 @@ typedef struct XmlFileListContext_s
 
 /*************************************************************************************************/
 /**
- * \brief Filename sought while checking a new document's save destination.
+ * \brief Filename sought while checking an untitled document's save destination.
  */
 typedef struct FileMatchContext_s
 {
@@ -408,15 +408,15 @@ static void JoinFolderPath(const char_t* folderPath, const char_t* fileName, cha
 
 /*************************************************************************************************/
 /**
- * \brief Resolves a clicked XML filename to a full path.
+ * \brief Resolves an XML filename in the editor's folder to a full path.
  *
- * \param[in,out] editor     Editor state and status
- * \param[in]     fileName   Clicked XML filename
+ * \param[in,out] editor     Editor state; its status names a missing input
+ * \param[in]     fileName   XML filename
  * \param[out]    filePath   Combined path when inputs are valid
  * \param[in]     capacity   File path buffer size
  *
- * \retval       TRUE       if a folder and XML filename are present.
- * \retval       FALSE      if either is missing.
+ * \retval        TRUE       if a folder and XML filename are present.
+ * \retval        FALSE      if either is missing.
  */
 static bool_t GetXmlFilePath(Arinc661_Configuration_Editor_t* editor, const char_t* fileName, char_t* filePath, uint32_t capacity);
 
@@ -424,7 +424,7 @@ static bool_t GetXmlFilePath(Arinc661_Configuration_Editor_t* editor, const char
 /**
  * \brief Recalculates the dimensions needed to fit drawable screens in the scene.
  *
- * \param[in,out] editor   Editor state
+ * \param[in,out] editor   Document
  *
  * \retval        None
  */
@@ -432,10 +432,10 @@ static void UpdatePreviewMeasurements(Arinc661_Configuration_Document_t* editor)
 
 /*************************************************************************************************/
 /**
- * \brief Focuses an open XML file or loads it into an available document slot.
+ * \brief Selects an open XML file's tab, or loads the file into a free document slot.
  *
  * \param[in,out] editor     Editor state
- * \param[in]     fileName   Clicked XML filename
+ * \param[in]     fileName   XML filename in the editor's folder
  *
  * \retval        None
  */
@@ -443,7 +443,7 @@ static void LoadConfigurationFile(Arinc661_Configuration_Editor_t* editor, const
 
 /*************************************************************************************************/
 /**
- * \brief Opens an untitled document in an available fixed slot.
+ * \brief Opens an untitled document in a free slot.
  *
  * \param[in,out] editor   Editor state
  *
@@ -453,9 +453,9 @@ static void CreateDocument(Arinc661_Configuration_Editor_t* editor);
 
 /*************************************************************************************************/
 /**
- * \brief Writes the in-memory display configuration to the configured file path.
+ * \brief Writes a document's configuration as XML to its file path.
  *
- * \param[in,out] editor   Editor state
+ * \param[in,out] editor   Document
  *
  * \retval        None
  */
@@ -497,24 +497,24 @@ static bool_t IsValidXmlFileName(const char_t* fileName);
 /**
  * \brief Checks one enumerated filename against a proposed save name.
  *
- * \param[in] fileName   Enumerated filename
- * \param[in] context    Proposed filename and match state
+ * \param[in]     fileName   Enumerated filename
+ * \param[in,out] context    FileMatchContext_t with the proposed filename and match state
  *
- * \retval    None
+ * \retval        None
  */
 static void FindMatchingFile(const char_t* fileName, void* context);
 
 /*************************************************************************************************/
 /**
- * \brief Chooses the next identifier for a selected entity type.
+ * \brief Chooses the next identifier for an entity type.
  *
- * \param[in]  editor        Editor state
+ * \param[in]  editor        Document
  * \param[in]  kind          Entity type
  * \param[in]  screenIndex   Owning screen index for a layout
  * \param[out] id            Next available identifier
  *
- * \retval     TRUE        if an identifier is available.
- * \retval     FALSE       if the identifier range is exhausted or kind is invalid.
+ * \retval     TRUE          if an identifier is available.
+ * \retval     FALSE         if the identifier range is exhausted or kind is invalid.
  */
 static bool_t NextIdentifier(const Arinc661_Configuration_Document_t* editor, SelectionKind_t kind, uint32_t screenIndex, int64_t* id);
 
@@ -529,7 +529,7 @@ static bool_t NextIdentifier(const Arinc661_Configuration_Document_t* editor, Se
  * \param[in] id            Proposed identifier
  *
  * \retval    TRUE          if the identifier is unused in its scope.
- * \retval    FALSE         if another item already uses it.
+ * \retval    FALSE         if another item already uses it or kind is invalid.
  */
 static bool_t IsIdentifierUnique(const Arinc661_Configuration_Document_t* editor, SelectionKind_t kind, uint32_t screenIndex, uint32_t itemIndex, int64_t id);
 
@@ -550,9 +550,9 @@ static Status_t CheckIdentifierUniqueness(const Arinc661_Configuration_Document_
 
 /*************************************************************************************************/
 /**
- * \brief Finds the largest screen identifier used to choose the next one.
+ * \brief Finds the largest screen identifier.
  *
- * \param[in]  editor   Editor state
+ * \param[in]  editor   Document
  *
  * \retval    int64_t   Largest screen identifier, or NO_IDENTIFIER if there are no screens.
  */
@@ -562,7 +562,7 @@ static int64_t GetMaxScreenIdentifier(const Arinc661_Configuration_Document_t* e
 /**
  * \brief Finds the largest identifier within a screen's layouts.
  *
- * \param[in]  editor        Editor state
+ * \param[in]  editor        Document
  * \param[in]  screenIndex   Owning screen index
  *
  * \retval    int64_t   Largest layout identifier, or NO_IDENTIFIER if the screen has no layouts.
@@ -571,9 +571,9 @@ static int64_t GetMaxLayoutIdentifier(const Arinc661_Configuration_Document_t* e
 
 /*************************************************************************************************/
 /**
- * \brief Finds the largest window identifier used to choose the next one.
+ * \brief Finds the largest window identifier.
  *
- * \param[in]  editor   Editor state
+ * \param[in]  editor   Document
  *
  * \retval    int64_t   Largest window identifier, or NO_IDENTIFIER if there are no windows.
  */
@@ -581,9 +581,9 @@ static int64_t GetMaxWindowIdentifier(const Arinc661_Configuration_Document_t* e
 
 /*************************************************************************************************/
 /**
- * \brief Finds the largest user application identifier used to choose the next one.
+ * \brief Finds the largest user application identifier.
  *
- * \param[in] editor   Editor state
+ * \param[in] editor   Document
  *
  * \retval    int64_t   Largest application identifier, or NO_IDENTIFIER if there are none.
  */
@@ -591,9 +591,9 @@ static int64_t GetMaxUserApplicationIdentifier(const Arinc661_Configuration_Docu
 
 /*************************************************************************************************/
 /**
- * \brief Appends a screen with default dimensions.
+ * \brief Appends a screen with default dimensions and selects it.
  *
- * \param[in,out] editor   Editor state
+ * \param[in,out] editor   Document
  *
  * \retval        None
  */
@@ -601,9 +601,9 @@ static void AddScreen(Arinc661_Configuration_Document_t* editor);
 
 /*************************************************************************************************/
 /**
- * \brief Appends a layout to the selected screen.
+ * \brief Appends a layout to a screen and selects it.
  *
- * \param[in,out] editor        Editor state
+ * \param[in,out] editor        Document
  * \param[in]     screenIndex   Owning screen index
  *
  * \retval        None
@@ -612,9 +612,9 @@ static void AddLayout(Arinc661_Configuration_Document_t* editor, uint32_t screen
 
 /*************************************************************************************************/
 /**
- * \brief Appends a window to the selected layout.
+ * \brief Appends a window to a layout and selects it.
  *
- * \param[in,out] editor        Editor state
+ * \param[in,out] editor        Document
  * \param[in]     layoutIndex   Owning layout index
  *
  * \retval        None
@@ -623,9 +623,9 @@ static void AddWindow(Arinc661_Configuration_Document_t* editor, uint32_t layout
 
 /*************************************************************************************************/
 /**
- * \brief Appends a user application with an unused identifier.
+ * \brief Appends a user application with an unused identifier and selects it.
  *
- * \param[in,out] editor   Editor state
+ * \param[in,out] editor   Document
  *
  * \retval        None
  */
@@ -633,9 +633,9 @@ static void AddUserApplication(Arinc661_Configuration_Document_t* editor);
 
 /*************************************************************************************************/
 /**
- * \brief Removes one user application and updates its array.
+ * \brief Removes one user application.
  *
- * \param[in,out] editor             Editor state
+ * \param[in,out] editor             Document
  * \param[in]     applicationIndex   Application index to remove
  *
  * \retval        None
@@ -675,9 +675,9 @@ static void DrawExternalSourceInspector(Arinc661_Configuration_Document_t* edito
 
 /*************************************************************************************************/
 /**
- * \brief Removes one window and updates its array.
+ * \brief Removes one window.
  *
- * \param[in,out] editor        Editor state
+ * \param[in,out] editor        Document
  * \param[in]     windowIndex   Window index to remove
  *
  * \retval        None
@@ -688,7 +688,7 @@ static void RemoveWindow(Arinc661_Configuration_Document_t* editor, uint32_t win
 /**
  * \brief Removes one layout and all of its windows.
  *
- * \param[in,out] editor        Editor state
+ * \param[in,out] editor        Document
  * \param[in]     layoutIndex   Layout index to remove
  *
  * \retval        None
@@ -699,7 +699,7 @@ static void RemoveLayout(Arinc661_Configuration_Document_t* editor, uint32_t lay
 /**
  * \brief Removes one screen and all of its layouts and windows.
  *
- * \param[in,out] editor        Editor state
+ * \param[in,out] editor        Document
  * \param[in]     screenIndex   Screen index to remove
  *
  * \retval        None
@@ -720,9 +720,9 @@ static bool_t DrawRemoveButton(const char_t* label, float32_t rowHeight);
 
 /*************************************************************************************************/
 /**
- * \brief Draws the selection tree and its add and remove controls.
+ * \brief Draws the hierarchy tree with its add and remove controls.
  *
- * \param[in,out] editor   Editor state
+ * \param[in,out] editor   Document
  *
  * \retval        None
  */
@@ -734,8 +734,8 @@ static void DrawHierarchy(Arinc661_Configuration_Document_t* editor);
  *
  * \param[in] name   Table identifier
  *
- * \retval    TRUE        if the table is visible.
- * \retval    FALSE       if the table is not visible.
+ * \retval    TRUE   if the table is visible; the caller ends it.
+ * \retval    FALSE  if the table is not visible.
  */
 static bool_t BeginPropertyTable(const char_t* name);
 
@@ -746,8 +746,8 @@ static bool_t BeginPropertyTable(const char_t* name);
  * \param[in]     label   Visible field label
  * \param[in,out] value   Integer value
  *
- * \retval        TRUE        if the value changed.
- * \retval        FALSE       if the value did not change.
+ * \retval        TRUE    if the value changed.
+ * \retval        FALSE   if the value did not change.
  */
 static bool_t DrawIntegerField(const char_t* label, int64_t* value);
 
@@ -773,8 +773,8 @@ static bool_t DrawIdentifierField(Arinc661_Configuration_Document_t* editor, Sel
  * \param[in]     label   Visible field label
  * \param[in,out] value   Decimal value
  *
- * \retval        TRUE        if the value changed.
- * \retval        FALSE       if the value did not change.
+ * \retval        TRUE    if the value changed.
+ * \retval        FALSE   if the value did not change.
  */
 static bool_t DrawDecimalField(const char_t* label, float32_t* value);
 
@@ -783,11 +783,11 @@ static bool_t DrawDecimalField(const char_t* label, float32_t* value);
  * \brief Draws one short text value in the two-column inspector.
  *
  * \param[in]     label      Visible field label
- * \param[in,out] value      Terminated text storage
- * \param[in]     capacity   Number of text bytes
+ * \param[in,out] value      Zero-terminated text
+ * \param[in]     capacity   Bytes in value
  *
- * \retval        TRUE        if the value changed.
- * \retval        FALSE       if the value did not change.
+ * \retval        TRUE       if the value changed.
+ * \retval        FALSE      if the value did not change.
  */
 static bool_t DrawTextField(const char_t* label, char_t* value, uint32_t capacity);
 
@@ -798,8 +798,8 @@ static bool_t DrawTextField(const char_t* label, char_t* value, uint32_t capacit
  * \param[in]     label   Visible field label
  * \param[in,out] value   Boolean value
  *
- * \retval        TRUE        if the value changed.
- * \retval        FALSE       if the value did not change.
+ * \retval        TRUE    if the value changed.
+ * \retval        FALSE   if the value did not change.
  */
 static bool_t DrawBooleanField(const char_t* label, bool_t* value);
 
@@ -810,8 +810,8 @@ static bool_t DrawBooleanField(const char_t* label, bool_t* value);
  * \param[in]     label   Visible field label
  * \param[in,out] unit    Unit value
  *
- * \retval        TRUE        if the value changed.
- * \retval        FALSE       if the value did not change.
+ * \retval        TRUE    if the value changed.
+ * \retval        FALSE   if the value did not change.
  */
 static bool_t DrawUnitField(const char_t* label, FACEOE_DisplayManagement_Unit_t* unit);
 
@@ -834,8 +834,8 @@ static bool_t DrawWindowChoiceField(const Arinc661_Configuration_Document_t* edi
  *
  * \param[in]     editor     Editor holding the Definition File names
  * \param[in]     label      Row label
- * \param[in,out] value      Path text
- * \param[in]     capacity   Path capacity
+ * \param[in,out] value      Zero-terminated dFPath
+ * \param[in]     capacity   Bytes in value
  *
  * \retval        TRUE       if the value changed.
  * \retval        FALSE      otherwise.
@@ -846,7 +846,7 @@ static bool_t DrawDefinitionChoiceField(const Arinc661_Configuration_Editor_t* e
 /**
  * \brief Records an inspector edit as an unsaved document change.
  *
- * \param[in,out] editor       Editor state
+ * \param[in,out] editor       Document
  * \param[in]     hasChanged   TRUE if a field changed
  *
  * \retval        None
@@ -855,9 +855,9 @@ static void MarkDocumentDirty(Arinc661_Configuration_Document_t* editor, bool_t 
 
 /*************************************************************************************************/
 /**
- * \brief Draws the selected screen's properties.
+ * \brief Draws the selected screen's properties and its layouts.
  *
- * \param[in,out] editor   Editor state
+ * \param[in,out] editor   Document
  *
  * \retval        None
  */
@@ -865,9 +865,9 @@ static void DrawScreenInspector(Arinc661_Configuration_Document_t* editor);
 
 /*************************************************************************************************/
 /**
- * \brief Draws the selected layout's properties.
+ * \brief Draws the selected layout's properties and its windows.
  *
- * \param[in,out] editor   Editor state
+ * \param[in,out] editor   Document
  *
  * \retval        None
  */
@@ -875,9 +875,9 @@ static void DrawLayoutInspector(Arinc661_Configuration_Document_t* editor);
 
 /*************************************************************************************************/
 /**
- * \brief Draws the selected window's properties.
+ * \brief Draws the selected window's properties and the user applications targeting it.
  *
- * \param[in,out] editor   Editor state
+ * \param[in,out] editor   Document
  *
  * \retval        None
  */
@@ -885,9 +885,10 @@ static void DrawWindowInspector(Arinc661_Configuration_Document_t* editor);
 
 /*************************************************************************************************/
 /**
- * \brief Draws the selected user application's properties.
+ * \brief Draws the selected user application's properties and its Definition File's state.
  *
- * \param[in,out] editor   Editor state
+ * \param[in,out] editor     Editor state
+ * \param[in,out] document   Document
  *
  * \retval        None
  */
@@ -895,182 +896,181 @@ static void DrawUserApplicationInspector(Arinc661_Configuration_Editor_t* editor
 
 /*************************************************************************************************/
 /**
- * \brief Lists the user applications whose window attribute names this window, with their Definition Files, and selects one on click.
+ * \brief Lists the user applications targeting a window, with their dFPath; a click selects one.
  *
- * \param editor   Editor state
- * \param window   Window
+ * \param[in,out] editor   Document
+ * \param[in]     window   Window
  *
- * \retval None
+ * \retval        None
  */
 static void DrawWindowApplications(Arinc661_Configuration_Document_t* editor, const FACEOE_DisplayManagement_Window_t* window);
 
 /*************************************************************************************************/
 /**
- * \brief Copies the five arrays' used parts and the counts into one heap block.
+ * \brief Copies the used parts of the five arrays, their counts, and the selection into one heap block.
  *
- * \param document   Document
+ * \param[in] document   Document
  *
- * \retval void*   Heap block holding the snapshot; the caller frees it.
+ * \retval    void*      Heap block holding the snapshot; the caller frees it.
  */
 static void* TakeSnapshot(const Arinc661_Configuration_Document_t* document);
 
 /*************************************************************************************************/
 /**
- * \brief Copies a snapshot back and recomputes the derived screen extents.
+ * \brief Copies a snapshot back into the document.
  *
- * \param document   Document
- * \param snapshot   Model snapshot
+ * \param[in,out] document   Document
+ * \param[in]     snapshot   Model snapshot
  *
- * \retval None
+ * \retval        None
  */
 static void RestoreSnapshot(Arinc661_Configuration_Document_t* document, const void* snapshot);
 
 /*************************************************************************************************/
 /**
- * \brief Counts and used arrays must match; the selection is ignored.
+ * \brief Tells whether the model equals a snapshot.
  *
- * \param document   Document
- * \param snapshot   Model snapshot
+ * \param[in] document   Document
+ * \param[in] snapshot   Model snapshot
  *
- * \retval TRUE   if the model equals the snapshot.
- * \retval FALSE  otherwise.
+ * \retval    TRUE       if the model equals the snapshot.
+ * \retval    FALSE      otherwise.
  */
 static bool_t SnapshotMatches(const Arinc661_Configuration_Document_t* document, const void* snapshot);
 
 /*************************************************************************************************/
 /**
- * \brief Frees every snapshot.
+ * \brief Frees every snapshot of a document.
  *
- * \param document   Document
+ * \param[in,out] document   Document
  *
- * \retval None
+ * \retval        None
  */
 static void ClearHistory(Arinc661_Configuration_Document_t* document);
 
 /*************************************************************************************************/
 /**
- * \brief Once per frame: a changed model turns the shadow into an undo step and drops the redo stack.
+ * \brief Turns the shadow into an undo step when the model has changed since it was taken.
  *
- * \param document   Document
+ * \param[in,out] document   Document
  *
- * \retval None
+ * \retval        None
  */
 static void CommitHistory(Arinc661_Configuration_Document_t* document);
 
 /*************************************************************************************************/
 /**
- * \brief The current state moves to the redo stack; the newest undo step becomes the model.
+ * \brief Reverts a document to its newest undo step.
  *
- * \param document   Document
+ * \param[in,out] document   Document
  *
- * \retval None
+ * \retval        None
  */
 static void UndoDocument(Arinc661_Configuration_Document_t* document);
 
 /*************************************************************************************************/
 /**
- * \brief Mirror of UndoDocument.
+ * \brief Reapplies a document's newest redo step.
  *
- * \param document   Document
+ * \param[in,out] document   Document
  *
- * \retval None
+ * \retval        None
  */
 static void RedoDocument(Arinc661_Configuration_Document_t* document);
 
 /*************************************************************************************************/
 /**
- * \brief Removes the selected element through the same paths the hierarchy uses.
+ * \brief Removes the selected element.
  *
- * \param document   Document
+ * \param[in,out] document   Document
  *
- * \retval None
+ * \retval        None
  */
 static void RemoveSelection(Arinc661_Configuration_Document_t* document);
 
 /*************************************************************************************************/
 /**
- * \brief A window copy keeps the geometry and layout with a fresh id, offset by a tenth of its size so it is visible; a user application copy keeps its window and paths with a fresh applicationId.
+ * \brief Duplicates the selected window or user application and selects the copy.
  *
- * \param document   Document
+ * \param[in,out] document   Document
  *
- * \retval None
+ * \retval        None
  */
 static void DuplicateSelection(Arinc661_Configuration_Document_t* document);
 
 /*************************************************************************************************/
 /**
- * \brief Combo over the document's screens, shown by id.
+ * \brief Draws a combo of the document's screens, shown by id.
  *
- * \param document      Document
- * \param label         Row label
- * \param screenIndex   Screen array index
+ * \param[in]     document      Document
+ * \param[in]     label         Row label
+ * \param[in,out] screenIndex   Screen array index
  *
- * \retval TRUE   if the value changed.
- * \retval FALSE  otherwise.
+ * \retval        TRUE          if the value changed.
+ * \retval        FALSE         otherwise.
  */
 static bool_t DrawScreenChoiceField(const Arinc661_Configuration_Document_t* document, const char_t* label, uint32_t* screenIndex);
 
 /*************************************************************************************************/
 /**
- * \brief Combo over the document's layouts, each shown with its screen.
+ * \brief Draws a combo of the document's layouts, each shown with its screen.
  *
- * \param document      Document
- * \param label         Row label
- * \param layoutIndex   Layout array index
+ * \param[in]     document      Document
+ * \param[in]     label         Row label
+ * \param[in,out] layoutIndex   Layout array index
  *
- * \retval TRUE   if the value changed.
- * \retval FALSE  otherwise.
+ * \retval        TRUE          if the value changed.
+ * \retval        FALSE         otherwise.
  */
 static bool_t DrawLayoutChoiceField(const Arinc661_Configuration_Document_t* document, const char_t* label, uint32_t* layoutIndex);
 
 /*************************************************************************************************/
 /**
- * \brief Icon row above the canvas: add screen, layout, window, user application, then duplicate and delete for the selection.
+ * \brief Draws the icon row above the scene canvas.
  *
- * \param owner      Editor owning the document
- * \param document   Document
+ * \param[in,out] owner      Editor owning the document
+ * \param[in,out] document   Document
  *
- * \retval None
+ * \retval        None
  */
 static void DrawSceneToolbar(Arinc661_Configuration_Editor_t* owner, Arinc661_Configuration_Document_t* document);
 
 /*************************************************************************************************/
 /**
- * \brief Direct manipulation of windows on the scene: press on a window selects it and starts a move; press on a corner handle of the selected window starts a resize; the arrow keys nudge; Delete removes the selection; a right-click opens a menu to add elements where the cursor is.
+ * \brief Handles direct manipulation of windows on the scene canvas.
  *
- * \param owner             Editor owning the document
- * \param document          Document
- * \param hitScreen         Screen under the cursor
- * \param hitWindow         Window under the cursor
- * \param windowMin         Screen top-left of the selected window
- * \param windowMax         Screen bottom-right of the selected window
- * \param hasWindowArea     TRUE when a window is selected and drawn
- * \param scale             Screen pixels per layer unit
- * \param drawList          Target draw list
- * \param isCanvasHovered   TRUE while the mouse is over the canvas
- * \param hintPosition      Where the hint line is drawn
+ * \param[in,out] owner             Editor owning the document; holds the drag state
+ * \param[in,out] document          Document
+ * \param[in]     hitScreen         Index of the screen under the cursor, or ARINC661_CONFIGURATION_MAX_SCREENS
+ * \param[in]     hitWindow         Index of the window under the cursor, or ARINC661_CONFIGURATION_MAX_WINDOWS
+ * \param[in]     windowMin         Canvas top-left of the selected window
+ * \param[in]     windowMax         Canvas bottom-right of the selected window
+ * \param[in]     hasWindowArea     TRUE when a window is selected and drawn
+ * \param[in]     scale             Canvas pixels per configured screen pixel
+ * \param[in,out] drawList          Target draw list
+ * \param[in]     isCanvasHovered   TRUE while the mouse is over the canvas
+ * \param[in]     hintPosition      Unused
  *
- * \retval None
+ * \retval        None
  */
 static void DrawSceneInteraction(Arinc661_Configuration_Editor_t* owner, Arinc661_Configuration_Document_t* document, uint32_t hitScreen, uint32_t hitWindow, ImVec2 windowMin, ImVec2 windowMax, bool_t hasWindowArea, float32_t scale, ImDrawList* drawList, bool_t isCanvasHovered, ImVec2 hintPosition);
 
 /*************************************************************************************************/
 /**
- * \brief Asks the context what it knows about the user application's Definition File: presence in the folder, whether it is open, its layer and widget counts, and whether its ApplicationId agrees with the FACE applicationId.
+ * \brief Asks the context to create a Definition File for the selected user application.
  *
- * \param editor        Editor state
- * \param document      Document
- * \param application   User application
+ * \param[in,out] editor     Editor state
+ * \param[in,out] document   Document whose selected user application gets the file
  *
- * \retval None
+ * \retval        None
  */
 static void CreateDefinitionForSelection(Arinc661_Configuration_Editor_t* editor, Arinc661_Configuration_Document_t* document);
 
 /*************************************************************************************************/
 /**
- * \brief Draws a user application's Definition File tree under its hierarchy node.
+ * \brief Draws a user application's definition tree under its hierarchy node.
  *
- * \param[in,out] document      Document being edited
+ * \param[in]     document      Document being edited
  * \param[in]     application   The user application
  *
  * \retval        None
@@ -1079,7 +1079,7 @@ static void DrawEmbeddedDefinition(Arinc661_Configuration_Document_t* document, 
 
 /*************************************************************************************************/
 /**
- * \brief Lists the layers of the user application's open Definition File with fit checks.
+ * \brief Lists the layers of the user application's open definition, flagging those larger than its window.
  *
  * \param[in,out] editor        Editor state
  * \param[in]     document      Document being edited
@@ -1103,50 +1103,51 @@ static void DrawDefinitionState(Arinc661_Configuration_Editor_t* editor, Arinc66
 
 /*************************************************************************************************/
 /**
- * \brief FACE H.3.2: a window's scalingFactor relates baseUnit to perUnit; when it relates pixels to millimetres or inches it gives pixels per 0.01 mm directly.
+ * \brief Computes a window's screen pixels per layer unit (0.01 mm) along one axis.
  *
- * \param screen         Screen
- * \param window         Window
- * \param isHorizontal   TRUE for the X axis
+ * \param[in] screen         Screen holding the window, or NULL
+ * \param[in] window         Window
+ * \param[in] isHorizontal   TRUE for the X axis
  *
- * \retval float32_t   Screen pixels per 0.01 mm along the axis.
+ * \retval    float32_t      Screen pixels per 0.01 mm along the axis.
  */
 static float32_t PixelsPerLayerUnit(const FACEOE_DisplayManagement_Screen_t* screen, const FACEOE_DisplayManagement_Window_t* window, bool_t isHorizontal);
 
 /*************************************************************************************************/
 /**
- * \brief Every user application targeting the window has its open Definition File recorded with the layer origin at the window's lower-left corner, scaled by the window's pixel density and the scene scale, clipped to the window.
+ * \brief Draws the open definitions of the visible user applications targeting a window and
+ *  records their widget bounds.
  *
- * \param editor     Editor state
- * \param document   Document
- * \param screen     Screen
- * \param window     Window
- * \param areaMin    Screen top-left of the window area
- * \param areaMax    Screen bottom-right of the window area
- * \param scale      Screen pixels per layer unit
- * \param drawList   Target draw list
+ * \param[in,out] editor     Editor state; receives the preview bounds
+ * \param[in]     document   Document
+ * \param[in]     screen     Screen holding the window
+ * \param[in]     window     Window
+ * \param[in]     areaMin    Canvas top-left of the window area
+ * \param[in]     areaMax    Canvas bottom-right of the window area
+ * \param[in]     scale      Canvas pixels per configured screen pixel
+ * \param[in,out] drawList   Target draw list
  *
- * \retval None
+ * \retval        None
  */
 static void DrawWindowPreview(Arinc661_Configuration_Editor_t* editor, Arinc661_Configuration_Document_t* document, const FACEOE_DisplayManagement_Screen_t* screen, const FACEOE_DisplayManagement_Window_t* window, ImVec2 areaMin, ImVec2 areaMax, float32_t scale, ImDrawList* drawList);
 
 /*************************************************************************************************/
 /**
- * \brief Counts and optionally draws one XML filename discovered by the OS file layer.
+ * \brief Counts or draws one XML filename found by OS_File_EnumerateFiles.
  *
- * \param[in] fileName   Filename in the selected folder
- * \param[in] context    XML file list state
+ * \param[in]     fileName   Filename in the editor's folder
+ * \param[in,out] context    XmlFileListContext_t of the list
  *
- * \retval    None
+ * \retval        None
  */
 static void DrawXmlFileEntry(const char_t* fileName, void* context);
 
 /*************************************************************************************************/
 /**
- * \brief Lists XML files in the configured folder and updates the selected filename.
+ * \brief Lists the XML files in the editor's folder; a click opens one.
  *
- * \param[in,out] editor        Editor state
- * \param[in]     folderInputX  Horizontal position of the folder input
+ * \param[in,out] editor         Editor state
+ * \param[in]     folderInputX   Horizontal position of the folder input, to align the list with it
  *
  * \retval        None
  */
@@ -1154,7 +1155,7 @@ static void DrawXmlFileList(Arinc661_Configuration_Editor_t* editor, float32_t f
 
 /*************************************************************************************************/
 /**
- * \brief Draws the file path, file actions, and status above the panes.
+ * \brief Draws the folder path and its XML file list above the panes.
  *
  * \param[in,out] editor   Editor state
  *
@@ -1164,7 +1165,7 @@ static void DrawFileControls(Arinc661_Configuration_Editor_t* editor);
 
 /*************************************************************************************************/
 /**
- * \brief Closes a document slot and selects another open document.
+ * \brief Closes a document slot; closing the active document activates another open one.
  *
  * \param[in,out] editor          Editor state
  * \param[in]     documentIndex   Document slot to close
@@ -1175,7 +1176,7 @@ static void CloseDocument(Arinc661_Configuration_Editor_t* editor, uint32_t docu
 
 /*************************************************************************************************/
 /**
- * \brief Draws the File menu for the active document.
+ * \brief Draws the File menu and handles the New shortcut.
  *
  * \param[in,out] editor   Editor state
  *
@@ -1195,7 +1196,7 @@ static void DrawSaveAsDialog(Arinc661_Configuration_Editor_t* editor);
 
 /*************************************************************************************************/
 /**
- * \brief Draws document tabs and handles save confirmation for dirty tabs.
+ * \brief Draws the document tabs and the unsaved-changes prompt for closing a dirty tab.
  *
  * \param[in,out] editor   Editor state
  *
@@ -1205,7 +1206,7 @@ static void DrawDocumentTabs(Arinc661_Configuration_Editor_t* editor);
 
 /*************************************************************************************************/
 /**
- * \brief Draws the document state and latest editor message below the panes.
+ * \brief Draws the latest status message below the panes.
  *
  * \param[in] editor   Editor state
  *
@@ -1217,7 +1218,7 @@ static void DrawStatusBar(const Arinc661_Configuration_Editor_t* editor);
 /**
  * \brief Draws the configuration hierarchy in the left child pane.
  *
- * \param[in,out] editor   Editor state
+ * \param[in,out] editor   Document
  *
  * \retval        None
  */
@@ -1227,7 +1228,8 @@ static void DrawHierarchyPane(Arinc661_Configuration_Document_t* editor);
 /**
  * \brief Draws the selected configuration item's properties in the right child pane.
  *
- * \param[in,out] editor   Editor state
+ * \param[in,out] editor     Editor state
+ * \param[in,out] document   Document
  *
  * \retval        None
  */
@@ -1235,9 +1237,10 @@ static void DrawInspectorPane(Arinc661_Configuration_Editor_t* editor, Arinc661_
 
 /*************************************************************************************************/
 /**
- * \brief Draws screen and window geometry with selected hierarchy items highlighted.
+ * \brief Draws the scene pane: screens, windows, and definition previews, with the selection highlighted.
  *
- * \param[in,out] editor   Editor state and hierarchy selection
+ * \param[in,out] owner    Editor owning the document
+ * \param[in,out] editor   Document
  *
  * \retval        None
  */
@@ -1257,7 +1260,7 @@ static void ClampPaneResize(float32_t minimumHierarchyWidth);
 /**
  * \brief Measures the minimum hierarchy width and default inspector width.
  *
- * \param[in]  editor           Editor state containing hierarchy row labels
+ * \param[in]  editor           Document whose hierarchy rows are measured
  * \param[out] hierarchyWidth   Minimum width needed for hierarchy controls
  * \param[out] inspectorWidth   Width needed for the property fields
  *
@@ -1336,7 +1339,7 @@ static const char_t* EditorStatusToString(int32_t status)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Uses forward slashes in joined paths so either folder separator spelling compares equally.
+ *  Turns the folder's backslashes into forward slashes so either separator spelling compares equal.
  */
 static void JoinFolderPath(const char_t* folderPath, const char_t* fileName, char_t* filePath, uint32_t capacity)
 {
@@ -1405,7 +1408,8 @@ static bool_t GetXmlFilePath(Arinc661_Configuration_Editor_t* editor, const char
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Sums valid screen widths and finds the tallest valid screen in the current configuration.
+ *  Counts the screens with positive pixel width and height, sums their widths, and finds the
+ *  tallest.
  */
 static void UpdatePreviewMeasurements(Arinc661_Configuration_Document_t* editor)
 {
@@ -1436,7 +1440,7 @@ static void UpdatePreviewMeasurements(Arinc661_Configuration_Document_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Preserves an open document's edits when the selected path matches its stored path.
+ *  A path that is already open is selected, not reread, so its unsaved edits stay.
  */
 static void LoadConfigurationFile(Arinc661_Configuration_Editor_t* editor, const char_t* fileName)
 {
@@ -1567,7 +1571,7 @@ static void LoadConfigurationFile(Arinc661_Configuration_Editor_t* editor, const
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Starts an empty, dirty document in one initialized slot.
+ *  Starts an empty, dirty document in the first free slot.
  */
 static void CreateDocument(Arinc661_Configuration_Editor_t* editor)
 {
@@ -1619,7 +1623,7 @@ static void CreateDocument(Arinc661_Configuration_Editor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Keeps file output outside the in-memory arinc661_definition module.
+ *  Refuses duplicate identifiers; the document stays dirty unless the whole file is written.
  */
 static void UnloadConfigurationFile(Arinc661_Configuration_Document_t* editor)
 {
@@ -1690,7 +1694,8 @@ static void SaveDocument(Arinc661_Configuration_Editor_t* editor, uint32_t docum
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Attempts every dirty document and leaves a failed document marked dirty.
+ *  Writes every dirty document that has a path, leaving failures dirty; the first untitled one
+ *  opens the save-as dialog, which resumes Save All after it saves.
  */
 static void SaveAllDocuments(Arinc661_Configuration_Editor_t* editor)
 {
@@ -1742,7 +1747,8 @@ static void SaveAllDocuments(Arinc661_Configuration_Editor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Keeps a new file inside its selected folder and requires the XML extension.
+ *  Requires the .xml extension and rejects path separators and the other characters Windows
+ *  forbids in filenames, so the file stays in the chosen folder.
  */
 static bool_t IsValidXmlFileName(const char_t* fileName)
 {
@@ -1797,7 +1803,7 @@ static bool_t IsValidXmlFileName(const char_t* fileName)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Uses the directory enumerator's existing filename conversion to detect collisions.
+ *  Compares ignoring case, as Windows filenames do.
  */
 static void FindMatchingFile(const char_t* fileName, void* context)
 {
@@ -1814,7 +1820,7 @@ static void FindMatchingFile(const char_t* fileName, void* context)
 /**
  * \par Details:
  *  Lists every window of the document by identifier and name; FACE H.3.1 requires a user
- *  application's window to name one of them. A reference to no known window shows as none.
+ *  application's window to name one of them. A reference to an unknown window shows as (none).
  */
 static bool_t DrawWindowChoiceField(const Arinc661_Configuration_Document_t* editor, const char_t* label, int64_t* value)
 {
@@ -1865,8 +1871,8 @@ static bool_t DrawWindowChoiceField(const Arinc661_Configuration_Document_t* edi
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Offers the Definition Files found in the folder, which the host validated as ARINC 661
- *  Definition Files, plus none. A path outside the list is shown as typed.
+ *  Offers (none) and the Definition File names the host added, which it validated as ARINC 661
+ *  Definition Files. A path outside the list is shown as stored.
  */
 static bool_t DrawDefinitionChoiceField(const Arinc661_Configuration_Editor_t* editor, const char_t* label, char_t* value, uint32_t capacity)
 {
@@ -1911,7 +1917,7 @@ static bool_t DrawDefinitionChoiceField(const Arinc661_Configuration_Editor_t* e
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Dispatches to the identifier search for the selected entity type.
+ *  Returns one more than the largest identifier in the kind's scope.
  */
 static bool_t NextIdentifier(const Arinc661_Configuration_Document_t* editor, SelectionKind_t kind, uint32_t screenIndex, int64_t* id)
 {
@@ -1969,7 +1975,8 @@ static bool_t NextIdentifier(const Arinc661_Configuration_Document_t* editor, Se
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Screen, window, and application IDs are document-wide; layout IDs are local to one screen.
+ *  Screen, window, user application, and external source IDs are document-wide; layout IDs are
+ *  local to one screen.
  */
 static bool_t IsIdentifierUnique(const Arinc661_Configuration_Document_t* editor, SelectionKind_t kind, uint32_t screenIndex, uint32_t itemIndex, int64_t id)
 {
@@ -2213,7 +2220,7 @@ static int64_t GetMaxUserApplicationIdentifier(const Arinc661_Configuration_Docu
 /*************************************************************************************************/
 /**
  * \par Details:
- *  New screens receive pixel and physical dimensions that can be edited immediately.
+ *  A new screen takes the DEFAULT_SCREEN_* pixel and physical dimensions.
  */
 static void AddScreen(Arinc661_Configuration_Document_t* editor)
 {
@@ -2251,7 +2258,7 @@ static void AddScreen(Arinc661_Configuration_Document_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  A layout stores its owning screen index and no XML location.
+ *  A layout refers to its screen by array index, not by XML id.
  */
 static void AddLayout(Arinc661_Configuration_Document_t* editor, uint32_t screenIndex)
 {
@@ -2283,7 +2290,7 @@ static void AddLayout(Arinc661_Configuration_Document_t* editor, uint32_t screen
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The window begins at the origin and uses its screen's current pixel size.
+ *  The window starts at the origin with its screen's current pixel size.
  */
 static void AddWindow(Arinc661_Configuration_Document_t* editor, uint32_t layoutIndex)
 {
@@ -2326,7 +2333,7 @@ static void AddWindow(Arinc661_Configuration_Document_t* editor, uint32_t layout
 /*************************************************************************************************/
 /**
  * \par Details:
- *  A new application starts with an empty Definition File path and the first window if available.
+ *  A new user application has an empty dFPath and targets the first window, if any.
  */
 static void AddUserApplication(Arinc661_Configuration_Document_t* editor)
 {
@@ -2364,7 +2371,7 @@ static void AddUserApplication(Arinc661_Configuration_Document_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Compacts the user application array after the chosen entry.
+ *  Shifts the later user applications down one slot.
  */
 static void RemoveUserApplication(Arinc661_Configuration_Document_t* editor, uint32_t applicationIndex)
 {
@@ -2387,7 +2394,7 @@ static void RemoveUserApplication(Arinc661_Configuration_Document_t* editor, uin
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The new source takes the next free id and empty name and type.
+ *  The new source has an empty name and type.
  */
 static void AddExternalSource(Arinc661_Configuration_Document_t* editor)
 {
@@ -2418,7 +2425,7 @@ static void AddExternalSource(Arinc661_Configuration_Document_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Compacts the external source array after the chosen entry.
+ *  Shifts the later external sources down one slot.
  */
 static void RemoveExternalSource(Arinc661_Configuration_Document_t* editor, uint32_t sourceIndex)
 {
@@ -2436,7 +2443,7 @@ static void RemoveExternalSource(Arinc661_Configuration_Document_t* editor, uint
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Compacts the window array after the chosen entry.
+ *  Shifts the later windows down one slot.
  */
 static void RemoveWindow(Arinc661_Configuration_Document_t* editor, uint32_t windowIndex)
 {
@@ -2459,7 +2466,8 @@ static void RemoveWindow(Arinc661_Configuration_Document_t* editor, uint32_t win
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Removes associated windows before compacting layout indices.
+ *  Removes the layout's windows and renumbers the other windows' layoutIndex before shifting
+ *  the later layouts down one slot.
  */
 static void RemoveLayout(Arinc661_Configuration_Document_t* editor, uint32_t layoutIndex)
 {
@@ -2499,7 +2507,8 @@ static void RemoveLayout(Arinc661_Configuration_Document_t* editor, uint32_t lay
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Removes child layouts and windows before compacting screen indices.
+ *  Removes the screen's layouts with their windows and renumbers the other layouts' screenIndex
+ *  before shifting the later screens down one slot.
  */
 static void RemoveScreen(Arinc661_Configuration_Document_t* editor, uint32_t screenIndex)
 {
@@ -2540,7 +2549,7 @@ static void RemoveScreen(Arinc661_Configuration_Document_t* editor, uint32_t scr
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Fits the X to the current font and centers it in a tree-row-height hit area.
+ *  Sizes the X to the current font and centers it in a hit area as tall as the row.
  */
 static bool_t DrawRemoveButton(const char_t* label, float32_t rowHeight)
 {
@@ -2564,7 +2573,7 @@ static bool_t DrawRemoveButton(const char_t* label, float32_t rowHeight)
     ImGui::SameLine();
     is_clicked = ImGui::InvisibleButton(label, button_size);
     ImGui::SetItemTooltip("%s", label);
-    // Show the cross only while the pointer is on the row, as a modern editor keeps rows clean
+    // Draw the cross only while the pointer is on the row, keeping the other rows uncluttered
     if (FALSE == ImGui::IsMouseHoveringRect(ImVec2(ImGui::GetWindowPos().x, ImGui::GetItemRectMin().y), ImVec2(ImGui::GetWindowPos().x + ImGui::GetWindowSize().x, ImGui::GetItemRectMax().y)))
     {
         return is_clicked;
@@ -2588,7 +2597,8 @@ static bool_t DrawRemoveButton(const char_t* label, float32_t rowHeight)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Iterates the typed parent indices and applies requested additions or removals after traversal.
+ *  Groups children under parents through their screenIndex and layoutIndex. Removals and layout
+ *  or window additions wait until the tree is drawn, so array indices stay valid while drawing.
  */
 static void DrawHierarchy(Arinc661_Configuration_Document_t* editor)
 {
@@ -2871,7 +2881,7 @@ static bool_t BeginPropertyTable(const char_t* name)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Draws a label and a signed numeric input in the current two-column table.
+ *  Draws a label and a 64-bit signed integer input in the current two-column table.
  */
 static bool_t DrawIntegerField(const char_t* label, int64_t* value)
 {
@@ -2892,7 +2902,8 @@ static bool_t DrawIntegerField(const char_t* label, int64_t* value)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The input edits a temporary value so a duplicate never enters the document.
+ *  The input edits a temporary value so a duplicate never enters the document; a rejected value
+ *  sets the matching duplicate-ID status.
  */
 static bool_t DrawIdentifierField(Arinc661_Configuration_Document_t* editor, SelectionKind_t kind, uint32_t screenIndex, uint32_t itemIndex, int64_t* value)
 {
@@ -2975,7 +2986,7 @@ static bool_t DrawTextField(const char_t* label, char_t* value, uint32_t capacit
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Converts the stored bool_t value for ImGui's bool checkbox interface.
+ *  Converts between the stored bool_t and the bool ImGui's checkbox takes.
  */
 static bool_t DrawBooleanField(const char_t* label, bool_t* value)
 {
@@ -3001,7 +3012,7 @@ static bool_t DrawBooleanField(const char_t* label, bool_t* value)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Restricts the choice to the FACE Units enumeration.
+ *  Restricts the choice to the FACE Units values, shown with their XML spellings.
  */
 static bool_t DrawUnitField(const char_t* label, FACEOE_DisplayManagement_Unit_t* unit)
 {
@@ -3058,7 +3069,8 @@ static void MarkDocumentDirty(Arinc661_Configuration_Document_t* editor, bool_t 
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Screen pixel and physical dimensions remain grouped under their screen selection.
+ *  Edits the identifier, pixel size, and physical dimensions, then lists the screen's layouts
+ *  with their window counts and offers to add one.
  */
 static void DrawScreenInspector(Arinc661_Configuration_Document_t* editor)
 {
@@ -3143,7 +3155,7 @@ static void DrawScreenInspector(Arinc661_Configuration_Document_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Layouts have an identifier; their screen relationship is shown by the hierarchy.
+ *  Edits the identifier and owning screen, then lists the layout's windows and offers to add one.
  */
 static void DrawLayoutInspector(Arinc661_Configuration_Document_t* editor)
 {
@@ -3192,7 +3204,7 @@ static void DrawLayoutInspector(Arinc661_Configuration_Document_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Window geometry and scaling values are edited as typed fields.
+ *  Edits the identifier, name, layout, pixel area, and scaling factor.
  */
 static void DrawWindowInspector(Arinc661_Configuration_Document_t* editor)
 {
@@ -3234,8 +3246,8 @@ static void DrawWindowInspector(Arinc661_Configuration_Document_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Lists the user applications whose window attribute names this window, with their
- *  Definition Files, and selects one on click.
+ *  Matches each user application's window attribute against the window id; with no match, a
+ *  placeholder line says so.
  */
 static void DrawWindowApplications(Arinc661_Configuration_Document_t* editor, const FACEOE_DisplayManagement_Window_t* window)
 {
@@ -3270,7 +3282,8 @@ static void DrawWindowApplications(Arinc661_Configuration_Document_t* editor, co
 /*************************************************************************************************/
 /**
  * \par Details:
- *  User application attributes are edited in their stored order.
+ *  The uint32_t id is edited through an int64_t copy; the hint names the widgets that reference
+ *  the source.
  */
 static void DrawExternalSourceInspector(Arinc661_Configuration_Document_t* editor)
 {
@@ -3297,7 +3310,8 @@ static void DrawExternalSourceInspector(Arinc661_Configuration_Document_t* edito
 /*************************************************************************************************/
 /**
  * \par Details:
- *  User application attributes are edited in their stored order.
+ *  Edits the attributes in their stored order, then shows the Definition File's state and the
+ *  definition's layers.
  */
 static void DrawUserApplicationInspector(Arinc661_Configuration_Editor_t* editor, Arinc661_Configuration_Document_t* document)
 {
@@ -3309,7 +3323,7 @@ static void DrawUserApplicationInspector(Arinc661_Configuration_Editor_t* editor
     if (BeginPropertyTable(USER_APPLICATION_TABLE_ID))
     {
         MarkDocumentDirty(document, DrawIdentifierField(document, SELECTION_USER_APPLICATION, 0, document->selectedIndex, &application->applicationId));
-        // Offer only windows of this document and Definition Files of the folder
+        // Offer only this document's windows and the host's Definition File names
         MarkDocumentDirty(document, DrawWindowChoiceField(document, WINDOW_ID_LABEL, &application->window));
         MarkDocumentDirty(document, DrawDefinitionChoiceField(editor, DF_PATH_LABEL, application->dFPath, sizeof(application->dFPath)));
         MarkDocumentDirty(document, DrawTextField(STYLE_FILE_PATH_LABEL, application->styleFilePath, sizeof(application->styleFilePath)));
@@ -3324,9 +3338,9 @@ static void DrawUserApplicationInspector(Arinc661_Configuration_Editor_t* editor
 /*************************************************************************************************/
 /**
  * \par Details:
- *  An open file shows its whole layer and widget tree, editable in place: a click inside
- *  selects in the Definition File editor and moves the focus there. A closed file in the
- *  folder opens on click; an unknown name is reported.
+ *  An open definition shows its layer and widget tree; a selection made in it moves the focus
+ *  to the Definition File editor. A Definition File in the folder that is not open opens on
+ *  click; an unknown name is shown in the invalid-value color.
  */
 static void DrawEmbeddedDefinition(Arinc661_Configuration_Document_t* document, const FACEOE_DisplayManagement_UserApplication_t* application)
 {
@@ -3366,8 +3380,8 @@ static void DrawEmbeddedDefinition(Arinc661_Configuration_Document_t* document, 
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Each layer row shows its id, name, and size against the window; a click selects the
- *  layer in the Definition File editor.
+ *  Each row shows the layer's id, name, and size in 0.01 mm, flagged when it exceeds the
+ *  target window by more than 0.1%; a click selects the layer in the Definition File editor.
  */
 static void DrawDefinitionLayers(Arinc661_Configuration_Editor_t* editor, const Arinc661_Configuration_Document_t* document, const FACEOE_DisplayManagement_UserApplication_t* application)
 {
@@ -3418,7 +3432,8 @@ static void DrawDefinitionLayers(Arinc661_Configuration_Editor_t* editor, const 
 /**
  * \par Details:
  *  Hands the selected user application to the context, which creates a Definition File named
- *  after its dFPath with its applicationId and a layer sized to its window.
+ *  after its dFPath (application_<applicationId>.xml when empty) with its applicationId and a
+ *  layer sized to its window. An empty dFPath then takes that name.
  */
 static void CreateDefinitionForSelection(Arinc661_Configuration_Editor_t* editor, Arinc661_Configuration_Document_t* document)
 {
@@ -3445,7 +3460,8 @@ static void CreateDefinitionForSelection(Arinc661_Configuration_Editor_t* editor
  * \par Details:
  *  Asks the context what it knows about the user application's Definition File: presence in
  *  the folder, whether it is open, its layer and widget counts, and whether its ApplicationId
- *  agrees with the FACE applicationId. Offers to open it and to adopt its identifier.
+ *  agrees with the FACE applicationId. Offers to show the file, to adopt its ApplicationId, or,
+ *  when there is no file, to create one.
  */
 static void DrawDefinitionState(Arinc661_Configuration_Editor_t* editor, Arinc661_Configuration_Document_t* document, FACEOE_DisplayManagement_UserApplication_t* application)
 {
@@ -3514,7 +3530,8 @@ static void DrawDefinitionState(Arinc661_Configuration_Editor_t* editor, Arinc66
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Filters regular files by extension before drawing a selectable row.
+ *  Accepts .xml names that fit a document name; the first pass counts them and the second draws
+ *  each as a row that opens the file.
  */
 static void DrawXmlFileEntry(const char_t* fileName, void* context)
 {
@@ -3554,7 +3571,8 @@ static void DrawXmlFileEntry(const char_t* fileName, void* context)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Shows a short scrolling list of XML files in the configured folder.
+ *  Enumerates the folder twice: once to size the list to at most XML_LIST_MAX_ROWS rows, once to
+ *  draw it.
  */
 static void DrawXmlFileList(Arinc661_Configuration_Editor_t* editor, float32_t folderInputX)
 {
@@ -3605,7 +3623,8 @@ static void DrawXmlFileList(Arinc661_Configuration_Editor_t* editor, float32_t f
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Keeps file controls together above the editor panes.
+ *  Editing the folder path clears the status, or asks for a folder or file when no document is
+ *  active.
  */
 static void DrawFileControls(Arinc661_Configuration_Editor_t* editor)
 {
@@ -3644,7 +3663,7 @@ static void DrawFileControls(Arinc661_Configuration_Editor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Returns the fixed slot to the available pool without releasing its allocated workspace.
+ *  Empties the slot for reuse; its undo history is freed when the slot is next filled.
  */
 static void CloseDocument(Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex)
 {
@@ -3699,7 +3718,7 @@ static void CloseDocument(Arinc661_Configuration_Editor_t* editor, uint32_t docu
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Keeps document actions in the editor's menu bar.
+ *  Close asks first when the active document has unsaved changes.
  */
 static void DrawFileMenuBar(Arinc661_Configuration_Editor_t* editor)
 {
@@ -3771,7 +3790,8 @@ static void DrawFileMenuBar(Arinc661_Configuration_Editor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Each tab points to its own fixed document slot. The unsaved flag displays a dot on dirty tabs.
+ *  Tab IDs carry the slot index, so a renamed document keeps its tab; dirty tabs show the
+ *  unsaved-document dot. The prompt waits while the save-as dialog is open.
  */
 static void DrawDocumentTabs(Arinc661_Configuration_Editor_t* editor)
 {
@@ -3906,7 +3926,8 @@ static void DrawDocumentTabs(Arinc661_Configuration_Editor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Names an untitled document in an existing folder before its first write.
+ *  Names an untitled document in an existing folder before its first write, refusing a name
+ *  already in the folder or open. After saving, it finishes a pending close or resumes Save All.
  */
 static void DrawSaveAsDialog(Arinc661_Configuration_Editor_t* editor)
 {
@@ -4055,7 +4076,7 @@ static void DrawSaveAsDialog(Arinc661_Configuration_Editor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Shows the current document message or file browser error.
+ *  The editor message wins over the active document's; with neither, shows Ready.
  */
 static void DrawStatusBar(const Arinc661_Configuration_Editor_t* editor)
 {
@@ -4082,7 +4103,7 @@ static void DrawStatusBar(const Arinc661_Configuration_Editor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Keeps the hierarchy in the left child pane.
+ *  The pane stays empty until the document is loaded.
  */
 static void DrawHierarchyPane(Arinc661_Configuration_Document_t* editor)
 {
@@ -4099,7 +4120,7 @@ static void DrawHierarchyPane(Arinc661_Configuration_Document_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Shows the selected item's typed fields in the right child pane.
+ *  Dispatches to the inspector of the selected kind, or asks for a selection.
  */
 static void DrawInspectorPane(Arinc661_Configuration_Editor_t* editor, Arinc661_Configuration_Document_t* document)
 {
@@ -4142,7 +4163,10 @@ static void DrawInspectorPane(Arinc661_Configuration_Editor_t* editor, Arinc661_
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Fits the combined screen widths and tallest screen inside the available canvas, selects clicked geometry, and draws the selection overlay.
+ *  Fits the drawable screens side by side in the canvas, selects the clicked screen or window,
+ *  and overlays the selection. Window y grows upward from the screen's bottom edge. In play
+ *  mode a click on a previewed widget goes to the Definition File editor as an interaction;
+ *  otherwise a double-click selects it there.
  */
 static void DrawScenePane(Arinc661_Configuration_Editor_t* owner, Arinc661_Configuration_Document_t* editor)
 {
@@ -4420,7 +4444,7 @@ static void DrawScenePane(Arinc661_Configuration_Editor_t* owner, Arinc661_Confi
                 }
                 DrawSceneInteraction(owner, editor, hover_screen, hover_window, handle_min, handle_max, has_handles, scale, draw_list, is_canvas_hovered, ImVec2(canvas_min.x + style->WindowPadding.x, canvas_max.y - label_height));
                 // In play mode a click acts on the previewed widget as a CDS would
-                if (is_canvas_hovered && owner->context->definitionEditor->isPlaying && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && (NULL != owner->context))
+                if (is_canvas_hovered && (NULL != owner->context) && owner->context->definitionEditor->isPlaying && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
                 {
                     const Arinc661_Widget_t*     play_widget;
                     const Arinc661_Definition_t* play_model;
@@ -4438,7 +4462,7 @@ static void DrawScenePane(Arinc661_Configuration_Editor_t* owner, Arinc661_Confi
                         }
                         if (owner->previewBounds[play_slot].widget == play_widget)
                         {
-                            // The bounds point into the widgets of the document they were drawn from
+                            // The widget's offset in the widgets of the definition it was drawn from is its index
                             play_model = Arinc661_DefinitionEditor_Document(owner->context->definitionEditor, owner->previewDocuments[play_slot]);
                             (void)Arinc661_DefinitionEditor_Interact(owner->context->definitionEditor, owner->previewDocuments[play_slot], (uint32_t)(play_widget - play_model->widgets),
                                                                (mouse_position.x - owner->previewBounds[play_slot].minimum.x) / ImMax(1.0f, owner->previewBounds[play_slot].maximum.x - owner->previewBounds[play_slot].minimum.x),
@@ -4447,8 +4471,8 @@ static void DrawScenePane(Arinc661_Configuration_Editor_t* owner, Arinc661_Confi
                         }
                     }
                 }
-                // A double-click on a previewed widget opens it in the Definition File editor
-                if (is_canvas_hovered && (FALSE == owner->context->definitionEditor->isPlaying) && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && (NULL != owner->context))
+                // A double-click on a previewed widget selects it in the Definition File editor
+                if (is_canvas_hovered && (NULL != owner->context) && (FALSE == owner->context->definitionEditor->isPlaying) && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
                 {
                     const Arinc661_Widget_t*     pick_widget;
                     const Arinc661_Definition_t* pick_model;
@@ -4483,7 +4507,7 @@ static void DrawScenePane(Arinc661_Configuration_Editor_t* owner, Arinc661_Confi
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Copies the five arrays' used parts and the counts into one heap block.
+ *  The selection is packed as the kind in the low 8 bits and the index above them.
  */
 static void* TakeSnapshot(const Arinc661_Configuration_Document_t* document)
 {
@@ -4528,7 +4552,7 @@ static void* TakeSnapshot(const Arinc661_Configuration_Document_t* document)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Copies a snapshot back and recomputes the derived screen extents.
+ *  Also restores the selection, marks the document dirty, and recomputes the screen extents.
  */
 static void RestoreSnapshot(Arinc661_Configuration_Document_t* document, const void* snapshot)
 {
@@ -4608,7 +4632,7 @@ static bool_t SnapshotMatches(const Arinc661_Configuration_Document_t* document,
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Frees every snapshot.
+ *  Frees the undo and redo stacks and the shadow.
  */
 static void ClearHistory(Arinc661_Configuration_Document_t* document)
 {
@@ -4631,7 +4655,8 @@ static void ClearHistory(Arinc661_Configuration_Document_t* document)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Once per frame: a changed model turns the shadow into an undo step and drops the redo stack.
+ *  Runs each frame and before an undo or redo. Without a shadow it only takes one; a change drops
+ *  the redo stack, and a full undo stack drops its oldest step.
  */
 static void CommitHistory(Arinc661_Configuration_Document_t* document)
 {
@@ -4664,7 +4689,8 @@ static void CommitHistory(Arinc661_Configuration_Document_t* document)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The current state moves to the redo stack; the newest undo step becomes the model.
+ *  Commits pending changes first. The current state moves to the redo stack, which drops its
+ *  oldest step when full; the newest undo step becomes the model.
  */
 static void UndoDocument(Arinc661_Configuration_Document_t* document)
 {
@@ -4688,7 +4714,8 @@ static void UndoDocument(Arinc661_Configuration_Document_t* document)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Mirror of UndoDocument.
+ *  Commits pending changes first. The current state moves to the undo stack; the newest redo
+ *  step becomes the model.
  */
 static void RedoDocument(Arinc661_Configuration_Document_t* document)
 {
@@ -4706,42 +4733,65 @@ static void RedoDocument(Arinc661_Configuration_Document_t* document)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Removes the selected element through the same paths the hierarchy uses.
+ *  Matches the hierarchy's remove buttons: a removed layout selects its screen, a removed
+ *  window its layout, and anything else selects nothing; the document is marked dirty.
  */
 static void RemoveSelection(Arinc661_Configuration_Document_t* document)
 {
+    uint32_t parent_index;
+
     switch (document->selectedKind)
     {
         case SELECTION_SCREEN:
             if (document->selectedIndex < document->configuration.screenCount)
             {
                 RemoveScreen(document, document->selectedIndex);
+                document->selectedKind  = SELECTION_NONE;
+                document->selectedIndex = 0;
+                document->isDirty       = TRUE;
+                document->status        = STATUS_SCREEN_REMOVED;
             }
             break;
         case SELECTION_LAYOUT:
             if (document->selectedIndex < document->configuration.layoutCount)
             {
+                parent_index = document->layouts[document->selectedIndex].screenIndex;
                 RemoveLayout(document, document->selectedIndex);
+                document->selectedKind  = SELECTION_SCREEN;
+                document->selectedIndex = parent_index;
+                document->isDirty       = TRUE;
+                document->status        = STATUS_LAYOUT_REMOVED;
             }
             break;
         case SELECTION_WINDOW:
             if (document->selectedIndex < document->configuration.windowCount)
             {
+                parent_index = document->windows[document->selectedIndex].layoutIndex;
                 RemoveWindow(document, document->selectedIndex);
+                document->selectedKind  = SELECTION_LAYOUT;
+                document->selectedIndex = parent_index;
+                document->isDirty       = TRUE;
+                document->status        = STATUS_WINDOW_REMOVED;
             }
             break;
         case SELECTION_USER_APPLICATION:
             if (document->selectedIndex < document->configuration.userApplicationCount)
             {
                 RemoveUserApplication(document, document->selectedIndex);
+                document->selectedKind  = SELECTION_NONE;
+                document->selectedIndex = 0;
+                document->isDirty       = TRUE;
+                document->status        = STATUS_USER_APPLICATION_REMOVED;
             }
             break;
         case SELECTION_EXTERNAL_SOURCE:
             if (document->selectedIndex < document->configuration.externalSourceCount)
             {
                 RemoveExternalSource(document, document->selectedIndex);
-                document->selectedKind = SELECTION_NONE;
-                document->isDirty      = TRUE;
+                document->selectedKind  = SELECTION_NONE;
+                document->selectedIndex = 0;
+                document->isDirty       = TRUE;
+                document->status        = STATUS_EXTERNAL_SOURCE_REMOVED;
             }
             break;
         default:
@@ -4752,9 +4802,8 @@ static void RemoveSelection(Arinc661_Configuration_Document_t* document)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  A window copy keeps the geometry and layout with a fresh id, offset by a tenth of its
- *  size so it is visible; a user application copy keeps its window and paths with a fresh
- *  applicationId.
+ *  A window copy keeps every value but the id and is offset by a tenth of its size so it is
+ *  visible; a user application copy keeps every value but the applicationId.
  */
 static void DuplicateSelection(Arinc661_Configuration_Document_t* document)
 {
@@ -4793,7 +4842,7 @@ static void DuplicateSelection(Arinc661_Configuration_Document_t* document)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Combo over the document's screens, shown by id.
+ *  Stores the chosen screen's array index.
  */
 static bool_t DrawScreenChoiceField(const Arinc661_Configuration_Document_t* document, const char_t* label, uint32_t* screenIndex)
 {
@@ -4835,7 +4884,7 @@ static bool_t DrawScreenChoiceField(const Arinc661_Configuration_Document_t* doc
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Combo over the document's layouts, each shown with its screen.
+ *  Stores the chosen layout's array index; a layout without a valid screen shows screen -1.
  */
 static bool_t DrawLayoutChoiceField(const Arinc661_Configuration_Document_t* document, const char_t* label, uint32_t* layoutIndex)
 {
@@ -4888,8 +4937,8 @@ static bool_t DrawLayoutChoiceField(const Arinc661_Configuration_Document_t* doc
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Icon row above the canvas: add screen, layout, window, user application, then duplicate
- *  and delete for the selection.
+ *  Add screen, layout, window, and user application; duplicate and delete for the selection;
+ *  then a help icon whose tooltip lists the scene controls.
  */
 static void DrawSceneToolbar(Arinc661_Configuration_Editor_t* owner, Arinc661_Configuration_Document_t* document)
 {
@@ -4935,10 +4984,10 @@ static void DrawSceneToolbar(Arinc661_Configuration_Editor_t* owner, Arinc661_Co
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Direct manipulation of windows on the scene: press on a window selects it and starts a
- *  move; press on a corner handle of the selected window starts a resize; the arrow keys
- *  nudge; Delete removes the selection; a right-click opens a menu to add elements where
- *  the cursor is. Screen pixels grow downward on both sides, so only the scale differs.
+ *  A press on a corner handle of the selected window starts a resize, a press on a window a
+ *  move; either takes effect once the mouse travels DRAG_THRESHOLD pixels. The arrow keys nudge
+ *  the selected window (Shift: 10 pixels); Delete removes the selection; a right-click opens a
+ *  menu to add elements at the cursor or to duplicate or remove the window under it.
  */
 static void DrawSceneInteraction(Arinc661_Configuration_Editor_t* owner, Arinc661_Configuration_Document_t* document, uint32_t hitScreen, uint32_t hitWindow, ImVec2 windowMin, ImVec2 windowMax, bool_t hasWindowArea, float32_t scale, ImDrawList* drawList, bool_t isCanvasHovered, ImVec2 hintPosition)
 {
@@ -5143,7 +5192,9 @@ static void DrawSceneInteraction(Arinc661_Configuration_Editor_t* owner, Arinc66
             }
             if (ImGui::MenuItem(REMOVE_MENU_LABEL))
             {
-                RemoveWindow(document, hitWindow);
+                document->selectedKind  = SELECTION_WINDOW;
+                document->selectedIndex = hitWindow;
+                RemoveSelection(document);
             }
         }
         ImGui::EndPopup();
@@ -5154,10 +5205,10 @@ static void DrawSceneInteraction(Arinc661_Configuration_Editor_t* owner, Arinc66
 /*************************************************************************************************/
 /**
  * \par Details:
- *  FACE H.3.2: a window's scalingFactor relates baseUnit to perUnit; when it relates pixels
- *  to millimetres or inches it gives pixels per 0.01 mm directly. Otherwise the screen's
- *  pixelSize over its physicalDimensions gives the density. With neither, a fallback density
- *  keeps the preview visible.
+ *  FACE H.3.2: a window's scalingFactor relates baseUnit to perUnit; between pixels and
+ *  millimeters or inches, in either direction, it gives the pixel density directly. Otherwise
+ *  the screen's pixelSize over its physicalDimensions gives it. With neither,
+ *  SCENE_PIXELS_PER_MM_FALLBACK keeps the preview visible.
  */
 static float32_t PixelsPerLayerUnit(const FACEOE_DisplayManagement_Screen_t* screen, const FACEOE_DisplayManagement_Window_t* window, bool_t isHorizontal)
 {
@@ -5223,10 +5274,11 @@ static float32_t PixelsPerLayerUnit(const FACEOE_DisplayManagement_Screen_t* scr
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Every user application targeting the window has its open Definition File recorded with
- *  the layer origin at the window's lower-left corner, scaled by the window's pixel density
- *  and the scene scale, clipped to the window. Files that are not open draw nothing, so the
- *  preview shows only what the editor knows.
+ *  Each layer origin sits at the window's lower-left corner, scaled by the window's pixel
+ *  density and the scene scale, and the drawing is clipped to the window. A Definition File
+ *  that is not open draws nothing. The bounds report widget pointers into the drawn definition,
+ *  and previewDocuments records its slot; the widget selected in the Definition File editor is
+ *  outlined.
  */
 static void DrawWindowPreview(Arinc661_Configuration_Editor_t* editor, Arinc661_Configuration_Document_t* document, const FACEOE_DisplayManagement_Screen_t* screen, const FACEOE_DisplayManagement_Window_t* window, ImVec2 areaMin, ImVec2 areaMax, float32_t scale, ImDrawList* drawList)
 {
@@ -5297,7 +5349,7 @@ static void DrawWindowPreview(Arinc661_Configuration_Editor_t* editor, Arinc661_
 /**
  * \par Details:
  *  Keeps the hierarchy controls visible and stops the left divider at the right divider.
- *  Stops the right divider when the inspector reaches the hierarchy's width.
+ *  Stops the right divider before the inspector becomes narrower than the hierarchy.
  */
 static void ClampPaneResize(float32_t minimumHierarchyWidth)
 {
@@ -5334,7 +5386,9 @@ static void ClampPaneResize(float32_t minimumHierarchyWidth)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Includes every hierarchy label and its adjacent remove control in the left pane minimum.
+ *  The hierarchy minimum fits the add labels and the screen, layout, window, and user
+ *  application ID labels, each with its remove control; the inspector fits its widest property
+ *  label beside an INT64_MIN value.
  */
 static void MeasurePaneWidths(const Arinc661_Configuration_Document_t* editor, float32_t* hierarchyWidth, float32_t* inspectorWidth)
 {
@@ -5409,7 +5463,8 @@ static void MeasurePaneWidths(const Arinc661_Configuration_Document_t* editor, f
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Draws the active document in three resizable panes above the status bar.
+ *  Draws the active document in three resizable panes above the status bar; without one, the
+ *  empty first slot fills them.
  */
 static void DrawPanes(Arinc661_Configuration_Editor_t* editor)
 {
@@ -5456,7 +5511,7 @@ static void DrawPanes(Arinc661_Configuration_Editor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Initializes every editor field and its owned array storage.
+ *  Points each document's configuration at its own arrays and gives the draw list its storage.
  */
 void Arinc661_Configuration_Initialize(Arinc661_Configuration_Editor_t* editor)
 {
@@ -5526,7 +5581,8 @@ void Arinc661_Configuration_Initialize(Arinc661_Configuration_Editor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Draws file controls above the panes and a full-width status bar below them.
+ *  Draws the menu bar, file controls, and document tabs above the panes and the status bar
+ *  below them, then calls Arinc661_Configuration_EndFrame.
  */
 void Arinc661_Configuration_DrawEditor(Arinc661_Configuration_Editor_t* editor)
 {
@@ -5571,7 +5627,7 @@ void Arinc661_Configuration_SetFolderPath(Arinc661_Configuration_Editor_t* edito
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Same as selecting the file in the file list.
+ *  Same as clicking the file in the XML file list.
  */
 void Arinc661_Configuration_LoadFile(Arinc661_Configuration_Editor_t* editor, const char_t* fileName)
 {
@@ -5695,7 +5751,7 @@ void Arinc661_Configuration_DrawHierarchy(Arinc661_Configuration_Editor_t* edito
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Uses the first slot, which is never loaded, when no document is active.
+ *  Falls back to the first slot, which is empty when no document is active.
  */
 void Arinc661_Configuration_DrawScene(Arinc661_Configuration_Editor_t* editor)
 {
@@ -5714,7 +5770,7 @@ void Arinc661_Configuration_DrawScene(Arinc661_Configuration_Editor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Uses the first slot, which is never loaded, when no document is active.
+ *  Falls back to the first slot, which is empty when no document is active.
  */
 void Arinc661_Configuration_DrawInspector(Arinc661_Configuration_Editor_t* editor)
 {
@@ -5761,7 +5817,7 @@ const char_t* Arinc661_Configuration_StatusText(const Arinc661_Configuration_Edi
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Measures the first slot, which is never loaded, when no document is active.
+ *  Measures the first slot, which is empty when no document is active.
  */
 void Arinc661_Configuration_MeasurePanes(const Arinc661_Configuration_Editor_t* editor, float32_t* hierarchyWidth, float32_t* inspectorWidth)
 {
@@ -5813,7 +5869,7 @@ void Arinc661_Configuration_SetContext(Arinc661_Configuration_Editor_t* editor, 
 /*************************************************************************************************/
 /**
  * \par Details:
- *  NULL for an empty slot.
+ *  An out-of-range slot counts as empty.
  */
 const char_t* Arinc661_Configuration_DocumentName(const Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex)
 {
@@ -5832,7 +5888,7 @@ const char_t* Arinc661_Configuration_DocumentName(const Arinc661_Configuration_E
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Zero for an empty slot.
+ *  An out-of-range slot counts as empty.
  */
 uint32_t Arinc661_Configuration_UserApplicationCount(const Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex)
 {
@@ -5878,7 +5934,7 @@ bool_t Arinc661_Configuration_UserApplication(const Arinc661_Configuration_Edito
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The tab bar honours the document request on its next draw.
+ *  The tab bar selects the document's tab on its next draw.
  */
 void Arinc661_Configuration_SelectUserApplication(Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex, uint32_t applicationIndex)
 {
@@ -5895,7 +5951,7 @@ void Arinc661_Configuration_SelectUserApplication(Arinc661_Configuration_Editor_
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Acts on the active document.
+ *  Does nothing without an active document.
  */
 void Arinc661_Configuration_Undo(Arinc661_Configuration_Editor_t* editor)
 {
@@ -5909,7 +5965,7 @@ void Arinc661_Configuration_Undo(Arinc661_Configuration_Editor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Acts on the active document.
+ *  Does nothing without an active document.
  */
 void Arinc661_Configuration_Redo(Arinc661_Configuration_Editor_t* editor)
 {
@@ -5945,7 +6001,7 @@ void Arinc661_Configuration_History(const Arinc661_Configuration_Editor_t* edito
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Acts on the active document.
+ *  Does nothing without an active document.
  */
 void Arinc661_Configuration_DeleteSelection(Arinc661_Configuration_Editor_t* editor)
 {
@@ -5959,7 +6015,7 @@ void Arinc661_Configuration_DeleteSelection(Arinc661_Configuration_Editor_t* edi
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Acts on the active document.
+ *  Does nothing without an active document.
  */
 void Arinc661_Configuration_DuplicateSelection(Arinc661_Configuration_Editor_t* editor)
 {
@@ -5973,7 +6029,7 @@ void Arinc661_Configuration_DuplicateSelection(Arinc661_Configuration_Editor_t* 
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Acts on the active document.
+ *  Does nothing without an active document.
  */
 void Arinc661_Configuration_AddScreen(Arinc661_Configuration_Editor_t* editor)
 {
@@ -6025,7 +6081,7 @@ void Arinc661_Configuration_AddLayout(Arinc661_Configuration_Editor_t* editor)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Creates a screen and a layout first when the document has none.
+ *  Creates a layout first, and a screen for it if needed, when the document has no layout.
  */
 void Arinc661_Configuration_AddWindow(Arinc661_Configuration_Editor_t* editor)
 {
@@ -6205,7 +6261,7 @@ bool_t Arinc661_Configuration_Window(const Arinc661_Configuration_Editor_t* edit
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Zero for an empty slot.
+ *  An out-of-range slot counts as empty.
  */
 uint32_t Arinc661_Configuration_WindowCount(const Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex)
 {
@@ -6247,7 +6303,7 @@ bool_t Arinc661_Configuration_WindowAt(const Arinc661_Configuration_Editor_t* ed
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The tab bar honours the document request on its next draw.
+ *  The tab bar selects the document's tab on its next draw.
  */
 void Arinc661_Configuration_SelectWindow(Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex, uint32_t windowIndex)
 {
@@ -6264,7 +6320,8 @@ void Arinc661_Configuration_SelectWindow(Arinc661_Configuration_Editor_t* editor
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Uses the ordinary add path, then overwrites the seeded values.
+ *  Uses the ordinary add path, then overwrites the applicationId, window, and dFPath and sets
+ *  visible.
  */
 bool_t Arinc661_Configuration_AddUserApplicationFor(Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex, int64_t applicationId, int64_t windowId, const char_t* dFPath)
 {
@@ -6335,7 +6392,35 @@ uint32_t Arinc661_Configuration_RepointDefinition(Arinc661_Configuration_Editor_
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Configuration, then the selected screen, layout, window, or user application.
+ *  The document becomes dirty.
+ */
+bool_t Arinc661_Configuration_SetDefinitionPath(Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex, uint32_t applicationIndex, const char_t* dFPath)
+{
+    Arinc661_Configuration_Document_t* document;
+    bool_t                             is_set;
+
+    LOGASSERT(NULL != editor);
+    LOGASSERT(NULL != dFPath);
+    is_set = FALSE;
+    if ((documentIndex < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS) && editor->documents[documentIndex].isLoaded)
+    {
+        document = &editor->documents[documentIndex];
+        if (applicationIndex < document->configuration.userApplicationCount)
+        {
+            ImStrncpy(document->userApplications[applicationIndex].dFPath, dFPath, sizeof(document->userApplications[applicationIndex].dFPath));
+            document->isDirty = TRUE;
+            is_set            = TRUE;
+        }
+    }
+
+    return is_set;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The document name, then the path to the selected screen, layout, window, user application,
+ *  or external source.
  */
 void Arinc661_Configuration_SelectionText(const Arinc661_Configuration_Editor_t* editor, char_t* text, uint32_t capacity)
 {
@@ -6438,7 +6523,7 @@ bool_t Arinc661_Configuration_ExternalSourceAt(const Arinc661_Configuration_Edit
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The tab bar honours the document request on its next draw.
+ *  The tab bar selects the document's tab on its next draw.
  */
 void Arinc661_Configuration_SelectExternalSource(Arinc661_Configuration_Editor_t* editor, uint32_t documentIndex, uint32_t sourceIndex)
 {
@@ -6455,7 +6540,7 @@ void Arinc661_Configuration_SelectExternalSource(Arinc661_Configuration_Editor_t
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Acts on the active document.
+ *  Does nothing without an active document.
  */
 void Arinc661_Configuration_AddExternalSource(Arinc661_Configuration_Editor_t* editor)
 {

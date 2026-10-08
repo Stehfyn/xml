@@ -5,7 +5,7 @@ w = json.load(open('help.json'))
 root = r'C:\dev\xml\docs\help'
 os.makedirs(root, exist_ok=True)
 face = [("Configuration", "The FACE display management configuration file (FACE Technical Standard, Appendix H.3): screens, layouts, windows, user applications, and external sources. Create one with File > New Configuration, add a screen, a layout, a window, then a user application pointing at a Definition File."),
-        ("Screen", "A physical display surface (H.3.4): pixelSize gives its resolution, physicalDimensions its size in mm or inches. A screen holds layouts. The editor uses pixelSize over physicalDimensions as the pixel density for previews when a window has no pixel-per-mm scaling factor."),
+        ("Screen", "A physical display surface (H.3.3 to H.3.5): pixelSize gives its resolution, physicalDimensions its size in mm or inches. A screen holds layouts. The editor uses pixelSize over physicalDimensions as the pixel density for previews when a window has no pixel-per-mm scaling factor."),
         ("Layout", "A set of windows that are shown together on one screen (H.3.6). Select a layout to see and add its windows; a window belongs to exactly one layout."),
         ("Window", "A rectangle of a screen, in pixels (H.3.2): pixelArea is its origin and size, scalingFactor converts ARINC 661 screen units to pixels. User applications target windows by id. Drag a window in the scene to move it, drag its corners to resize."),
         ("UserApplication", "An ARINC 661 User Application (H.3.1): applicationId must equal the ApplicationId inside its Definition File, window names the window its layers appear in, dFPath names the Definition File. The inspector checks the identifier against the open Definition File and previews its layers inside the window."),
@@ -39,7 +39,7 @@ for code in sorted(w):
         body.append('<tr><td>%s</td><td>%s</td><td>%s</td></tr>' % (html.escape(n), c, html.escape(d)))
     body.append('</table>')
     write(code + '.htm', code, '\n'.join(body))
-# contents
+# Table of contents (.hhc)
 hhc = ['<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN"><HTML><BODY><UL>',
        '<LI><OBJECT type="text/sitemap"><param name="Name" value="Getting started"><param name="Local" value="Getting-Started.htm"></OBJECT>',
        '<LI><OBJECT type="text/sitemap"><param name="Name" value="FACE display management"></OBJECT><UL>']
@@ -53,7 +53,7 @@ for code in sorted(c for c in w if c.endswith('_EXTENSION')):
     hhc.append('<LI><OBJECT type="text/sitemap"><param name="Name" value="%s"><param name="Local" value="%s.htm"></OBJECT>' % (code, code))
 hhc.append('</UL></UL></BODY></HTML>')
 open(os.path.join(root, 'arinc661.hhc'), 'w', encoding='utf-8').write('\n'.join(hhc))
-# index: every topic plus every parameter name
+# Index (.hhk): every FACE and widget topic, plus every parameter name linked to up to 40 widgets
 hhk = ['<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN"><HTML><BODY><UL>']
 for n, d in face:
     hhk.append('<LI><OBJECT type="text/sitemap"><param name="Name" value="%s"><param name="Local" value="%s.htm"></OBJECT>' % (n, n))

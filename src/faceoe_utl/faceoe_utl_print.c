@@ -48,7 +48,7 @@
  * \param[in]     printed    snprintf result
  *
  * \retval        -1             The text does not fit, or snprintf failed.
- * \retval        1..INT32_MAX   Number of characters printed.
+ * \retval        0..INT32_MAX   Number of characters printed.
  */
 static int32_t CheckPrinted(char_t* a, uint32_t capacity, int printed);
 

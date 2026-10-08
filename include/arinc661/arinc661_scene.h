@@ -26,7 +26,7 @@
 ** 3.1 Macros
 **===============================================================================================*/
 
-/** Nodes a scene of the given layer, widget, and property counts needs: the root and its model node, a node and a model node per layer and per widget, and a node per property. */
+/** Nodes a scene needs: the root and its model node, two per layer and per widget (the node and its model node), and one per property. */
 #define ARINC661_SCENE_NODE_COUNT(layerCount, widgetCount, propertyCount) (2UL + (2UL * (layerCount)) + (2UL * (widgetCount)) + (propertyCount))
 
 /*=================================================================================================
@@ -35,13 +35,14 @@
 
 /*************************************************************************************************/
 /**
- * \brief The layer and widget hierarchy of one application, as a tree.
+ * \brief The layer and widget hierarchy of one definition, as a tree.
  *
  * \par Details:
- *  The root stands for the application. Each layer, widget, and extension is a node whose item points to
- *  its Arinc661_Layer_t or Arinc661_Widget_t, and whose first child is its model node. A model
- *  node has a NULL item, and its children are property nodes whose items point to the
- *  Arinc661_Property_t it owns, in array order:
+ *  The root, whose item is NULL, stands for the definition. Each layer, widget, and extension
+ *  is a node whose item points to its Arinc661_Layer_t or Arinc661_Widget_t. The root and
+ *  every layer, widget, and extension node have a model node as first child; a model node's
+ *  item is NULL, and its children are property nodes, in array order, whose items point to
+ *  the owner's Arinc661_Property_t entries:
  *
  * \verbatim
  * root                        item NULL
@@ -74,7 +75,7 @@ typedef FACEOE_Utl_Tree_t Arinc661_Scene_t;
  *
  * \par Requirements:
  *  - 001 This function shall place layers, widgets, and properties in array order.
- *  - 002 This function shall leave out a widget whose layer, or whose parent widget, is not an earlier array entry in the same layer, and every widget below it.
+ *  - 002 This function shall leave out a widget whose layerIndex is not below layerCount, or whose parent widget is not an earlier entry in the same layer, and every widget below it.
  *  - 003 This function shall leave out a widget whose omit flag is non-zero, and every widget below it.
  *  - 004 This function shall leave out a property whose owner is not in the arrays.
  *  - 005 This function shall return FALSE, with only the root in the scene, if nodeCapacity is less than ARINC661_SCENE_NODE_COUNT of the counts.
@@ -86,14 +87,14 @@ typedef FACEOE_Utl_Tree_t Arinc661_Scene_t;
  *
  * \param[out] scene           Scene to build
  * \param[out] nodes           Caller-owned node storage for the scene's tree
- * \param[in]  nodeCapacity    Number of nodes
+ * \param[in]  nodeCapacity    Number of nodes in nodes
  * \param[in]  layers          Layers
  * \param[in]  layerCount      Number of layers
  * \param[in]  widgets         Widgets and extensions
  * \param[in]  widgetCount     Number of widgets and extensions
- * \param[in]  properties      Properties of the application, the layers, and the widgets
+ * \param[in]  properties      Properties of the definition, the layers, and the widgets
  * \param[in]  propertyCount   Number of properties
- * \param[in]  omitFlags       Per-widget non-zero to leave the widget and everything below it out, or NULL
+ * \param[in]  omitFlags       One flag per widget, non-zero to leave the widget and everything below it out; or NULL
  *
  * \retval     TRUE            if the scene was built.
  * \retval     FALSE           if the nodes are too few.

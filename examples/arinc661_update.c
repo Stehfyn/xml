@@ -69,7 +69,7 @@
  * \param[out] buffer     Bytes read
  * \param[in]  capacity   Bytes in buffer
  *
- * \retval     int32_t    Bytes read, or negative on any failure or a status other than 200.
+ * \retval     int32_t    Bytes read, or negative on any failure, a status other than 200, or a body that does not fit.
  */
 static int32_t FetchHttp(const char_t* url, byte_t* buffer, uint32_t capacity);
 
@@ -95,17 +95,17 @@ static bool_t ReadLine(const char_t* line, const char_t* lineEnd, const char_t* 
  * \param[in]  text     Hex text
  * \param[out] digest   Bytes written
  *
- * \retval     TRUE     if exactly 64 hex digits were read.
+ * \retval     TRUE     if the text is exactly 64 hex digits.
  * \retval     FALSE    otherwise.
  */
 static bool_t ReadHex(const char_t* text, byte_t* digest);
 
 /*************************************************************************************************/
 /**
- * \brief Joins a relative package name onto the manifest's location.
+ * \brief Resolves a package name against the manifest's location.
  *
  * \param[in]  baseUrl    Manifest URL or path
- * \param[in]  name       Relative name
+ * \param[in]  name       Package name, URL, or path
  * \param[out] result     Joined text
  * \param[in]  capacity   Bytes in result
  *
@@ -119,7 +119,7 @@ static void JoinUrl(const char_t* baseUrl, const char_t* name, char_t* result, u
  *
  * \param[in] url   Source
  *
- * \retval    TRUE    if it starts with http:// or https://.
+ * \retval    TRUE    if it starts with http:// or https://, ignoring case.
  * \retval    FALSE   otherwise.
  */
 static bool_t IsHttp(const char_t* url);
@@ -141,7 +141,7 @@ static bool_t IsHttp(const char_t* url)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Every handle is closed on every path; the system proxy settings apply.
+ *  Every handle is closed on every path; the WinHTTP default proxy configuration applies.
  */
 static int32_t FetchHttp(const char_t* url, byte_t* buffer, uint32_t capacity)
 {
@@ -235,7 +235,8 @@ static int32_t FetchHttp(const char_t* url, byte_t* buffer, uint32_t capacity)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Keys are case-insensitive; whitespace around key and value is dropped.
+ *  Keys are case-insensitive. Spaces and tabs around key and value, and a trailing carriage
+ *  return, are dropped; a value longer than capacity - 1 bytes is truncated.
  */
 static bool_t ReadLine(const char_t* line, const char_t* lineEnd, const char_t* key, char_t* value, uint32_t capacity)
 {
@@ -245,10 +246,15 @@ static bool_t ReadLine(const char_t* line, const char_t* lineEnd, const char_t* 
     const char_t* value_end;
     size_t        length;
     size_t        key_length;
+    bool_t        is_trimmed;
 
     equals = line;
-    while ((equals < lineEnd) && ('=' != (*equals)))
+    while (equals < lineEnd)
     {
+        if ('=' == (*equals))
+        {
+            break;
+        }
         equals += 1;
     }
     if (equals >= lineEnd)
@@ -256,12 +262,22 @@ static bool_t ReadLine(const char_t* line, const char_t* lineEnd, const char_t* 
         return FALSE;
     }
     key_end = equals;
-    while ((key_end > line) && ((' ' == key_end[-1]) || ('\t' == key_end[-1])))
+    while (key_end > line)
     {
+        is_trimmed = (' ' == key_end[-1]) || ('\t' == key_end[-1]);
+        if (FALSE == is_trimmed)
+        {
+            break;
+        }
         key_end -= 1;
     }
-    while ((line < key_end) && ((' ' == (*line)) || ('\t' == (*line))))
+    while (line < key_end)
     {
+        is_trimmed = (' ' == (*line)) || ('\t' == (*line));
+        if (FALSE == is_trimmed)
+        {
+            break;
+        }
         line += 1;
     }
     // A key longer than the text before the equals sign stops one past it and fails the length check
@@ -271,13 +287,23 @@ static bool_t ReadLine(const char_t* line, const char_t* lineEnd, const char_t* 
         return FALSE;
     }
     value_start = (equals + 1);
-    while ((value_start < lineEnd) && ((' ' == (*value_start)) || ('\t' == (*value_start))))
+    while (value_start < lineEnd)
     {
+        is_trimmed = (' ' == (*value_start)) || ('\t' == (*value_start));
+        if (FALSE == is_trimmed)
+        {
+            break;
+        }
         value_start += 1;
     }
     value_end = lineEnd;
-    while ((value_end > value_start) && ((' ' == value_end[-1]) || ('\t' == value_end[-1]) || ('\r' == value_end[-1])))
+    while (value_end > value_start)
     {
+        is_trimmed = (' ' == value_end[-1]) || ('\t' == value_end[-1]) || ('\r' == value_end[-1]);
+        if (FALSE == is_trimmed)
+        {
+            break;
+        }
         value_end -= 1;
     }
     length = (size_t)(value_end - value_start);
@@ -338,8 +364,8 @@ static bool_t ReadHex(const char_t* text, byte_t* digest)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  A name with a scheme or a drive or UNC root is taken as is; otherwise it replaces the last
- *  segment of the base.
+ *  An http or https URL, a UNC path, or a path with a drive letter is taken as is; any other
+ *  name replaces the last segment of the base.
  */
 static void JoinUrl(const char_t* baseUrl, const char_t* name, char_t* result, uint32_t capacity)
 {
@@ -353,8 +379,16 @@ static void JoinUrl(const char_t* baseUrl, const char_t* name, char_t* result, u
     }
     base_length = strnlen(baseUrl, ARINC661_UPDATE_MAX_URL_BYTES);
     cut         = base_length;
-    while ((0 < cut) && ('/' != baseUrl[cut - 1]) && ('\\' != baseUrl[cut - 1]))
+    while (0 < cut)
     {
+        if ('/' == baseUrl[cut - 1])
+        {
+            break;
+        }
+        if ('\\' == baseUrl[cut - 1])
+        {
+            break;
+        }
         cut -= 1;
     }
     (void)snprintf(result, capacity, "%.*s%s", (int)cut, baseUrl, name);
@@ -476,8 +510,12 @@ bool_t Arinc661_Update_ParseManifest(const char_t* text, uint32_t byteCount, con
     while (line < end)
     {
         line_end = line;
-        while ((line_end < end) && ('\n' != (*line_end)))
+        while (line_end < end)
         {
+            if ('\n' == (*line_end))
+            {
+                break;
+            }
             line_end += 1;
         }
         if (ReadLine(line, line_end, KEY_VERSION, value, sizeof(value)))
@@ -528,7 +566,7 @@ int32_t Arinc661_Update_Fetch(const char_t* url, byte_t* buffer, uint32_t capaci
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The manifest buffer is heap allocated so the function stays usable from a small thread.
+ *  The manifest buffer is on the heap so the function can run on a thread with a small stack.
  */
 Arinc661_Update_Result_t Arinc661_Update_Check(const char_t* manifestUrl, const Arinc661_Update_Version_t* installed, Arinc661_Update_Manifest_t* manifest)
 {
@@ -569,7 +607,7 @@ Arinc661_Update_Result_t Arinc661_Update_Check(const char_t* manifestUrl, const 
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The package is held in memory for the digest, then written once.
+ *  The package is held in memory and written only after it matches the manifest's digest, if any.
  */
 Arinc661_Update_Result_t Arinc661_Update_Download(const Arinc661_Update_Manifest_t* manifest, char_t* path, uint32_t capacity)
 {
@@ -618,7 +656,7 @@ Arinc661_Update_Result_t Arinc661_Update_Download(const Arinc661_Update_Manifest
 /*************************************************************************************************/
 /**
  * \par Details:
- *  cmd.exe runs the installer and, when it exits with zero, starts the executable again. The
+ *  cmd.exe runs the installer and, when it exits with zero, starts relaunchPath if given. The
  *  shell is detached so it outlives this process.
  */
 bool_t Arinc661_Update_Apply(const char_t* packagePath, const char_t* relaunchPath)

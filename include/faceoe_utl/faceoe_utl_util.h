@@ -5,13 +5,13 @@
 
 /*************************************************************************************************/
 /**
- * \brief Finds a substring.
+ * \brief Finds the first occurrence of one string in another.
  *
- * \param str1              Str1
- * \param str2              Str2
- * \param caseInsensitive   Case insensitive
+ * \param[in] str1              Zero-terminated text to search
+ * \param[in] str2              Zero-terminated text to find; an empty string matches at str1
+ * \param[in] caseInsensitive   TRUE to compare characters after tolower
  *
- * \retval const char_t*   Pointer to the first match, or NULL.
+ * \retval    const char_t*   Pointer to the first match in str1, or NULL.
  */
 const char_t* FACEOE_Utl_StrStr(const char_t* str1, const char_t* str2, bool_t caseInsensitive);
 
@@ -21,7 +21,7 @@ const char_t* FACEOE_Utl_StrStr(const char_t* str1, const char_t* str2, bool_t c
  *
  * \param[in] str         Text to search
  * \param[in] character   Character to find; the zero terminator never matches
- * \param[in] sizeOfStr   Most characters to search
+ * \param[in] sizeOfStr   Maximum number of characters to search
  *
  * \retval    const char_t*   Pointer to the first match, or NULL when none comes before the terminator or the bound.
  */
@@ -29,24 +29,34 @@ const char_t* FACEOE_Utl_StrChr(const char_t* str, char_t character, uint64_t si
 
 /*************************************************************************************************/
 /**
- * \brief Splits a string into parts at a delimiter.
+ * \brief Copies the first part of a delimited string.
  *
- * \param str       Str
- * \param outStr    Out str
- * \param delim     Delim
- * \param dstSize   Dst size
+ * \par Details:
+ *  Copies str up to the first delim or zero terminator, cut to dstSize - 1
+ *  characters, into outStr and zero-terminates it. When str is empty or
+ *  starts with delim, outStr is not written.
  *
- * \retval uint64_t   Number of parts written.
+ * \param[in]  str       Zero-terminated text to split
+ * \param[out] outStr    Destination for the part
+ * \param[in]  delim     Delimiter character
+ * \param[in]  dstSize   Bytes in outStr, at least 2
+ *
+ * \retval     0          str is empty or starts with delim.
+ * \retval     uint64_t   Length of the part plus one; when the part ended at delim, the offset in str of the next part.
  */
 uint64_t FACEOE_Utl_StrSplit(const char_t* str, char_t* outStr, char_t delim, uint64_t dstSize);
 
 /*************************************************************************************************/
 /**
- * \brief Trims leading and trailing white space.
+ * \brief Removes leading and trailing white space in place.
  *
- * \param str   Str
+ * \par Details:
+ *  White space is any character isspace accepts. A string of only white space
+ *  is left unchanged.
  *
- * \retval None
+ * \param[in,out] str   Zero-terminated text to trim, or NULL to do nothing
+ *
+ * \retval        None
  */
 void FACEOE_Utl_StrTrim(char_t* str);
 

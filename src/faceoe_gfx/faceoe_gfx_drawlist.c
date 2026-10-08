@@ -55,14 +55,14 @@ static FACEOE_Gfx_Transform_t* CurrentTransform(FACEOE_Gfx_DrawList_t* drawList)
 
 /*************************************************************************************************/
 /**
- * \brief Maps the points through the current transform and appends a command.
+ * \brief Maps the points through the current transform and appends a zeroed command of that kind.
  *
  * \param drawList   Target draw list
- * \param kind       Kind
- * \param points     Points
- * \param count      Count
+ * \param kind       Command kind
+ * \param points     Local points; may be NULL when count is 0
+ * \param count      Number of points
  *
- * \retval FACEOE_Gfx_Command_t*   New command, or NULL when storage is exhausted.
+ * \retval FACEOE_Gfx_Command_t*   New command, or NULL (with isOverflowed set) when storage is exhausted.
  */
 static FACEOE_Gfx_Command_t* AppendCommand(FACEOE_Gfx_DrawList_t* drawList, FACEOE_Gfx_CommandKind_t kind, const FACEOE_Gfx_Point_t* points, uint32_t count);
 
@@ -70,14 +70,14 @@ static FACEOE_Gfx_Command_t* AppendCommand(FACEOE_Gfx_DrawList_t* drawList, FACE
 /**
  * \brief Samples an elliptical arc counter-clockwise from the start to the end angle.
  *
- * \param centerX        Center x
- * \param centerY        Center y
- * \param radiusX        Radius x
- * \param radiusY        Radius y
- * \param startRadians   Start radians
- * \param endRadians     End radians
- * \param points         Points
- * \param capacity       Bytes available
+ * \param centerX        Local X of the center
+ * \param centerY        Local Y of the center
+ * \param radiusX        Local X radius
+ * \param radiusY        Local Y radius
+ * \param startRadians   Start angle
+ * \param endRadians     End angle; a negative sweep gains one turn, and the sweep is capped at one turn
+ * \param points         Receives the sampled points
+ * \param capacity       Maximum number of points to write, at least 2
  *
  * \retval uint32_t   Points written.
  */
@@ -85,13 +85,13 @@ static uint32_t ArcPoints(float32_t centerX, float32_t centerY, float32_t radius
 
 /*************************************************************************************************/
 /**
- * \brief Fills the four corners of a local box.
+ * \brief Writes the four corners of a local box, starting at (x, y).
  *
- * \param x        X in layer units
- * \param y        Y in layer units
- * \param width    Width
- * \param height   Height
- * \param points   Points
+ * \param x        Local X of one corner
+ * \param y        Local Y of that corner
+ * \param width    Local width
+ * \param height   Local height
+ * \param points   Receives four points
  *
  * \retval None
  */
@@ -102,11 +102,11 @@ static void BoxPoints(float32_t x, float32_t y, float32_t width, float32_t heigh
  * \brief Maps a local box and returns its axis-aligned bounds as two points.
  *
  * \param drawList   Target draw list
- * \param x          X in layer units
- * \param y          Y in layer units
- * \param width      Width
- * \param height     Height
- * \param box        Box
+ * \param x          Local X of one corner
+ * \param y          Local Y of that corner
+ * \param width      Local width
+ * \param height     Local height
+ * \param box        Receives the minimum and maximum corners in output units
  *
  * \retval None
  */
@@ -114,14 +114,14 @@ static void MappedBox(const FACEOE_Gfx_DrawList_t* drawList, float32_t x, float3
 
 /*************************************************************************************************/
 /**
- * \brief Appends a command whose points are already in output units.
+ * \brief Appends a zeroed command whose points are already in output units.
  *
  * \param drawList   Target draw list
- * \param kind       Kind
- * \param points     Points
- * \param count      Count
+ * \param kind       Command kind
+ * \param points     Output points
+ * \param count      Number of points
  *
- * \retval FACEOE_Gfx_Command_t*   New command, or NULL when storage is exhausted.
+ * \retval FACEOE_Gfx_Command_t*   New command, or NULL (with isOverflowed set) when storage is exhausted.
  */
 static FACEOE_Gfx_Command_t* AppendMappedCommand(FACEOE_Gfx_DrawList_t* drawList, FACEOE_Gfx_CommandKind_t kind, const FACEOE_Gfx_Point_t* points, uint32_t count);
 
@@ -232,7 +232,7 @@ static void BoxPoints(float32_t x, float32_t y, float32_t width, float32_t heigh
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Mapped box.
+ *  Maps the four corners and keeps their minimum and maximum.
  */
 static void MappedBox(const FACEOE_Gfx_DrawList_t* drawList, float32_t x, float32_t y, float32_t width, float32_t height, FACEOE_Gfx_Point_t* box)
 {
@@ -270,7 +270,7 @@ static void MappedBox(const FACEOE_Gfx_DrawList_t* drawList, float32_t x, float3
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Append mapped command.
+ *  Same as AppendCommand without the mapping.
  */
 static FACEOE_Gfx_Command_t* AppendMappedCommand(FACEOE_Gfx_DrawList_t* drawList, FACEOE_Gfx_CommandKind_t kind, const FACEOE_Gfx_Point_t* points, uint32_t count)
 {
@@ -391,7 +391,7 @@ bool_t FACEOE_Gfx_DrawList_PushTransform(FACEOE_Gfx_DrawList_t* drawList)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The base transform is never popped.
+ *  Asserts that a pushed transform exists.
  */
 void FACEOE_Gfx_DrawList_PopTransform(FACEOE_Gfx_DrawList_t* drawList)
 {
@@ -604,7 +604,8 @@ void FACEOE_Gfx_DrawList_Line(FACEOE_Gfx_DrawList_t* drawList, float32_t x1, flo
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Walks the segment in dash-length steps; a non-positive dash length draws a solid line.
+ *  Alternates dashes and gaps of dashLength; a non-positive dashLength, or a segment no longer
+ *  than one dash, records a solid line.
  */
 void FACEOE_Gfx_DrawList_DashedLine(FACEOE_Gfx_DrawList_t* drawList, float32_t x1, float32_t y1, float32_t x2, float32_t y2, float32_t dashLength, FACEOE_Gfx_Color_t color, float32_t thickness)
 {
@@ -652,7 +653,7 @@ void FACEOE_Gfx_DrawList_DashedRectangle(FACEOE_Gfx_DrawList_t* drawList, float3
 /*************************************************************************************************/
 /**
  * \par Details:
- *  A filled sector adds the centre unless the arc is a full turn.
+ *  A filled sector adds the center unless the arc is a full turn.
  */
 void FACEOE_Gfx_DrawList_Arc(FACEOE_Gfx_DrawList_t* drawList, float32_t centerX, float32_t centerY, float32_t radiusX, float32_t radiusY, float32_t startRadians, float32_t endRadians, bool_t isFilled, FACEOE_Gfx_Color_t color, float32_t thickness)
 {
@@ -715,8 +716,8 @@ void FACEOE_Gfx_DrawList_Crown(FACEOE_Gfx_DrawList_t* drawList, float32_t center
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Stores the mapped box corners as two points plus the text bytes; text longer than the
- *  storage is truncated at the last whole byte.
+ *  Stores the mapped box bounds as two points and copies the text, cut to
+ *  FACEOE_GFX_MAX_TEXT_BYTES - 1 bytes; when the text storage is full, sets isOverflowed instead.
  */
 void FACEOE_Gfx_DrawList_Text(FACEOE_Gfx_DrawList_t* drawList, float32_t x, float32_t y, float32_t width, float32_t height, const char_t* text, FACEOE_Gfx_Align_t horizontal, FACEOE_Gfx_Align_t vertical, float32_t fontSize, float32_t radians, FACEOE_Gfx_Color_t color)
 {
@@ -805,7 +806,7 @@ const char_t* FACEOE_Gfx_DrawList_CommandText(const FACEOE_Gfx_DrawList_t* drawL
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Clamps the factor to 0..1.
+ *  Clamps the factor to 0..1 and rounds the scaled alpha to the nearest integer.
  */
 FACEOE_Gfx_Color_t FACEOE_Gfx_Color_Fade(FACEOE_Gfx_Color_t color, float32_t alpha)
 {

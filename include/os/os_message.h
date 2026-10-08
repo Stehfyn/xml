@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <wchar.h>
 
-/** Builds a message in caller-owned storage or emits it under a stream lock, without allocation. */
+/** Builds a message in a caller buffer or writes it to a locked stream, without allocation. */
 typedef struct Os_MessageBuilder
 {
     FILE*   stream;
@@ -18,21 +18,21 @@ typedef struct Os_MessageBuilder
 
 /*************************************************************************************************/
 /**
- * \brief Starts a message in the builder's own storage.
+ * \brief Starts a message written directly to a stream, which stays locked until Os_MessageBuilder_End.
  *
- * \param pMessage   P message
- * \param pStream    P stream
+ * \param[out] pMessage   Builder to start
+ * \param[in]  pStream    Non-NULL output stream
  *
  * \retval None
  */
 void Os_MessageBuilder_Begin(Os_MessageBuilder_t* pMessage, FILE* pStream);
 /*************************************************************************************************/
 /**
- * \brief Starts a message in a caller buffer.
+ * \brief Starts a message in a caller buffer, kept null-terminated; text that does not fit sets truncated.
  *
- * \param pMessage   P message
- * \param pBuffer    P buffer
- * \param capacity   Bytes available
+ * \param[out] pMessage   Builder to start
+ * \param[out] pBuffer    Destination buffer; may be NULL only when capacity is 0
+ * \param[in]  capacity   Size of pBuffer in bytes, including the terminator
  *
  * \retval None
  */
@@ -40,9 +40,9 @@ void Os_MessageBuilder_BeginBuffer(Os_MessageBuilder_t* pMessage, char_t* pBuffe
 
 /*************************************************************************************************/
 /**
- * \brief Terminates the message and returns it.
+ * \brief Ends a message, unlocking the stream of a stream message.
  *
- * \param pMessage   P message
+ * \param[in,out] pMessage   Builder to end
  *
  * \retval None
  */
@@ -52,18 +52,18 @@ void Os_MessageBuilder_End(Os_MessageBuilder_t* pMessage);
 /**
  * \brief Appends a string.
  *
- * \param pMessage   P message
- * \param pString    P string
+ * \param[in,out] pMessage   Started builder
+ * \param[in]     pString    Non-NULL null-terminated string
  *
  * \retval None
  */
 void Os_MessageBuilder_AppendString(Os_MessageBuilder_t* pMessage, const char_t* pString);
 /*************************************************************************************************/
 /**
- * \brief Appends a wide string converted to UTF-8.
+ * \brief Appends a wide string converted to UTF-8; invalid code points become U+FFFD.
  *
- * \param pMessage   P message
- * \param pString    P string
+ * \param[in,out] pMessage   Started builder
+ * \param[in]     pString    Non-NULL null-terminated UTF-16 or UTF-32 string
  *
  * \retval None
  */
@@ -73,8 +73,8 @@ void Os_MessageBuilder_AppendWideString(Os_MessageBuilder_t* pMessage, const wch
 /**
  * \brief Appends a signed integer in decimal.
  *
- * \param pMessage   P message
- * \param value      Value
+ * \param[in,out] pMessage   Started builder
+ * \param[in]     value      Integer to append
  *
  * \retval None
  */
@@ -84,8 +84,8 @@ void Os_MessageBuilder_AppendInt(Os_MessageBuilder_t* pMessage, int64_t value);
 /**
  * \brief Appends an unsigned integer in decimal.
  *
- * \param pMessage   P message
- * \param value      Value
+ * \param[in,out] pMessage   Started builder
+ * \param[in]     value      Integer to append
  *
  * \retval None
  */
@@ -93,12 +93,12 @@ void Os_MessageBuilder_AppendUint(Os_MessageBuilder_t* pMessage, uint64_t value)
 
 /*************************************************************************************************/
 /**
- * \brief Appends an unsigned integer in hexadecimal.
+ * \brief Appends an unsigned integer in hexadecimal, without a "0x" prefix.
  *
- * \param pMessage        P message
- * \param value           Value
- * \param minimumDigits   Minimum digits
- * \param uppercase       Uppercase
+ * \param[in,out] pMessage        Started builder
+ * \param[in]     value           Integer to append
+ * \param[in]     minimumDigits   Minimum digit count; shorter values are zero-padded
+ * \param[in]     uppercase       TRUE for A-F, FALSE for a-f
  *
  * \retval None
  */
@@ -106,20 +106,20 @@ void Os_MessageBuilder_AppendHex(Os_MessageBuilder_t* pMessage, uint64_t value, 
 
 /*************************************************************************************************/
 /**
- * \brief Appends a pointer value.
+ * \brief Appends a pointer as "0x" and zero-padded lowercase hexadecimal.
  *
- * \param pMessage   P message
- * \param pValue     P value
+ * \param[in,out] pMessage   Started builder
+ * \param[in]     pValue     Pointer to append; may be NULL
  *
  * \retval None
  */
 void Os_MessageBuilder_AppendPointer(Os_MessageBuilder_t* pMessage, const void* pValue);
 /*************************************************************************************************/
 /**
- * \brief Appends a floating-point number.
+ * \brief Appends a float in scientific notation with up to nine significant digits, e.g. 1.5e+03.
  *
- * \param pMessage   P message
- * \param value      Value
+ * \param[in,out] pMessage   Started builder
+ * \param[in]     value      Number to append; zero prints "0", non-finite values "nan" or "inf"
  *
  * \retval None
  */

@@ -47,12 +47,13 @@
 ** 3.4 Static global variables
 **===============================================================================================*/
 
-/** Segoe MDL2 Assets code points per icon; vertical variants rotate the horizontal glyph. */
+/** Segoe MDL2 Assets code point per icon, in Arinc661_Icon_t order; vertical variants reuse the
+    horizontal glyph, rotated. */
 static const ImWchar c_glyphs[] =
 {
     0xE8A5, /* NEW: Document */
     0xE74E, /* SAVE */
-    0xE78C, /* SAVE_ALL: SaveAs */
+    0xE78C, /* SAVE_ALL: SaveLocal */
     0xE7A7, /* UNDO */
     0xE7A6, /* REDO */
     0xE81E, /* ADD_LAYER: MapLayers */
@@ -60,7 +61,7 @@ static const ImWchar c_glyphs[] =
     0xE723, /* ADD_EXTENSION: Attach */
     0xE8C8, /* DUPLICATE: Copy */
     0xE74D, /* DELETE */
-    0xE80A, /* GRID: Calculator grid fallback */
+    0xE80A, /* GRID: TiltDown */
     0xE718, /* SNAP: Pin */
     0xE9A6, /* FIT: FitPage */
     0xE897, /* HELP */
@@ -68,16 +69,16 @@ static const ImWchar c_glyphs[] =
     0xE71F, /* ZOOM_OUT */
     0xE7F4, /* SCREEN: TVMonitor */
     0xE8A9, /* LAYOUT: ViewAll */
-    0xE7C4, /* WINDOW: Window */
-    0xE8B7, /* APPLICATION: AllApps */
+    0xE7C4, /* WINDOW: TaskView */
+    0xE8B7, /* APPLICATION: Folder */
     0xE8E4, /* ALIGN_LEFT: AlignLeft */
     0xE8E2, /* ALIGN_RIGHT: AlignRight */
     0xE8E4, /* ALIGN_TOP: rotated AlignLeft */
     0xE8E2, /* ALIGN_BOTTOM: rotated AlignRight */
     0xE8E3, /* ALIGN_CENTER_X: AlignCenter */
     0xE8E3, /* ALIGN_CENTER_Y: rotated AlignCenter */
-    0xE8EB, /* DISTRIBUTE_X: Font size? fallback to primitives when missing */
-    0xE8EB, /* DISTRIBUTE_Y */
+    0xE8EB, /* DISTRIBUTE_X: Reshare */
+    0xE8EB, /* DISTRIBUTE_Y: rotated Reshare */
     0xE71E, /* ZOOM_SELECTION: Zoom */
     0xE890, /* EYE: View */
     0xE72E, /* LOCK */
@@ -102,7 +103,7 @@ static bool_t s_hasIconFont;
  * \param[in]     icon       Icon to draw
  * \param[in]     minimum    Top-left of the icon box
  * \param[in]     maximum    Bottom-right of the icon box
- * \param[in]     color      Icon colour
+ * \param[in]     color      Icon color
  *
  * \retval        None
  */
@@ -126,7 +127,7 @@ static void EncodeUtf8(ImWchar codePoint, char_t* text);
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Three-byte sequences cover the private use area the icon font lives in.
+ *  The icon font's private use area code points take three bytes.
  */
 static void EncodeUtf8(ImWchar codePoint, char_t* text)
 {
@@ -157,8 +158,8 @@ static void EncodeUtf8(ImWchar codePoint, char_t* text)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Segoe UI becomes the default font; the icon face is merged with a slight downward offset so
- *  glyphs sit on the text baseline.
+ *  The text font becomes the default; the icon font is merged at ICON_SCALE of the text size,
+ *  one pixel lower so glyphs sit on the text baseline.
  */
 bool_t Arinc661_Icons_LoadFonts(float32_t textSize)
 {
@@ -189,8 +190,8 @@ bool_t Arinc661_Icons_LoadFonts(float32_t textSize)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The glyph is centred in the box; vertical alignment icons reuse the horizontal glyph turned
- *  a quarter turn. Missing glyphs fall back to the primitive drawing.
+ *  The glyph is centered in the box; vertical align and distribute icons reuse the horizontal
+ *  glyph, rotated a quarter turn. Missing glyphs fall back to primitives.
  */
 void Arinc661_Icons_Draw(ImDrawList* drawList, Arinc661_Icon_t icon, ImVec2 minimum, ImVec2 maximum, ImU32 color)
 {
@@ -219,7 +220,7 @@ void Arinc661_Icons_Draw(ImDrawList* drawList, Arinc661_Icon_t icon, ImVec2 mini
         drawList->AddText(font, font_size, position, color, text);
         if (is_rotated)
         {
-            // Quarter turn about the box centre
+            // Quarter turn clockwise about the box center
             for (vertex_index = vertex_start; vertex_index < drawList->VtxBuffer.Size; ++vertex_index)
             {
                 dx = (drawList->VtxBuffer[vertex_index].pos.x - center.x);
@@ -238,7 +239,7 @@ void Arinc661_Icons_Draw(ImDrawList* drawList, Arinc661_Icon_t icon, ImVec2 mini
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Every icon is drawn from lines and rectangles inside the button, so no icon font is needed.
+ *  Shapes are scaled to the box width; only the help icon uses the current font, for its "?".
  */
 static void DrawPrimitiveIcon(ImDrawList* drawList, Arinc661_Icon_t icon, ImVec2 minimum, ImVec2 maximum, ImU32 color)
 {
@@ -387,7 +388,7 @@ static void DrawPrimitiveIcon(ImDrawList* drawList, Arinc661_Icon_t icon, ImVec2
         case ARINC661_ICON_ALIGN_LEFT:
         case ARINC661_ICON_ALIGN_RIGHT:
         case ARINC661_ICON_ALIGN_CENTER_X:
-            // A vertical guide with two bars touching it
+            // A vertical guide with two bars aligned to it
             if (ARINC661_ICON_ALIGN_LEFT == icon)
             {
                 drawList->AddLine(ImVec2(minimum.x, minimum.y), ImVec2(minimum.x, maximum.y), color, 1.5f);
@@ -490,7 +491,8 @@ static void DrawPrimitiveIcon(ImDrawList* drawList, Arinc661_Icon_t icon, ImVec2
 /*************************************************************************************************/
 /**
  * \par Details:
- *  A square button drawn with an icon; the tooltip names the action and its shortcut.
+ *  Wraps to a new row when the button does not fit. The tooltip shows the label and the
+ *  shortcut, if any, also while disabled.
  *
  * \retval TRUE    if the button was pressed.
  * \retval FALSE   otherwise.
@@ -503,7 +505,7 @@ bool_t Arinc661_Icons_Button(Arinc661_Icon_t icon, const char_t* label, const ch
     ImU32       color;
     bool_t      is_pressed;
 
-    // Start a new row rather than clip when the button would not fit
+    // Wrap rather than clip
     if (ImGui::GetContentRegionAvail().x < TOOLBAR_BUTTON_SIZE)
     {
         ImGui::NewLine();
@@ -553,7 +555,8 @@ bool_t Arinc661_Icons_Button(Arinc661_Icon_t icon, const char_t* label, const ch
 /*************************************************************************************************/
 /**
  * \par Details:
- *  A short vertical line with spacing on both sides.
+ *  A short vertical line with spacing on both sides; wraps to a new row when the gap and the
+ *  next button do not fit.
  */
 void Arinc661_Icons_Gap(void)
 {

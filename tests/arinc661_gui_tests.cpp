@@ -6,7 +6,7 @@
 ** 2. INCLUDE FILES
 **===============================================================================================*/
 
-/* Include the editor source so its static model functions can be checked after each frame. */
+/* Include the editor source so the test can call its static functions. */
 #include "../examples/arinc661_definition_editor.cpp"
 
 #include "../examples/arinc661_configuration.h"
@@ -68,7 +68,7 @@ static Arinc661_Context_t*              s_context;
 
 /*************************************************************************************************/
 /**
- * \brief Runs one editor frame: scene, hierarchy, and inspector windows at fixed places.
+ * \brief Runs one editor frame: hierarchy, scene, and inspector windows at fixed places, then dialogs.
  *
  * \retval None
  */
@@ -76,7 +76,7 @@ static void Frame(void);
 
 /*************************************************************************************************/
 /**
- * \brief Runs a few frames so hover and focus state settles.
+ * \brief Runs GUI_SETTLE_FRAMES frames so hover and focus state settles.
  *
  * \retval None
  */
@@ -138,10 +138,10 @@ static uint32_t IndexOf(const char_t* name);
 
 /*************************************************************************************************/
 /**
- * \brief Reads a numeric widget parameter of the active document.
+ * \brief Reads a numeric widget property of the active document.
  *
  * \param[in] widgetIndex   Widget array index
- * \param[in] name          Parameter name
+ * \param[in] name          Property name
  *
  * \retval    float32_t     Value, zero when absent.
  */
@@ -154,7 +154,7 @@ static float32_t NumberOf(uint32_t widgetIndex, const char_t* name);
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The layout mirrors the host's default: scene in the middle, hierarchy left, inspector right.
+ *  The layout mirrors the host's default: hierarchy left, scene in the middle, inspector right.
  */
 static void Frame(void)
 {
@@ -328,9 +328,10 @@ static float32_t NumberOf(uint32_t widgetIndex, const char_t* name)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Drives the Definition File editor through the null backend with synthetic mouse and key
- *  events: frames without a document, the example file through select, move, rotate, nudge,
- *  wheel zoom, box select, multi-selection, delete, undo, play mode, and the animation time.
+ *  Drives the definition editor through the null backend with synthetic mouse and key events:
+ *  no document, an empty document, then the example file through click select, move, rotate,
+ *  nudge, zoom, box select, delete, undo, play mode, animation time, a locked widget, and a
+ *  narrow window. argv[1] is the folder holding the example file.
  */
 int main(int argc, char** argv)
 {
@@ -358,7 +359,7 @@ int main(int argc, char** argv)
     s_definitionEditor    = (Arinc661_DefinitionEditor_t*)OS_CALLOC(sizeof(Arinc661_DefinitionEditor_t));
     s_configurationEditor = (Arinc661_Configuration_Editor_t*)OS_CALLOC(sizeof(Arinc661_Configuration_Editor_t));
     s_context             = (Arinc661_Context_t*)OS_CALLOC(sizeof(Arinc661_Context_t));
-    Arinc661_Definition_Initialize(s_definitionEditor);
+    Arinc661_DefinitionEditor_Initialize(s_definitionEditor);
     Arinc661_Configuration_Initialize(s_configurationEditor);
     Arinc661_Context_Initialize(s_context, s_configurationEditor, s_definitionEditor);
     Arinc661_DefinitionEditor_SetFolderPath(s_definitionEditor, argv[1]);
@@ -375,7 +376,7 @@ int main(int argc, char** argv)
     assert(INVALID_HIERARCHY_INDEX != secondary_index);
     widget_count = s_definitionEditor->documents[s_definitionEditor->activeDocumentIndex].definition.widgetCount;
 
-    /* Select the layer so the scene draws it, then click a label: it becomes the selection */
+    /* Select StatusLabel so the scene draws its layer, then click SecondaryLabel: it becomes the selection */
     Arinc661_DefinitionEditor_SelectByName(s_definitionEditor, GUI_STATUS_LABEL);
     Settle();
     assert(BoundsOf(GUI_STATUS_LABEL, &minimum, &maximum));
@@ -404,7 +405,7 @@ int main(int argc, char** argv)
     Press(ImGuiKey_RightArrow);
     assert(NumberOf(secondary_index, PROPERTY_POS_X) == (pos_x + NUDGE_STEP));
 
-    /* The wheel zooms the view about the cursor */
+    /* The wheel over the scene zooms in; F resets the zoom to 1 */
     zoom = s_definitionEditor->documents[s_definitionEditor->activeDocumentIndex].viewZoom;
     assert(BoundsOf(GUI_STATUS_LABEL, &minimum, &maximum));
     ImGui::GetIO().AddMousePosEvent((minimum.x + maximum.x) * 0.5f, (minimum.y + maximum.y) * 0.5f);
@@ -430,7 +431,7 @@ int main(int argc, char** argv)
     Settle();
     assert(widget_count == s_definitionEditor->documents[s_definitionEditor->activeDocumentIndex].definition.widgetCount);
 
-    /* Play mode and the animation time draw frames and restore cleanly */
+    /* Play mode and set animation times draw without asserting */
     Arinc661_DefinitionEditor_BeginPlay(s_definitionEditor);
     Settle();
     Arinc661_DefinitionEditor_EndPlay(s_definitionEditor);
@@ -439,7 +440,7 @@ int main(int argc, char** argv)
     Arinc661_DefinitionEditor_SetAnimationTime(s_definitionEditor, -1.0f);
     Settle();
 
-    /* Hidden and locked widgets: a locked widget is not picked by a click */
+    /* A click does not pick a locked widget */
     Arinc661_DefinitionEditor_SelectByName(s_definitionEditor, GUI_STATUS_LABEL);
     Settle();
     s_definitionEditor->documents[s_definitionEditor->activeDocumentIndex].isLocked[secondary_index] = TRUE;

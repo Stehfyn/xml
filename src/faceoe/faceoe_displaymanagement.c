@@ -85,7 +85,7 @@
 
 /*************************************************************************************************/
 /**
- * \brief Temporary XML data owned by the caller's opaque workspace.
+ * \brief Temporary XML storage carved from the caller's opaque workspace.
  */
 typedef struct XmlWorkspace_s
 {
@@ -119,7 +119,7 @@ typedef struct XmlWorkspace_s
  * \param[in]  bytes       Eight-byte-aligned workspace bytes
  * \param[in]  byteCount   Workspace size
  *
- * \retval     TRUE        if the workspace has enough bytes.
+ * \retval     TRUE        if the workspace is aligned and large enough.
  * \retval     FALSE       if the workspace is too small or misaligned.
  */
 static bool_t InitializeXmlWorkspace(XmlWorkspace_t* xml, void* bytes, uint64_t byteCount);
@@ -128,11 +128,11 @@ static bool_t InitializeXmlWorkspace(XmlWorkspace_t* xml, void* bytes, uint64_t 
 /**
  * \brief Compares a counted element name with a literal.
  *
- * \param[in] node   XML node
+ * \param[in] node   XML node, or NULL
  * \param[in] name   Expected element name
  *
  * \retval    TRUE        if the node is an element with the expected name.
- * \retval    FALSE       if the type or name differs.
+ * \retval    FALSE       if the node is NULL, not an element, or has another name.
  */
 static bool_t HasElementName(const FACEOE_Utl_Xml_Node_t* node, const char_t* name);
 
@@ -143,7 +143,7 @@ static bool_t HasElementName(const FACEOE_Utl_Xml_Node_t* node, const char_t* na
  * \param[in] parent   Parent element
  * \param[in] name     Expected child name
  *
- * \retval    non-NULL   Matching child.
+ * \retval    non-NULL   First matching child.
  * \retval    NULL       if the child is absent.
  */
 static FACEOE_Utl_Xml_Node_t* FindChild(FACEOE_Utl_Xml_Node_t* parent, const char_t* name);
@@ -182,7 +182,7 @@ static bool_t HasAttributeValue(const FACEOE_Utl_Xml_Attribute_t* attribute, con
  * \param[in]  capacity      Number of destination bytes
  *
  * \retval     TRUE        if the attribute is absent or fits the destination.
- * \retval     FALSE       if the attribute exceeds the destination.
+ * \retval     FALSE       if the value and its terminator exceed capacity.
  */
 static bool_t CopyAttribute(const FACEOE_Utl_Xml_Node_t* node, const char_t* name, char_t* destination, uint32_t capacity);
 
@@ -193,8 +193,8 @@ static bool_t CopyAttribute(const FACEOE_Utl_Xml_Node_t* node, const char_t* nam
  * \param[in]  root            Configuration root element
  * \param[out] configuration   Configuration receiving a copied schema location
  *
- * \retval     TRUE            if the hint is absent or has the expected namespace and fits.
- * \retval     FALSE           if the namespace binding or location is invalid.
+ * \retval     TRUE            if the hint is absent, or has the expected namespace binding and fits.
+ * \retval     FALSE           if xmlns:xsi is missing or wrong, or the location does not fit.
  */
 static bool_t ReadConfigurationSchema(const FACEOE_Utl_Xml_Node_t* root, FACEOE_DisplayManagement_Configuration_t* configuration);
 
@@ -279,7 +279,7 @@ static FACEOE_Utl_Xml_Node_t* AppendElement(XmlWorkspace_t* xml, const char_t* n
  * \param[in]     value   Attribute value
  *
  * \retval        TRUE        if the attribute was appended.
- * \retval        FALSE       if storage is exhausted or the value cannot be written directly.
+ * \retval        FALSE       if value is NULL, storage is exhausted, or the value cannot be written directly.
  */
 static bool_t AppendAttribute(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* node, const char_t* name, const char_t* value);
 
@@ -292,7 +292,7 @@ static bool_t AppendAttribute(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* node, 
  * \param[in]     configuration   Configuration containing the schema location
  *
  * \retval        TRUE            if both root attributes were appended.
- * \retval        FALSE           if a value or workspace storage is invalid.
+ * \retval        FALSE           if the location cannot be written directly or attribute storage is exhausted.
  */
 static bool_t WriteConfigurationSchema(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* root, const FACEOE_DisplayManagement_Configuration_t* configuration);
 
@@ -316,7 +316,7 @@ static const char_t* FormatInteger(XmlWorkspace_t* xml, int64_t value);
  * \param[in]     value   Decimal to format
  *
  * \retval    non-NULL   Stable temporary text.
- * \retval    NULL       if storage is exhausted.
+ * \retval    NULL       if the value is not finite or storage is exhausted.
  */
 static const char_t* FormatDecimal(XmlWorkspace_t* xml, float32_t value);
 
@@ -430,7 +430,7 @@ static bool_t ReadScreenHierarchy(FACEOE_DisplayManagement_Configuration_t* conf
  * \param[in]     node            User application XML element
  *
  * \retval        TRUE        if the application was read.
- * \retval        FALSE       if a required value is absent, malformed, or storage is exhausted.
+ * \retval        FALSE       if a required value is absent, a value is invalid or too long, or storage is exhausted.
  */
 static bool_t ReadUserApplication(FACEOE_DisplayManagement_Configuration_t* configuration, const FACEOE_Utl_Xml_Node_t* node);
 
@@ -445,7 +445,7 @@ static bool_t ReadUserApplication(FACEOE_DisplayManagement_Configuration_t* conf
  * \param[in]     node            External source XML element
  *
  * \retval        TRUE        if the external source was read.
- * \retval        FALSE       if a value is invalid or storage is exhausted.
+ * \retval        FALSE       if a value is invalid, the element has children, or storage is exhausted.
  */
 static bool_t ReadExternalSource(FACEOE_DisplayManagement_Configuration_t* configuration, const FACEOE_Utl_Xml_Node_t* node);
 
@@ -540,7 +540,7 @@ static bool_t WriteUserApplication(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* p
  * \param[in]     source   External source attributes
  *
  * \retval        TRUE        if the external source was appended.
- * \retval        FALSE       if its identifier is out of range or storage is exhausted.
+ * \retval        FALSE       if its identifier exceeds UINT16_MAX, a string cannot be written directly, or storage is exhausted.
  */
 static bool_t WriteExternalSource(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent, const FACEOE_DisplayManagement_ExternalSource_t* source);
 
@@ -561,7 +561,7 @@ static bool_t WriteExternalSource(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* pa
  *
  *  The text area stores zero-terminated numeric attribute values for writers.
  *  At least one text byte must remain after the fixed arrays. Misalignment or
- *  insufficient space returns FALSE without initializing the workspace.
+ *  insufficient space returns FALSE without changing xml.
  *  Successful initialization clears the counts and document links; array contents
  *  are initialized as entries are used.
  */
@@ -654,8 +654,8 @@ static bool_t HasElementName(const FACEOE_Utl_Xml_Node_t* node, const char_t* na
  * \endcode
  *
  *  Searching the same screen for "window" returns NULL because descendants of
- *  layout are not visited. The first matching child is returned; a completed
- *  unsuccessful search must reach the end of the sibling list within the bound.
+ *  layout are not visited. The first match is returned. An unsuccessful search
+ *  asserts that it reached the end of the sibling list within the node capacity.
  */
 static FACEOE_Utl_Xml_Node_t* FindChild(FACEOE_Utl_Xml_Node_t* parent, const char_t* name)
 {
@@ -700,8 +700,8 @@ static FACEOE_Utl_Xml_Node_t* FindChild(FACEOE_Utl_Xml_Node_t* parent, const cha
  * \endcode
  *
  *  Matching is case-sensitive and checks the byte count before the contents.
- *  The element's attributeCount bounds the walk; a missing match must leave the
- *  cursor at NULL. No attribute or string bytes are copied.
+ *  The element's attributeCount bounds the walk; an unsuccessful search asserts
+ *  that the list ends there. No attribute or string bytes are copied.
  */
 static const FACEOE_Utl_Xml_Attribute_t* FindAttribute(const FACEOE_Utl_Xml_Node_t* node, const char_t* name)
 {
@@ -735,7 +735,7 @@ static const FACEOE_Utl_Xml_Attribute_t* FindAttribute(const FACEOE_Utl_Xml_Node
     }
     if (NULL == found_attribute)
     {
-        // Reject a list that continues beyond its declared attribute count
+        // Assert that the list ends at its declared attribute count
         LOGASSERT(NULL == attribute);
     }
 
@@ -754,8 +754,8 @@ static const FACEOE_Utl_Xml_Attribute_t* FindAttribute(const FACEOE_Utl_Xml_Node
  * Pixel             pixel     FALSE
  * \endverbatim
  *
- *  The attribute's valueByteCount supplies its length, so its value does not need
- *  a zero terminator. Only the length of the expected literal is taken, with strnlen.
+ *  The attribute's valueByteCount supplies its length, so its value needs no
+ *  zero terminator; only the literal is measured, with strnlen.
  */
 static bool_t HasAttributeValue(const FACEOE_Utl_Xml_Attribute_t* attribute, const char_t* value)
 {
@@ -820,7 +820,7 @@ static bool_t CopyAttribute(const FACEOE_Utl_Xml_Node_t* node, const char_t* nam
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Copies the schema hint from the historical configuration root form:
+ *  Copies the schema hint from a configuration root such as:
  *
  * \code{.xml}
  * <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -852,7 +852,7 @@ static bool_t ReadConfigurationSchema(const FACEOE_Utl_Xml_Node_t* root, FACEOE_
         }
         if (is_valid)
         {
-            // Copy the hint so saving does not depend on the original XML buffer
+            // Copy the hint so writing does not depend on the original XML buffer
             is_valid = CopyAttribute(root, XML_ATTRIBUTE_SCHEMA_LOCATION, configuration->schemaLocation, sizeof(configuration->schemaLocation));
         }
     }
@@ -924,7 +924,7 @@ static bool_t ReadDecimal(const FACEOE_Utl_Xml_Node_t* node, const char_t* name,
     if (is_valid)
     {
         consumed = FACEOE_Utl_Scan_Float((const char_t*)attribute->value, &parsed_value);
-        // Reject values with an unconsumed suffix
+        // Require a nonempty scan that consumes the complete attribute value
         is_valid = (0 < consumed) && ((uint32_t)consumed == attribute->valueByteCount);
         if (is_valid)
         {
@@ -1085,9 +1085,10 @@ static FACEOE_Utl_Xml_Node_t* AppendElement(XmlWorkspace_t* xml, const char_t* n
  * \endcode
  *
  *  A NULL value, exhausted attribute storage, or a value that cannot be written
- *  literally returns FALSE without appending an attribute. Name and value bytes
- *  are not copied and must remain valid until serialization finishes. The caller
- *  supplies a valid, unique name and an element with room for the attribute.
+ *  literally returns FALSE without appending an attribute. Only the first
+ *  FACEOE_UTL_XML_MAX_VALUE_BYTES bytes of the value are written. Name and value
+ *  bytes are not copied and must remain valid until serialization finishes. The
+ *  caller supplies a valid, unique name and an element with room for the attribute.
  */
 static bool_t AppendAttribute(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* node, const char_t* name, const char_t* value)
 {
@@ -1139,7 +1140,7 @@ static bool_t WriteConfigurationSchema(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_
     const char_t* location;
     bool_t        is_valid;
 
-    // Configurations without an explicit hint use the historical schema file name
+    // An empty schemaLocation selects the default H3.xsd
     location = DMC_DEFAULT_SCHEMA_LOCATION;
     if ('\0' != configuration->schemaLocation[0])
     {
@@ -1169,7 +1170,7 @@ static bool_t WriteConfigurationSchema(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_
  * \endverbatim
  *
  *  The remaining workspace must have room for XML_INTEGER_TEXT_BYTES.
- *  Only the bytes actually used, including the terminator, are retained in
+ *  Only the bytes actually used, including the terminator, are added to
  *  textByteCount. Insufficient space returns NULL without advancing that count.
  */
 static const char_t* FormatInteger(XmlWorkspace_t* xml, int64_t value)
@@ -1178,13 +1179,13 @@ static const char_t* FormatInteger(XmlWorkspace_t* xml, int64_t value)
     int     byte_count;
 
     text = NULL;
-    // Reserve enough temporary room before formatting a signed 64-bit value
+    // Require room for the longest signed 64-bit value before formatting
     if (XML_INTEGER_TEXT_BYTES <= (xml->textCapacity - xml->textByteCount))
     {
         text       = (char_t*)&xml->text[xml->textByteCount];
         byte_count = FACEOE_Utl_Print_Int64(text, XML_INTEGER_TEXT_BYTES, value);
         LOGASSERT((0 < byte_count) && ((uint32_t)byte_count < XML_INTEGER_TEXT_BYTES));
-        // Keep the terminator in workspace storage for subsequent strlen calls
+        // Keep the terminator; AppendAttribute measures the value with strnlen
         xml->textByteCount += ((uint64_t)byte_count + 1);
     }
 
@@ -1195,8 +1196,8 @@ static const char_t* FormatInteger(XmlWorkspace_t* xml, int64_t value)
 /**
  * \par Details:
  *  Formats a finite float32_t without an exponent using the fewest fractional
- *  digits that scan back to the identical single, so the xs:decimal text is
- *  both short and exact:
+ *  digits that scan back to the same float32_t, so the xs:decimal text is
+ *  short and round-trips exactly:
  *
  * \verbatim
  * value       Stored text
@@ -1221,14 +1222,14 @@ static const char_t* FormatDecimal(XmlWorkspace_t* xml, float32_t value)
     bool_t    has_capacity;
 
     text         = NULL;
-    // Reject nonfinite values and reserve space for the full fixed-point representation
+    // Reject nonfinite values and require room for the longest fixed-point text
     is_finite    = (value <= FLT_MAX) && (value >= -FLT_MAX);
     has_capacity = (XML_DECIMAL_TEXT_BYTES <= (xml->textCapacity - xml->textByteCount));
     if (is_finite && has_capacity)
     {
         text       = (char_t*)&xml->text[xml->textByteCount];
         byte_count = 0;
-        // Keep the fewest fractional digits that scan back to the identical single
+        // Stop at the fewest fractional digits that scan back to the same float32_t
         for (precision = 0; precision <= XML_DECIMAL_MAX_PRECISION; ++precision)
         {
             byte_count = FACEOE_Utl_Print_Float(text, XML_DECIMAL_TEXT_BYTES, value, (uint32_t)precision);
@@ -1319,8 +1320,8 @@ static bool_t AppendDecimalAttribute(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t*
  * \endcode
  *
  *  The configuration node is returned. Descendants are not visited, and a
- *  document containing no element returns NULL. The root-node limit bounds this
- *  search independently of storage reserved for descendants.
+ *  document containing no element returns NULL.
+ *  FACEOE_UTL_XML_DOCUMENT_MAX_ROOT_NODES bounds the search.
  */
 static FACEOE_Utl_Xml_Node_t* FindDocumentElement(const FACEOE_Utl_Xml_Document_t* document)
 {
@@ -1526,7 +1527,7 @@ static bool_t ReadScreenHierarchy(FACEOE_DisplayManagement_Configuration_t* conf
     bool_t                             is_scaling_factor;
     bool_t                             is_valid;
 
-    // Reserve the screen's array index before reading any dependent layouts
+    // Require a free screen entry before reading the screen
     is_valid = (configuration->screenCount < configuration->screenCapacity);
     if (is_valid)
     {
@@ -1748,8 +1749,8 @@ static bool_t ReadUserApplication(FACEOE_DisplayManagement_Configuration_t* conf
  * <externalSource id="12" name="Camera" type="video"/>
  * \endcode
  *
- *  The id is required and must fit the range 0 through UINT16_MAX. Missing name
- *  and type attributes become empty strings. Child elements are unsupported.
+ *  The id is required and must be in the range 0 through UINT16_MAX. Missing name
+ *  and type attributes become empty strings. An element with children is rejected.
  *  externalSourceCount advances only after all checks succeed; a failed read may
  *  have written part of the unused result slot.
  */
@@ -1786,7 +1787,7 @@ static bool_t ReadExternalSource(FACEOE_DisplayManagement_Configuration_t* confi
         }
         if (is_valid)
         {
-            // Only the externalSource attributes are supported
+            // Reject child elements; only attributes are supported
             is_valid = (NULL == node->firstChild);
         }
         if (is_valid)
@@ -2153,8 +2154,8 @@ static bool_t WriteExternalSource(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* pa
  *  so the result keeps no pointers into the input or temporary XML tree.
  *
  *  The workspace holds all temporary nodes and attributes. On failure, all result
- *  counts and hasMetaData are cleared; partially written array entries are not
- *  erased. The input needs the writable extra byte required by the XML reader.
+ *  counts and hasMetaData are also cleared; partially written array entries are
+ *  not erased. The input needs the writable extra byte required by the XML reader.
  */
 bool_t FACEOE_DisplayManagement_ReadConfiguration(FACEOE_DisplayManagement_Configuration_t* configuration, byte_t* buffer, uint64_t byteCount, void* workspace, uint64_t workspaceSize)
 {
@@ -2194,7 +2195,7 @@ bool_t FACEOE_DisplayManagement_ReadConfiguration(FACEOE_DisplayManagement_Confi
     }
     if (is_valid)
     {
-        // Preserve the optional declaration and copy the root's schema hint
+        // Record whether the declaration is present and copy the root's schema hint
         configuration->hasXmlDeclaration = (FACEOE_UTL_XML_NODE_XML_DECLARATION == xml.document.firstNode->type);
         is_valid = ReadConfigurationSchema(root, configuration);
     }
@@ -2246,7 +2247,7 @@ bool_t FACEOE_DisplayManagement_ReadConfiguration(FACEOE_DisplayManagement_Confi
     }
     if (FALSE == is_valid)
     {
-        // Discard the partial result logically by clearing counts and the metadata flag
+        // Discard the partial result by clearing counts, flags, and schemaLocation
         configuration->screenCount          = 0;
         configuration->layoutCount          = 0;
         configuration->windowCount          = 0;
@@ -2288,14 +2289,15 @@ bool_t FACEOE_DisplayManagement_ReadConfiguration(FACEOE_DisplayManagement_Confi
  *  always includes the schema-instance binding and no-namespace schema hint;
  *  an empty schemaLocation selects H3.xsd, while a supplied location is retained.
  *
- *  A layout's screenIndex and a window's layoutIndex select their parents.
- *  Children are grouped in the order metaData, screens, applications, then
- *  external sources. The caller supplies valid array counts and parent indices.
- *  Window descriptions must be empty because text content is unsupported.
+ *  A layout's screenIndex and a window's layoutIndex select their parents; an
+ *  entry whose parent is not written is omitted. Children are grouped in the
+ *  order metaData, screens, applications, then external sources. Window
+ *  descriptions must be empty because text content is unsupported. An empty
+ *  window name, like an empty optional attribute elsewhere, is left out.
  *
  *  Output uses four-space indentation and LF line endings, including the final
- *  LF, with no zero terminator. Zero indicates invalid supported values or
- *  insufficient storage; output may contain a prefix if final serialization fails.
+ *  LF, with no zero terminator. Zero indicates an invalid value or insufficient
+ *  storage; the buffer may hold partial output if serialization fails.
  */
 uint64_t FACEOE_DisplayManagement_WriteConfiguration(const FACEOE_DisplayManagement_Configuration_t* configuration, byte_t* buffer, uint64_t capacity, void* workspace, uint64_t workspaceSize)
 {
@@ -2322,7 +2324,7 @@ uint64_t FACEOE_DisplayManagement_WriteConfiguration(const FACEOE_DisplayManagem
     LOGASSERT(NULL != configuration);
     LOGASSERT(NULL != buffer);
     LOGASSERT(NULL != workspace);
-    // Keep the failure result until the complete temporary tree can be serialized
+    // Return zero unless the complete temporary tree is built and serialized
     byte_count    = 0;
     has_workspace = InitializeXmlWorkspace(&xml, workspace, workspaceSize);
     is_valid      = has_workspace;
@@ -2415,7 +2417,11 @@ uint64_t FACEOE_DisplayManagement_WriteConfiguration(const FACEOE_DisplayManagem
                             }
                             if (is_valid)
                             {
-                                is_valid = AppendAttribute(&xml, window_node, XML_ATTRIBUTE_NAME, window->name);
+                                // Write the optional name only when it is nonempty, as for external sources
+                                if ('\0' != window->name[0])
+                                {
+                                    is_valid = AppendAttribute(&xml, window_node, XML_ATTRIBUTE_NAME, window->name);
+                                }
                             }
                             if (is_valid)
                             {

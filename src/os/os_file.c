@@ -48,9 +48,9 @@
 
 /*************************************************************************************************/
 /**
- * \brief Opens a file using the UTF-8 path supplied by the caller.
+ * \brief Opens a file by UTF-8 path.
  *
- * \param[in] filePath   File path
+ * \param[in] filePath   UTF-8 file path
  * \param[in] mode       fopen mode
  *
  * \retval    non-NULL   Open file.
@@ -65,7 +65,7 @@ static FILE* OpenUtf8File(const char_t* filePath, const char_t* mode);
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Converts UTF-8 paths at the Win32 boundary.
+ *  On Win32, converts the path and mode to UTF-16 for _wfopen; elsewhere calls fopen directly.
  */
 static FILE* OpenUtf8File(const char_t* filePath, const char_t* mode)
 {
@@ -98,7 +98,7 @@ static FILE* OpenUtf8File(const char_t* filePath, const char_t* mode)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Returns a negative value for an open or read error; otherwise returns the exact byte count.
+ *  A read error reported by ferror returns -1 even after a partial read.
  */
 int32_t OS_File_ReadFile(const char_t* filePath, byte_t* buffer, uint32_t bufferSize)
 {
@@ -129,7 +129,7 @@ int32_t OS_File_ReadFile(const char_t* filePath, byte_t* buffer, uint32_t buffer
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Returns a negative value for an open, write, or close error; otherwise returns the exact byte count.
+ *  A count above INT32_MAX returns -1 without opening the file.
  */
 int32_t OS_File_WriteFile(const char_t* dstPath, const byte_t* buf, uint32_t numBytes)
 {

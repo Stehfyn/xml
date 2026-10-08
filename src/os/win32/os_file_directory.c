@@ -51,7 +51,8 @@
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Converts UTF-8 folder paths and filenames at the Win32 boundary.
+ *  Visits every non-directory entry. Converts the folder path to UTF-16 and each filename to
+ *  UTF-8; a filename that fails conversion is skipped and makes the result FALSE.
  */
 bool_t OS_File_EnumerateFiles(const char_t* folderPath, OS_File_Visitor_t visitor, void* context)
 {

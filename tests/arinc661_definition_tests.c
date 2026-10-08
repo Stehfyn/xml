@@ -11,7 +11,7 @@ static uint64_t c_workspace[ARINC661_WORKSPACE_BYTES / sizeof(uint64_t)];
 
 /*************************************************************************************************/
 /**
- * \brief Checks in-memory Definition File conversion and nested widget ownership.
+ * \brief Checks an XML read, write, and re-read of a definition whose label is nested in a panel.
  */
 static void TestDefinition(void)
 {
@@ -45,7 +45,7 @@ static void TestDefinition(void)
 
 /*************************************************************************************************/
 /**
- * \brief Checks Definition File writing and reading without an XML declaration.
+ * \brief Checks that an empty definition writes without an XML declaration and reads back its supplement version.
  */
 static void TestDefinitionWithoutDeclaration(void)
 {
@@ -66,12 +66,12 @@ static void TestDefinitionWithoutDeclaration(void)
 
 /*************************************************************************************************/
 /**
- * \brief Checks binary Definition File bytes against ARINC 661 Part 1-7, Appendix C-11, and the round trip.
+ * \brief Checks binary writing against ARINC 661 Part 1-7, Appendix C-11, binary reading, and rejection of bad input.
  */
 static void TestDefinitionBinary(void)
 {
     byte_t input[] = "<a661_df name=\"example\" library_version=\"1\" supp_version=\"4\"><model><prop name=\"ApplicationId\" value=\"26504\"/></model><a661_layer name=\"Primary\"><model><prop name=\"LayerId\" value=\"1\"/><prop name=\"ContextNumber\" value=\"0\"/><prop name=\"Width\" value=\"10000\"/></model><a661_widget name=\"Panel\" type=\"A661_PANEL\"><model><prop name=\"WidgetIdent\" value=\"4641\"/><prop name=\"Enable\" value=\"A661_TRUE\"/><prop name=\"Visible\" value=\"A661_TRUE\"/><prop name=\"PosX\" value=\"0\"/><prop name=\"PosY\" value=\"0\"/><prop name=\"SizeX\" value=\"10000\"/><prop name=\"SizeY\" value=\"10000\"/><prop name=\"StyleSet\" value=\"0\"/></model><a661_widget name=\"Label\" type=\"A661_LABEL\"><model><prop name=\"WidgetIdent\" value=\"2\"/><prop name=\"Visible\" value=\"A661_TRUE\"/><prop name=\"PosX\" value=\"-1\"/><prop name=\"RotationAngle\" value=\"90.0\"/><prop name=\"Alignment\" value=\"A661_CENTER\"/><prop name=\"LabelString\" value=\"YOU\"/></model></a661_widget></a661_widget></a661_layer></a661_df>";
-    /* Header, layer block, and panel command are the bytes of Appendix C-11 */
+    /* Header, layer header (except its size), and panel command are the bytes of Appendix C-11 */
     static const byte_t expected[] =
     {
         0xA6, 0x61, 0x01, 0x04, 0x67, 0x88, 0x00, 0x00,
@@ -102,7 +102,7 @@ static void TestDefinitionBinary(void)
     byte_count = Arinc661_Definition_WriteBinary(&definition, output, sizeof(output));
     assert(sizeof(expected) == byte_count);
     assert(0 == memcmp(output, expected, sizeof(expected)));
-    /* An output that does not fit is rejected */
+    /* An output buffer one byte short is rejected */
     assert(0 == Arinc661_Definition_WriteBinary(&definition, output, sizeof(expected) - 1));
 
     is_valid = Arinc661_Definition_ReadBinary(&definition, expected, sizeof(expected));
@@ -111,7 +111,7 @@ static void TestDefinitionBinary(void)
     assert(4 == definition.supplementVersion);
     assert(1 == definition.layerCount);
     assert(2 == definition.widgetCount);
-    /* ApplicationId, LayerId, ContextNumber, and WidgetIdent plus eight panel and fourteen label parameters */
+    /* ApplicationId, LayerId, ContextNumber, two WidgetIdents, eight panel and fourteen label parameters */
     assert(27 == definition.propertyCount);
     assert(0 == strncmp("26504", properties[0].value, sizeof("26504")));
     assert(0 == strncmp("A661_PANEL", widgets[0].type, sizeof("A661_PANEL")));
@@ -132,7 +132,7 @@ static void TestDefinitionBinary(void)
     assert(sizeof(expected) == byte_count);
     assert(0 == memcmp(output, expected, sizeof(expected)));
 
-    /* Every truncation is rejected without reading past the input */
+    /* Every truncation is rejected and leaves no layers */
     for (index = 0; index < sizeof(expected); ++index)
     {
         memcpy(output, expected, index);
@@ -140,7 +140,7 @@ static void TestDefinitionBinary(void)
         assert(0 == definition.layerCount);
     }
 
-    /* A symbolic value without an ARINC 661 constant, an unknown property, and an unknown widget type are rejected */
+    /* A symbolic value that is not an ARINC 661 constant, an unknown property, and an unknown widget type are rejected */
     is_valid = Arinc661_Definition_ReadBinary(&definition, expected, sizeof(expected));
     assert(is_valid);
     strcpy(properties[10].value, "red");
@@ -155,7 +155,7 @@ static void TestDefinitionBinary(void)
 
 /*************************************************************************************************/
 /**
- * \brief Checks that the binary Definition File of ARINC 661 Part 1-7, Appendix C-11, reads and writes back unchanged.
+ * \brief Checks that Appendix C-11 of ARINC 661 Part 1-7 reads and writes back unchanged and that a malformed DefaultStyleText is rejected.
  */
 static void TestDefinitionBinaryLabelComplex(void)
 {
@@ -202,7 +202,7 @@ static void TestDefinitionBinaryLabelComplex(void)
     assert(sizeof(expected) == byte_count);
     assert(0 == memcmp(output, expected, sizeof(expected)));
 
-    /* Bytes need two hexadecimal digits each */
+    /* DefaultStyleText needs exactly twelve bytes of two hexadecimal digits each */
     strcpy(properties[22].value, "1B42001B41001B43000000");
     assert(0 == Arinc661_Definition_WriteBinary(&definition, output, sizeof(output)));
     strcpy(properties[22].value, "1B42001B41001B430000000G");
@@ -333,13 +333,13 @@ static void TestDefinitionArrayProperties(void)
     assert(0 == strncmp("BufferStructure", properties[9].name, sizeof("BufferStructure")));
     assert(0 == strncmp("A661_ENABLE", properties[9].value, sizeof("A661_ENABLE")));
 
-    /* Single names no BufferFormat parameter; without it the flat form converts to 40-byte polyline and 16-byte format commands */
+    /* Single is not a BufferFormat parameter, so the write fails; without it, the polyline and format commands are 40 and 16 bytes */
     assert(0 == Arinc661_Definition_WriteBinary(&definition, output, sizeof(output)));
     definition.propertyCount = 10;
     byte_count = Arinc661_Definition_WriteBinary(&definition, output, sizeof(output));
     assert((8 + 8 + 40 + 16 + 4 + 4) == byte_count);
 
-    /* Unsupported entry forms are rejected */
+    /* An unsupported entry element is rejected */
     memcpy(strstr((char_t*)input, "<entry value=\"1\"/>"), "<datum value=\"1\"/>", sizeof("<entry value=\"1\"/>") - 1);
     is_valid = Arinc661_Definition_Read(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
     assert(FALSE == is_valid);
@@ -347,7 +347,7 @@ static void TestDefinitionArrayProperties(void)
 
 /*************************************************************************************************/
 /**
- * \brief Checks widget extensions (Part 1-7, section 8) in XML, binary, and round trip.
+ * \brief Checks widget extensions (Part 1-7, section 8) in the XML and binary forms, their round trip, and rejected placements.
  */
 static void TestDefinitionBinaryExtensions(void)
 {
@@ -440,7 +440,7 @@ static void TestDefinitionBinaryExtensions(void)
     output[byte_count] = '\0';
     assert(NULL != strstr((const char_t*)output, "<a661_extension type=\"A661_LEGEND_ALIGN_EXTENSION\">"));
 
-    /* An extension before any widget, a region of unknown type, and an extension on an extension are rejected */
+    /* An extension without a parent, a region of unknown type, an extension on an extension, and an XML extension before any widget are rejected */
     widgets[1].parentWidgetIndex = UINT32_MAX;
     assert(0 == Arinc661_Definition_WriteBinary(&definition, copy, sizeof(copy)));
     widgets[1].parentWidgetIndex = 0;
@@ -512,7 +512,7 @@ static void TestDefinitionBinaryBlocks(void)
     assert(ARINC661_CHARSET_ENCODING_UTF8 == definition.charsetEncoding);
     assert(0 == definition.blockByteCount);
 
-    /* Every truncation is rejected without reading past the input */
+    /* Every truncation is rejected and leaves no blocks */
     for (index = 0; index < sizeof(expected); ++index)
     {
         memcpy(output, expected, index);
@@ -534,11 +534,7 @@ static void TestDefinitionBinaryBlocks(void)
 
 /*************************************************************************************************/
 /**
- * \brief Checks the Creation Structure schema exposed for editors.
- */
-/*************************************************************************************************/
-/**
- * \brief Checks that floats and fr() angles keep A661 precision through the binary form with the shortest text.
+ * \brief Checks that floats and fr(180) angles survive a binary round trip as the shortest text with the same encoding.
  */
 static void TestDefinitionBinaryPrecision(void)
 {
@@ -669,14 +665,9 @@ static void TestDefinitionSchema(void)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Runs the ARINC 661 checks as part of the unit test executable.
- */
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Table 8.4 rows read from the specification: ActiveArea takes the style set extension, a
- *  BasicContainer the reorder extension, a BufferFormat only the static parameter buffer, and
- *  GpArcCircle takes no word wrap.
+ *  Checks Table 8.4 rows: ActiveArea takes the style set extension, BasicContainer the
+ *  reorder extension, BufferFormat the static parameter buffer but not the picture
+ *  extension, and GpArcCircle no word wrap. Also checks the extension target lookup.
  */
 static void TestExtensionApplicability(void)
 {
@@ -692,8 +683,8 @@ static void TestExtensionApplicability(void)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Table 4.6-13 reserves 0xB800 to 0xBFFF for OEM encodings, which round-trip
- *  through the binary form; a reserved value outside both ranges is rejected.
+ *  Checks that an OEM encoding (0xB800 to 0xBFFF, Table 4.6-13) round-trips through
+ *  the binary form and that a value outside the standard and OEM ranges is rejected.
  */
 static void TestDefinitionCharsetEncodings(void)
 {
@@ -725,7 +716,7 @@ static void TestDefinitionCharsetEncodings(void)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Runs every ARINC 661 Definition File test in order.
+ *  Runs every ARINC 661 definition test.
  */
 void RunArinc661Tests(void)
 {

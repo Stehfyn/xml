@@ -57,7 +57,7 @@ extern "C"
 ** 3.1 Macros
 **===============================================================================================*/
 
-/* One page: shared folder and file list, one hierarchy holding both document kinds, one scene, one inspector. */
+/* One page window: menu bar, toolbar, dockable panels over both document kinds, status line. */
 #define PAGE_WINDOW_NAME            ("ARINC 661")
 #define PAGE_WINDOW_FLAGS           (ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDocking)
 #define FILE_MENU_LABEL             ("File")
@@ -164,7 +164,7 @@ extern "C"
 #define ICON_RESOURCE_ID            (1)
 #define ABOUT_LABEL                 ("About CDS Editor")
 #define ABOUT_POPUP_ID              ("About CDS Editor##about")
-// Unparenthesised so it stays one string literal
+// Unparenthesized so it stays a plain string literal
 #define ABOUT_DETAILS_FORMAT        "Version %s\nBuilt %s %s\nDear ImGui %s (docking)\nOpenGL %s\nInstalled in %s\n"
 #define ABOUT_UPDATE_URL_FORMAT     ("Update source: %s")
 #define ABOUT_NO_UPDATE_URL_LABEL   ("Update source: not configured (set updateUrl in cds-editor.cfg or UpdateUrl in the registry)")
@@ -411,7 +411,7 @@ typedef enum LayoutPreset_e
 {
     LAYOUT_PRESET_DEFAULT, ///< Side columns and a bottom strip of tool tabs.
     LAYOUT_PRESET_TALL,    ///< Scene full height; tools stacked in the right column.
-    LAYOUT_PRESET_WIDE     ///< Scene full width; every tool in the bottom strip.
+    LAYOUT_PRESET_WIDE     ///< No right column; Inspector and tools share the bottom strip.
 } LayoutPreset_t;
 
 static const char_t* const c_panelNames[PANEL_COUNT] = {PANEL_FILES, PANEL_PROBLEMS, PANEL_HIERARCHY, PANEL_PALETTE, PANEL_SCENE, PANEL_INSPECTOR, PANEL_LOG, PANEL_TIMELINE, PANEL_HISTORY};
@@ -427,7 +427,7 @@ typedef struct FaceTopic_s
 
 static const FaceTopic_t c_faceTopics[] =
 {
-    {"Screen", "A physical display surface (FACE Technical Standard, Appendix H.3.4): pixelSize gives its resolution, physicalDimensions its size in mm or inches. A screen holds layouts. The editor uses pixelSize over physicalDimensions as the pixel density for previews when a window has no pixel-per-mm scaling factor."},
+    {"Screen", "A physical display surface (FACE Technical Standard, Appendix H.3.3 to H.3.5): pixelSize gives its resolution, physicalDimensions its size in mm or inches. A screen holds layouts. The editor uses pixelSize over physicalDimensions as the pixel density for previews when a window has no pixel-per-mm scaling factor."},
     {"Layout", "A set of windows that are shown together on one screen (H.3.6). Select a layout to see and add its windows; a window belongs to exactly one layout."},
     {"Window", "A rectangle of a screen, in pixels (H.3.2): pixelArea is its origin and size, scalingFactor converts ARINC 661 screen units to pixels. User applications target windows by id. Drag a window in the scene to move it, drag its corners to resize."},
     {"UserApplication", "An ARINC 661 User Application (H.3.1): applicationId must equal the ApplicationId inside its Definition File, window names the window its layers appear in, dFPath names the Definition File. The inspector checks the identifier against the open Definition File and previews its layers inside the window."},
@@ -450,14 +450,14 @@ typedef struct WglWindowData_s
 
 /*************************************************************************************************/
 /**
- * \brief Window thread and frame presentation state.
+ * \brief Window thread, frame presentation, and editor host state.
  */
 typedef struct WindowThreadState_s
 {
     HWND                             windowHandle;                                         ///< Main Win32 window.
-    HANDLE                           readyEvent;                                           ///< Signals when rendering setup is complete.
-    HANDLE                           presentStoppedEvent;                                  ///< Signals when the presenter releases its device context.
-    HGLRC                            presentContext;                                       ///< OpenGL context used by the presenter thread.
+    HANDLE                           readyEvent;                                           ///< Set when the window thread finishes setup, successfully or not.
+    HANDLE                           presentStoppedEvent;                                  ///< Set when the presenter has released its device context.
+    HGLRC                            presentContext;                                       ///< OpenGL context of the presenter (main) thread.
     Arinc661_Configuration_Editor_t* configurationEditor;                                  ///< FACE display management configuration editor.
     Arinc661_DefinitionEditor_t*     definitionEditor;                                     ///< ARINC 661 Definition File editor.
     Arinc661_Context_t*              context;                                              ///< Shared application context across both editors.
@@ -465,23 +465,23 @@ typedef struct WindowThreadState_s
     char_t                           helpFilter[MAX_HELP_FILTER_BYTES];                    ///< Search text of the Help window.
     char_t                           helpTopic[ARINC661_MAX_NAME_BYTES];                   ///< Topic the Help window shows.
     char_t                           saveNote[SAVED_WITH_ERRORS_BYTES];                    ///< Note after a configuration save with errors, or empty.
-    bool                             panelOpen[PANEL_COUNT];                               ///< Visibility of each dockable panel, in PANEL_ order.
-    bool_t                           hasLayout;                                            ///< TRUE once the default dock layout was built.
+    bool                             panelOpen[PANEL_COUNT];                               ///< Visibility of each dockable panel, in Panel_t order.
+    bool_t                           hasLayout;                                            ///< TRUE once a dock layout preset was built.
     bool_t                           resetsLayout;                                         ///< TRUE to rebuild the layout preset next frame.
     LayoutPreset_t                   layoutPreset;                                         ///< Preset that Reset Layout rebuilds.
     char_t                           paletteFilter[MAX_HELP_FILTER_BYTES];                 ///< Palette filter text.
     char_t                           logLines[LOG_CAPACITY][LOG_LINE_BYTES];               ///< Status history ring.
-    uint32_t                         logCount;                                             ///< Lines written to the ring.
+    uint32_t                         logCount;                                             ///< Lines appended since the last clear; the ring keeps the last LOG_CAPACITY.
     char_t                           lastStatus[LOG_LINE_BYTES];                           ///< Last status text appended.
     bool                             logAutoScroll;                                        ///< TRUE to keep the log scrolled to the end.
     float32_t                        uiScale;                                              ///< Font scale chosen in the View menu.
     bool_t                           isTimelinePlaying;                                    ///< TRUE while the timeline advances with the clock.
     bool_t                           isTimelineLooping;                                    ///< TRUE to wrap at the end.
     float32_t                        timelineTime;                                         ///< Current animation time in seconds.
-    float32_t                        timelineLength;                                       ///< End of the last animation in seconds.
+    float32_t                        timelineLength;                                       ///< Latest animation end (Delay plus Duration) in seconds.
     bool_t                           isPaletteOpen;                                        ///< TRUE while the command palette is shown.
     char_t                           recentNames[RECENT_COUNT][MAX_FILE_PATH_BYTES];       ///< Most recently opened files as full paths, newest first.
-    char_t                           pendingOpenPath[MAX_FILE_PATH_BYTES];                 ///< A path dropped on the window or given on the command line, opened next frame.
+    char_t                           pendingOpenPath[MAX_FILE_PATH_BYTES];                 ///< Path of a file dropped on the window, opened next frame.
     std::atomic<int32_t>             dialogState;                                          ///< DIALOG_* state of the native picker running on its own thread.
     std::atomic<int32_t>             updateState;                                          ///< UPDATE_STATE_* of the updater thread.
     Arinc661_Update_Result_t         updateResult;                                         ///< Outcome of the last check or download, read once the state settles.
@@ -489,7 +489,7 @@ typedef struct WindowThreadState_s
     char_t                           updateUrl[ARINC661_UPDATE_MAX_URL_BYTES];             ///< Manifest source, empty when not configured.
     char_t                           updatePackagePath[MAX_FILE_PATH_BYTES];               ///< Downloaded package.
     char_t                           updateSkipVersion[ARINC661_UPDATE_MAX_VERSION_BYTES]; ///< Version the user chose to skip.
-    float64_t                        updateCheckedAt;                                      ///< Unix time of the last automatic check.
+    float64_t                        updateCheckedAt;                                      ///< Unix time of the last check.
     bool_t                           updateIsManual;                                       ///< TRUE when the user asked, so every outcome is shown.
     bool_t                           opensUpdatePopup;                                     ///< TRUE to open the update pop-up this frame.
     bool_t                           opensAboutPopup;                                      ///< TRUE to open the About box this frame.
@@ -507,7 +507,7 @@ typedef struct WindowThreadState_s
     bool_t                           logShowsWarnings;                                     ///< TRUE to list warning lines.
     bool_t                           logShowsInfo;                                         ///< TRUE to list the other lines.
     char_t                           commandFilter[MAX_HELP_FILTER_BYTES];                 ///< Command palette text.
-    bool_t                           isLightTheme;                                         ///< TRUE for the light colour scheme.
+    bool_t                           isLightTheme;                                         ///< TRUE for the light color scheme.
     bool_t                           preferencesDirty;                                     ///< TRUE until the preferences file is written.
     bool_t                           isDefinitionActive;                                   ///< TRUE while the Definition File section has the focus.
     bool_t                           hasEditors;                                           ///< TRUE once both editors exist.
@@ -520,7 +520,7 @@ typedef struct WindowThreadState_s
     uint64_t                         fileSizes[MAX_PAGE_FILES];                            ///< Bytes of each file.
     uint64_t                         fileTimes[MAX_PAGE_FILES];                            ///< Last write time of each file as a FILETIME value.
     uint32_t                         fileOrder[MAX_PAGE_FILES];                            ///< Display order after sorting.
-    float32_t                        mainScale;                                            ///< Initial display scale.
+    float32_t                        mainScale;                                            ///< DPI scale of the primary monitor at start.
     SRWLOCK                          presentLock;                                          ///< Protects geometry, drawing, and buffer swaps.
     CONDITION_VARIABLE               presentCondition;                                     ///< Wakes the window thread after geometry is acknowledged.
     RECT                             rcClient;                                             ///< Current client rectangle.
@@ -528,7 +528,7 @@ typedef struct WindowThreadState_s
     BOOL                             fFrameReady;                                          ///< TRUE when a new frame can be presented.
     BOOL                             fGeometryPending;                                     ///< TRUE while geometry acknowledgement is pending.
     bool_t                           isInitialized;                                        ///< TRUE when rendering setup succeeds.
-    std::atomic<bool_t>              isDone;                                               ///< TRUE after the main window is closed.
+    std::atomic<bool_t>              isDone;                                               ///< TRUE once both threads should stop.
 } WindowThreadState_t;
 
 /*************************************************************************************************/
@@ -557,7 +557,7 @@ typedef BOOL(WINAPI* WglSwapIntervalFunction_t)(int);
  */
 static HGLRC           g_renderContext;
 static WglWindowData_t g_mainWindow;
-static const char_t* g_screenshotPath;        ///< BMP written after the capture frame, or NULL.
+static const char_t* g_screenshotPath;        ///< BMP written on the capture frame, or NULL.
 static const char_t* g_openDefinition;        ///< Definition File opened at start, or NULL.
 static const char_t* g_openConfiguration;     ///< Configuration opened at start, or NULL.
 static const char_t* g_selectName;            ///< Widget name selected after opening, or NULL.
@@ -637,7 +637,7 @@ static void CaptureScreenshot(WindowThreadState_t* window);
 
 /*************************************************************************************************/
 /**
- * \brief Reads the command line options for automated runs.
+ * \brief Reads the command line: automation options and a file to open.
  *
  * \param[in] argc   Argument count
  * \param[in] argv   Arguments
@@ -689,7 +689,7 @@ static void ShowHelp(WindowThreadState_t* window, const char_t* topic);
 
 /*************************************************************************************************/
 /**
- * \brief Shows the selection's page in Windows Help.
+ * \brief Shows the selection's page in Windows Help, or in the browser without it.
  *
  * \param[in] window   Window and editor state
  *
@@ -699,7 +699,7 @@ static void OpenHelpInBrowser(WindowThreadState_t* window);
 
 /*************************************************************************************************/
 /**
- * \brief Shows the compiled Windows help file through the HTML Help engine.
+ * \brief Shows the compiled help file through the HTML Help engine, or the HTML page without it.
  *
  * \param[in] window    Window and editor state
  * \param[in] command   HH_DISPLAY_TOPIC_COMMAND for the selection's page, or a contents, index, or search command
@@ -796,7 +796,7 @@ static void DrawPageProblems(WindowThreadState_t* window);
 
 /*************************************************************************************************/
 /**
- * \brief Builds the default dock layout once, or again after a reset.
+ * \brief Builds the chosen dock layout preset on first use or after a reset.
  *
  * \param[in,out] window        Window and editor state
  * \param[in]     dockspaceId   Dockspace node
@@ -1015,7 +1015,8 @@ static void TogglePlay(WindowThreadState_t* window);
 
 /*************************************************************************************************/
 /**
- * \brief Checks everything and writes every binary Definition File, logging the report.
+ * \brief Checks every document and writes the binary form of every open Definition File,
+ *        logging the report.
  *
  * \param[in,out] window   Window and editor state
  *
@@ -1035,7 +1036,7 @@ static void DrawCommandPalette(WindowThreadState_t* window);
 
 /*************************************************************************************************/
 /**
- * \brief Applies the chosen colour scheme and font scale.
+ * \brief Applies the chosen color scheme, the style metrics, and the font scales.
  *
  * \param[in,out] window   Window and editor state
  *
@@ -1045,7 +1046,7 @@ static void ApplyTheme(WindowThreadState_t* window);
 
 /*************************************************************************************************/
 /**
- * \brief Reads the preferences file beside the executable, when present.
+ * \brief Reads the preferences file in the working directory, when present.
  *
  * \param[in,out] window   Window and editor state
  *
@@ -1085,7 +1086,7 @@ static void DrawPageHierarchy(WindowThreadState_t* window);
 
 /*************************************************************************************************/
 /**
- * \brief Draws the single page: menu, toolbar, files, hierarchy, scene, inspector, dialogs.
+ * \brief Draws one frame of the page: menu, toolbar, dockspace, panels, status line, dialogs.
  *
  * \param[in,out] window   Window and editor state
  *
@@ -1095,19 +1096,20 @@ static void DrawEditors(WindowThreadState_t* window);
 
 /*************************************************************************************************/
 /**
- * \brief Creates a Win32 OpenGL context for the main or platform window.
+ * \brief Prepares the main or a platform window for OpenGL; the first call creates the shared
+ *        context.
  *
  * \param[in]     windowHandle   Win32 window handle
  * \param[in,out] windowData     Window rendering data
  *
- * \retval    TRUE    if rendering setup succeeds.
- * \retval    FALSE   otherwise.
+ * \retval        TRUE           if rendering setup succeeds.
+ * \retval        FALSE          otherwise.
  */
 static bool_t CreateDeviceWGL(HWND windowHandle, WglWindowData_t* windowData);
 
 /*************************************************************************************************/
 /**
- * \brief Releases a Win32 window device context.
+ * \brief Releases a window's device context and clears the current OpenGL context.
  *
  * \param[in]     windowHandle   Win32 window handle
  * \param[in,out] windowData     Window rendering data
@@ -1173,12 +1175,12 @@ static LRESULT WINAPI WindowProcedure(HWND windowHandle, UINT message, WPARAM wo
 
 /*************************************************************************************************/
 /**
- * \brief Creates the main window and pumps its messages on a separate thread.
+ * \brief Window thread: creates the main window, then dispatches its messages and draws frames.
  *
  * \param[in,out] parameter   WindowThreadState_t passed as an opaque pointer
  *
- * \retval    0   if the window thread exits normally.
- * \retval    1   if rendering setup fails.
+ * \retval        0           if the window thread exits normally.
+ * \retval        1           if rendering setup fails.
  */
 static DWORD WINAPI WindowThread(LPVOID parameter);
 
@@ -1224,7 +1226,8 @@ static void BeginFrame(void)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Renders Dear ImGui draw data into the main window and presents platform windows.
+ *  Renders Dear ImGui draw data into the main window, renders and swaps the platform windows,
+ *  marks the frame ready for the presenter, and takes the screenshot on the capture frame.
  */
 static void EndFrame(WindowThreadState_t* window)
 {
@@ -1251,8 +1254,8 @@ static void EndFrame(WindowThreadState_t* window)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  OpenGL rows run bottom-up, which is the BMP order, so the pixels go straight to the
- *  file as BGR with each row padded to four bytes.
+ *  OpenGL rows run bottom-up, as BMP rows do, so each row goes straight to the file as BGR,
+ *  padded to four bytes.
  */
 static void CaptureScreenshot(WindowThreadState_t* window)
 {
@@ -1319,7 +1322,8 @@ static void CaptureScreenshot(WindowThreadState_t* window)
 /**
  * \par Details:
  *  --screenshot path.bmp [--frames n] [--definition name] [--configuration name]
- *  [--focus-definition] [--select widgetName] [--time seconds] [--play].
+ *  [--focus-definition] [--select widgetName] [--time seconds] [--play] [--about]
+ *  [--check-updates] [--layout preset], or a bare path to open.
  */
 static void ParseOptions(int argc, char** argv)
 {
@@ -1381,7 +1385,7 @@ static void ParseOptions(int argc, char** argv)
         }
         else if ('-' != argv[index][0])
         {
-            // A bare path: the shell's open verb and drag-drop onto the executable
+            // A bare path, as the shell's open verb and drag-drop onto the executable pass it
             g_openPath = argv[index];
         }
     }
@@ -1390,9 +1394,10 @@ static void ParseOptions(int argc, char** argv)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Classifies one file of the folder by its content: a binary or XML Definition File, or a
- *  FACE display management configuration. Other files are ignored. Definition Files are also
- *  offered to the configuration editor for user application dFPath choices.
+ *  Only .xml and .bin files are read; .prefab.xml files go to the prefab list. A binary or XML
+ *  Definition File, or a FACE display management configuration, joins the file list; other
+ *  files are ignored. Definition File names also go to the configuration editor's dFPath
+ *  choices and to the context.
  */
 static void ClassifyFolderFile(const char_t* fileName, void* context)
 {
@@ -1455,8 +1460,12 @@ static void ClassifyFolderFile(const char_t* fileName, void* context)
             }
             if (((index + 1) < (size_t)byte_count) && (('?' == text[index + 1]) || ('!' == text[index + 1])))
             {
-                while ((index < (size_t)byte_count) && ('>' != text[index]))
+                while (index < (size_t)byte_count)
                 {
+                    if ('>' == text[index])
+                    {
+                        break;
+                    }
                     index += 1;
                 }
                 continue;
@@ -1493,8 +1502,9 @@ static void ClassifyFolderFile(const char_t* fileName, void* context)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Rescans the shared folder, which refreshes the file list and the Definition File choices
- *  of the configuration editor. Both editors load and save relative to this folder.
+ *  Points both editors at the folder, which they load and save relative to, then rebuilds the
+ *  file list, the prefab list, and the Definition File names of the configuration editor and
+ *  the context.
  */
 static void ScanFolder(WindowThreadState_t* window)
 {
@@ -1515,8 +1525,9 @@ static void ScanFolder(WindowThreadState_t* window)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  One row of icon buttons for the focused section: file actions, undo and redo, then the
- *  section's add, duplicate, and delete actions, view toggles, and help.
+ *  Icon buttons for the focused section: file actions and New Application, undo and redo, the
+ *  section's add, duplicate, and delete actions (plus grid, snap, and fit for Definition
+ *  Files), play and build, then help. Buttons wrap to a new row when the window is narrow.
  */
 static void DrawToolbar(WindowThreadState_t* window)
 {
@@ -1720,7 +1731,7 @@ static void ShowHelp(WindowThreadState_t* window, const char_t* topic)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Shows the selection's page in Windows Help.
+ *  Same as OpenWindowsHelp with HH_DISPLAY_TOPIC_COMMAND.
  */
 static void OpenHelpInBrowser(WindowThreadState_t* window)
 {
@@ -1732,8 +1743,9 @@ static void OpenHelpInBrowser(WindowThreadState_t* window)
  * \par Details:
  *  Loads the HTML Help engine (hhctrl.ocx) once and shows the compiled help file,
  *  docs\arinc661.chm, found by walking up from the executable's folder. A topic command
- *  opens the page of the current selection; the contents, index, and search commands open
- *  those panes. Without the engine or the file, the HTML page opens in the browser instead.
+ *  opens the page of the current selection, or of the Help window's topic when nothing is
+ *  selected; the contents, index, and search commands open those panes. Without the engine
+ *  or the file, docs\arinc661_help.html opens in the browser at that topic instead.
  */
 static void OpenWindowsHelp(WindowThreadState_t* window, uint32_t command)
 {
@@ -1754,8 +1766,12 @@ static void OpenWindowsHelp(WindowThreadState_t* window, uint32_t command)
         }
     }
     length = GetModuleFileNameA(NULL, folder, sizeof(folder));
-    while ((0 < length) && ('\\' != folder[length - 1]))
+    while (0 < length)
     {
+        if ('\\' == folder[length - 1])
+        {
+            break;
+        }
         length -= 1;
     }
     folder[length] = '\0';
@@ -1774,8 +1790,12 @@ static void OpenWindowsHelp(WindowThreadState_t* window, uint32_t command)
             break;
         }
         length -= 1;
-        while ((0 < length) && ('\\' != folder[length - 1]))
+        while (0 < length)
         {
+            if ('\\' == folder[length - 1])
+            {
+                break;
+            }
             length -= 1;
         }
         folder[length] = '\0';
@@ -1812,9 +1832,10 @@ static void OpenWindowsHelp(WindowThreadState_t* window, uint32_t command)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  A searchable reference: a getting-started page, the FACE H.3 elements, and every ARINC
- *  661 widget and extension with its description, categories, restriction, and parameter
- *  table from the specification. The topic list follows the selection when F1 is pressed.
+ *  A searchable reference: getting-started and keyboard shortcut pages, the FACE H.3
+ *  elements, and every ARINC 661 widget and extension with its description, categories,
+ *  restriction, and parameter table from the specification. Shift+F1 opens it on the
+ *  selection's topic.
  */
 static void DrawHelpWindow(WindowThreadState_t* window)
 {
@@ -1929,7 +1950,7 @@ static void DrawHelpWindow(WindowThreadState_t* window)
                     ImGui::TextUnformatted("3. Scene: drag widgets to move them, drag the corner handles to resize, arrow keys nudge, Delete removes, mouse wheel zooms, middle-drag or Space-drag pans, F fits, G toggles the grid, S toggles millimetre snapping.");
                     ImGui::TextUnformatted("4. Inspector: every parameter row shows its specification description on hover; the About section explains the selected widget. Red values would not fit the binary form.");
                     ImGui::TextUnformatted("5. Link both: set the Definition File's ApplicationId (root node) to the user application's applicationId. The user application inspector checks it and previews the Definition File's layers inside the window; the Definition File root lists who references it.");
-                    ImGui::TextUnformatted("6. Save with Ctrl+S; a .bin name saves the binary form of ARINC 661 Part 1-7, any other name the XML form. Undo with Ctrl+Z, redo with Ctrl+Y. F1 opens this help on the selection; Shift+F1 opens the HTML reference in the browser.");
+                    ImGui::TextUnformatted("6. Save with Ctrl+S; a .bin name saves the binary form of ARINC 661 Part 1-7, any other name the XML form. Undo with Ctrl+Z, redo with Ctrl+Y. F1 opens Windows Help on the selection; Shift+F1 opens this reference on it.");
                 }
                 else if (0 == strncmp(window->helpTopic, SHORTCUTS_LABEL, sizeof(SHORTCUTS_LABEL)))
                 {
@@ -2009,8 +2030,8 @@ static void DrawHelpWindow(WindowThreadState_t* window)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Draws the File menu, whose Save and Close act on whichever section was used last, and the
- *  matching keyboard shortcuts.
+ *  File, Edit, View, Window, and Help menus, then the global shortcuts. Save, Close, undo,
+ *  redo, and the edit actions apply to the focused section.
  */
 static void DrawPageMenu(WindowThreadState_t* window)
 {
@@ -2457,7 +2478,8 @@ static void DrawPageMenu(WindowThreadState_t* window)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Insertion sort on the order array; the lists are short. Only the first sort column counts.
+ *  Insertion sort on the order array; the lists are short. Only the first sort column counts,
+ *  and ties fall back to the name.
  */
 static void SortFiles(WindowThreadState_t* window, ImGuiTableSortSpecs* specs)
 {
@@ -2537,7 +2559,7 @@ static void SortFiles(WindowThreadState_t* window, ImGuiTableSortSpecs* specs)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
+ *  KB and MB are powers of 1024, shown with one decimal.
  */
 static void FormatSize(uint64_t bytes, char_t* text, uint32_t capacity)
 {
@@ -2558,7 +2580,7 @@ static void FormatSize(uint64_t bytes, char_t* text, uint32_t capacity)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
+ *  Converts to local time to the minute; the text is empty when the conversion fails.
  */
 static void FormatTime(uint64_t fileTime, char_t* text, uint32_t capacity)
 {
@@ -2578,7 +2600,7 @@ static void FormatTime(uint64_t fileTime, char_t* text, uint32_t capacity)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Matches the name against the open documents of the editor of its kind.
+ *  Matches the name, ignoring case, against the open documents of the editor of its kind.
  */
 static const char_t* FileState(const WindowThreadState_t* window, uint32_t fileIndex)
 {
@@ -2619,8 +2641,8 @@ static const char_t* FileState(const WindowThreadState_t* window, uint32_t fileI
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Saving never blocks, but a document with errors in the Problems list gets a note in the
- *  status line so the author knows what was written.
+ *  Errors never prevent saving, but a document with errors in the Problems list gets a note
+ *  in the status line.
  */
 static void SaveActive(WindowThreadState_t* window)
 {
@@ -2727,10 +2749,11 @@ static void DrawPageProblems(WindowThreadState_t* window)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Draws the shared folder path and one list of every configuration and Definition File in
- *  it, each tagged with its kind. Selecting a file opens it in the matching section and
- *  gives that section the focus. The folder is rescanned on edit, on Refresh, and every few
- *  seconds so saved files appear.
+ *  Draws the shared folder path and a sortable table of every configuration and Definition
+ *  File in it, with kind, size, modification time, and editor state. Selecting a file opens
+ *  it in the matching section and gives that section the focus. While the list is expanded,
+ *  the folder is rescanned on edit, on Refresh, and every FILE_SCAN_INTERVAL_SECONDS so saved
+ *  files appear.
  */
 static void DrawPageFiles(WindowThreadState_t* window)
 {
@@ -2842,7 +2865,7 @@ static void DrawPageFiles(WindowThreadState_t* window)
  * \par Details:
  *  One hierarchy pane holds both document kinds as two sections, each with its document tabs
  *  and tree. A click anywhere inside a section makes it the focused section, whose scene and
- *  inspector fill the other two panes.
+ *  inspector the Scene and Inspector panels show.
  */
 static void DrawPageHierarchy(WindowThreadState_t* window)
 {
@@ -2881,8 +2904,9 @@ static void DrawPageHierarchy(WindowThreadState_t* window)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Draws the single page: the File menu, the shared file list, then the hierarchy, the scene
- *  of the focused section, and its inspector side by side, with dialogs and a status line.
+ *  Applies a pending focus request, draws the menu bar, the page window (toolbar, dockspace,
+ *  status line), every open panel, then the pop-ups and dialogs. Also opens a pending path,
+ *  runs the daily update check, follows Definition File renames, and ends both editors' frames.
  */
 static void DrawEditors(WindowThreadState_t* window)
 {
@@ -2894,7 +2918,7 @@ static void DrawEditors(WindowThreadState_t* window)
     uint32_t                     panel_index;
     bool_t                       is_definition_focused;
 
-    // Honour a cross-editor navigation request before drawing so the focused section follows it
+    // Honor a cross-editor navigation request before drawing so the focused section follows it
     if (Arinc661_Context_TakeFocusRequest(window->context, &is_definition_focused))
     {
         window->isDefinitionActive = is_definition_focused;
@@ -2917,7 +2941,7 @@ static void DrawEditors(WindowThreadState_t* window)
         }
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, -((2.0f * ImGui::GetTextLineHeightWithSpacing()) + (2.0f * ImGui::GetStyle().ItemSpacing.y))), ImGuiDockNodeFlags_PassthruCentralNode);
         DrawStatusBar(window);
-        // On the second frame, after a saved layout has placed every panel, bring the working tabs to the front
+        // A few frames in, once a saved layout has placed every panel, bring the working tabs to the front
         if (4 == g_frameCount)
         {
             ImGui::SetWindowFocus(PANEL_FILES);
@@ -2929,7 +2953,7 @@ static void DrawEditors(WindowThreadState_t* window)
         ImGui::PopStyleVar(2);
     }
     ImGui::End();
-    // Panels dock into the space above; each can be closed from the Window menu
+    // Panels dock into the dockspace above; the Window menu shows or hides each one
     for (panel_index = 0; panel_index < PANEL_COUNT; ++panel_index)
     {
         if (FALSE == window->panelOpen[panel_index])
@@ -2954,7 +2978,7 @@ static void DrawEditors(WindowThreadState_t* window)
                         DrawStartPage(window);
                         break;
                     }
-                    // Stats line above the canvas: scene size and frame time, from whichever draw list the view replays
+                    // Stats above the canvas: widget count, the shown draw list's commands and points, frame time
                     stats_list = &window->configurationEditor->drawList;
                     if (window->isDefinitionActive && (FALSE == window->definitionEditor->isPlaying))
                     {
@@ -3009,7 +3033,7 @@ static void DrawEditors(WindowThreadState_t* window)
     }
     DrawUpdatePopup(window);
     DrawAboutPopup(window);
-    // One silent check a day
+    // One automatic check a day
     if ((UPDATE_STATE_IDLE == window->updateState.load()) && ('\0' != window->updateUrl[0]) && (((float64_t)time(NULL) - window->updateCheckedAt) > UPDATE_CHECK_INTERVAL_SECONDS))
     {
         window->updateCheckedAt = (float64_t)time(NULL);
@@ -3026,10 +3050,10 @@ static void DrawEditors(WindowThreadState_t* window)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Default: left column Hierarchy over Palette, right column Inspector, bottom strip of tool
- *  tabs, Scene in the centre. Tall: no bottom strip; the tool tabs stack under the Inspector so
- *  the Scene runs full height. Wide: no right column; Inspector and the tools share the bottom
- *  strip so the Scene runs full width. Every panel is reopened.
+ *  Default: left column Hierarchy over Palette, right column Inspector and History, bottom
+ *  strip of tool tabs under the Scene in the center. Tall: no bottom strip; the tool tabs
+ *  stack under the Inspector so the Scene runs full height. Wide: no right column; Inspector,
+ *  History, and the tools share the bottom strip, widening the Scene. Every panel is reopened.
  */
 static void BuildDefaultLayout(WindowThreadState_t* window, ImGuiID dockspaceId)
 {
@@ -3083,9 +3107,10 @@ static void BuildDefaultLayout(WindowThreadState_t* window, ImGuiID dockspaceId)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Types are grouped by the first category the specification lists for them. A click adds a
- *  widget of that type to the Definition File selection; a drag carries the type name as a
- *  payload the hierarchy and the scene accept. Extensions get their own group.
+ *  Prefabs come first. Widget types are grouped by the first category the specification lists
+ *  for them, unmatched ones under Other, and extensions get their own group. A click adds the
+ *  type at the selection of the active Definition File; a drag carries the type name as a
+ *  payload the hierarchy and the scene accept.
  */
 static void DrawPalette(WindowThreadState_t* window)
 {
@@ -3219,7 +3244,7 @@ static void DrawPalette(WindowThreadState_t* window)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Only a changed text is appended, stamped with the wall clock.
+ *  Only a changed text is appended, stamped with the local time.
  */
 static void AppendLog(WindowThreadState_t* window, const char_t* text)
 {
@@ -3239,7 +3264,8 @@ static void AppendLog(WindowThreadState_t* window, const char_t* text)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Oldest first; the ring keeps the last LOG_CAPACITY lines.
+ *  Oldest first; the ring keeps the last LOG_CAPACITY lines. Lines are classed as errors or
+ *  warnings by keyword and filtered by class and text.
  */
 static void DrawLog(WindowThreadState_t* window)
 {
@@ -3309,7 +3335,9 @@ static void DrawLog(WindowThreadState_t* window)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The name moves to the front of the recent list, which the preferences file keeps.
+ *  Gives the matching section the focus; a configuration also opens the Definition Files it
+ *  references. The full path moves to the front of the recent list, which the preferences
+ *  file keeps, and goes to the Windows recent documents.
  */
 static void OpenFolderFile(WindowThreadState_t* window, const char_t* name, bool_t isDefinition)
 {
@@ -3359,7 +3387,8 @@ static void OpenFolderFile(WindowThreadState_t* window, const char_t* name, bool
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The folder is rescanned so the name is classified the same way the Files panel does it.
+ *  The folder is rescanned so the name is classified as the Files panel classifies it. The
+ *  outcome is logged; a failure also opens the Log panel.
  */
 static bool_t OpenPath(WindowThreadState_t* window, const char_t* path)
 {
@@ -3436,7 +3465,7 @@ static void BeginPick(WindowThreadState_t* window, bool_t isFolder)
 /**
  * \par Details:
  *  The common item dialog on an apartment thread of its own, owned by the editor window so it
- *  centres there and is modal to it, while the window thread keeps rendering. The path is
+ *  centers there and is modal to it, while the window thread keeps rendering. The path is
  *  written before the state changes, and the window thread reads it only after.
  */
 static DWORD WINAPI PickThread(LPVOID parameter)
@@ -3613,7 +3642,8 @@ static void DrawHistory(WindowThreadState_t* window)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  A running check or download is left alone.
+ *  A running check or download is left alone. Without an update source, a manual check logs
+ *  that and opens the Log panel.
  */
 static void BeginUpdateCheck(WindowThreadState_t* window, bool_t isManual)
 {
@@ -3673,9 +3703,9 @@ static DWORD WINAPI UpdateThread(LPVOID parameter)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  A silent check only speaks when a version the user has not skipped is available. A manual
- *  check reports every outcome. Installing starts msiexec and ends the session so files can be
- *  replaced; the installer relaunches the editor.
+ *  An automatic check opens the pop-up only when a version the user has not skipped is
+ *  available; a manual check reports every outcome. Installing starts msiexec and ends the
+ *  session so files can be replaced; the installer relaunches the editor.
  */
 static void DrawUpdatePopup(WindowThreadState_t* window)
 {
@@ -3828,8 +3858,12 @@ static void DrawAboutPopup(WindowThreadState_t* window)
         executable[0] = '\0';
         (void)::GetModuleFileNameA(NULL, executable, (DWORD)sizeof(executable));
         cut = strnlen(executable, sizeof(executable));
-        while ((0 < cut) && ('\\' != executable[cut - 1]))
+        while (0 < cut)
         {
+            if ('\\' == executable[cut - 1])
+            {
+                break;
+            }
             cut -= 1;
         }
         if (0 < cut)
@@ -3893,7 +3927,7 @@ static void DrawAboutPopup(WindowThreadState_t* window)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  HKCU first, then HKLM, where the installer writes UPDATEURL.
+ *  HKCU first, then HKLM, where the installer writes UPDATEURL; the first value found wins.
  */
 static void LoadUpdateSource(WindowThreadState_t* window)
 {
@@ -4174,7 +4208,7 @@ static void TogglePlay(WindowThreadState_t* window)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Each report line becomes a log line.
+ *  Each report line becomes a log line, even a repeated one, and the Log panel opens.
  */
 static void BuildAll(WindowThreadState_t* window)
 {
@@ -4209,8 +4243,8 @@ static void BuildAll(WindowThreadState_t* window)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  One list mixes commands, folder files, and the active Definition File's widgets; the first
- *  match runs on Enter. Escape closes.
+ *  One list mixes commands with, once something is typed, folder files and the active
+ *  Definition File's widgets; the first match runs on Enter. Escape or losing focus closes it.
  */
 static void DrawCommandPalette(WindowThreadState_t* window)
 {
@@ -4310,7 +4344,7 @@ static void DrawCommandPalette(WindowThreadState_t* window)
                     shown += 1;
                 }
             }
-            // Widgets of the active Definition File
+            // Widgets of the active definition, by name
             definition = Arinc661_DefinitionEditor_Document(window->definitionEditor, window->definitionEditor->activeDocumentIndex);
             if ((NULL != definition) && ('\0' != upper_filter[0]))
             {
@@ -4352,7 +4386,8 @@ static void DrawCommandPalette(WindowThreadState_t* window)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Dark or light ImGui scheme with the viewport tweaks, then the font scale.
+ *  Light colors, or dark colors with editor overrides; then the metrics scaled by the display
+ *  scale, the font scales, and the viewport tweaks.
  */
 static void ApplyTheme(WindowThreadState_t* window)
 {
@@ -4462,7 +4497,8 @@ static void ApplyTheme(WindowThreadState_t* window)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Two lines, key=value: scale and theme.
+ *  One key=value per line: scale, theme, folder, updateUrl, updateChecked, updateSkip, and up to
+ *  RECENT_COUNT recent entries prefixed d: (Definition File) or c: (configuration).
  */
 static void LoadPreferences(WindowThreadState_t* window)
 {
@@ -4523,7 +4559,7 @@ static void LoadPreferences(WindowThreadState_t* window)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Written beside the executable's working directory.
+ *  Written to the working directory in the format LoadPreferences reads.
  */
 static void SavePreferences(WindowThreadState_t* window)
 {
@@ -4562,7 +4598,8 @@ static void SavePreferences(WindowThreadState_t* window)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Status text of the focused section, any save note, then the context breadcrumbs.
+ *  Status text of the focused section, which is also logged, any save note, then the context
+ *  breadcrumbs.
  */
 static void DrawStatusBar(WindowThreadState_t* window)
 {
@@ -4617,7 +4654,9 @@ static void DrawFrame(WindowThreadState_t* window)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Creates a Win32 OpenGL context for the main or platform window.
+ *  Sets a double-buffered RGBA pixel format and keeps the window's device context. The first
+ *  call also creates the shared context, replaced by a 3.0 core context when the driver
+ *  reports a version below 3.0 and supports wglCreateContextAttribsARB.
  */
 static bool_t CreateDeviceWGL(HWND windowHandle, WglWindowData_t* windowData)
 {
@@ -4719,7 +4758,7 @@ static bool_t CreateDeviceWGL(HWND windowHandle, WglWindowData_t* windowData)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Releases a Win32 window device context.
+ *  Clears the current OpenGL context before releasing the device context.
  */
 static void CleanupDeviceWGL(HWND windowHandle, WglWindowData_t* windowData)
 {
@@ -4912,7 +4951,9 @@ static LRESULT WINAPI WindowProcedure(HWND windowHandle, UINT message, WPARAM wo
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Creates the main window, signals the presenter thread, and dispatches Win32 messages.
+ *  Creates the main window, the OpenGL contexts, ImGui, and the editors, opens the files named
+ *  on the command line, and sets readyEvent. Then alternates message dispatch with DrawFrame
+ *  until done, and tears down once the presenter has stopped.
  */
 static DWORD WINAPI WindowThread(LPVOID parameter)
 {
@@ -4948,7 +4989,7 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
     window_class.hIconSm       = window_class.hIcon;
     LOGASSERT(0 != ::RegisterClassExW(&window_class));
     (void)::CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
-    // Centre the window on the primary monitor's work area, sized to fit it
+    // Center the window on the primary monitor's work area, sized to fit it
     monitor_info.cbSize = sizeof(monitor_info);
     monitor_rect.left   = 0;
     monitor_rect.top    = 0;
@@ -5003,8 +5044,8 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
     io->ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     if (NULL == g_screenshotPath)
     {
-        // Pop-ups in their own OS windows cannot be read back from the main framebuffer, so
-        // automation runs keep every window inside the main viewport
+        // ImGui windows in their own OS windows are missing from the main framebuffer the
+        // screenshot reads back, so screenshot runs keep every window in the main viewport
         io->ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
     }
 
@@ -5040,7 +5081,7 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
     window->configurationEditor = (Arinc661_Configuration_Editor_t*)OS_CALLOC(sizeof(Arinc661_Configuration_Editor_t));
     Arinc661_Configuration_Initialize(window->configurationEditor);
     window->definitionEditor = (Arinc661_DefinitionEditor_t*)OS_CALLOC(sizeof(Arinc661_DefinitionEditor_t));
-    Arinc661_Definition_Initialize(window->definitionEditor);
+    Arinc661_DefinitionEditor_Initialize(window->definitionEditor);
     window->isHelpOpen    = FALSE;
     window->helpFilter[0] = 0;
     strncpy_s(window->helpTopic, sizeof(window->helpTopic), HELP_GETTING_STARTED, _TRUNCATE);
@@ -5167,7 +5208,8 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Opens the configuration editor and its live scene view.
+ *  Starts the window thread, then presents on this thread: at each vertical blank it swaps a
+ *  ready frame, or acknowledges a pending resize so the window thread can continue.
  */
 int main(int argc, char** argv)
 {

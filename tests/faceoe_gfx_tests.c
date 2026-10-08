@@ -34,7 +34,7 @@ static char_t               s_text[4096];
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Compares two floats within a tolerance.
+ *  Checks that two floats differ by less than 0.001.
  */
 static bool_t Near(float32_t a, float32_t b)
 {
@@ -48,8 +48,8 @@ static bool_t Near(float32_t a, float32_t b)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Transforms compose as expected, commands land with mapped points, text and clips record,
- *  and storage exhaustion is reported rather than overrun.
+ *  Checks transform composition, mapped command points, text boxes, clip depth, color fading,
+ *  and that running out of storage sets isOverflowed without writing past the end.
  */
 void RunFACEOEGfxTests(void)
 {
@@ -84,7 +84,7 @@ void RunFACEOEGfxTests(void)
     FACEOE_Gfx_DrawList_PopTransform(&list);
     assert(Near(FACEOE_Gfx_DrawList_Angle(&list), 0.0f));
 
-    // Scale about a centre keeps the centre fixed
+    // Scale about a center keeps the center fixed
     assert(FACEOE_Gfx_DrawList_PushTransform(&list));
     FACEOE_Gfx_DrawList_Scale(&list, 500.0f, 500.0f, 2.0f, 2.0f);
     point = FACEOE_Gfx_DrawList_Map(&list, 500.0f, 500.0f);

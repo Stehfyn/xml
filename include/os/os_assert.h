@@ -31,9 +31,9 @@
         {                                                                                                                                                                                              \
             Os_AssertFailure(#expression, __FILE__, __LINE__);                                                                                                                                         \
         }                                                                                                                                                                                              \
-    } while (0) ///< Makes a false invariant fatal and records its expression and source location.
+    } while (0) ///< When expression is false, reports it with its source location and aborts.
 
-/* Pair LOGSTART/LOGEND in one lexical scope. Do not return or jump out before LOGEND. */
+/* Pair LOGSTART or LOGSTARTBUFFER with LOGEND in one lexical scope; do not return or jump out before LOGEND. */
 #define LOGSTART(stream)                                                                                                                                                                               \
     do                                                                                                                                                                                                 \
     {                                                                                                                                                                                                  \
@@ -57,7 +57,7 @@
 #define LOGPRINTP(value)                           (Os_MessageBuilder_AppendPointer(&os_log_builder, (value)))
 #define LOGPRINTF(value)                           (Os_MessageBuilder_AppendFloat(&os_log_builder, (value)))
 
-#define LOGFATAL(message) (Os_LogFatal((message), __FILE__, __LINE__)) ///< Emits a fatal diagnostic at the call site.
+#define LOGFATAL(message) (Os_LogFatal((message), __FILE__, __LINE__)) ///< Reports message with the call site's source location and aborts.
 
 /*=================================================================================================
 ** 3.2 Types
@@ -77,7 +77,7 @@
 
 /*************************************************************************************************/
 /**
- * \brief Emits a failed-invariant diagnostic and terminates the process.
+ * \brief Writes a failed-assertion message to stderr and aborts the process.
  *
  * \param[in] pExpression   Non-NULL null-terminated expression text
  * \param[in] pFile         Non-NULL null-terminated source filename
@@ -89,7 +89,7 @@ OS_NORETURN void Os_AssertFailure(const char_t* pExpression, const char_t* pFile
 
 /*************************************************************************************************/
 /**
- * \brief Emits an unrecoverable-error diagnostic and terminates the process.
+ * \brief Writes a fatal-error message to stderr and aborts the process.
  *
  * \param[in] pMessage   Non-NULL null-terminated failure description
  * \param[in] pFile      Non-NULL null-terminated source filename

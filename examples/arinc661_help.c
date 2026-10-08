@@ -4,7 +4,8 @@
 
 /**
  * ARINC 661 Part 1-7, sections 3.3 to 3.10 and 8: the Categories, Description, Restriction, and
- * Parameters table of every widget and extension. Generated from the specification text.
+ * Parameters table of every widget and extension. Generated from the specification text by
+ * tools/help.py.
  */
 
 /*=================================================================================================
@@ -45,8 +46,8 @@ typedef struct HelpWidget_s
     const char_t* categories;     ///< Categories, comma separated
     const char_t* description;    ///< Description paragraph
     const char_t* restriction;    ///< Restriction paragraph, or empty
-    uint32_t      firstParameter; ///< Index into c_helpParameters
-    uint32_t      parameterCount; ///< Rows
+    uint32_t      firstParameter; ///< Index of the section's first row in c_helpParameters
+    uint32_t      parameterCount; ///< Number of the section's rows
 } HelpWidget_t;
 
 /*=================================================================================================
@@ -1636,11 +1637,11 @@ static const HelpWidget_t c_helpWidgets[] =
 
 /*************************************************************************************************/
 /**
- * \brief Finds a widget's help section by type name.
+ * \brief Finds the help section of a widget or extension type.
  *
- * \param type   Widget or extension type name
+ * \param[in] type   Widget or extension type name
  *
- * \retval const HelpWidget_t*   Help section, or NULL when the type has none.
+ * \retval    const HelpWidget_t*   Help section, or NULL when the type has none.
  */
 static const HelpWidget_t* FindHelp(const char_t* type);
 
@@ -1650,7 +1651,8 @@ static const HelpWidget_t* FindHelp(const char_t* type);
 
 /*************************************************************************************************/
 /**
- * \brief Finds a widget's help section by type name.
+ * \par Details:
+ *  Compares at most ARINC661_MAX_NAME_BYTES characters.
  */
 static const HelpWidget_t* FindHelp(const char_t* type)
 {
@@ -1704,8 +1706,8 @@ bool_t Arinc661_Help_GetType(const char_t* type, const char_t** description, con
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Looks the parameter up in the widget's own table first, then in any table, since the
- *  common parameters of section 3.1.3 are described once per widget.
+ *  Looks the parameter up in the type's own table first, then in every table, since a
+ *  table may omit the common parameters of section 3.1.3.
  */
 const char_t* Arinc661_Help_GetParameter(const char_t* type, const char_t* parameterName, const char_t** change)
 {

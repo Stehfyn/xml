@@ -41,7 +41,7 @@
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Comparing b against a keeps a NaN in a, as a pair of if statements would.
+ *  A NaN in either argument makes the comparison false, so a is returned.
  */
 float64_t FACEOE_Utl_Min(float64_t a, float64_t b)
 {
@@ -56,7 +56,7 @@ float64_t FACEOE_Utl_Min(float64_t a, float64_t b)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Comparing b against a keeps a NaN in a, as a pair of if statements would.
+ *  A NaN in either argument makes the comparison false, so a is returned.
  */
 float64_t FACEOE_Utl_Max(float64_t a, float64_t b)
 {

@@ -33,7 +33,7 @@ extern "C"
 
 /*************************************************************************************************/
 /**
- * \brief Icons drawn from primitives; no icon font is needed.
+ * \brief Toolbar icons, drawn from Segoe MDL2 Assets glyphs or, without that font, from primitives.
  */
 typedef enum Arinc661_Icon_e
 {
@@ -92,26 +92,27 @@ typedef enum Arinc661_Icon_e
  * \brief Loads Segoe UI for text and merges Segoe MDL2 Assets for icons into the font atlas.
  *
  * \par Details:
- *  Falls back to the built-in font when Segoe UI is not installed; icons then draw from
- *  primitives. Call once after the ImGui context exists and before the first frame.
+ *  Clears the atlas first. Uses the built-in font when Segoe UI is missing; icons draw from
+ *  primitives when Segoe MDL2 Assets is missing. Call once after the ImGui context exists and
+ *  before the first frame.
  *
  * \param[in] textSize   Text size in pixels before DPI scaling
  *
- * \retval    TRUE       if the Segoe icon font was merged.
+ * \retval    TRUE       if Segoe MDL2 Assets was merged.
  * \retval    FALSE      otherwise.
  */
 bool_t Arinc661_Icons_LoadFonts(float32_t textSize);
 
 /*************************************************************************************************/
 /**
- * \brief Draws one icon from the Segoe MDL2 glyph, or from primitives when the glyph is missing,
- *  into a box.
+ * \brief Draws an icon into a box from its Segoe MDL2 Assets glyph, or from primitives when the
+ *        glyph is unavailable.
  *
  * \param[in,out] drawList   Target draw list
  * \param[in]     icon       Icon to draw
  * \param[in]     minimum    Top-left of the icon box
  * \param[in]     maximum    Bottom-right of the icon box
- * \param[in]     color      Icon colour
+ * \param[in]     color      Icon color
  *
  * \retval        None
  */
@@ -124,7 +125,7 @@ void Arinc661_Icons_Draw(ImDrawList* drawList, Arinc661_Icon_t icon, ImVec2 mini
  * \param[in] icon        Icon to draw
  * \param[in] label       Tooltip text; also the ImGui id
  * \param[in] shortcut    Shortcut text, or NULL
- * \param[in] isEnabled   FALSE to draw it disabled
+ * \param[in] isEnabled   FALSE to disable the button
  * \param[in] isActive    TRUE to highlight a toggled state
  *
  * \retval    TRUE        if the button was pressed.

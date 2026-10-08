@@ -41,6 +41,16 @@ extern "C"
 ** 3.5 Static function prototypes
 **===============================================================================================*/
 
+/*************************************************************************************************/
+/**
+ * \brief Replays one text command into an ImGui draw list.
+ *
+ * \param[in]     drawList   Draw list holding the command's text
+ * \param[in]     command    Text command
+ * \param[in,out] target     ImGui draw list
+ *
+ * \retval        None
+ */
 static void RenderText(const FACEOE_Gfx_DrawList_t* drawList, const FACEOE_Gfx_Command_t* command, ImDrawList* target);
 
 /*=================================================================================================
@@ -49,7 +59,9 @@ static void RenderText(const FACEOE_Gfx_DrawList_t* drawList, const FACEOE_Gfx_C
 
 /*************************************************************************************************/
 /**
- * \brief Lays text out in the command's box and rotates its vertices about the box centre.
+ * \par Details:
+ *  Lays the text out in the command's box; upright text is clipped to the box, and other text
+ *  is rotated about the box center.
  */
 static void RenderText(const FACEOE_Gfx_DrawList_t* drawList, const FACEOE_Gfx_Command_t* command, ImDrawList* target)
 {
@@ -79,7 +91,7 @@ static void RenderText(const FACEOE_Gfx_DrawList_t* drawList, const FACEOE_Gfx_C
     box_min = ImVec2(drawList->points[command->firstPoint].x, drawList->points[command->firstPoint].y);
     box_max = ImVec2(drawList->points[command->firstPoint + 1].x, drawList->points[command->firstPoint + 1].y);
     size    = font->CalcTextSizeA(font_size, FLT_MAX, 0.0f, text);
-    // Lay rotated text out in an unrotated box of the same centre, then turn it
+    // Align in the unrotated box; rotated text is turned about the box center afterwards
     center = ImVec2((box_min.x + box_max.x) * 0.5f, (box_min.y + box_max.y) * 0.5f);
     position = box_min;
     if (FACEOE_GFX_ALIGN_CENTER == command->horizontal)
@@ -126,8 +138,9 @@ static void RenderText(const FACEOE_Gfx_DrawList_t* drawList, const FACEOE_Gfx_C
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Polygons go through the concave filler; lines through the polyline path with the
- *  recorded thickness.
+ *  Polygons are filled with the concave filler and polylines stroked with the recorded
+ *  thickness; points beyond IMGUI_MAX_POLYGON_POINTS are dropped. Clip rectangles still
+ *  pushed at the end are popped.
  */
 void Arinc661_Gfx_ImGui_Render(const FACEOE_Gfx_DrawList_t* drawList, ImDrawList* target)
 {

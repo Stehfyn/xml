@@ -47,12 +47,12 @@
  *
  * \param[in] pException   Non-NULL exception record supplied by Win32
  *
- * \retval    EXCEPTION_EXECUTE_HANDLER   so the boundary terminates without crash UI.
+ * \retval    EXCEPTION_EXECUTE_HANDLER   so the process ends, or Os_Diagnostics_Run returns, without crash UI.
  */
 static LONG WINAPI ReportUnhandledException(EXCEPTION_POINTERS* pException);
 
 #if defined(_DEBUG)
-/** Consume CRT reports without invoking the CRT's message-box handler. */
+/** Writes a CRT report to stderr instead of a message box; any report but a warning exits the process. */
 static int __cdecl ReportCrt(int reportType, char_t* message, int* result)
 {
     (void)fprintf(stderr, "CRT report %d: %s\n", reportType, message ? message : "(no message)");
@@ -62,7 +62,7 @@ static int __cdecl ReportCrt(int reportType, char_t* message, int* result)
     return TRUE;
 }
 
-/** Wide-character counterpart of the CRT report hook. */
+/** Wide-character counterpart of ReportCrt. */
 static int __cdecl ReportCrtWide(int reportType, wchar_t* message, int* result)
 {
     (void)fprintf(stderr, "CRT report %d: %ls\n", reportType, message ? message : L"(no message)");
@@ -73,7 +73,7 @@ static int __cdecl ReportCrtWide(int reportType, wchar_t* message, int* result)
 }
 #endif
 
-/** Invalid CRT parameters are fatal in unattended runs. */
+/** Writes a CRT invalid-parameter report to stderr and exits with EXIT_FAILURE. */
 static void __cdecl ReportInvalidParameter(const wchar_t* expression, const wchar_t* function, const wchar_t* file, unsigned int line, uintptr_t reserved)
 {
     (void)reserved;
@@ -82,7 +82,7 @@ static void __cdecl ReportInvalidParameter(const wchar_t* expression, const wcha
     _Exit(EXIT_FAILURE);
 }
 
-/** Abort must never reach WER, the JIT debugger, or the CRT report dialog. */
+/** Exits on SIGABRT so abort never reaches WER, the JIT debugger, or the CRT report dialog. */
 static void ReportAbort(int signalNumber)
 {
     (void)signalNumber;
@@ -165,6 +165,11 @@ void Os_Diagnostics_Initialize(void)
     (void)SetUnhandledExceptionFilter(ReportUnhandledException);
 }
 
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The exception filter logs an unhandled exception before the stack unwinds.
+ */
 int Os_Diagnostics_Run(int (*entry)(int, char_t**), int argc, char_t** argv)
 {
     Os_Diagnostics_Initialize();

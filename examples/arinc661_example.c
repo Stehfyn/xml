@@ -3,7 +3,7 @@
 **===============================================================================================*/
 
 /**
- * ARINC 661 Supplement 6 Definition File schema:
+ * ARINC 661 Supplement 6 strict XML Definition File schema (a661Strict.xsd), hosted by J661:
  * https://j661.sourceforge.net/articles/articles/resources/a661Strict.xsd
  */
 
@@ -47,7 +47,7 @@
 
 /*************************************************************************************************/
 /**
- * \brief Index of a model node in the example Definition File.
+ * \brief Model element of the example Definition File that a property belongs to.
  */
 typedef enum Arinc661ModelIndex_e
 {
@@ -61,7 +61,7 @@ typedef enum Arinc661ModelIndex_e
 
 /*************************************************************************************************/
 /**
- * \brief Property name and value assigned to one example model node.
+ * \brief Name and value of one example property, with the model element it belongs to.
  */
 typedef struct Arinc661Property_s
 {
@@ -133,7 +133,7 @@ static const Arinc661Property_t c_arinc661Properties[] =
 
 /*************************************************************************************************/
 /**
- * \brief Temporary XML conversion storage for the example.
+ * \brief Workspace for the XML readers and writers.
  */
 static uint64_t c_workspace[ARINC661_WORKSPACE_BYTES / sizeof(uint64_t)];
 
@@ -144,8 +144,8 @@ static uint64_t c_workspace[ARINC661_WORKSPACE_BYTES / sizeof(uint64_t)];
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Writes configuration and Definition File XML and the binary Definition File,
- *  then reads the files back.
+ *  Writes the display configuration XML and the Definition File in XML and binary form,
+ *  then reads each file back and checks its counts.
  */
 int main(void)
 {

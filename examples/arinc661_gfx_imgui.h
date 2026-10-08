@@ -46,9 +46,9 @@ extern "C"
  * \brief Replays a FACEOE draw list into an ImGui draw list.
  *
  * \par Details:
- *  Text is laid out with the current ImGui font, aligned in the command's box, clipped to the
- *  box when upright, and rotated about the box centre otherwise. Clip commands intersect
- *  the ImGui clip rectangle.
+ *  Text uses the current ImGui font, is aligned in the command's box, and is clipped to the
+ *  box when upright or rotated about the box center otherwise. Clip commands intersect the
+ *  current ImGui clip rectangle.
  *
  * \param[in]     drawList   Recorded commands
  * \param[in,out] target     ImGui draw list

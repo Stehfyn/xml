@@ -18,7 +18,7 @@
 **===============================================================================================*/
 
 #define BYTE_TO_BITS            (0x08)                               ///< Number of bits in one byte.
-#define COUNT_OF(array)         (sizeof(array) / sizeof((array)[0])) ///< Compile-time element count of a true array object.
+#define COUNT_OF(array)         (sizeof(array) / sizeof((array)[0])) ///< Number of elements in an array; not valid for a pointer.
 #define OFFSET_OF(type, member) (offsetof(type, member))             ///< Compile-time byte offset of a member within its structure.
 
 #define LBIT0 (1 << 0) ///< Bit zero mask.
