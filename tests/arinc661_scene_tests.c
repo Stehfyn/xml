@@ -231,14 +231,8 @@ void RunArinc661SceneTests(void)
     Arinc661_Scene_FormatNumber("#.#", 0.96, text, sizeof(text));
     assert(0 == strcmp("1.0", text));
 
-    memset(&definition, 0, sizeof(definition));
-    definition.layers           = s_layers;
-    definition.widgets          = s_widgets;
-    definition.properties       = s_properties;
-    definition.layerCapacity    = 2;
-    definition.widgetCapacity   = TEST_MAX_WIDGETS;
-    definition.propertyCapacity = TEST_MAX_PROPERTIES;
-    definition.layerCount       = 1;
+    Arinc661_Definition_Initialize(&definition, s_layers, 2, s_widgets, TEST_MAX_WIDGETS, s_properties, TEST_MAX_PROPERTIES, NULL, 0);
+    definition.layerCount = 1;
     FACEOE_Gfx_DrawList_Initialize(&list, s_commands, 8192, s_points, 65536, s_text, sizeof(s_text));
     memset(&base, 0, sizeof(base));
     base.a = 0.1f;

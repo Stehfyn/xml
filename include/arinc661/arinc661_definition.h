@@ -176,6 +176,24 @@ typedef struct Arinc661_Parameter_s
 
 /*************************************************************************************************/
 /**
+ * \brief Attaches caller storage and starts an empty Definition File.
+ *
+ * \param[out] definition         Definition File
+ * \param[in]  layers             Layer storage
+ * \param[in]  layerCapacity      Layer slots
+ * \param[in]  widgets            Widget storage
+ * \param[in]  widgetCapacity     Widget slots
+ * \param[in]  properties         Property storage
+ * \param[in]  propertyCapacity   Property slots
+ * \param[in]  blocks             Binary block storage, or NULL
+ * \param[in]  blockCapacity      Binary block bytes
+ *
+ * \retval     None
+ */
+void Arinc661_Definition_Initialize(Arinc661_Definition_t* definition, Arinc661_Layer_t* layers, uint32_t layerCapacity, Arinc661_Widget_t* widgets, uint32_t widgetCapacity, Arinc661_Property_t* properties, uint32_t propertyCapacity, byte_t* blocks, uint64_t blockCapacity);
+
+/*************************************************************************************************/
+/**
  * \brief Reads an ARINC 661 Definition File from memory into caller-owned data.
  *
  * \par Details:

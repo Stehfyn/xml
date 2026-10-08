@@ -99,7 +99,7 @@ static void BoxPoints(float32_t x, float32_t y, float32_t width, float32_t heigh
 
 /*************************************************************************************************/
 /**
- * \brief rief Maps a local box and returns its axis-aligned bounds as two points.
+ * \brief Maps a local box and returns its axis-aligned bounds as two points.
  *
  * \param drawList   Target draw list
  * \param x          X in layer units
@@ -114,7 +114,7 @@ static void MappedBox(const FACEOE_Gfx_DrawList_t* drawList, float32_t x, float3
 
 /*************************************************************************************************/
 /**
- * \brief rief Appends a command whose points are already in output units.
+ * \brief Appends a command whose points are already in output units.
  *
  * \param drawList   Target draw list
  * \param kind       Kind

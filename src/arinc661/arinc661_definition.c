@@ -260,7 +260,7 @@ static const char_t c_binaryHexDigits[] = "0123456789ABCDEF";
  */
 /*************************************************************************************************/
 /**
- * rief Constant names each Creation Structure table lists for a parameter, shared where equal.
+ * \brief Constant names each Creation Structure table lists for a parameter, shared where equal.
  */
 static const char_t* const c_values0[] = {"A661_FALSE", "A661_TRUE", "A661_TRUE_WITH_VALIDATION"};
 static const char_t* const c_values1[] = {"A661_FALSE", "A661_TRUE"};
@@ -1562,7 +1562,7 @@ static const BinaryField_t c_binaryFields[] =
 
 /*************************************************************************************************/
 /**
- * rief Supported widget types in name order, with WidgetType codes from Table 4.6-7.
+ * \brief Supported widget types in name order, with WidgetType codes from Table 4.6-7.
  */
 static const BinaryWidget_t c_binaryWidgets[] =
 {
@@ -1670,7 +1670,7 @@ static const BinaryWidget_t c_binaryWidgets[] =
 
 /*************************************************************************************************/
 /**
- * rief Supported widget extension types, with ExtensionType codes from Table 4.6-12.
+ * \brief Supported widget extension types, with ExtensionType codes from Table 4.6-12.
  */
 static const BinaryWidget_t c_binaryExtensions[] =
 {
@@ -1698,7 +1698,7 @@ static const BinaryWidget_t c_binaryExtensions[] =
 
 /*************************************************************************************************/
 /**
- * rief Constant names accepted as property values, from Tables 4.6-8, 4.6-10, 4.6-11, 4.6-13, 4.6-14, and 4.6-15.
+ * \brief Constant names accepted as property values, from Tables 4.6-8, 4.6-10, 4.6-11, 4.6-13, 4.6-14, and 4.6-15.
  */
 static const BinaryConstant_t c_binaryConstants[] =
 {
@@ -2250,6 +2250,14 @@ static const ExtensionTargets_t c_extensionTargets[] =
 /*=================================================================================================
 ** 3.5 Static function prototypes
 **===============================================================================================*/
+
+/*************************************************************************************************/
+/**
+ * \brief Clears the published counts, block bytes, and charset of a Definition File.
+ *
+ * \param[in,out] definition   Definition File whose arrays and capacities are retained
+ */
+static void ResetDefinition(Arinc661_Definition_t* definition);
 
 /*************************************************************************************************/
 /**
@@ -2815,6 +2823,20 @@ static bool_t ReadOpaqueBlock(Arinc661_Definition_t* definition, const byte_t* b
 /*=================================================================================================
 ** 4. PRIVATE FUNCTIONS
 **===============================================================================================*/
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Array entries and scalar fields are left as they are; with zero counts they are not published.
+ */
+static void ResetDefinition(Arinc661_Definition_t* definition)
+{
+    definition->layerCount      = 0;
+    definition->widgetCount     = 0;
+    definition->propertyCount   = 0;
+    definition->blockByteCount  = 0;
+    definition->charsetEncoding = 0;
+}
 
 /*************************************************************************************************/
 /**
@@ -5070,6 +5092,30 @@ static bool_t ReadOpaqueBlock(Arinc661_Definition_t* definition, const byte_t* b
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  Storage pointers may be NULL only with a zero capacity.
+ */
+void Arinc661_Definition_Initialize(Arinc661_Definition_t* definition, Arinc661_Layer_t* layers, uint32_t layerCapacity, Arinc661_Widget_t* widgets, uint32_t widgetCapacity, Arinc661_Property_t* properties, uint32_t propertyCapacity, byte_t* blocks, uint64_t blockCapacity)
+{
+    LOGASSERT(NULL != definition);
+    LOGASSERT((NULL != layers) || (0 == layerCapacity));
+    LOGASSERT((NULL != widgets) || (0 == widgetCapacity));
+    LOGASSERT((NULL != properties) || (0 == propertyCapacity));
+    LOGASSERT((NULL != blocks) || (0 == blockCapacity));
+    (void)memset(definition, 0, sizeof((*definition)));
+    definition->layers           = layers;
+    definition->widgets          = widgets;
+    definition->properties       = properties;
+    definition->blocks           = blocks;
+    definition->layerCapacity    = layerCapacity;
+    definition->widgetCapacity   = widgetCapacity;
+    definition->propertyCapacity = propertyCapacity;
+    definition->blockCapacity    = blockCapacity;
+    ResetDefinition(definition);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Reads a Definition File into flat layer, widget, and property arrays. This
  *  supported example contains a nested widget:
  *
@@ -5105,8 +5151,9 @@ static bool_t ReadOpaqueBlock(Arinc661_Definition_t* definition, const byte_t* b
  *
  *  Input may include an XML declaration; it is not retained in the result.
  *
- *  Versions must fit uint32_t. Failure clears layerCount, widgetCount, and
- *  propertyCount; scalar fields and array entries may still contain partial data.
+ *  Versions must fit uint32_t. Failure clears layerCount, widgetCount, propertyCount,
+ *  blockByteCount, and charsetEncoding; scalar fields and array entries may still
+ *  contain partial data.
  */
 bool_t Arinc661_Definition_Read(Arinc661_Definition_t* definition, byte_t* buffer, uint64_t byteCount, void* workspace, uint64_t workspaceSize)
 {
@@ -5132,13 +5179,9 @@ bool_t Arinc661_Definition_Read(Arinc661_Definition_t* definition, byte_t* buffe
     LOGASSERT(NULL != buffer);
     LOGASSERT(NULL != workspace);
     // Reset result counts while retaining the supplied arrays and capacities; XML carries no binary blocks
-    definition->layerCount      = 0;
-    definition->widgetCount     = 0;
-    definition->propertyCount   = 0;
-    definition->blockByteCount  = 0;
-    definition->charsetEncoding = 0;
-    has_workspace               = InitializeXmlWorkspace(&xml, workspace, workspaceSize);
-    is_valid                    = has_workspace;
+    ResetDefinition(definition);
+    has_workspace = InitializeXmlWorkspace(&xml, workspace, workspaceSize);
+    is_valid      = has_workspace;
     if (is_valid)
     {
         // Parse the source into the temporary XML workspace
@@ -5344,9 +5387,7 @@ bool_t Arinc661_Definition_Read(Arinc661_Definition_t* definition, byte_t* buffe
     if (FALSE == is_valid)
     {
         // Hide all partially read entries by clearing the published counts
-        definition->layerCount    = 0;
-        definition->widgetCount   = 0;
-        definition->propertyCount = 0;
+        ResetDefinition(definition);
     }
 
     return is_valid;
@@ -5587,14 +5628,10 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
     LOGASSERT(NULL != buffer);
     LOGASSERT((NULL != definition->blocks) || (0 == definition->blockCapacity));
     // Reset result counts while retaining the supplied arrays and capacities
-    definition->layerCount      = 0;
-    definition->widgetCount     = 0;
-    definition->propertyCount   = 0;
-    definition->blockByteCount  = 0;
-    definition->charsetEncoding = 0;
-    has_footer                  = FALSE;
-    offset                      = BINARY_HEADER_BYTES;
-    is_valid                    = (BINARY_HEADER_BYTES <= byteCount);
+    ResetDefinition(definition);
+    has_footer = FALSE;
+    offset     = BINARY_HEADER_BYTES;
+    is_valid   = (BINARY_HEADER_BYTES <= byteCount);
     if (is_valid)
     {
         is_valid = (BINARY_DF_MAGIC_NUMBER == GetUnsigned(buffer, 0, 2));
@@ -5657,11 +5694,7 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
     if (FALSE == is_valid)
     {
         // Hide all partially read entries by clearing the published counts
-        definition->layerCount      = 0;
-        definition->widgetCount     = 0;
-        definition->propertyCount   = 0;
-        definition->blockByteCount  = 0;
-        definition->charsetEncoding = 0;
+        ResetDefinition(definition);
     }
 
     return is_valid;

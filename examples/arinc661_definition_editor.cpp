@@ -7842,15 +7842,7 @@ void Arinc661_Definition_Initialize(Arinc661_Definition_Editor_t* editor)
         (void)memset(document->widgets, 0, sizeof(document->widgets));
         (void)memset(document->properties, 0, sizeof(document->properties));
         (void)memset(document->blocks, 0, sizeof(document->blocks));
-        (void)memset(&document->definition, 0, sizeof(document->definition));
-        document->definition.layers           = document->layers;
-        document->definition.widgets          = document->widgets;
-        document->definition.properties       = document->properties;
-        document->definition.blocks           = document->blocks;
-        document->definition.layerCapacity    = ARINC661_DEFINITION_MAX_LAYERS;
-        document->definition.widgetCapacity   = ARINC661_DEFINITION_MAX_WIDGETS;
-        document->definition.propertyCapacity = ARINC661_DEFINITION_MAX_PROPERTIES;
-        document->definition.blockCapacity    = ARINC661_DEFINITION_MAX_BLOCK_BYTES;
+        Arinc661_Definition_Initialize(&document->definition, document->layers, ARINC661_DEFINITION_MAX_LAYERS, document->widgets, ARINC661_DEFINITION_MAX_WIDGETS, document->properties, ARINC661_DEFINITION_MAX_PROPERTIES, document->blocks, ARINC661_DEFINITION_MAX_BLOCK_BYTES);
         ResetDocument(document);
     }
     for (document_index = 0; document_index < ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS; ++document_index)
@@ -9669,19 +9661,13 @@ bool_t Arinc661_Definition_SavePrefab(Arinc661_Definition_Editor_t* editor, cons
         return FALSE;
     }
     document = &editor->documents[editor->activeDocumentIndex];
-    (void)memset(&prefab, 0, sizeof(prefab));
+    Arinc661_Definition_Initialize(&prefab, &layer, 1, editor->clipboardWidgets, ARINC661_DEFINITION_CLIPBOARD_WIDGETS, editor->clipboardProperties, ARINC661_DEFINITION_CLIPBOARD_PROPERTIES, NULL, 0);
     (void)memset(&layer, 0, sizeof(layer));
     ImStrncpy(prefab.name, name, sizeof(prefab.name));
     ImStrncpy(layer.name, PREFAB_LAYER_NAME, sizeof(layer.name));
     prefab.supplementVersion = document->definition.supplementVersion;
-    prefab.layers            = &layer;
-    prefab.layerCapacity     = 1;
     prefab.layerCount        = 1;
-    prefab.widgets           = editor->clipboardWidgets;
-    prefab.widgetCapacity    = ARINC661_DEFINITION_CLIPBOARD_WIDGETS;
     prefab.widgetCount       = editor->clipboardWidgetCount;
-    prefab.properties        = editor->clipboardProperties;
-    prefab.propertyCapacity  = ARINC661_DEFINITION_CLIPBOARD_PROPERTIES;
     prefab.propertyCount     = editor->clipboardPropertyCount;
     for (widget_index = 0; widget_index < editor->clipboardWidgetCount; ++widget_index)
     {
@@ -9724,14 +9710,8 @@ bool_t Arinc661_Definition_LoadPrefab(Arinc661_Definition_Editor_t* editor, cons
     byte_count = OS_File_ReadFile(path, document->inputBuffer, sizeof(document->inputBuffer));
     if (0 < byte_count)
     {
-        (void)memset(&prefab, 0, sizeof(prefab));
+        Arinc661_Definition_Initialize(&prefab, &layer, 1, editor->clipboardWidgets, ARINC661_DEFINITION_CLIPBOARD_WIDGETS, editor->clipboardProperties, ARINC661_DEFINITION_CLIPBOARD_PROPERTIES, NULL, 0);
         (void)memset(&layer, 0, sizeof(layer));
-        prefab.layers           = &layer;
-        prefab.layerCapacity    = 1;
-        prefab.widgets          = editor->clipboardWidgets;
-        prefab.widgetCapacity   = ARINC661_DEFINITION_CLIPBOARD_WIDGETS;
-        prefab.properties       = editor->clipboardProperties;
-        prefab.propertyCapacity = ARINC661_DEFINITION_CLIPBOARD_PROPERTIES;
         is_loaded = Arinc661_Definition_Read(&prefab, document->inputBuffer, (uint64_t)byte_count, document->workspace, sizeof(document->workspace));
         if (is_loaded)
         {

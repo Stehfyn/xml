@@ -24,13 +24,7 @@ static void TestDefinition(void)
     uint64_t output_byte_count;
     bool_t is_valid;
 
-    memset(&definition, 0, sizeof(definition));
-    definition.layers = layers;
-    definition.widgets = widgets;
-    definition.properties = properties;
-    definition.layerCapacity = 2;
-    definition.widgetCapacity = 3;
-    definition.propertyCapacity = 8;
+    Arinc661_Definition_Initialize(&definition, layers, 2, widgets, 3, properties, 8, NULL, 0);
     is_valid = Arinc661_Definition_Read(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
     assert(is_valid);
     assert(1 == definition.layerCount);
@@ -101,13 +95,7 @@ static void TestDefinitionBinary(void)
     uint32_t index;
     bool_t is_valid;
 
-    memset(&definition, 0, sizeof(definition));
-    definition.layers = layers;
-    definition.widgets = widgets;
-    definition.properties = properties;
-    definition.layerCapacity = 1;
-    definition.widgetCapacity = 2;
-    definition.propertyCapacity = 32;
+    Arinc661_Definition_Initialize(&definition, layers, 1, widgets, 2, properties, 32, NULL, 0);
     is_valid = Arinc661_Definition_Read(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
     assert(is_valid);
 
@@ -196,13 +184,7 @@ static void TestDefinitionBinaryLabelComplex(void)
     uint64_t byte_count;
     bool_t is_valid;
 
-    memset(&definition, 0, sizeof(definition));
-    definition.layers = layers;
-    definition.widgets = widgets;
-    definition.properties = properties;
-    definition.layerCapacity = 1;
-    definition.widgetCapacity = 2;
-    definition.propertyCapacity = 32;
+    Arinc661_Definition_Initialize(&definition, layers, 1, widgets, 2, properties, 32, NULL, 0);
     is_valid = Arinc661_Definition_ReadBinary(&definition, expected, sizeof(expected));
     assert(is_valid);
     assert(2 == definition.widgetCount);
@@ -263,13 +245,7 @@ static void TestDefinitionBinaryArrays(void)
     uint64_t byte_count;
     bool_t is_valid;
 
-    memset(&definition, 0, sizeof(definition));
-    definition.layers = layers;
-    definition.widgets = widgets;
-    definition.properties = properties;
-    definition.layerCapacity = 1;
-    definition.widgetCapacity = 2;
-    definition.propertyCapacity = 64;
+    Arinc661_Definition_Initialize(&definition, layers, 1, widgets, 2, properties, 64, NULL, 0);
     is_valid = Arinc661_Definition_Read(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
     assert(is_valid);
 
@@ -328,13 +304,7 @@ static void TestDefinitionArrayProperties(void)
     uint64_t byte_count;
     bool_t is_valid;
 
-    memset(&definition, 0, sizeof(definition));
-    definition.layers = layers;
-    definition.widgets = widgets;
-    definition.properties = properties;
-    definition.layerCapacity = 1;
-    definition.widgetCapacity = 2;
-    definition.propertyCapacity = 16;
+    Arinc661_Definition_Initialize(&definition, layers, 1, widgets, 2, properties, 16, NULL, 0);
     is_valid = Arinc661_Definition_Read(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
     assert(is_valid);
     assert(11 == definition.propertyCount);
@@ -425,13 +395,7 @@ static void TestDefinitionBinaryExtensions(void)
     uint64_t offset;
     bool_t is_valid;
 
-    memset(&definition, 0, sizeof(definition));
-    definition.layers = layers;
-    definition.widgets = widgets;
-    definition.properties = properties;
-    definition.layerCapacity = 1;
-    definition.widgetCapacity = 8;
-    definition.propertyCapacity = 64;
+    Arinc661_Definition_Initialize(&definition, layers, 1, widgets, 8, properties, 64, NULL, 0);
     is_valid = Arinc661_Definition_Read(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
     assert(is_valid);
     assert(6 == definition.widgetCount);
@@ -526,13 +490,7 @@ static void TestDefinitionBinaryBlocks(void)
     uint32_t index;
     bool_t is_valid;
 
-    memset(&definition, 0, sizeof(definition));
-    definition.layers = layers;
-    definition.properties = properties;
-    definition.blocks = blocks;
-    definition.layerCapacity = 1;
-    definition.propertyCapacity = 8;
-    definition.blockCapacity = sizeof(blocks);
+    Arinc661_Definition_Initialize(&definition, layers, 1, NULL, 0, properties, 8, blocks, sizeof(blocks));
     is_valid = Arinc661_Definition_ReadBinary(&definition, expected, sizeof(expected));
     assert(is_valid);
     assert(2 == definition.charsetEncoding);
@@ -598,13 +556,7 @@ static void TestDefinitionBinaryPrecision(void)
     uint32_t found;
     bool_t is_valid;
 
-    memset(&definition, 0, sizeof(definition));
-    definition.layers = layers;
-    definition.widgets = widgets;
-    definition.properties = properties;
-    definition.layerCapacity = 1;
-    definition.widgetCapacity = 2;
-    definition.propertyCapacity = 64;
+    Arinc661_Definition_Initialize(&definition, layers, 1, widgets, 2, properties, 64, NULL, 0);
     is_valid = Arinc661_Definition_Read(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
     assert(is_valid);
     byte_count = Arinc661_Definition_WriteBinary(&definition, output, sizeof(output));

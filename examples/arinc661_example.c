@@ -223,19 +223,13 @@ int main(void)
     applications[0].mapSourceLayer   = FALSE;
     applications[0].visible          = TRUE;
 
-    memset(&definition_file, 0, sizeof(definition_file));
+    Arinc661_Definition_Initialize(&definition_file, layers, COUNT_OF(layers), widgets, COUNT_OF(widgets), properties, COUNT_OF(properties), NULL, 0);
     memset(layers, 0, sizeof(layers));
     memset(widgets, 0, sizeof(widgets));
     memset(properties, 0, sizeof(properties));
     strcpy(definition_file.name, "arinc661_definition");
     definition_file.libraryVersion    = 0;
     definition_file.supplementVersion = 6;
-    definition_file.layers            = layers;
-    definition_file.widgets           = widgets;
-    definition_file.properties        = properties;
-    definition_file.layerCapacity     = COUNT_OF(layers);
-    definition_file.widgetCapacity    = COUNT_OF(widgets);
-    definition_file.propertyCapacity  = COUNT_OF(properties);
     definition_file.layerCount        = COUNT_OF(layers);
     definition_file.widgetCount       = COUNT_OF(widgets);
     definition_file.propertyCount     = COUNT_OF(properties);
