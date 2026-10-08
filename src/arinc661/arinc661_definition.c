@@ -6662,11 +6662,25 @@ static uint32_t RegionByteCount(uint32_t regionType)
 static uint32_t GetEntryCount(const BinaryWidget_t* type, const BinaryField_t* field, const uint32_t* values)
 {
     uint32_t field_index;
+    bool_t   is_named;
+    bool_t   names_match;
 
     LOGASSERT(NULL != field->countName);
+
     for (field_index = 0; field_index < type->fieldCount; ++field_index)
     {
-        if ((NULL != type->fields[field_index].name) && (0 == strncmp(field->countName, type->fields[field_index].name, ARINC661_MAX_NAME_BYTES)))
+        is_named = (NULL != type->fields[field_index].name);
+
+        if (is_named)
+        {
+            names_match = (0 == strncmp(field->countName, type->fields[field_index].name, ARINC661_MAX_NAME_BYTES));
+        }
+        else
+        {
+            names_match = FALSE;
+        }
+
+        if (names_match)
         {
             break;
         }
