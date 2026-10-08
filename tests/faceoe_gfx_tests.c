@@ -119,7 +119,7 @@ void RunFACEOEGfxTests(void)
     assert(FACEOE_GFX_COMMAND_FILL_POLYGON == list.commands[9].kind);
     FACEOE_Gfx_DrawList_Text(&list, 0.0f, 0.0f, 1000.0f, 200.0f, "Hello", FACEOE_GFX_ALIGN_END, FACEOE_GFX_ALIGN_START, 12.0f, 0.0f, 0xFFFFFFFFU);
     assert(FACEOE_GFX_COMMAND_TEXT == list.commands[10].kind);
-    assert(0 == strcmp("Hello", FACEOE_Gfx_DrawList_CommandText(&list, &list.commands[10])));
+    assert(0 == strncmp("Hello", FACEOE_Gfx_DrawList_CommandText(&list, &list.commands[10]), sizeof("Hello")));
     assert(FACEOE_GFX_ALIGN_END == list.commands[10].horizontal);
     // Box is reported top-left to bottom-right in output space
     assert(Near(list.points[list.commands[10].firstPoint].x, 100.0f) && Near(list.points[list.commands[10].firstPoint].y, 480.0f));

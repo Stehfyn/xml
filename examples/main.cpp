@@ -1327,53 +1327,53 @@ static void ParseOptions(int argc, char** argv)
     g_captureFrame = SCREENSHOT_DEFAULT_FRAMES;
     for (index = 1; index < argc; ++index)
     {
-        if ((0 == strcmp(argv[index], SCREENSHOT_OPTION)) && ((index + 1) < argc))
+        if ((0 == strncmp(argv[index], SCREENSHOT_OPTION, sizeof(SCREENSHOT_OPTION))) && ((index + 1) < argc))
         {
             index += 1;
             g_screenshotPath = argv[index];
         }
-        else if ((0 == strcmp(argv[index], OPEN_DEFINITION_OPTION)) && ((index + 1) < argc))
+        else if ((0 == strncmp(argv[index], OPEN_DEFINITION_OPTION, sizeof(OPEN_DEFINITION_OPTION))) && ((index + 1) < argc))
         {
             index += 1;
             g_openDefinition = argv[index];
         }
-        else if ((0 == strcmp(argv[index], OPEN_CONFIGURATION_OPTION)) && ((index + 1) < argc))
+        else if ((0 == strncmp(argv[index], OPEN_CONFIGURATION_OPTION, sizeof(OPEN_CONFIGURATION_OPTION))) && ((index + 1) < argc))
         {
             index += 1;
             g_openConfiguration = argv[index];
         }
-        else if ((0 == strcmp(argv[index], SELECT_OPTION)) && ((index + 1) < argc))
+        else if ((0 == strncmp(argv[index], SELECT_OPTION, sizeof(SELECT_OPTION))) && ((index + 1) < argc))
         {
             index += 1;
             g_selectName = argv[index];
         }
-        else if ((0 == strcmp(argv[index], TIME_OPTION)) && ((index + 1) < argc))
+        else if ((0 == strncmp(argv[index], TIME_OPTION, sizeof(TIME_OPTION))) && ((index + 1) < argc))
         {
             index += 1;
             g_startTime = (float32_t)atof(argv[index]);
         }
-        else if (0 == strcmp(argv[index], PLAY_OPTION))
+        else if (0 == strncmp(argv[index], PLAY_OPTION, sizeof(PLAY_OPTION)))
         {
             g_startsPlaying = TRUE;
         }
-        else if (0 == strcmp(argv[index], ABOUT_OPTION))
+        else if (0 == strncmp(argv[index], ABOUT_OPTION, sizeof(ABOUT_OPTION)))
         {
             g_showsAbout = TRUE;
         }
-        else if (0 == strcmp(argv[index], CHECK_UPDATES_OPTION))
+        else if (0 == strncmp(argv[index], CHECK_UPDATES_OPTION, sizeof(CHECK_UPDATES_OPTION)))
         {
             g_checksUpdates = TRUE;
         }
-        else if ((0 == strcmp(argv[index], FRAMES_OPTION)) && ((index + 1) < argc))
+        else if ((0 == strncmp(argv[index], FRAMES_OPTION, sizeof(FRAMES_OPTION))) && ((index + 1) < argc))
         {
             index += 1;
             g_captureFrame = (uint32_t)atoi(argv[index]);
         }
-        else if (0 == strcmp(argv[index], FOCUS_DEFINITION_OPTION))
+        else if (0 == strncmp(argv[index], FOCUS_DEFINITION_OPTION, sizeof(FOCUS_DEFINITION_OPTION)))
         {
             g_focusDefinition = TRUE;
         }
-        else if ((0 == strcmp(argv[index], LAYOUT_OPTION)) && ((index + 1) < argc))
+        else if ((0 == strncmp(argv[index], LAYOUT_OPTION, sizeof(LAYOUT_OPTION))) && ((index + 1) < argc))
         {
             index += 1;
             g_layoutPreset = atoi(argv[index]);
@@ -1784,7 +1784,7 @@ static void OpenWindowsHelp(WindowThreadState_t* window, uint32_t command)
     {
         topic = window->helpTopic;
     }
-    if (0 == strcmp(topic, HELP_GETTING_STARTED))
+    if (0 == strncmp(topic, HELP_GETTING_STARTED, sizeof(HELP_GETTING_STARTED)))
     {
         topic = HELP_DEFAULT_TOPIC;
     }
@@ -1857,11 +1857,11 @@ static void DrawHelpWindow(WindowThreadState_t* window)
             }
             if (ImGui::BeginChild("##topics", ImVec2(HELP_LIST_WIDTH, 0.0f), ImGuiChildFlags_Borders))
             {
-                if (ImGui::Selectable(HELP_GETTING_STARTED, 0 == strcmp(window->helpTopic, HELP_GETTING_STARTED)))
+                if (ImGui::Selectable(HELP_GETTING_STARTED, 0 == strncmp(window->helpTopic, HELP_GETTING_STARTED, sizeof(HELP_GETTING_STARTED))))
                 {
                     strncpy_s(window->helpTopic, sizeof(window->helpTopic), HELP_GETTING_STARTED, _TRUNCATE);
                 }
-                if (ImGui::Selectable(SHORTCUTS_LABEL, 0 == strcmp(window->helpTopic, SHORTCUTS_LABEL)))
+                if (ImGui::Selectable(SHORTCUTS_LABEL, 0 == strncmp(window->helpTopic, SHORTCUTS_LABEL, sizeof(SHORTCUTS_LABEL))))
                 {
                     strncpy_s(window->helpTopic, sizeof(window->helpTopic), SHORTCUTS_LABEL, _TRUNCATE);
                 }
@@ -1878,7 +1878,7 @@ static void DrawHelpWindow(WindowThreadState_t* window)
                     if (('\0' == upper_filter[0]) || (NULL != strstr(upper_name, upper_filter)))
                     {
                         ImGui::PushID((int)index);
-                        if (ImGui::Selectable(c_faceTopics[index].name, 0 == strcmp(window->helpTopic, c_faceTopics[index].name)))
+                        if (ImGui::Selectable(c_faceTopics[index].name, 0 == strncmp(window->helpTopic, c_faceTopics[index].name, sizeof(window->helpTopic))))
                         {
                             strncpy_s(window->helpTopic, sizeof(window->helpTopic), c_faceTopics[index].name, _TRUNCATE);
                         }
@@ -1903,11 +1903,11 @@ static void DrawHelpWindow(WindowThreadState_t* window)
                         is_match = !!(('\0' == upper_filter[0]) || (NULL != strstr(upper_name, upper_filter)));
                         if (is_match)
                         {
-                            if (ImGui::Selectable(type_name, 0 == strcmp(window->helpTopic, type_name)))
+                            if (ImGui::Selectable(type_name, 0 == strncmp(window->helpTopic, type_name, sizeof(window->helpTopic))))
                             {
                                 strncpy_s(window->helpTopic, sizeof(window->helpTopic), type_name, _TRUNCATE);
                             }
-                            if (0 == strcmp(window->helpTopic, type_name) && ImGui::IsWindowAppearing())
+                            if (0 == strncmp(window->helpTopic, type_name, sizeof(window->helpTopic)) && ImGui::IsWindowAppearing())
                             {
                                 ImGui::SetScrollHereY();
                             }
@@ -1920,7 +1920,7 @@ static void DrawHelpWindow(WindowThreadState_t* window)
             if (ImGui::BeginChild("##topic", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders))
             {
                 ImGui::PushTextWrapPos(0.0f);
-                if (('\0' == window->helpTopic[0]) || (0 == strcmp(window->helpTopic, HELP_GETTING_STARTED)))
+                if (('\0' == window->helpTopic[0]) || (0 == strncmp(window->helpTopic, HELP_GETTING_STARTED, sizeof(HELP_GETTING_STARTED))))
                 {
                     ImGui::SeparatorText(HELP_GETTING_STARTED);
                     ImGui::TextUnformatted("1. Configuration: File > New Configuration. Add a Screen (toolbar), then a Layout, then a Window; set the window's pixelArea and scalingFactor. Add a User Application, pick its Window and its DF Path from the Definition Files in the folder.");
@@ -1930,7 +1930,7 @@ static void DrawHelpWindow(WindowThreadState_t* window)
                     ImGui::TextUnformatted("5. Link both: set the Definition File's ApplicationId (root node) to the user application's applicationId. The user application inspector checks it and previews the Definition File's layers inside the window; the Definition File root lists who references it.");
                     ImGui::TextUnformatted("6. Save with Ctrl+S; a .bin name saves the binary form of ARINC 661 Part 1-7, any other name the XML form. Undo with Ctrl+Z, redo with Ctrl+Y. F1 opens this help on the selection; Shift+F1 opens the HTML reference in the browser.");
                 }
-                else if (0 == strcmp(window->helpTopic, SHORTCUTS_LABEL))
+                else if (0 == strncmp(window->helpTopic, SHORTCUTS_LABEL, sizeof(SHORTCUTS_LABEL)))
                 {
                     ImGui::SeparatorText(SHORTCUTS_LABEL);
                     ImGui::TextUnformatted("Ctrl+N new configuration   Ctrl+Shift+N new Definition File   Ctrl+S save   Ctrl+Shift+S save all   Ctrl+W close");
@@ -1945,7 +1945,7 @@ static void DrawHelpWindow(WindowThreadState_t* window)
                     is_match = FALSE;
                     for (index = 0; index < COUNT_OF(c_faceTopics); ++index)
                     {
-                        if (0 == strcmp(window->helpTopic, c_faceTopics[index].name))
+                        if (0 == strncmp(window->helpTopic, c_faceTopics[index].name, sizeof(window->helpTopic)))
                         {
                             ImGui::SeparatorText(c_faceTopics[index].name);
                             ImGui::TextUnformatted(c_faceTopics[index].description);
@@ -2508,7 +2508,7 @@ static void SortFiles(WindowThreadState_t* window, ImGuiTableSortSpecs* specs)
                 }
                 break;
             case FILE_COLUMN_STATE_ID:
-                comparison = strcmp(FileState(window, held), FileState(window, window->fileOrder[probe - 1]));
+                comparison = strncmp(FileState(window, held), FileState(window, window->fileOrder[probe - 1]), sizeof(FILE_STATE_MODIFIED));
                 break;
             default:
                 comparison = _stricmp(window->fileNames[held], window->fileNames[window->fileOrder[probe - 1]]);
@@ -3135,7 +3135,7 @@ static void DrawPalette(WindowThreadState_t* window)
     for (category_index = 0; category_index < COUNT_OF(c_categories); ++category_index)
     {
         category     = c_categories[category_index];
-        is_extension = (0 == strcmp(category, PALETTE_EXTENSIONS_CATEGORY));
+        is_extension = (0 == strncmp(category, PALETTE_EXTENSIONS_CATEGORY, sizeof(PALETTE_EXTENSIONS_CATEGORY)));
         has_header   = FALSE;
         for (type_index = 0; type_index < Arinc661_Definition_GetTypeCount(is_extension); ++type_index)
         {
@@ -3145,7 +3145,7 @@ static void DrawPalette(WindowThreadState_t* window)
             {
                 is_in_category = TRUE;
             }
-            else if (0 == strcmp(category, PALETTE_OTHER_CATEGORY))
+            else if (0 == strncmp(category, PALETTE_OTHER_CATEGORY, sizeof(PALETTE_OTHER_CATEGORY)))
             {
                 // Types whose first category matches none of the named groups
                 is_in_category = TRUE;
@@ -3225,7 +3225,7 @@ static void AppendLog(WindowThreadState_t* window, const char_t* text)
     SYSTEMTIME now;
     char_t*    line;
 
-    if ((NULL != text) && ('\0' != text[0]) && (0 != strcmp(text, window->lastStatus)))
+    if ((NULL != text) && ('\0' != text[0]) && (0 != strncmp(text, window->lastStatus, sizeof(window->lastStatus))))
     {
         strncpy_s(window->lastStatus, sizeof(window->lastStatus), text, _TRUNCATE);
         GetLocalTime(&now);
@@ -3691,7 +3691,7 @@ static void DrawUpdatePopup(WindowThreadState_t* window)
         window->preferencesDirty = TRUE;
         if (ARINC661_UPDATE_RESULT_AVAILABLE == window->updateResult)
         {
-            if (window->updateIsManual || (0 != strcmp(window->updateSkipVersion, window->updateManifest.versionText)))
+            if (window->updateIsManual || (0 != strncmp(window->updateSkipVersion, window->updateManifest.versionText, sizeof(window->updateSkipVersion))))
             {
                 window->opensUpdatePopup = TRUE;
             }
@@ -4261,18 +4261,18 @@ static void DrawCommandPalette(WindowThreadState_t* window)
                     (void)snprintf(label, sizeof(label), "> %s", c_commands[index]);
                     if (ImGui::Selectable(label) || (runs_first && (0 == shown)))
                     {
-                        if (0 == strcmp(c_commands[index], NEW_CONFIGURATION_LABEL)) { Arinc661_Configuration_CreateDocument(window->configurationEditor); window->isDefinitionActive = FALSE; }
-                        else if (0 == strcmp(c_commands[index], NEW_DEFINITION_LABEL)) { Arinc661_Definition_CreateDocument(window->definitionEditor); window->isDefinitionActive = TRUE; }
-                        else if (0 == strcmp(c_commands[index], NEW_APPLICATION_LABEL)) { (void)Arinc661_Context_NewApplication(window->context); }
-                        else if (0 == strcmp(c_commands[index], SAVE_LABEL)) { SaveActive(window); }
-                        else if (0 == strcmp(c_commands[index], SAVE_ALL_LABEL)) { Arinc661_Configuration_SaveAllDocuments(window->configurationEditor); Arinc661_Definition_SaveAllDocuments(window->definitionEditor); }
-                        else if (0 == strcmp(c_commands[index], BUILD_LABEL)) { BuildAll(window); }
-                        else if (0 == strcmp(c_commands[index], PLAY_LABEL)) { TogglePlay(window); }
-                        else if (0 == strcmp(c_commands[index], UNDO_LABEL)) { if (window->isDefinitionActive) { Arinc661_Definition_Undo(window->definitionEditor); } else { Arinc661_Configuration_Undo(window->configurationEditor); } }
-                        else if (0 == strcmp(c_commands[index], REDO_LABEL)) { if (window->isDefinitionActive) { Arinc661_Definition_Redo(window->definitionEditor); } else { Arinc661_Configuration_Redo(window->configurationEditor); } }
-                        else if (0 == strcmp(c_commands[index], OPEN_REFERENCED_LABEL)) { (void)Arinc661_Context_OpenReferencedDefinitions(window->context); }
-                        else if (0 == strcmp(c_commands[index], RESET_LAYOUT_LABEL)) { window->resetsLayout = TRUE; }
-                        else if (0 == strcmp(c_commands[index], HELP_CONTEXT_LABEL)) { OpenWindowsHelp(window, HH_DISPLAY_TOPIC_COMMAND); }
+                        if (0 == strncmp(c_commands[index], NEW_CONFIGURATION_LABEL, sizeof(NEW_CONFIGURATION_LABEL))) { Arinc661_Configuration_CreateDocument(window->configurationEditor); window->isDefinitionActive = FALSE; }
+                        else if (0 == strncmp(c_commands[index], NEW_DEFINITION_LABEL, sizeof(NEW_DEFINITION_LABEL))) { Arinc661_Definition_CreateDocument(window->definitionEditor); window->isDefinitionActive = TRUE; }
+                        else if (0 == strncmp(c_commands[index], NEW_APPLICATION_LABEL, sizeof(NEW_APPLICATION_LABEL))) { (void)Arinc661_Context_NewApplication(window->context); }
+                        else if (0 == strncmp(c_commands[index], SAVE_LABEL, sizeof(SAVE_LABEL))) { SaveActive(window); }
+                        else if (0 == strncmp(c_commands[index], SAVE_ALL_LABEL, sizeof(SAVE_ALL_LABEL))) { Arinc661_Configuration_SaveAllDocuments(window->configurationEditor); Arinc661_Definition_SaveAllDocuments(window->definitionEditor); }
+                        else if (0 == strncmp(c_commands[index], BUILD_LABEL, sizeof(BUILD_LABEL))) { BuildAll(window); }
+                        else if (0 == strncmp(c_commands[index], PLAY_LABEL, sizeof(PLAY_LABEL))) { TogglePlay(window); }
+                        else if (0 == strncmp(c_commands[index], UNDO_LABEL, sizeof(UNDO_LABEL))) { if (window->isDefinitionActive) { Arinc661_Definition_Undo(window->definitionEditor); } else { Arinc661_Configuration_Undo(window->configurationEditor); } }
+                        else if (0 == strncmp(c_commands[index], REDO_LABEL, sizeof(REDO_LABEL))) { if (window->isDefinitionActive) { Arinc661_Definition_Redo(window->definitionEditor); } else { Arinc661_Configuration_Redo(window->configurationEditor); } }
+                        else if (0 == strncmp(c_commands[index], OPEN_REFERENCED_LABEL, sizeof(OPEN_REFERENCED_LABEL))) { (void)Arinc661_Context_OpenReferencedDefinitions(window->context); }
+                        else if (0 == strncmp(c_commands[index], RESET_LAYOUT_LABEL, sizeof(RESET_LAYOUT_LABEL))) { window->resetsLayout = TRUE; }
+                        else if (0 == strncmp(c_commands[index], HELP_CONTEXT_LABEL, sizeof(HELP_CONTEXT_LABEL))) { OpenWindowsHelp(window, HH_DISPLAY_TOPIC_COMMAND); }
                         else { ShowHelp(window, SHORTCUTS_LABEL); }
                         window->isPaletteOpen = FALSE;
                     }
@@ -4472,31 +4472,31 @@ static void LoadPreferences(WindowThreadState_t* window)
         {
             if (2 == sscanf_s(line, "%31[^=]=%1023[^\r\n]", key, (unsigned)sizeof(key), value, (unsigned)sizeof(value)))
             {
-                if (0 == strcmp(key, PREFERENCE_SCALE_KEY))
+                if (0 == strncmp(key, PREFERENCE_SCALE_KEY, sizeof(PREFERENCE_SCALE_KEY)))
                 {
                     window->uiScale = ImClamp((float32_t)atof(value), UI_SCALE_MIN, UI_SCALE_MAX);
                 }
-                else if (0 == strcmp(key, PREFERENCE_THEME_KEY))
+                else if (0 == strncmp(key, PREFERENCE_THEME_KEY, sizeof(PREFERENCE_THEME_KEY)))
                 {
-                    window->isLightTheme = (0 == strcmp(value, "light"));
+                    window->isLightTheme = (0 == strncmp(value, "light", sizeof("light")));
                 }
-                else if (0 == strcmp(key, PREFERENCE_FOLDER_KEY))
+                else if (0 == strncmp(key, PREFERENCE_FOLDER_KEY, sizeof(PREFERENCE_FOLDER_KEY)))
                 {
                     strncpy_s(window->folderPath, sizeof(window->folderPath), value, _TRUNCATE);
                 }
-                else if (0 == strcmp(key, PREFERENCE_UPDATE_URL_KEY))
+                else if (0 == strncmp(key, PREFERENCE_UPDATE_URL_KEY, sizeof(PREFERENCE_UPDATE_URL_KEY)))
                 {
                     strncpy_s(window->updateUrl, sizeof(window->updateUrl), value, _TRUNCATE);
                 }
-                else if (0 == strcmp(key, PREFERENCE_UPDATE_CHECKED_KEY))
+                else if (0 == strncmp(key, PREFERENCE_UPDATE_CHECKED_KEY, sizeof(PREFERENCE_UPDATE_CHECKED_KEY)))
                 {
                     window->updateCheckedAt = atof(value);
                 }
-                else if (0 == strcmp(key, PREFERENCE_UPDATE_SKIP_KEY))
+                else if (0 == strncmp(key, PREFERENCE_UPDATE_SKIP_KEY, sizeof(PREFERENCE_UPDATE_SKIP_KEY)))
                 {
                     strncpy_s(window->updateSkipVersion, sizeof(window->updateSkipVersion), value, _TRUNCATE);
                 }
-                else if ((0 == strcmp(key, PREFERENCE_RECENT_KEY)) && (('d' == value[0]) || ('c' == value[0])) && (':' == value[1]) && (window->recentCount < RECENT_COUNT))
+                else if ((0 == strncmp(key, PREFERENCE_RECENT_KEY, sizeof(PREFERENCE_RECENT_KEY))) && (('d' == value[0]) || ('c' == value[0])) && (':' == value[1]) && (window->recentCount < RECENT_COUNT))
                 {
                     strncpy_s(window->recentNames[window->recentCount], sizeof(window->recentNames[0]), value + 2, _TRUNCATE);
                     window->recentIsDefinition[window->recentCount] = ('d' == value[0]);

@@ -87,13 +87,13 @@ void RunArinc661UpdateTests(void)
     (void)snprintf(manifest_text, sizeof(manifest_text), "# comment\nversion = 9.1.0.0\r\nmsi=%s\nSHA256=%s\nnotes=Faster layers\n", PACKAGE_FILE, hex);
     assert(Arinc661_Update_ParseManifest(manifest_text, (uint32_t)strlen(manifest_text), "C:\\share\\updates\\manifest.txt", &manifest));
     assert((9 == manifest.version.major) && (1 == manifest.version.minor));
-    assert(0 == strcmp("9.1.0.0", manifest.versionText));
-    assert(0 == strcmp("C:\\share\\updates\\arinc661_update_test_package.bin", manifest.packageUrl));
+    assert(0 == strncmp("9.1.0.0", manifest.versionText, sizeof("9.1.0.0")));
+    assert(0 == strncmp("C:\\share\\updates\\arinc661_update_test_package.bin", manifest.packageUrl, sizeof("C:\\share\\updates\\arinc661_update_test_package.bin")));
     assert(manifest.hasSha256);
     assert(0 == memcmp(digest, manifest.sha256, sizeof(digest)));
-    assert(0 == strcmp("Faster layers", manifest.notes));
+    assert(0 == strncmp("Faster layers", manifest.notes, sizeof("Faster layers")));
     assert(Arinc661_Update_ParseManifest("version=1\nmsi=https://host/a.msi\n", 33, "https://host/m.txt", &manifest));
-    assert(0 == strcmp("https://host/a.msi", manifest.packageUrl));
+    assert(0 == strncmp("https://host/a.msi", manifest.packageUrl, sizeof("https://host/a.msi")));
     assert(FALSE == manifest.hasSha256);
     assert(FALSE == Arinc661_Update_ParseManifest("msi=a.msi\n", 10, "x", &manifest));
     assert(FALSE == Arinc661_Update_ParseManifest("version=1\n", 10, "x", &manifest));

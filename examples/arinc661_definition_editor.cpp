@@ -2318,7 +2318,7 @@ static uint32_t FindOwnedProperty(const Arinc661_Definition_Document_t* document
     for (property_index = 0; property_index < document->definition.propertyCount; ++property_index)
     {
         property = &document->properties[property_index];
-        if ((owner == property->owner) && (ownerIndex == property->ownerIndex) && (0 == strcmp(name, property->name)))
+        if ((owner == property->owner) && (ownerIndex == property->ownerIndex) && (0 == strncmp(name, property->name, sizeof(property->name))))
         {
             found_index = property_index;
             break;
@@ -2416,7 +2416,7 @@ static uint32_t FindOwnedPropertyAt(const Arinc661_Definition_Document_t* docume
     for (property_index = 0; property_index < document->definition.propertyCount; ++property_index)
     {
         property = &document->properties[property_index];
-        if ((owner == property->owner) && (ownerIndex == property->ownerIndex) && (0 == strcmp(name, property->name)))
+        if ((owner == property->owner) && (ownerIndex == property->ownerIndex) && (0 == strncmp(name, property->name, sizeof(property->name))))
         {
             if (occurrence == match_count)
             {
@@ -2448,7 +2448,7 @@ static void DefaultParameterValue(const Arinc661_Parameter_t* parameter, char_t*
         ImStrncpy(value, parameter->values[0], capacity);
         for (value_index = 0; value_index < parameter->valueCount; ++value_index)
         {
-            if (0 == strcmp(DEFAULT_BOOLEAN_TRUE, parameter->values[value_index]))
+            if (0 == strncmp(DEFAULT_BOOLEAN_TRUE, parameter->values[value_index], sizeof(DEFAULT_BOOLEAN_TRUE)))
             {
                 ImStrncpy(value, DEFAULT_BOOLEAN_TRUE, capacity);
                 break;
@@ -2472,7 +2472,7 @@ static void DefaultParameterValue(const Arinc661_Parameter_t* parameter, char_t*
         }
         value[parameter->byteCount * 2U] = '\0';
     }
-    else if ((0 == strcmp(PROPERTY_SIZE_X, parameter->name)) || (0 == strcmp(PROPERTY_SIZE_Y, parameter->name)))
+    else if ((0 == strncmp(PROPERTY_SIZE_X, parameter->name, sizeof(PROPERTY_SIZE_X))) || (0 == strncmp(PROPERTY_SIZE_Y, parameter->name, sizeof(PROPERTY_SIZE_Y))))
     {
         ImStrncpy(value, DEFAULT_LAYER_SIZE, capacity);
     }
@@ -2550,7 +2550,7 @@ static bool_t IsParameterValueValid(const Arinc661_Parameter_t* parameter, const
         {
             for (constant_index = 0; constant_index < Arinc661_Definition_GetConstantCount(); ++constant_index)
             {
-                if (0 == strcmp(value, Arinc661_Definition_GetConstantName(constant_index)))
+                if (0 == strncmp(value, Arinc661_Definition_GetConstantName(constant_index), ARINC661_MAX_NAME_BYTES))
                 {
                     integer_value = Arinc661_Definition_GetConstantValue(constant_index);
                     is_valid      = TRUE;
@@ -2642,11 +2642,11 @@ static bool_t ConformParameters(Arinc661_Definition_Document_t* document, uint32
             is_parameter = TRUE;
             if ((ARINC661_PROPERTY_WIDGET == document->properties[property_index].owner) && (widgetIndex == document->properties[property_index].ownerIndex))
             {
-                is_parameter = !!((FALSE == widget->isExtension) && (0 == strcmp(PROPERTY_WIDGET_IDENT, document->properties[property_index].name)));
+                is_parameter = !!((FALSE == widget->isExtension) && (0 == strncmp(PROPERTY_WIDGET_IDENT, document->properties[property_index].name, sizeof(PROPERTY_WIDGET_IDENT))));
                 for (parameter_index = 0; (FALSE == is_parameter) && (parameter_index < parameter_count); ++parameter_index)
                 {
                     (void)Arinc661_Definition_GetParameter(widget->type, widget->isExtension, parameter_index, &parameter);
-                    is_parameter = (0 == strcmp(parameter.name, document->properties[property_index].name));
+                    is_parameter = (0 == strncmp(parameter.name, document->properties[property_index].name, sizeof(document->properties[property_index].name)));
                 }
             }
             if (is_parameter)
@@ -3212,7 +3212,7 @@ static void DescribeChange(const Arinc661_Definition_Document_t* document, const
         // The first widget whose name differs from the old array is the addition
         for (index = 0; index < before->widgetCount; ++index)
         {
-            if (0 != strcmp(old_widgets[index].name, document->widgets[index].name))
+            if (0 != strncmp(old_widgets[index].name, document->widgets[index].name, sizeof(document->widgets[index].name)))
             {
                 break;
             }
@@ -3228,7 +3228,7 @@ static void DescribeChange(const Arinc661_Definition_Document_t* document, const
         ImStrncpy(label, HISTORY_MOVE_LABEL, (int)capacity);
         for (index = 0; (index < before->propertyCount) && (index < document->definition.propertyCount); ++index)
         {
-            if ((0 != strcmp(old_properties[index].value, document->properties[index].value)) || (0 != strcmp(old_properties[index].name, document->properties[index].name)))
+            if ((0 != strncmp(old_properties[index].value, document->properties[index].value, sizeof(document->properties[index].value))) || (0 != strncmp(old_properties[index].name, document->properties[index].name, sizeof(document->properties[index].name))))
             {
                 owner_index = document->properties[index].ownerIndex;
                 if ((ARINC661_PROPERTY_WIDGET == document->properties[index].owner) && (owner_index < document->definition.widgetCount))
@@ -3315,7 +3315,7 @@ static bool_t IsContainerType(const char_t* type)
     is_container = FALSE;
     for (index = 0; index < COUNT_OF(c_containers); ++index)
     {
-        if (0 == strcmp(type, c_containers[index]))
+        if (0 == strncmp(type, c_containers[index], ARINC661_MAX_NAME_BYTES))
         {
             is_container = TRUE;
             break;
@@ -3444,7 +3444,7 @@ static uint32_t DuplicateWidget(Arinc661_Definition_Document_t* document, uint32
             {
                 if ((ARINC661_PROPERTY_WIDGET == document->properties[property_index].owner) && (source == document->properties[property_index].ownerIndex))
                 {
-                    if (0 == strcmp(PROPERTY_WIDGET_IDENT, document->properties[property_index].name))
+                    if (0 == strncmp(PROPERTY_WIDGET_IDENT, document->properties[property_index].name, sizeof(PROPERTY_WIDGET_IDENT)))
                     {
                         ImFormatString(text, sizeof(text), "%" PRId64, NextWidgetIdent(document, document->widgets[source].layerIndex));
                         (void)AppendProperty(document, ARINC661_PROPERTY_WIDGET, destination, PROPERTY_WIDGET_IDENT, text);
@@ -3563,7 +3563,7 @@ static void AddTypedWidget(Arinc661_Definition_Document_t* document, uint32_t la
             parentIndex = document->widgets[parentIndex].parentWidgetIndex;
         }
         AddWidget(document, layerIndex, parentIndex, FALSE);
-        if ((SELECTION_WIDGET == document->selectedKind) && (0 == strcmp(DEFAULT_WIDGET_TYPE, document->widgets[document->selectedIndex].type)))
+        if ((SELECTION_WIDGET == document->selectedKind) && (0 == strncmp(DEFAULT_WIDGET_TYPE, document->widgets[document->selectedIndex].type, sizeof(DEFAULT_WIDGET_TYPE))))
         {
             new_index = document->selectedIndex;
             ImStrncpy(document->widgets[new_index].type, type, sizeof(document->widgets[new_index].type));
@@ -3596,7 +3596,7 @@ static ReferenceKind_t ReferenceKindOf(const char_t* parameterName)
     kind = REFERENCE_NONE;
     for (index = 0; index < COUNT_OF(c_referenceParameters); ++index)
     {
-        if (0 == strcmp(parameterName, c_referenceParameters[index].name))
+        if (0 == strncmp(parameterName, c_referenceParameters[index].name, ARINC661_MAX_NAME_BYTES))
         {
             kind = c_referenceParameters[index].kind;
             break;
@@ -3737,7 +3737,7 @@ static bool_t ResolveReference(const Arinc661_Definition_Document_t* document, u
                     if (INVALID_HIERARCHY_INDEX != layer_index)
                     {
                         index = FindWidgetByIdent(target, layer_index, ident);
-                        if ((INVALID_HIERARCHY_INDEX != index) && (0 == strcmp("A661_FOCUS_IN", target->widgets[index].type)))
+                        if ((INVALID_HIERARCHY_INDEX != index) && (0 == strncmp("A661_FOCUS_IN", target->widgets[index].type, sizeof("A661_FOCUS_IN"))))
                         {
                             (*targetDocument) = other_document;
                             (*targetIndex)    = index;
@@ -3886,7 +3886,7 @@ static bool_t DrawReferenceValue(Arinc661_Definition_Document_t* document, uint3
                     layer_index = FindLayerById(target, (int64_t)number);
                     for (index = 0; (INVALID_HIERARCHY_INDEX != layer_index) && (index < target->definition.widgetCount); ++index)
                     {
-                        if ((target->widgets[index].layerIndex == layer_index) && (0 == strcmp("A661_FOCUS_IN", target->widgets[index].type)) && GetPropertyNumber(target, ARINC661_PROPERTY_WIDGET, index, PROPERTY_WIDGET_IDENT, &number))
+                        if ((target->widgets[index].layerIndex == layer_index) && (0 == strncmp("A661_FOCUS_IN", target->widgets[index].type, sizeof("A661_FOCUS_IN"))) && GetPropertyNumber(target, ARINC661_PROPERTY_WIDGET, index, PROPERTY_WIDGET_IDENT, &number))
                         {
                             ImFormatString(item, sizeof(item), REFERENCE_WIDGET_FORMAT, (long long)number, target->widgets[index].name, target->documentName);
                             ImGui::PushID((int)index);
@@ -4005,7 +4005,7 @@ static bool_t IsParentAllowed(const char_t* childType, const char_t* parentType)
     for (rule_index = 0; rule_index < COUNT_OF(c_parentRules); ++rule_index)
     {
         rule = &c_parentRules[rule_index];
-        if (0 != strcmp(childType, rule->child))
+        if (0 != strncmp(childType, rule->child, ARINC661_MAX_NAME_BYTES))
         {
             continue;
         }
@@ -4014,12 +4014,12 @@ static bool_t IsParentAllowed(const char_t* childType, const char_t* parentType)
         {
             if (NULL == parentType)
             {
-                if (0 == strcmp(rule->parents[parent_index], PARENT_LAYER_NAME))
+                if (0 == strncmp(rule->parents[parent_index], PARENT_LAYER_NAME, sizeof(PARENT_LAYER_NAME)))
                 {
                     is_listed = TRUE;
                 }
             }
-            else if (0 == strcmp(rule->parents[parent_index], parentType))
+            else if (0 == strncmp(rule->parents[parent_index], parentType, ARINC661_MAX_NAME_BYTES))
             {
                 is_listed = TRUE;
             }
@@ -4035,7 +4035,7 @@ static bool_t IsParentAllowed(const char_t* childType, const char_t* parentType)
         break;
     }
     // A TabbedPanelGroup takes only TabbedPanel or Connector children
-    if (is_allowed && (NULL != parentType) && (0 == strcmp(parentType, "A661_TABBED_PANEL_GROUP")) && (0 != strcmp(childType, "A661_TABBED_PANEL")) && (0 != strcmp(childType, "A661_CONNECTOR")))
+    if (is_allowed && (NULL != parentType) && (0 == strncmp(parentType, "A661_TABBED_PANEL_GROUP", sizeof("A661_TABBED_PANEL_GROUP"))) && (0 != strncmp(childType, "A661_TABBED_PANEL", sizeof("A661_TABBED_PANEL"))) && (0 != strncmp(childType, "A661_CONNECTOR", sizeof("A661_CONNECTOR"))))
     {
         is_allowed = FALSE;
     }
@@ -4234,7 +4234,7 @@ static void DrawAddPopup(Arinc661_Definition_Document_t* document)
                     if (ImGui::Selectable(type_name))
                     {
                         AddWidget(document, owner->addLayer, owner->addParent, FALSE);
-                        if ((SELECTION_WIDGET == document->selectedKind) && (0 == strcmp(DEFAULT_WIDGET_TYPE, document->widgets[document->selectedIndex].type)))
+                        if ((SELECTION_WIDGET == document->selectedKind) && (0 == strncmp(DEFAULT_WIDGET_TYPE, document->widgets[document->selectedIndex].type, sizeof(DEFAULT_WIDGET_TYPE))))
                         {
                             new_index = document->selectedIndex;
                             ImStrncpy(document->widgets[new_index].type, type_name, sizeof(document->widgets[new_index].type));
@@ -4602,7 +4602,7 @@ static uint32_t InsertClipboard(Arinc661_Definition_Document_t* document, uint32
         {
             if (owner->clipboardProperties[property_index].ownerIndex == clip_index)
             {
-                if (0 == strcmp(PROPERTY_WIDGET_IDENT, owner->clipboardProperties[property_index].name))
+                if (0 == strncmp(PROPERTY_WIDGET_IDENT, owner->clipboardProperties[property_index].name, sizeof(PROPERTY_WIDGET_IDENT)))
                 {
                     ImFormatString(text, sizeof(text), "%" PRId64, NextWidgetIdent(document, layerIndex));
                     (void)AppendProperty(document, ARINC661_PROPERTY_WIDGET, destination, PROPERTY_WIDGET_IDENT, text);
@@ -5964,22 +5964,22 @@ static bool_t IsSchemaProperty(const Arinc661_Definition_Document_t* document, A
     is_schema = FALSE;
     if (ARINC661_PROPERTY_DEFINITION == owner)
     {
-        is_schema = (0 == strcmp(PROPERTY_APPLICATION_ID, name));
+        is_schema = (0 == strncmp(PROPERTY_APPLICATION_ID, name, sizeof(PROPERTY_APPLICATION_ID)));
     }
     else if (ARINC661_PROPERTY_LAYER == owner)
     {
-        is_schema = !!((0 == strcmp(PROPERTY_LAYER_ID, name)) || (0 == strcmp(PROPERTY_CONTEXT_NUMBER, name)) || (0 == strcmp(PROPERTY_WIDTH, name)) || (0 == strcmp(PROPERTY_HEIGHT, name)));
+        is_schema = !!((0 == strncmp(PROPERTY_LAYER_ID, name, sizeof(PROPERTY_LAYER_ID))) || (0 == strncmp(PROPERTY_CONTEXT_NUMBER, name, sizeof(PROPERTY_CONTEXT_NUMBER))) || (0 == strncmp(PROPERTY_WIDTH, name, sizeof(PROPERTY_WIDTH))) || (0 == strncmp(PROPERTY_HEIGHT, name, sizeof(PROPERTY_HEIGHT))));
     }
     else
     {
         widget    = &document->widgets[ownerIndex];
-        is_schema = !!((FALSE == widget->isExtension) && (0 == strcmp(PROPERTY_WIDGET_IDENT, name)));
+        is_schema = !!((FALSE == widget->isExtension) && (0 == strncmp(PROPERTY_WIDGET_IDENT, name, sizeof(PROPERTY_WIDGET_IDENT))));
         if ((FALSE == is_schema) && Arinc661_Definition_FindType(widget->type, widget->isExtension, &parameter_count))
         {
             for (parameter_index = 0; parameter_index < parameter_count; ++parameter_index)
             {
                 (void)Arinc661_Definition_GetParameter(widget->type, widget->isExtension, parameter_index, &parameter);
-                if (0 == strcmp(parameter.name, name))
+                if (0 == strncmp(parameter.name, name, ARINC661_MAX_NAME_BYTES))
                 {
                     is_schema = TRUE;
                     break;
@@ -6018,7 +6018,7 @@ static bool_t DrawParameterValue(const Arinc661_Parameter_t* parameter, char_t* 
         selected = -1;
         for (value_index = 0; value_index < parameter->valueCount; ++value_index)
         {
-            if (0 == strcmp(value, parameter->values[value_index]))
+            if (0 == strncmp(value, parameter->values[value_index], ARINC661_MAX_NAME_BYTES))
             {
                 selected = (int)value_index;
                 break;
@@ -6125,12 +6125,12 @@ static bool_t DrawParameterRow(Arinc661_Definition_Document_t* document, Arinc66
         value = document->properties[property_index].value;
     }
     // Multi-object editing: a widget parameter other than the ident is shared with every other selected widget that has it
-    is_shared = !!((ARINC661_PROPERTY_WIDGET == owner) && (1 < SelectedCount(document)) && (0 != strcmp(propertyName, PROPERTY_WIDGET_IDENT)));
+    is_shared = !!((ARINC661_PROPERTY_WIDGET == owner) && (1 < SelectedCount(document)) && (0 != strncmp(propertyName, PROPERTY_WIDGET_IDENT, sizeof(PROPERTY_WIDGET_IDENT))));
     is_mixed  = FALSE;
     for (other_index = 0; is_shared && (other_index < document->definition.widgetCount); ++other_index)
     {
         other_property = FindOwnedPropertyAt(document, ARINC661_PROPERTY_WIDGET, other_index, propertyName, occurrence);
-        if ((other_index != ownerIndex) && document->isSelected[other_index] && (INVALID_HIERARCHY_INDEX != other_property) && (0 != strcmp(document->properties[other_property].value, value)))
+        if ((other_index != ownerIndex) && document->isSelected[other_index] && (INVALID_HIERARCHY_INDEX != other_property) && (0 != strncmp(document->properties[other_property].value, value, sizeof(document->properties[other_property].value))))
         {
             is_mixed = TRUE;
         }
@@ -6337,7 +6337,7 @@ static bool_t DrawTypeField(const char_t* label, char_t* type, uint32_t capacity
     selected   = -1;
     for (type_index = 0; type_index < type_count; ++type_index)
     {
-        if (0 == strcmp(type, Arinc661_Definition_GetTypeName(isExtension, type_index)))
+        if (0 == strncmp(type, Arinc661_Definition_GetTypeName(isExtension, type_index), ARINC661_MAX_NAME_BYTES))
         {
             selected = (int)type_index;
             break;
@@ -6775,7 +6775,7 @@ static void DrawReferencedBy(Arinc661_Definition_Document_t* document, uint32_t 
         {
             continue;
         }
-        if ((REFERENCE_WIDGET != ReferenceKindOf(document->properties[property_index].name)) || (document->widgets[owner_index].layerIndex != document->widgets[widgetIndex].layerIndex) || (0 != strcmp(document->properties[property_index].value, document->properties[ident_property].value)))
+        if ((REFERENCE_WIDGET != ReferenceKindOf(document->properties[property_index].name)) || (document->widgets[owner_index].layerIndex != document->widgets[widgetIndex].layerIndex) || (0 != strncmp(document->properties[property_index].value, document->properties[ident_property].value, sizeof(document->properties[property_index].value))))
         {
             continue;
         }
@@ -9002,7 +9002,7 @@ bool_t Arinc661_Definition_HasMapSource(const Arinc661_Definition_Editor_t* edit
         document = &editor->documents[documentIndex];
         for (widget_index = 0; widget_index < document->definition.widgetCount; ++widget_index)
         {
-            if ((0 == strcmp("A661_MAPHORZ_SOURCE", document->widgets[widget_index].type)) || (0 == strcmp("A661_MAPVERT_SOURCE", document->widgets[widget_index].type)))
+            if ((0 == strncmp("A661_MAPHORZ_SOURCE", document->widgets[widget_index].type, sizeof("A661_MAPHORZ_SOURCE"))) || (0 == strncmp("A661_MAPVERT_SOURCE", document->widgets[widget_index].type, sizeof("A661_MAPVERT_SOURCE"))))
             {
                 has_source = TRUE;
                 break;
@@ -9335,7 +9335,7 @@ bool_t Arinc661_Definition_AnimationAt(const Arinc661_Definition_Editor_t* edito
         document = &editor->documents[editor->activeDocumentIndex];
         for (widget_index = 0; widget_index < document->definition.widgetCount; ++widget_index)
         {
-            if (0 != strncmp("A661_ANIMATION_", document->widgets[widget_index].type, 15) || (0 == strcmp("A661_ANIMATION_GROUP", document->widgets[widget_index].type)))
+            if (0 != strncmp("A661_ANIMATION_", document->widgets[widget_index].type, 15) || (0 == strncmp("A661_ANIMATION_GROUP", document->widgets[widget_index].type, sizeof("A661_ANIMATION_GROUP"))))
             {
                 continue;
             }
@@ -9438,12 +9438,12 @@ bool_t Arinc661_Definition_Interact(Arinc661_Definition_Editor_t* editor, uint32
     }
     document = &editor->documents[documentIndex];
     type     = document->widgets[widgetIndex].type;
-    if ((0 == strcmp(type, "A661_TOGGLE_BUTTON")) || (0 == strcmp(type, "A661_PICTURE_TOGGLE_BUTTON")) || (0 == strcmp(type, "A661_SYMBOL_TOGGLE_BUTTON")))
+    if ((0 == strncmp(type, "A661_TOGGLE_BUTTON", sizeof("A661_TOGGLE_BUTTON"))) || (0 == strncmp(type, "A661_PICTURE_TOGGLE_BUTTON", sizeof("A661_PICTURE_TOGGLE_BUTTON"))) || (0 == strncmp(type, "A661_SYMBOL_TOGGLE_BUTTON", sizeof("A661_SYMBOL_TOGGLE_BUTTON"))))
     {
         property_index = FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, widgetIndex, "ToggleState");
         if (INVALID_HIERARCHY_INDEX != property_index)
         {
-            if (0 == strcmp(document->properties[property_index].value, "A661_SELECTED"))
+            if (0 == strncmp(document->properties[property_index].value, "A661_SELECTED", sizeof("A661_SELECTED")))
             {
                 ImStrncpy(document->properties[property_index].value, "A661_UNSELECTED", sizeof(document->properties[property_index].value));
             }
@@ -9454,12 +9454,12 @@ bool_t Arinc661_Definition_Interact(Arinc661_Definition_Editor_t* editor, uint32
             has_changed = TRUE;
         }
     }
-    else if (0 == strcmp(type, "A661_CHECK_BUTTON"))
+    else if (0 == strncmp(type, "A661_CHECK_BUTTON", sizeof("A661_CHECK_BUTTON")))
     {
         property_index = FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, widgetIndex, "CheckButtonState");
         if (INVALID_HIERARCHY_INDEX != property_index)
         {
-            if (0 == strcmp(document->properties[property_index].value, "A661_SELECTED"))
+            if (0 == strncmp(document->properties[property_index].value, "A661_SELECTED", sizeof("A661_SELECTED")))
             {
                 ImStrncpy(document->properties[property_index].value, "A661_UNSELECTED", sizeof(document->properties[property_index].value));
             }
@@ -9470,7 +9470,7 @@ bool_t Arinc661_Definition_Interact(Arinc661_Definition_Editor_t* editor, uint32
             has_changed = TRUE;
         }
     }
-    else if (0 == strcmp(type, "A661_MULTI_STATE_BUTTON"))
+    else if (0 == strncmp(type, "A661_MULTI_STATE_BUTTON", sizeof("A661_MULTI_STATE_BUTTON")))
     {
         number = 1.0f;
         count  = 1.0f;
@@ -9484,7 +9484,7 @@ bool_t Arinc661_Definition_Interact(Arinc661_Definition_Editor_t* editor, uint32
         SetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, widgetIndex, "ButtonState", number);
         has_changed = TRUE;
     }
-    else if ((0 == strcmp(type, "A661_COMBO_BOX")) || (0 == strcmp(type, "A661_COMBO_BOX_EDIT")) || (0 == strcmp(type, "A661_SELECTION_LIST_BUTTON")) || (0 == strcmp(type, "A661_SCROLL_LIST")) || (0 == strcmp(type, "A661_TREE")))
+    else if ((0 == strncmp(type, "A661_COMBO_BOX", sizeof("A661_COMBO_BOX"))) || (0 == strncmp(type, "A661_COMBO_BOX_EDIT", sizeof("A661_COMBO_BOX_EDIT"))) || (0 == strncmp(type, "A661_SELECTION_LIST_BUTTON", sizeof("A661_SELECTION_LIST_BUTTON"))) || (0 == strncmp(type, "A661_SCROLL_LIST", sizeof("A661_SCROLL_LIST"))) || (0 == strncmp(type, "A661_TREE", sizeof("A661_TREE"))))
     {
         number = 0.0f;
         count  = 0.0f;
@@ -9498,7 +9498,7 @@ bool_t Arinc661_Definition_Interact(Arinc661_Definition_Editor_t* editor, uint32
         SetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, widgetIndex, "SelectedEntry", number);
         has_changed = TRUE;
     }
-    else if (0 == strcmp(type, "A661_SLIDER"))
+    else if (0 == strncmp(type, "A661_SLIDER", sizeof("A661_SLIDER")))
     {
         minimum = 0.0f;
         maximum = 100.0f;
@@ -9512,12 +9512,12 @@ bool_t Arinc661_Definition_Interact(Arinc661_Definition_Editor_t* editor, uint32
         SetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, widgetIndex, "Value", minimum + ((maximum - minimum) * ImClamp(number, 0.0f, 1.0f)));
         has_changed = TRUE;
     }
-    else if ((0 == strcmp(type, "A661_MUTUALLY_EXCLUSIVE_CONTAINER")) || (0 == strcmp(type, "A661_PAGING_CONTAINER")) || (0 == strcmp(type, "A661_TABBED_PANEL_GROUP")))
+    else if ((0 == strncmp(type, "A661_MUTUALLY_EXCLUSIVE_CONTAINER", sizeof("A661_MUTUALLY_EXCLUSIVE_CONTAINER"))) || (0 == strncmp(type, "A661_PAGING_CONTAINER", sizeof("A661_PAGING_CONTAINER"))) || (0 == strncmp(type, "A661_TABBED_PANEL_GROUP", sizeof("A661_TABBED_PANEL_GROUP"))))
     {
         // Advance to the next child's ident, wrapping to the first
         number = 0.0f;
         (void)GetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, widgetIndex, "VisibleChild", &number);
-        if (0 == strcmp(type, "A661_TABBED_PANEL_GROUP"))
+        if (0 == strncmp(type, "A661_TABBED_PANEL_GROUP", sizeof("A661_TABBED_PANEL_GROUP")))
         {
             (void)GetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, widgetIndex, "ActiveTabbedPanelID", &number);
         }
@@ -9548,7 +9548,7 @@ bool_t Arinc661_Definition_Interact(Arinc661_Definition_Editor_t* editor, uint32
         {
             count = ident;
         }
-        if (0 == strcmp(type, "A661_TABBED_PANEL_GROUP"))
+        if (0 == strncmp(type, "A661_TABBED_PANEL_GROUP", sizeof("A661_TABBED_PANEL_GROUP")))
         {
             SetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, widgetIndex, "ActiveTabbedPanelID", count);
         }

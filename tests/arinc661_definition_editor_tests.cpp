@@ -146,7 +146,7 @@ int main(void)
     assert(1 == document->widgets[3].layerIndex);
     assert(9 == CountOwned(document, ARINC661_PROPERTY_WIDGET, 2));
     assert(15 == CountOwned(document, ARINC661_PROPERTY_WIDGET, 3));
-    assert(0 == strcmp("A661_LABEL", document->widgets[3].type));
+    assert(0 == strncmp("A661_LABEL", document->widgets[3].type, sizeof("A661_LABEL")));
 
     /* Removing layer 0 leaves only the layer 1 widget, now in layer 0 */
     RemoveLayer(document, 0);
@@ -246,11 +246,11 @@ int main(void)
     assert(4 == document->widgets[5].parentWidgetIndex);
     assert(4 == document->widgets[6].parentWidgetIndex);
     assert(6 == document->widgets[7].parentWidgetIndex);
-    assert(0 == strcmp("A661_PANEL", document->widgets[4].type));
+    assert(0 == strncmp("A661_PANEL", document->widgets[4].type, sizeof("A661_PANEL")));
     assert(NULL != strstr(document->widgets[4].name, "copy"));
     assert(CountOwned(document, ARINC661_PROPERTY_WIDGET, 0) == CountOwned(document, ARINC661_PROPERTY_WIDGET, 4));
     assert(CountOwned(document, ARINC661_PROPERTY_WIDGET, 3) == CountOwned(document, ARINC661_PROPERTY_WIDGET, 7));
-    assert(0 != strcmp(document->properties[FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, 0, PROPERTY_WIDGET_IDENT)].value, document->properties[FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, 4, PROPERTY_WIDGET_IDENT)].value));
+    assert(0 != strncmp(document->properties[FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, 0, PROPERTY_WIDGET_IDENT)].value, document->properties[FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, 4, PROPERTY_WIDGET_IDENT)].value, ARINC661_MAX_PROPERTY_BYTES));
     assert(0 < Arinc661_Definition_WriteBinary(&document->definition, document->outputBuffer, sizeof(document->outputBuffer)));
 
     /* Moving the grandchild (3) under the copied panel (4) re-parents it and keeps its properties */
@@ -288,7 +288,7 @@ int main(void)
     /* History states carry labels: the open state, then the addition */
     assert(2 == Arinc661_Definition_HistoryCount(editor, &history_index));
     assert(1 == history_index);
-    assert(0 == strcmp(HISTORY_OPEN_LABEL, Arinc661_Definition_HistoryLabel(editor, 0)));
+    assert(0 == strncmp(HISTORY_OPEN_LABEL, Arinc661_Definition_HistoryLabel(editor, 0), sizeof(HISTORY_OPEN_LABEL)));
     assert(0 == strncmp("Add ", Arinc661_Definition_HistoryLabel(editor, 1), 4));
     Arinc661_Definition_GoToHistory(editor, 0);
     assert(8 == document->definition.widgetCount);
@@ -309,7 +309,7 @@ int main(void)
     Arinc661_Definition_BeginPlay(editor);
     assert(editor->isPlaying);
     assert(Arinc661_Definition_Interact(editor, 0, 9, 0.5f, 0.5f));
-    assert(0 == strcmp("A661_SELECTED", document->properties[FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, 9, "ToggleState")].value));
+    assert(0 == strncmp("A661_SELECTED", document->properties[FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, 9, "ToggleState")].value, sizeof("A661_SELECTED")));
     assert(Arinc661_Definition_Interact(editor, 0, 10, 0.5f, 0.5f));
     assert(GetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, 10, "ButtonState", &button_state));
     assert(1.0f == button_state);
@@ -317,7 +317,7 @@ int main(void)
     Arinc661_Definition_EndPlay(editor);
     assert(FALSE == editor->isPlaying);
     assert(FALSE == document->isDirty);
-    assert(0 == strcmp("A661_UNSELECTED", document->properties[FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, 9, "ToggleState")].value));
+    assert(0 == strncmp("A661_UNSELECTED", document->properties[FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, 9, "ToggleState")].value, sizeof("A661_UNSELECTED")));
 
     /* Animations are listed in seconds */
     AddWidget(document, 0, INVALID_HIERARCHY_INDEX, FALSE);
@@ -326,7 +326,7 @@ int main(void)
     SetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, 11, "Delay", 500.0f);
     SetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, 11, "Duration", 2000.0f);
     assert(Arinc661_Definition_AnimationAt(editor, 0, &animation_name, &animation_type, &animation_delay, &animation_duration));
-    assert(0 == strcmp("A661_ANIMATION_ROTATION", animation_type));
+    assert(0 == strncmp("A661_ANIMATION_ROTATION", animation_type, sizeof("A661_ANIMATION_ROTATION")));
     assert(0.5f == animation_delay);
     assert(2.0f == animation_duration);
     assert(FALSE == Arinc661_Definition_AnimationAt(editor, 1, &animation_name, &animation_type, &animation_delay, &animation_duration));
@@ -334,7 +334,7 @@ int main(void)
     /* Export writes the binary twin beside the XML path */
     strcpy(document->documentPath, "arinc661_editor_export_test.xml");
     assert(Arinc661_Definition_ExportBinary(editor, 0, export_path, sizeof(export_path)));
-    assert(0 == strcmp("arinc661_editor_export_test.bin", export_path));
+    assert(0 == strncmp("arinc661_editor_export_test.bin", export_path, sizeof("arinc661_editor_export_test.bin")));
     export_file = fopen(export_path, "rb");
     assert(NULL != export_file);
     (void)fclose(export_file);

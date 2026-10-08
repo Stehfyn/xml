@@ -802,7 +802,7 @@ static Kind_t KindOf(const char_t* type)
     kind = KIND_UNKNOWN;
     for (index = 0; index < COUNT_OF(c_kindNames); ++index)
     {
-        if (0 == strcmp(type, c_kindNames[index].name))
+        if (0 == strncmp(type, c_kindNames[index].name, ARINC661_MAX_NAME_BYTES))
         {
             kind = c_kindNames[index].kind;
             break;
@@ -872,7 +872,7 @@ static const char_t* Value(const Scene_t* scene, uint32_t widgetIndex, const cha
     for (slot = 0; slot < scene->count[widgetIndex]; ++slot)
     {
         property = &scene->definition->properties[scene->order[scene->first[widgetIndex] + slot]];
-        if (0 == strcmp(name, property->name))
+        if (0 == strncmp(name, property->name, sizeof(property->name)))
         {
             if (seen == occurrence)
             {
@@ -898,7 +898,7 @@ static uint32_t Occurrences(const Scene_t* scene, uint32_t widgetIndex, const ch
     seen = 0;
     for (slot = 0; slot < scene->count[widgetIndex]; ++slot)
     {
-        if (0 == strcmp(name, scene->definition->properties[scene->order[scene->first[widgetIndex] + slot]].name))
+        if (0 == strncmp(name, scene->definition->properties[scene->order[scene->first[widgetIndex] + slot]].name, ARINC661_MAX_NAME_BYTES))
         {
             seen += 1;
         }
@@ -946,7 +946,7 @@ static bool_t ScanNumber(const char_t* text, float32_t* number)
     {
         for (constant_index = 0; constant_index < Arinc661_Definition_GetConstantCount(); ++constant_index)
         {
-            if (0 == strcmp(text, Arinc661_Definition_GetConstantName(constant_index)))
+            if (0 == strncmp(text, Arinc661_Definition_GetConstantName(constant_index), ARINC661_MAX_NAME_BYTES))
             {
                 (*number) = (float32_t)Arinc661_Definition_GetConstantValue(constant_index);
                 is_number = TRUE;
@@ -1025,7 +1025,7 @@ static bool_t IsAt(const Scene_t* scene, uint32_t widgetIndex, const char_t* nam
     value    = Value(scene, widgetIndex, name, occurrence);
     if (NULL != value)
     {
-        if (0 == strcmp(value, constantName))
+        if (0 == strncmp(value, constantName, ARINC661_MAX_NAME_BYTES))
         {
             is_equal = TRUE;
         }
@@ -3420,11 +3420,11 @@ void Arinc661_Scene_LayerSize(const Arinc661_Definition_t* definition, uint32_t 
     {
         if ((ARINC661_PROPERTY_LAYER == definition->properties[property_index].owner) && (layerIndex == definition->properties[property_index].ownerIndex))
         {
-            if ((0 == strcmp("Width", definition->properties[property_index].name)) && ScanNumber(definition->properties[property_index].value, &number) && (1.0f <= number))
+            if ((0 == strncmp("Width", definition->properties[property_index].name, sizeof("Width"))) && ScanNumber(definition->properties[property_index].value, &number) && (1.0f <= number))
             {
                 (*width) = number;
             }
-            else if ((0 == strcmp("Height", definition->properties[property_index].name)) && ScanNumber(definition->properties[property_index].value, &number) && (1.0f <= number))
+            else if ((0 == strncmp("Height", definition->properties[property_index].name, sizeof("Height"))) && ScanNumber(definition->properties[property_index].value, &number) && (1.0f <= number))
             {
                 (*height) = number;
             }

@@ -1895,7 +1895,7 @@ static bool_t DrawDefinitionChoiceField(const Arinc661_Configuration_Editor_t* e
         }
         for (file_index = 0; file_index < editor->definitionFileCount; ++file_index)
         {
-            if (ImGui::Selectable(editor->definitionFiles[file_index], 0 == strcmp(value, editor->definitionFiles[file_index])))
+            if (ImGui::Selectable(editor->definitionFiles[file_index], 0 == strncmp(value, editor->definitionFiles[file_index], sizeof(editor->definitionFiles[file_index]))))
             {
                 ImStrncpy(value, editor->definitionFiles[file_index], capacity);
                 has_changed = TRUE;

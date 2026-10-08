@@ -291,7 +291,7 @@ static uint32_t IndexOf(const char_t* name)
     document = &s_definitionEditor->documents[s_definitionEditor->activeDocumentIndex];
     for (widget_index = 0; widget_index < document->definition.widgetCount; ++widget_index)
     {
-        if (0 == strcmp(name, document->widgets[widget_index].name))
+        if (0 == strncmp(name, document->widgets[widget_index].name, sizeof(document->widgets[widget_index].name)))
         {
             return widget_index;
         }

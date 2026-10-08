@@ -94,11 +94,11 @@ static uint32_t Widget(Arinc661_Definition_t* definition, const char_t* type, ui
             {
                 Prop(definition, index, parameter.name, "Text");
             }
-            else if ((0 == strcmp(parameter.name, "SizeX")) || (0 == strcmp(parameter.name, "SizeY")) || (0 == strcmp(parameter.name, "Radius")) || (0 == strcmp(parameter.name, "OuterRadius")) || (0 == strcmp(parameter.name, "LineLength")) || (0 == strcmp(parameter.name, "ScreenRange")))
+            else if ((0 == strncmp(parameter.name, "SizeX", sizeof("SizeX"))) || (0 == strncmp(parameter.name, "SizeY", sizeof("SizeY"))) || (0 == strncmp(parameter.name, "Radius", sizeof("Radius"))) || (0 == strncmp(parameter.name, "OuterRadius", sizeof("OuterRadius"))) || (0 == strncmp(parameter.name, "LineLength", sizeof("LineLength"))) || (0 == strncmp(parameter.name, "ScreenRange", sizeof("ScreenRange"))))
             {
                 Prop(definition, index, parameter.name, "2000");
             }
-            else if ((0 == strcmp(parameter.name, "NumberOfEntries")) || (0 == strcmp(parameter.name, "NumberOfVertices")) || (0 == strcmp(parameter.name, "NumberOfStates")) || (0 == strcmp(parameter.name, "CountX")) || (0 == strcmp(parameter.name, "CountY")))
+            else if ((0 == strncmp(parameter.name, "NumberOfEntries", sizeof("NumberOfEntries"))) || (0 == strncmp(parameter.name, "NumberOfVertices", sizeof("NumberOfVertices"))) || (0 == strncmp(parameter.name, "NumberOfStates", sizeof("NumberOfStates"))) || (0 == strncmp(parameter.name, "CountX", sizeof("CountX"))) || (0 == strncmp(parameter.name, "CountY", sizeof("CountY"))))
             {
                 Prop(definition, index, parameter.name, "3");
             }
@@ -115,7 +115,7 @@ static uint32_t Widget(Arinc661_Definition_t* definition, const char_t* type, ui
                 {
                     Prop(definition, index, parameter.name, "Entry");
                 }
-                else if (0 == strcmp(parameter.name, "ParentArray"))
+                else if (0 == strncmp(parameter.name, "ParentArray", sizeof("ParentArray")))
                 {
                     Prop(definition, index, parameter.name, "0");
                 }
@@ -205,31 +205,31 @@ void RunArinc661SceneTests(void)
 
     // Section 3.2.6 examples
     Arinc661_Scene_FormatNumber("+____.__", -123.40, text, sizeof(text));
-    assert(0 == strcmp("-123.4", text));
+    assert(0 == strncmp("-123.4", text, sizeof("-123.4")));
     Arinc661_Scene_FormatNumber("+____.##", 123.40, text, sizeof(text));
-    assert(0 == strcmp("+123.40", text));
+    assert(0 == strncmp("+123.40", text, sizeof("+123.40")));
     Arinc661_Scene_FormatNumber("___#.##", -23.45, text, sizeof(text));
-    assert(0 == strcmp("-23.45", text));
+    assert(0 == strncmp("-23.45", text, sizeof("-23.45")));
     Arinc661_Scene_FormatNumber("~~~#.##", -23.45, text, sizeof(text));
-    assert(0 == strcmp("-  23.45", text));
+    assert(0 == strncmp("-  23.45", text, sizeof("-  23.45")));
     Arinc661_Scene_FormatNumber("_.~W", 0.0, text, sizeof(text));
-    assert(0 == strcmp(". W", text));
+    assert(0 == strncmp(". W", text, sizeof(". W")));
     Arinc661_Scene_FormatNumber("_._W", 0.0, text, sizeof(text));
-    assert(0 == strcmp(".W", text));
+    assert(0 == strncmp(".W", text, sizeof(".W")));
     Arinc661_Scene_FormatNumber("###D##'##\"", 402318.0, text, sizeof(text));
-    assert(0 == strcmp("040D23'18\"", text));
+    assert(0 == strncmp("040D23'18\"", text, sizeof("040D23'18\"")));
     Arinc661_Scene_FormatNumber("##", 1234.0, text, sizeof(text));
-    assert(0 == strcmp("1234", text));
+    assert(0 == strncmp("1234", text, sizeof("1234")));
     Arinc661_Scene_FormatNumber("", 5.0, text, sizeof(text));
-    assert(0 == strcmp("5", text));
+    assert(0 == strncmp("5", text, sizeof("5")));
     Arinc661_Scene_FormatNumber(".##", 5.25, text, sizeof(text));
-    assert(0 == strcmp("5.25", text));
+    assert(0 == strncmp("5.25", text, sizeof("5.25")));
     Arinc661_Scene_FormatNumber("kt", 250.0, text, sizeof(text));
-    assert(0 == strcmp("kt250", text));
+    assert(0 == strncmp("kt250", text, sizeof("kt250")));
     Arinc661_Scene_FormatNumber("+##", -7.0, text, sizeof(text));
-    assert(0 == strcmp("-07", text));
+    assert(0 == strncmp("-07", text, sizeof("-07")));
     Arinc661_Scene_FormatNumber("#.#", 0.96, text, sizeof(text));
-    assert(0 == strcmp("1.0", text));
+    assert(0 == strncmp("1.0", text, sizeof("1.0")));
 
     Arinc661_Definition_Initialize(&definition, s_layers, 2, s_widgets, TEST_MAX_WIDGETS, s_properties, TEST_MAX_PROPERTIES, NULL, 0);
     definition.layerCount = 1;
@@ -255,11 +255,11 @@ void RunArinc661SceneTests(void)
     definition.properties[definition.propertyCount - 7].value[0] = '\0';
     for (width_index = 0; width_index < definition.propertyCount; ++width_index)
     {
-        if ((panel == definition.properties[width_index].ownerIndex) && (0 == strcmp("PosX", definition.properties[width_index].name)))
+        if ((panel == definition.properties[width_index].ownerIndex) && (0 == strncmp("PosX", definition.properties[width_index].name, sizeof("PosX"))))
         {
             strcpy(definition.properties[width_index].value, "1000");
         }
-        if ((panel == definition.properties[width_index].ownerIndex) && (0 == strcmp("PosY", definition.properties[width_index].name)))
+        if ((panel == definition.properties[width_index].ownerIndex) && (0 == strncmp("PosY", definition.properties[width_index].name, sizeof("PosY"))))
         {
             strcpy(definition.properties[width_index].value, "1000");
         }
@@ -267,15 +267,15 @@ void RunArinc661SceneTests(void)
     child = Widget(&definition, "A661_LABEL", panel, 2);
     for (width_index = 0; width_index < definition.propertyCount; ++width_index)
     {
-        if ((child == definition.properties[width_index].ownerIndex) && ((0 == strcmp("PosX", definition.properties[width_index].name)) || (0 == strcmp("PosY", definition.properties[width_index].name))))
+        if ((child == definition.properties[width_index].ownerIndex) && ((0 == strncmp("PosX", definition.properties[width_index].name, sizeof("PosX"))) || (0 == strncmp("PosY", definition.properties[width_index].name, sizeof("PosY")))))
         {
             strcpy(definition.properties[width_index].value, "500");
         }
-        if ((child == definition.properties[width_index].ownerIndex) && (0 == strcmp("LabelString", definition.properties[width_index].name)))
+        if ((child == definition.properties[width_index].ownerIndex) && (0 == strncmp("LabelString", definition.properties[width_index].name, sizeof("LabelString"))))
         {
             strcpy(definition.properties[width_index].value, "Hello");
         }
-        if ((child == definition.properties[width_index].ownerIndex) && (0 == strcmp("RotationAngle", definition.properties[width_index].name)))
+        if ((child == definition.properties[width_index].ownerIndex) && (0 == strncmp("RotationAngle", definition.properties[width_index].name, sizeof("RotationAngle"))))
         {
             strcpy(definition.properties[width_index].value, "0");
         }
@@ -307,7 +307,7 @@ void RunArinc661SceneTests(void)
     // A hidden label is skipped when hidden widgets are not shown
     for (width_index = 0; width_index < definition.propertyCount; ++width_index)
     {
-        if ((child == definition.properties[width_index].ownerIndex) && (0 == strcmp("Visible", definition.properties[width_index].name)))
+        if ((child == definition.properties[width_index].ownerIndex) && (0 == strncmp("Visible", definition.properties[width_index].name, sizeof("Visible"))))
         {
             strcpy(definition.properties[width_index].value, "A661_FALSE");
         }
@@ -324,11 +324,11 @@ void RunArinc661SceneTests(void)
     rotation = Widget(&definition, "A661_ROTATION_CONTAINER", UINT32_MAX, 3);
     for (width_index = 0; width_index < definition.propertyCount; ++width_index)
     {
-        if ((rotation == definition.properties[width_index].ownerIndex) && (0 == strcmp("RotationAngle", definition.properties[width_index].name)))
+        if ((rotation == definition.properties[width_index].ownerIndex) && (0 == strncmp("RotationAngle", definition.properties[width_index].name, sizeof("RotationAngle"))))
         {
             strcpy(definition.properties[width_index].value, "90");
         }
-        if ((rotation == definition.properties[width_index].ownerIndex) && ((0 == strcmp("CenterX", definition.properties[width_index].name)) || (0 == strcmp("CenterY", definition.properties[width_index].name))))
+        if ((rotation == definition.properties[width_index].ownerIndex) && ((0 == strncmp("CenterX", definition.properties[width_index].name, sizeof("CenterX"))) || (0 == strncmp("CenterY", definition.properties[width_index].name, sizeof("CenterY")))))
         {
             strcpy(definition.properties[width_index].value, "0");
         }
@@ -336,11 +336,11 @@ void RunArinc661SceneTests(void)
     label = Widget(&definition, "A661_PUSH_BUTTON", rotation, 4);
     for (width_index = 0; width_index < definition.propertyCount; ++width_index)
     {
-        if ((label == definition.properties[width_index].ownerIndex) && ((0 == strcmp("PosX", definition.properties[width_index].name)) || (0 == strcmp("PosY", definition.properties[width_index].name))))
+        if ((label == definition.properties[width_index].ownerIndex) && ((0 == strncmp("PosX", definition.properties[width_index].name, sizeof("PosX"))) || (0 == strncmp("PosY", definition.properties[width_index].name, sizeof("PosY")))))
         {
             strcpy(definition.properties[width_index].value, "500");
         }
-        if ((label == definition.properties[width_index].ownerIndex) && (0 == strcmp("SizeY", definition.properties[width_index].name)))
+        if ((label == definition.properties[width_index].ownerIndex) && (0 == strncmp("SizeY", definition.properties[width_index].name, sizeof("SizeY"))))
         {
             strcpy(definition.properties[width_index].value, "200");
         }
@@ -370,17 +370,17 @@ void RunArinc661SceneTests(void)
         definition.propertyCount = 0;
         panel                    = Widget(&definition, "A661_PANEL", UINT32_MAX, 1);
         child                    = Widget(&definition, Arinc661_Definition_GetTypeName(FALSE, type_index), panel, 2);
-        if (0 == strcmp("A661_TABBED_PANEL_GROUP", Arinc661_Definition_GetTypeName(FALSE, type_index)))
+        if (0 == strncmp("A661_TABBED_PANEL_GROUP", Arinc661_Definition_GetTypeName(FALSE, type_index), sizeof("A661_TABBED_PANEL_GROUP")))
         {
             (void)Widget(&definition, "A661_TABBED_PANEL", child, 3);
             (void)Widget(&definition, "A661_TABBED_PANEL", child, 4);
         }
-        else if (0 == strcmp("A661_MENU_BAR", Arinc661_Definition_GetTypeName(FALSE, type_index)))
+        else if (0 == strncmp("A661_MENU_BAR", Arinc661_Definition_GetTypeName(FALSE, type_index), sizeof("A661_MENU_BAR")))
         {
             (void)Widget(&definition, "A661_PUSH_BUTTON", child, 3);
             (void)Widget(&definition, "A661_PUSH_BUTTON", child, 4);
         }
-        else if ((0 == strcmp("A661_MAPHORZ", Arinc661_Definition_GetTypeName(FALSE, type_index))))
+        else if ((0 == strncmp("A661_MAPHORZ", Arinc661_Definition_GetTypeName(FALSE, type_index), sizeof("A661_MAPHORZ"))))
         {
             (void)Widget(&definition, "A661_MAP_GRID", child, 3);
             (void)Widget(&definition, "A661_MAP_BOUNDARY", child, 4);

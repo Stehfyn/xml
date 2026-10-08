@@ -53,10 +53,10 @@ static void TestConfiguration(void)
     assert(FACEOE_DISPLAYMANAGEMENT_UNIT_INCH == screens[0].physicalDimensions.units);
     assert(0 == layouts[0].screenIndex);
     assert(0 == windows[0].layoutIndex);
-    assert(0 == strcmp("window0", windows[0].name));
+    assert(0 == strncmp("window0", windows[0].name, sizeof("window0")));
     assert(3 == applications[0].applicationId);
     assert(applications[0].visible);
-    assert(0 == strcmp("display.df", applications[0].dFPath));
+    assert(0 == strncmp("display.df", applications[0].dFPath, sizeof("display.df")));
     assert(7 == sources[0].id);
 
     windows[0].pixelArea.x = 12;
@@ -72,7 +72,7 @@ static void TestConfiguration(void)
     assert(100000000000000000000.0f == windows[0].scalingFactor.yScale);
     assert(1 == configuration.userApplicationCount);
     assert(1 == configuration.externalSourceCount);
-    assert(0 == strcmp("video", sources[0].type));
+    assert(0 == strncmp("video", sources[0].type, sizeof("video")));
 
     windows[0].scalingFactor.xScale = 1.0e-40f;
     windows[0].scalingFactor.yScale = FLT_MAX;
@@ -154,7 +154,7 @@ static void TestConfigurationSchema(void)
     is_valid = FACEOE_DisplayManagement_ReadConfiguration(&configuration, input, sizeof(historical) - 1, c_workspace, sizeof(c_workspace));
     assert(is_valid);
     assert(FALSE == configuration.hasXmlDeclaration);
-    assert(0 == strcmp(configuration.schemaLocation, "H3.xsd"));
+    assert(0 == strncmp(configuration.schemaLocation, "H3.xsd", sizeof("H3.xsd")));
     assert(1 == configuration.screenCount);
     assert(640 == screen[0].pixelSize.width);
 
@@ -183,7 +183,7 @@ static void TestConfigurationSchema(void)
     is_valid = FACEOE_DisplayManagement_ReadConfiguration(&configuration, output, byte_count, c_workspace, sizeof(c_workspace));
     assert(is_valid);
     assert(configuration.hasXmlDeclaration);
-    assert(0 == strcmp(configuration.schemaLocation, "schemas/display.xsd"));
+    assert(0 == strncmp(configuration.schemaLocation, "schemas/display.xsd", sizeof("schemas/display.xsd")));
 
     // Reusing a result clears absent metadata; writing still supplies the default hint
     strcpy((char_t*)input, "<configuration/>");

@@ -297,7 +297,7 @@ int main(void)
     LOGASSERT(COUNT_OF(layouts) == configuration.layoutCount);
     LOGASSERT(COUNT_OF(windows) == configuration.windowCount);
     LOGASSERT(COUNT_OF(applications) == configuration.userApplicationCount);
-    LOGASSERT(0 == strcmp(applications[0].dFPath, DEFINITION_FILE_NAME));
+    LOGASSERT(0 == strncmp(applications[0].dFPath, DEFINITION_FILE_NAME, sizeof(DEFINITION_FILE_NAME)));
 
     bytes_read = OS_File_ReadFile(DEFINITION_FILE_PATH, xml_buffer, sizeof(xml_buffer));
     LOGASSERT(0 < bytes_read);

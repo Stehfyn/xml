@@ -112,6 +112,7 @@ out.append('''/*================================================================
 **===============================================================================================*/
 
 #include "arinc661_help.h"
+#include "arinc661/arinc661_definition.h"
 
 #include "faceoe_utl/faceoe_utl_defines.h"
 
@@ -198,7 +199,7 @@ static const HelpWidget_t* FindHelp(const char_t* type)
     help = NULL;
     for (index = 0; index < HELP_WIDGET_COUNT; ++index)
     {
-        if (0 == strcmp(type, c_helpWidgets[index].code))
+        if (0 == strncmp(type, c_helpWidgets[index].code, ARINC661_MAX_NAME_BYTES))
         {
             help = &c_helpWidgets[index];
             break;
@@ -263,7 +264,7 @@ const char_t* Arinc661_Help_GetParameter(const char_t* type, const char_t* param
     {
         for (index = help->firstParameter; index < (help->firstParameter + help->parameterCount); ++index)
         {
-            if (0 == strcmp(parameterName, c_helpParameters[index].name))
+            if (0 == strncmp(parameterName, c_helpParameters[index].name, ARINC661_MAX_NAME_BYTES))
             {
                 description = c_helpParameters[index].description;
                 if (NULL != change)
@@ -278,7 +279,7 @@ const char_t* Arinc661_Help_GetParameter(const char_t* type, const char_t* param
     {
         for (index = 0; '\\0' != c_helpParameters[index].name[0]; ++index)
         {
-            if (0 == strcmp(parameterName, c_helpParameters[index].name))
+            if (0 == strncmp(parameterName, c_helpParameters[index].name, ARINC661_MAX_NAME_BYTES))
             {
                 description = c_helpParameters[index].description;
                 if (NULL != change)

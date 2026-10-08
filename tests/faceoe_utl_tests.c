@@ -575,25 +575,25 @@ static void TestPrint(void)
     char_t wide[32];
 
     assert(3 == FACEOE_Utl_Print_Int64(text, sizeof(text), -20));
-    assert(0 == strcmp("-20", text));
+    assert(0 == strncmp("-20", text, sizeof("-20")));
     assert(20 == FACEOE_Utl_Print_Int64(wide, sizeof(wide), INT64_MIN));
-    assert(0 == strcmp("-9223372036854775808", wide));
+    assert(0 == strncmp("-9223372036854775808", wide, sizeof("-9223372036854775808")));
 
     assert(5 == FACEOE_Utl_Print_Uint64(text, sizeof(text), 10000U));
-    assert(0 == strcmp("10000", text));
+    assert(0 == strncmp("10000", text, sizeof("10000")));
     assert(20 == FACEOE_Utl_Print_Uint64(wide, sizeof(wide), UINT64_MAX));
-    assert(0 == strcmp("18446744073709551615", wide));
+    assert(0 == strncmp("18446744073709551615", wide, sizeof("18446744073709551615")));
 
     assert(5 == FACEOE_Utl_Print_Float(text, sizeof(text), 1.5, 3));
-    assert(0 == strcmp("1.500", text));
+    assert(0 == strncmp("1.500", text, sizeof("1.500")));
     assert(4 == FACEOE_Utl_Print_Float(text, sizeof(text), -0.125, 1));
-    assert(0 == strcmp("-0.1", text));
+    assert(0 == strncmp("-0.1", text, sizeof("-0.1")));
     assert(1 == FACEOE_Utl_Print_Float(text, sizeof(text), 2.0, 0));
-    assert(0 == strcmp("2", text));
+    assert(0 == strncmp("2", text, sizeof("2")));
 
     // Text that does not fit with its terminator leaves an empty string
     assert(-1 == FACEOE_Utl_Print_Uint64(text, sizeof(text), 12345678U));
-    assert(0 == strcmp("", text));
+    assert(0 == strncmp("", text, sizeof("")));
     assert(7 == FACEOE_Utl_Print_Uint64(text, sizeof(text), 1234567U));
     assert(-1 == FACEOE_Utl_Print_Float(text, sizeof(text), 1.0, 6));
 }

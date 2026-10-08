@@ -113,19 +113,19 @@ static void TestDefinitionBinary(void)
     assert(2 == definition.widgetCount);
     /* ApplicationId, LayerId, ContextNumber, and WidgetIdent plus eight panel and fourteen label parameters */
     assert(27 == definition.propertyCount);
-    assert(0 == strcmp("26504", properties[0].value));
-    assert(0 == strcmp("A661_PANEL", widgets[0].type));
+    assert(0 == strncmp("26504", properties[0].value, sizeof("26504")));
+    assert(0 == strncmp("A661_PANEL", widgets[0].type, sizeof("A661_PANEL")));
     assert(UINT32_MAX == widgets[0].parentWidgetIndex);
-    assert(0 == strcmp("A661_LABEL", widgets[1].type));
+    assert(0 == strncmp("A661_LABEL", widgets[1].type, sizeof("A661_LABEL")));
     assert(0 == widgets[1].parentWidgetIndex);
-    assert(0 == strcmp("WidgetIdent", properties[3].name));
-    assert(0 == strcmp("4641", properties[3].value));
-    assert(0 == strcmp("PosX", properties[15].name));
-    assert(0 == strcmp("-1", properties[15].value));
-    assert(0 == strcmp("RotationAngle", properties[19].name));
-    assert(0 == strcmp("90", properties[19].value));
-    assert(0 == strcmp("LabelString", properties[26].name));
-    assert(0 == strcmp("YOU", properties[26].value));
+    assert(0 == strncmp("WidgetIdent", properties[3].name, sizeof("WidgetIdent")));
+    assert(0 == strncmp("4641", properties[3].value, sizeof("4641")));
+    assert(0 == strncmp("PosX", properties[15].name, sizeof("PosX")));
+    assert(0 == strncmp("-1", properties[15].value, sizeof("-1")));
+    assert(0 == strncmp("RotationAngle", properties[19].name, sizeof("RotationAngle")));
+    assert(0 == strncmp("90", properties[19].value, sizeof("90")));
+    assert(0 == strncmp("LabelString", properties[26].name, sizeof("LabelString")));
+    assert(0 == strncmp("YOU", properties[26].value, sizeof("YOU")));
 
     /* Values read from binary write the same bytes again */
     byte_count = Arinc661_Definition_WriteBinary(&definition, output, sizeof(output));
@@ -189,13 +189,13 @@ static void TestDefinitionBinaryLabelComplex(void)
     assert(is_valid);
     assert(2 == definition.widgetCount);
     assert(24 == definition.propertyCount);
-    assert(0 == strcmp("A661_LABEL_COMPLEX", widgets[1].type));
+    assert(0 == strncmp("A661_LABEL_COMPLEX", widgets[1].type, sizeof("A661_LABEL_COMPLEX")));
     assert(0 == widgets[1].parentWidgetIndex);
-    assert(0 == strcmp("MaxStringLength", properties[20].name));
-    assert(0 == strcmp("80", properties[20].value));
-    assert(0 == strcmp("DefaultStyleText", properties[22].name));
-    assert(0 == strcmp("1B42001B41001B4300000000", properties[22].value));
-    assert(0 == strcmp("LabelString", properties[23].name));
+    assert(0 == strncmp("MaxStringLength", properties[20].name, sizeof("MaxStringLength")));
+    assert(0 == strncmp("80", properties[20].value, sizeof("80")));
+    assert(0 == strncmp("DefaultStyleText", properties[22].name, sizeof("DefaultStyleText")));
+    assert(0 == strncmp("1B42001B41001B4300000000", properties[22].value, sizeof("1B42001B41001B4300000000")));
+    assert(0 == strncmp("LabelString", properties[23].name, sizeof("LabelString")));
     assert(30 == strlen(properties[23].value));
 
     byte_count = Arinc661_Definition_WriteBinary(&definition, output, sizeof(output));
@@ -261,13 +261,13 @@ static void TestDefinitionBinaryArrays(void)
     assert(2 == definition.widgetCount);
     /* Three header properties, six for the format, and seventeen single plus fifteen array values for the tree */
     assert(41 == definition.propertyCount);
-    assert(0 == strcmp("NumberOfFields", properties[4].name));
-    assert(0 == strcmp("BufferStructure", properties[6].name));
-    assert(0 == strcmp("45440", properties[6].value));
-    assert(0 == strcmp("LabelStringArray", properties[39].name));
-    assert(0 == strcmp("BC", properties[39].value));
-    assert(0 == strcmp("LabelStringArray", properties[40].name));
-    assert(0 == strcmp("", properties[40].value));
+    assert(0 == strncmp("NumberOfFields", properties[4].name, sizeof("NumberOfFields")));
+    assert(0 == strncmp("BufferStructure", properties[6].name, sizeof("BufferStructure")));
+    assert(0 == strncmp("45440", properties[6].value, sizeof("45440")));
+    assert(0 == strncmp("LabelStringArray", properties[39].name, sizeof("LabelStringArray")));
+    assert(0 == strncmp("BC", properties[39].value, sizeof("BC")));
+    assert(0 == strncmp("LabelStringArray", properties[40].name, sizeof("LabelStringArray")));
+    assert(0 == strncmp("", properties[40].value, sizeof("")));
 
     byte_count = Arinc661_Definition_WriteBinary(&definition, copy, sizeof(copy));
     assert(116 == byte_count);
@@ -308,15 +308,15 @@ static void TestDefinitionArrayProperties(void)
     is_valid = Arinc661_Definition_Read(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
     assert(is_valid);
     assert(11 == definition.propertyCount);
-    assert(0 == strcmp("Vertices", properties[2].name));
-    assert(0 == strcmp("-500", properties[2].value));
-    assert(0 == strcmp("Vertices", properties[5].name));
-    assert(0 == strcmp("500", properties[5].value));
-    assert(0 == strcmp("BufferStructure", properties[8].name));
-    assert(0 == strcmp("2", properties[8].value));
-    assert(0 == strcmp("BufferStructure", properties[9].name));
-    assert(0 == strcmp("A661_ENABLE", properties[9].value));
-    assert(0 == strcmp("Single", properties[10].name));
+    assert(0 == strncmp("Vertices", properties[2].name, sizeof("Vertices")));
+    assert(0 == strncmp("-500", properties[2].value, sizeof("-500")));
+    assert(0 == strncmp("Vertices", properties[5].name, sizeof("Vertices")));
+    assert(0 == strncmp("500", properties[5].value, sizeof("500")));
+    assert(0 == strncmp("BufferStructure", properties[8].name, sizeof("BufferStructure")));
+    assert(0 == strncmp("2", properties[8].value, sizeof("2")));
+    assert(0 == strncmp("BufferStructure", properties[9].name, sizeof("BufferStructure")));
+    assert(0 == strncmp("A661_ENABLE", properties[9].value, sizeof("A661_ENABLE")));
+    assert(0 == strncmp("Single", properties[10].name, sizeof("Single")));
 
     /* Repeated names are written as one arrayprop of entries; a single value stays a prop */
     byte_count = Arinc661_Definition_Write(&definition, output, sizeof(output) - 1, c_workspace, sizeof(c_workspace));
@@ -330,8 +330,8 @@ static void TestDefinitionArrayProperties(void)
     is_valid = Arinc661_Definition_Read(&definition, output, byte_count, c_workspace, sizeof(c_workspace));
     assert(is_valid);
     assert(11 == definition.propertyCount);
-    assert(0 == strcmp("BufferStructure", properties[9].name));
-    assert(0 == strcmp("A661_ENABLE", properties[9].value));
+    assert(0 == strncmp("BufferStructure", properties[9].name, sizeof("BufferStructure")));
+    assert(0 == strncmp("A661_ENABLE", properties[9].value, sizeof("A661_ENABLE")));
 
     /* Single names no BufferFormat parameter; without it the flat form converts to 40-byte polyline and 16-byte format commands */
     assert(0 == Arinc661_Definition_WriteBinary(&definition, output, sizeof(output)));
@@ -402,7 +402,7 @@ static void TestDefinitionBinaryExtensions(void)
     assert(FALSE == widgets[0].isExtension);
     assert(TRUE == widgets[1].isExtension);
     assert(0 == widgets[1].parentWidgetIndex);
-    assert(0 == strcmp("A661_LEGEND_ALIGN_EXTENSION", widgets[1].type));
+    assert(0 == strncmp("A661_LEGEND_ALIGN_EXTENSION", widgets[1].type, sizeof("A661_LEGEND_ALIGN_EXTENSION")));
 
     /* Header 8, layer header 8, push button command 40 (10 + 2 + 16 + 6 + 2 + "OK" + pad), then the extensions */
     byte_count = Arinc661_Definition_WriteBinary(&definition, output, sizeof(output));
@@ -423,13 +423,13 @@ static void TestDefinitionBinaryExtensions(void)
     assert(6 == definition.widgetCount);
     assert(TRUE == widgets[5].isExtension);
     assert(0 == widgets[5].parentWidgetIndex);
-    assert(0 == strcmp("A661_STATIC_PARAM_BUFFER_EXTENSION", widgets[5].type));
-    assert(0 == strcmp("ExcludedRegionsList", properties[definition.propertyCount - 5].name));
-    assert(0 == strcmp("0001000000000000000000000000006400000064", properties[definition.propertyCount - 5].value));
-    assert(0 == strcmp("BufferArray", properties[definition.propertyCount - 1].name));
-    assert(0 == strcmp("", properties[definition.propertyCount - 1].value));
-    assert(0 == strcmp("TicsFineArray", properties[definition.propertyCount - 9].name));
-    assert(0 == strcmp("2", properties[definition.propertyCount - 9].value));
+    assert(0 == strncmp("A661_STATIC_PARAM_BUFFER_EXTENSION", widgets[5].type, sizeof("A661_STATIC_PARAM_BUFFER_EXTENSION")));
+    assert(0 == strncmp("ExcludedRegionsList", properties[definition.propertyCount - 5].name, sizeof("ExcludedRegionsList")));
+    assert(0 == strncmp("0001000000000000000000000000006400000064", properties[definition.propertyCount - 5].value, sizeof("0001000000000000000000000000006400000064")));
+    assert(0 == strncmp("BufferArray", properties[definition.propertyCount - 1].name, sizeof("BufferArray")));
+    assert(0 == strncmp("", properties[definition.propertyCount - 1].value, sizeof("")));
+    assert(0 == strncmp("TicsFineArray", properties[definition.propertyCount - 9].name, sizeof("TicsFineArray")));
+    assert(0 == strncmp("2", properties[definition.propertyCount - 9].value, sizeof("2")));
     assert(0 == Arinc661_Definition_WriteBinary(&definition, copy, 0));
     assert(byte_count == Arinc661_Definition_WriteBinary(&definition, copy, sizeof(copy)));
     assert(0 == memcmp(copy, output, byte_count));
@@ -570,26 +570,26 @@ static void TestDefinitionBinaryPrecision(void)
     {
         if ((ARINC661_PROPERTY_WIDGET == properties[index].owner) && (0 == properties[index].ownerIndex))
         {
-            if (0 == strcmp("MinValue", properties[index].name))
+            if (0 == strncmp("MinValue", properties[index].name, sizeof("MinValue")))
             {
-                assert(0 == strcmp("0.1", properties[index].value));
+                assert(0 == strncmp("0.1", properties[index].value, sizeof("0.1")));
                 found += 1;
             }
-            else if (0 == strcmp("MaxValue", properties[index].name))
+            else if (0 == strncmp("MaxValue", properties[index].name, sizeof("MaxValue")))
             {
-                assert(0 == strcmp("123456.7", properties[index].value));
+                assert(0 == strncmp("123456.7", properties[index].value, sizeof("123456.7")));
                 found += 1;
             }
-            else if (0 == strcmp("Value", properties[index].name))
+            else if (0 == strncmp("Value", properties[index].name, sizeof("Value")))
             {
-                assert(0 == strcmp("100", properties[index].value));
+                assert(0 == strncmp("100", properties[index].value, sizeof("100")));
                 found += 1;
             }
         }
         /* One fr(180) LSB is 8.38e-8 degrees; the shortest text that encodes to one LSB is 0.0000001 */
-        else if ((ARINC661_PROPERTY_WIDGET == properties[index].owner) && (1 == properties[index].ownerIndex) && (0 == strcmp("RotationAngle", properties[index].name)))
+        else if ((ARINC661_PROPERTY_WIDGET == properties[index].owner) && (1 == properties[index].ownerIndex) && (0 == strncmp("RotationAngle", properties[index].name, sizeof("RotationAngle"))))
         {
-            assert(0 == strcmp("0.0000001", properties[index].value));
+            assert(0 == strncmp("0.0000001", properties[index].value, sizeof("0.0000001")));
             found += 1;
         }
     }
@@ -613,7 +613,7 @@ static void TestDefinitionSchema(void)
     for (type_index = 0; type_index < Arinc661_Definition_GetTypeCount(FALSE); ++type_index)
     {
         assert(Arinc661_Definition_FindType(Arinc661_Definition_GetTypeName(FALSE, type_index), FALSE, &parameter_count));
-        if (0 == strcmp("A661_LABEL", Arinc661_Definition_GetTypeName(FALSE, type_index)))
+        if (0 == strncmp("A661_LABEL", Arinc661_Definition_GetTypeName(FALSE, type_index), sizeof("A661_LABEL")))
         {
             found += 1;
         }
@@ -626,10 +626,10 @@ static void TestDefinitionSchema(void)
     assert(Arinc661_Definition_FindType("A661_LABEL", FALSE, &parameter_count));
     assert(14 == parameter_count);
     assert(Arinc661_Definition_GetParameter("A661_LABEL", FALSE, 12, &parameter));
-    assert(0 == strcmp("Alignment", parameter.name));
+    assert(0 == strncmp("Alignment", parameter.name, sizeof("Alignment")));
     assert(ARINC661_PARAMETER_UCHAR == parameter.kind);
     assert(9 == parameter.valueCount);
-    assert(0 == strcmp("A661_BOTTOM_CENTER", parameter.values[0]));
+    assert(0 == strncmp("A661_BOTTOM_CENTER", parameter.values[0], sizeof("A661_BOTTOM_CENTER")));
     assert(Arinc661_Definition_GetParameter("A661_LABEL", FALSE, 13, &parameter));
     assert(ARINC661_PARAMETER_STRING == parameter.kind);
     assert(0 == parameter.elementsPerEntry);
@@ -639,16 +639,16 @@ static void TestDefinitionSchema(void)
     assert(Arinc661_Definition_FindType("A661_PANEL", FALSE, &parameter_count));
     assert(8 == parameter_count);
     assert(Arinc661_Definition_GetParameter("A661_PANEL", FALSE, 0, &parameter));
-    assert(0 == strcmp("Enable", parameter.name));
+    assert(0 == strncmp("Enable", parameter.name, sizeof("Enable")));
     assert(3 == parameter.valueCount);
 
     /* Table 8.6.3-2: each tics array names its own count; Table 8.7.1-2 has no named parameter */
     assert(Arinc661_Definition_FindType("A661_TICS_ARRAY_EXTENSION", TRUE, &parameter_count));
     assert(6 == parameter_count);
     assert(Arinc661_Definition_GetParameter("A661_TICS_ARRAY_EXTENSION", TRUE, 5, &parameter));
-    assert(0 == strcmp("TicsFineArray", parameter.name));
+    assert(0 == strncmp("TicsFineArray", parameter.name, sizeof("TicsFineArray")));
     assert(2 == parameter.elementsPerEntry);
-    assert(0 == strcmp("NumberOfTicsFine", parameter.countName));
+    assert(0 == strncmp("NumberOfTicsFine", parameter.countName, sizeof("NumberOfTicsFine")));
     assert(ARINC661_PARAMETER_FLOAT == parameter.kind);
     assert(Arinc661_Definition_FindType("A661_REORDER_EXTENSION", TRUE, &parameter_count));
     assert(0 == parameter_count);
@@ -657,7 +657,7 @@ static void TestDefinitionSchema(void)
     found = 0;
     for (type_index = 0; type_index < Arinc661_Definition_GetConstantCount(); ++type_index)
     {
-        if (0 == strcmp("A661_TRUE", Arinc661_Definition_GetConstantName(type_index)))
+        if (0 == strncmp("A661_TRUE", Arinc661_Definition_GetConstantName(type_index), sizeof("A661_TRUE")))
         {
             assert(1 == Arinc661_Definition_GetConstantValue(type_index));
             found += 1;
