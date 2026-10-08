@@ -214,7 +214,7 @@ void Arinc661_Definition_Initialize(Arinc661_Definition_t* definition, Arinc661_
  *  Strings are copied into the result arrays; the result retains no pointers
  *  into the input buffer or temporary workspace.
  *  Input may include an XML declaration; it is not retained in the result.
- *  The input buffer must have one writable byte after byteCount bytes and is
+ *  The input buffer must have one writable byte after sizeOfXmlBuffer bytes and is
  *  changed by FACEOE_Utl_Xml_ReadDocument while parsing.
  *
  * \par Requirements:
@@ -223,18 +223,18 @@ void Arinc661_Definition_Initialize(Arinc661_Definition_t* definition, Arinc661_
  *  - 003 This function shall use only the supplied workspace for temporary XML storage.
  *  - 004 This function shall return FALSE when FACEOE_Utl_Xml_ReadDocument rejects the input.
  *  - 005 This function shall accept input with or without an XML declaration.
- *  - 006 This function shall fail an assertion if definition, buffer, or workspace is NULL.
+ *  - 006 This function shall fail an assertion if definition, bufferToReadXmlFrom, or workspace is NULL.
  *
- * \param[in,out] definition      Definition File with storage pointers and capacities initialized
- * \param[in,out] buffer          Input XML bytes, followed by one writable byte
- * \param[in]     byteCount       Number of input bytes, excluding the extra byte
- * \param[in,out] workspace       Eight-byte-aligned temporary storage
- * \param[in]     workspaceSize   Number of temporary bytes
+ * \param[in,out] definition            Definition File with storage pointers and capacities initialized
+ * \param[in,out] bufferToReadXmlFrom   Input XML bytes, followed by one writable byte
+ * \param[in]     sizeOfXmlBuffer       Number of input bytes, excluding the extra byte
+ * \param[in,out] workspace             Eight-byte-aligned temporary storage
+ * \param[in]     workspaceSize         Number of temporary bytes
  *
- * \retval        TRUE        if the supported Definition File values were read.
- * \retval        FALSE       if the XML or a supported value is invalid, or supplied storage is insufficient.
+ * \retval        TRUE                  if the supported Definition File values were read.
+ * \retval        FALSE                 if the XML or a supported value is invalid, or supplied storage is insufficient.
  */
-bool_t Arinc661_Definition_Read(Arinc661_Definition_t* definition, byte_t* buffer, uint64_t byteCount, void* workspace, uint64_t workspaceSize);
+bool_t Arinc661_Definition_Read(Arinc661_Definition_t* definition, byte_t* bufferToReadXmlFrom, uint64_t sizeOfXmlBuffer, void* workspace, uint64_t workspaceSize);
 
 /*************************************************************************************************/
 /**
@@ -260,17 +260,17 @@ bool_t Arinc661_Definition_Read(Arinc661_Definition_t* definition, byte_t* buffe
  *  - 003 This function shall use only the supplied workspace for temporary XML storage.
  *  - 004 This function shall return zero when FACEOE_Utl_Xml_WriteDocument rejects the output capacity.
  *  - 005 This function shall write the document element without an XML declaration.
- *  - 006 This function shall fail an assertion if definition, buffer, or workspace is NULL.
+ *  - 006 This function shall fail an assertion if definition, bufferToWriteXmlTo, or workspace is NULL.
  *
- * \param[in]     definition      Definition File data to write
- * \param[out]    buffer          Output XML bytes
- * \param[in]     capacity        Output buffer capacity
- * \param[in,out] workspace       Eight-byte-aligned temporary storage
- * \param[in]     workspaceSize   Number of temporary bytes
+ * \param[in]     definition            Definition File data to write
+ * \param[out]    bufferToWriteXmlTo    Output XML bytes
+ * \param[in]     capacityOfXmlBuffer   Output buffer capacity
+ * \param[in,out] workspace             Eight-byte-aligned temporary storage
+ * \param[in]     workspaceSize         Number of temporary bytes
  *
- * \retval    uint64_t   Number of bytes written, or zero when a value or supplied storage is invalid.
+ * \retval        uint64_t              Number of bytes written, or zero when a value or supplied storage is invalid.
  */
-uint64_t Arinc661_Definition_Write(const Arinc661_Definition_t* definition, byte_t* buffer, uint64_t capacity, void* workspace, uint64_t workspaceSize);
+uint64_t Arinc661_Definition_Write(const Arinc661_Definition_t* definition, byte_t* bufferToWriteXmlTo, uint64_t capacityOfXmlBuffer, void* workspace, uint64_t workspaceSize);
 
 /*************************************************************************************************/
 /**
@@ -344,16 +344,16 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
  *  - 001 This function shall write the header, the charset encoding block when set, the retained blocks, one layer block per layer with its widgets and extensions in array order, and the footer.
  *  - 002 This function shall return the number of bytes written.
  *  - 003 This function shall return zero when a widget type is unsupported, a widget property names no Creation Structure parameter, a value does not fit its parameter, or an array does not match its count.
- *  - 004 This function shall return zero without writing past capacity when the output does not fit.
- *  - 005 This function shall fail an assertion if definition or buffer is NULL.
+ *  - 004 This function shall return zero without writing past capacityOfBinaryBuffer when the output does not fit.
+ *  - 005 This function shall fail an assertion if definition or bufferToWriteBinaryTo is NULL.
  *
- * \param[in]     definition   Definition File data to write
- * \param[out]    buffer       Output binary bytes
- * \param[in]     capacity     Output buffer capacity
+ * \param[in]     definition               Definition File data to write
+ * \param[out]    bufferToWriteBinaryTo    Output binary bytes
+ * \param[in]     capacityOfBinaryBuffer   Output buffer capacity
  *
- * \retval    uint64_t   Number of bytes written, or zero when a value is unsupported or the capacity is insufficient.
+ * \retval        uint64_t                 Number of bytes written, or zero when a value is unsupported or the capacity is insufficient.
  */
-uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition, byte_t* buffer, uint64_t capacity);
+uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition, byte_t* bufferToWriteBinaryTo, uint64_t capacityOfBinaryBuffer);
 
 /*************************************************************************************************/
 /**

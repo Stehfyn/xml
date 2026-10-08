@@ -6045,7 +6045,7 @@ void Arinc661_Definition_Initialize(Arinc661_Definition_t* definition, Arinc661_
  *  blockByteCount, and charsetEncoding; scalar fields and array entries may still
  *  contain partial data.
  */
-bool_t Arinc661_Definition_Read(Arinc661_Definition_t* definition, byte_t* buffer, uint64_t byteCount, void* workspace, uint64_t workspaceSize)
+bool_t Arinc661_Definition_Read(Arinc661_Definition_t* definition, byte_t* bufferToReadXmlFrom, uint64_t sizeOfXmlBuffer, void* workspace, uint64_t workspaceSize)
 {
     XmlWorkspace_t         xml;
     FACEOE_Utl_Xml_Node_t*        root;
@@ -6066,7 +6066,7 @@ bool_t Arinc661_Definition_Read(Arinc661_Definition_t* definition, byte_t* buffe
     bool_t                 is_valid;
 
     LOGASSERT(NULL != definition);
-    LOGASSERT(NULL != buffer);
+    LOGASSERT(NULL != bufferToReadXmlFrom);
     LOGASSERT(NULL != workspace);
     // Reset result counts while retaining the supplied arrays and capacities; XML carries no binary blocks
     ResetDefinition(definition);
@@ -6075,7 +6075,7 @@ bool_t Arinc661_Definition_Read(Arinc661_Definition_t* definition, byte_t* buffe
     if (is_valid)
     {
         // Parse the source into the temporary XML workspace
-        is_valid = (0 < FACEOE_Utl_Xml_ReadDocument(&xml.document, buffer, byteCount, xml.nodes, ARINC661_XML_NODE_CAPACITY, xml.attributes, ARINC661_XML_ATTRIBUTE_CAPACITY));
+        is_valid = (0 < FACEOE_Utl_Xml_ReadDocument(&xml.document, bufferToReadXmlFrom, sizeOfXmlBuffer, xml.nodes, ARINC661_XML_NODE_CAPACITY, xml.attributes, ARINC661_XML_ATTRIBUTE_CAPACITY));
     }
     if (is_valid)
     {
@@ -6318,7 +6318,7 @@ bool_t Arinc661_Definition_Read(Arinc661_Definition_t* definition, byte_t* buffe
  *  includes a final LF and no zero terminator. Zero indicates construction or
  *  serialization failure; serialization may already have written an output prefix.
  */
-uint64_t Arinc661_Definition_Write(const Arinc661_Definition_t* definition, byte_t* buffer, uint64_t capacity, void* workspace, uint64_t workspaceSize)
+uint64_t Arinc661_Definition_Write(const Arinc661_Definition_t* definition, byte_t* bufferToWriteXmlTo, uint64_t capacityOfXmlBuffer, void* workspace, uint64_t workspaceSize)
 {
     XmlWorkspace_t               xml;
     FACEOE_Utl_Xml_Node_t*              root;
@@ -6338,7 +6338,7 @@ uint64_t Arinc661_Definition_Write(const Arinc661_Definition_t* definition, byte
     bool_t                       is_valid;
 
     LOGASSERT(NULL != definition);
-    LOGASSERT(NULL != buffer);
+    LOGASSERT(NULL != bufferToWriteXmlTo);
     LOGASSERT(NULL != workspace);
     // Keep zero as the failure result until the complete document is written
     byte_count    = 0;
@@ -6477,7 +6477,7 @@ uint64_t Arinc661_Definition_Write(const Arinc661_Definition_t* definition, byte
     {
         // Append the completed root and serialize the temporary document
         FACEOE_Utl_Xml_AppendNode(&xml.document, root);
-        byte_count = FACEOE_Utl_Xml_WriteDocument(&xml.document, buffer, capacity);
+        byte_count = FACEOE_Utl_Xml_WriteDocument(&xml.document, bufferToWriteXmlTo, capacityOfXmlBuffer);
     }
 
     return byte_count;
@@ -6612,10 +6612,10 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
  *  ApplicationId, LayerId, and ContextNumber come from the properties of those
  *  names and default to zero; other Definition File and layer properties, and
  *  all names, have no binary representation and are not written. The complete
- *  file is sized even when it exceeds capacity, in which case nothing past
- *  capacity is stored and zero is returned.
+ *  file is sized even when it exceeds capacityOfBinaryBuffer, in which case nothing past
+ *  capacityOfBinaryBuffer is stored and zero is returned.
  */
-uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition, byte_t* buffer, uint64_t capacity)
+uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition, byte_t* bufferToWriteBinaryTo, uint64_t capacityOfBinaryBuffer)
 {
     const Arinc661_Property_t* property;
     int64_t                    application_id;
@@ -6631,7 +6631,7 @@ uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition
     bool_t                     is_valid;
 
     LOGASSERT(NULL != definition);
-    LOGASSERT(NULL != buffer);
+    LOGASSERT(NULL != bufferToWriteBinaryTo);
     LOGASSERT((NULL != definition->blocks) || (0 == definition->blockByteCount));
     // Keep zero as the failure result until the complete file is written
     byte_count     = 0;
@@ -6647,22 +6647,22 @@ uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition
     }
     if (is_valid)
     {
-        PutUnsigned(buffer, capacity, BINARY_HEADER_MAGIC_OFFSET, BINARY_DF_MAGIC_NUMBER, BINARY_USHORT_BYTES);
-        PutUnsigned(buffer, capacity, BINARY_HEADER_LIBRARY_VERSION_OFFSET, definition->libraryVersion, BINARY_UCHAR_BYTES);
-        PutUnsigned(buffer, capacity, BINARY_HEADER_SUPPLEMENT_VERSION_OFFSET, definition->supplementVersion, BINARY_UCHAR_BYTES);
-        PutUnsigned(buffer, capacity, BINARY_HEADER_APPLI_IDENT_OFFSET, (uint32_t)application_id, BINARY_USHORT_BYTES);
+        PutUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, BINARY_HEADER_MAGIC_OFFSET, BINARY_DF_MAGIC_NUMBER, BINARY_USHORT_BYTES);
+        PutUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, BINARY_HEADER_LIBRARY_VERSION_OFFSET, definition->libraryVersion, BINARY_UCHAR_BYTES);
+        PutUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, BINARY_HEADER_SUPPLEMENT_VERSION_OFFSET, definition->supplementVersion, BINARY_UCHAR_BYTES);
+        PutUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, BINARY_HEADER_APPLI_IDENT_OFFSET, (uint32_t)application_id, BINARY_USHORT_BYTES);
         // Write no OEM free data
-        PutUnsigned(buffer, capacity, BINARY_HEADER_OEM_DATA_SIZE_OFFSET, 0, BINARY_USHORT_BYTES);
+        PutUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, BINARY_HEADER_OEM_DATA_SIZE_OFFSET, 0, BINARY_USHORT_BYTES);
         if (0 != definition->charsetEncoding)
         {
-            PutUnsigned(buffer, capacity, offset, (BINARY_BEGIN_CHARSET_BLOCK << BINARY_BLOCK_CODE_SHIFT) | definition->charsetEncoding, BINARY_ULONG_BYTES);
-            PutUnsigned(buffer, capacity, offset + BINARY_CHARSET_END_OFFSET, BINARY_END_CHARSET_BLOCK << BINARY_BLOCK_CODE_SHIFT, BINARY_ULONG_BYTES);
+            PutUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offset, (BINARY_BEGIN_CHARSET_BLOCK << BINARY_BLOCK_CODE_SHIFT) | definition->charsetEncoding, BINARY_ULONG_BYTES);
+            PutUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offset + BINARY_CHARSET_END_OFFSET, BINARY_END_CHARSET_BLOCK << BINARY_BLOCK_CODE_SHIFT, BINARY_ULONG_BYTES);
             offset += BINARY_CHARSET_BLOCK_BYTES;
         }
         // Write symbol, picture, and animation law blocks before the layers (Table 4.5.3.2-1)
         for (byte_index = 0; byte_index < definition->blockByteCount; ++byte_index)
         {
-            PutUnsigned(buffer, capacity, offset + byte_index, definition->blocks[byte_index], BINARY_UCHAR_BYTES);
+            PutUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offset + byte_index, definition->blocks[byte_index], BINARY_UCHAR_BYTES);
         }
         offset += definition->blockByteCount;
         for (layer_index = 0; layer_index < definition->layerCount; ++layer_index)
@@ -6680,16 +6680,16 @@ uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition
             {
                 break;
             }
-            PutUnsigned(buffer, capacity, layer_offset, BINARY_BEGIN_LAYER_BLOCK, BINARY_UCHAR_BYTES);
-            PutUnsigned(buffer, capacity, layer_offset + BINARY_LAYER_IDENT_OFFSET, (uint32_t)layer_id, BINARY_UCHAR_BYTES);
-            PutUnsigned(buffer, capacity, layer_offset + BINARY_CONTEXT_NUMBER_OFFSET, (uint32_t)context_number, BINARY_USHORT_BYTES);
+            PutUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, layer_offset, BINARY_BEGIN_LAYER_BLOCK, BINARY_UCHAR_BYTES);
+            PutUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, layer_offset + BINARY_LAYER_IDENT_OFFSET, (uint32_t)layer_id, BINARY_UCHAR_BYTES);
+            PutUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, layer_offset + BINARY_CONTEXT_NUMBER_OFFSET, (uint32_t)context_number, BINARY_USHORT_BYTES);
             offset += BINARY_LAYER_HEADER_BYTES;
             for (widget_index = 0; widget_index < definition->widgetCount; ++widget_index)
             {
                 // Select entries belonging to this layer while preserving their array order
                 if (layer_index == definition->widgets[widget_index].layerIndex)
                 {
-                    is_valid = WriteCommand(definition, widget_index, last_widget_index, buffer, capacity, &offset);
+                    is_valid = WriteCommand(definition, widget_index, last_widget_index, bufferToWriteBinaryTo, capacityOfBinaryBuffer, &offset);
                     if (FALSE == is_valid)
                     {
                         break;
@@ -6702,7 +6702,7 @@ uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition
             }
             if (is_valid)
             {
-                PutUnsigned(buffer, capacity, offset, (uint32_t)BINARY_END_LAYER_BLOCK << BINARY_BLOCK_CODE_SHIFT, BINARY_BLOCK_END_BYTES);
+                PutUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offset, (uint32_t)BINARY_END_LAYER_BLOCK << BINARY_BLOCK_CODE_SHIFT, BINARY_BLOCK_END_BYTES);
                 offset   += BINARY_BLOCK_END_BYTES;
                 // Count the block header and the end code in Block Size
                 is_valid  = ((offset - layer_offset) <= UINT32_MAX);
@@ -6711,14 +6711,14 @@ uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition
             {
                 break;
             }
-            PutUnsigned(buffer, capacity, layer_offset + BINARY_BLOCK_SIZE_OFFSET, (uint32_t)(offset - layer_offset), BINARY_ULONG_BYTES);
+            PutUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, layer_offset + BINARY_BLOCK_SIZE_OFFSET, (uint32_t)(offset - layer_offset), BINARY_ULONG_BYTES);
         }
     }
     if (is_valid)
     {
-        PutUnsigned(buffer, capacity, offset, (uint32_t)BINARY_DF_FOOTER << BINARY_BLOCK_CODE_SHIFT, BINARY_BLOCK_END_BYTES);
+        PutUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offset, (uint32_t)BINARY_DF_FOOTER << BINARY_BLOCK_CODE_SHIFT, BINARY_BLOCK_END_BYTES);
         offset   += BINARY_BLOCK_END_BYTES;
-        is_valid  = (offset <= capacity);
+        is_valid  = (offset <= capacityOfBinaryBuffer);
     }
     if (is_valid)
     {
