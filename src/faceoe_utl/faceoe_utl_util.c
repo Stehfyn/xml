@@ -11,66 +11,6 @@
  * \par Details:
  *  None
  */
-char_t* FACEOE_Utl_Strtok(char_t* str, const char_t* delems, char_t** intPos)
-{
-    uint64_t str_idx;
-    uint64_t str_len;
-    uint64_t del_idx;
-    uint64_t del_len;
-    char_t*  tok;
-
-    del_len = strlen(delems) + 1;
-    tok     = NULL;
-
-    for (str_idx = 0; str_idx < str_len; ++str_idx)
-    {
-        for(del_idx = 0; del_idx < del_len; ++del_idx)
-        {
-            if(delems[del_idx] == (*intPos)[str_idx])
-            {
-                break;
-            }
-        }
-
-        if (del_idx == del_len)
-        {
-            tok = *intPos + str_idx;
-            break;
-        }
-    }
-
-    for (; str_idx < str_len; ++str_idx)
-    {
-        for(del_idx = 0; del_idx < del_len; ++del_idx)
-        {
-            if (delems[del_idx] == (*intPos)[str_idx])
-            {
-                break;
-            }
-        }
-
-        if (del_idx != del_len)
-        {
-            (*intPos) += str_idx;
-
-            if (delems[del_idx] != '\0')
-            {
-                **intPos = '\0';
-                (*intPos)++;
-            }
-
-            break;
-        }
-    }
-
-    return tok;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  None
- */
 const char_t* FACEOE_Utl_StrStr(const char_t* str1, const char_t* str2, bool_t caseInsensitive)
 {
     uint64_t str1_base_index;
@@ -116,6 +56,41 @@ const char_t* FACEOE_Utl_StrStr(const char_t* str1, const char_t* str2, bool_t c
         }
 
         str1_base_index++;
+    }
+
+    return NULL;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Unlike strchr, the search stops at sizeOfStr characters and never returns the
+ *  terminator; for example, searching "1.5" for '.' returns a pointer to "5"'s
+ *  neighbor at index 1, and searching it for '\0' returns NULL.
+ */
+const char_t* FACEOE_Utl_StrChr(const char_t* str, char_t character, uint64_t sizeOfStr)
+{
+    uint64_t index;
+    bool_t   is_end;
+    bool_t   is_match;
+
+    LOGASSERT(NULL != str);
+
+    for (index = 0; index < sizeOfStr; ++index)
+    {
+        is_end = ('\0' == str[index]);
+
+        if (is_end)
+        {
+            return NULL;
+        }
+
+        is_match = (character == str[index]);
+
+        if (is_match)
+        {
+            return &str[index];
+        }
     }
 
     return NULL;

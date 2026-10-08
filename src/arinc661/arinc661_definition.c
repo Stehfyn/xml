@@ -21,8 +21,10 @@
 
 #include "arinc661/arinc661_definition.h"
 #include "faceoe_utl/faceoe_utl_defines.h"
+#include "faceoe_utl/faceoe_utl_math.h"
 #include "faceoe_utl/faceoe_utl_print.h"
 #include "faceoe_utl/faceoe_utl_scan.h"
+#include "faceoe_utl/faceoe_utl_util.h"
 #include "faceoe_utl/faceoe_utl_xml.h"
 
 #include "os/os_assert.h"
@@ -4909,7 +4911,7 @@ static bool_t CopyAttribute(const FACEOE_Utl_Xml_Node_t* node, const char_t* nam
  * \retval     TRUE        if the complete attribute is a signed 64-bit integer.
  * \retval     FALSE       if the attribute is absent, malformed, or out of range.
  */
-static bool_t ReadInteger(const FACEOE_Utl_Xml_Node_t* node, const char_t* name, int64_t* value);
+static bool_t ReadIntegerAttribute(const FACEOE_Utl_Xml_Node_t* node, const char_t* name, int64_t* value);
 
 /*************************************************************************************************/
 /**
@@ -5084,9 +5086,10 @@ static bool_t WriteProperties(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent
  * \param[in]  value         Value to store
  * \param[in]  sizeOfValue   Number of bytes to store, at most four
  *
- * \retval     None
+ * \retval     TRUE          if the bytes fit the buffer.
+ * \retval     FALSE         otherwise; nothing is stored and the offset is unchanged.
  */
-static void WriteUnsigned(byte_t* buffer, uint64_t capacity, uint64_t offset, uint32_t value, uint32_t sizeOfValue);
+static bool_t WriteUnsigned(byte_t* buffer, uint64_t capacity, uint64_t offset, uint32_t value, uint32_t sizeOfValue);
 
 /*************************************************************************************************/
 /**
@@ -5112,15 +5115,59 @@ static int64_t ToSigned32(uint32_t value);
 
 /*************************************************************************************************/
 /**
+ * \brief Appends a byte span at the output offset.
+ *
+ * \param[out]    buffer        Output bytes
+ * \param[in]     capacity      Output buffer capacity
+ * \param[in,out] offset        Byte offset of the span, advanced past it
+ * \param[in]     bytes         Bytes to append; may be NULL only when sizeOfBytes is zero
+ * \param[in]     sizeOfBytes   Number of bytes to append
+ *
+ * \retval        TRUE          if the bytes fit the buffer.
+ * \retval        FALSE         otherwise; nothing is stored and the offset is unchanged.
+ */
+static bool_t WriteBytes(byte_t* buffer, uint64_t capacity, uint64_t* offset, const byte_t* bytes, uint64_t sizeOfBytes);
+
+/*************************************************************************************************/
+/**
+ * \brief Appends one byte at the output offset.
+ *
+ * \param[out]    buffer     Output bytes
+ * \param[in]     capacity   Output buffer capacity
+ * \param[in,out] offset     Byte offset of the byte, advanced past it
+ * \param[in]     value      Byte to append
+ *
+ * \retval        TRUE       if the byte fit the buffer.
+ * \retval        FALSE      otherwise; nothing is stored and the offset is unchanged.
+ */
+static bool_t WriteByte(byte_t* buffer, uint64_t capacity, uint64_t* offset, byte_t value);
+
+/*************************************************************************************************/
+/**
  * \brief Stores zero bytes up to the next 32-bit boundary.
  *
  * \param[out]    buffer     Output bytes
  * \param[in]     capacity   Output buffer capacity
  * \param[in,out] offset     Output byte offset, advanced to the boundary
  *
- * \retval None
+ * \retval        TRUE       if the zero bytes fit the buffer.
+ * \retval        FALSE      otherwise; nothing is stored and the offset is unchanged.
  */
-static void WriteAlignment(byte_t* buffer, uint64_t capacity, uint64_t* offset);
+static bool_t WriteAlignment(byte_t* buffer, uint64_t capacity, uint64_t* offset);
+
+/*************************************************************************************************/
+/**
+ * \brief Writes a string parameter: its bytes, then its zero terminator.
+ *
+ * \param[out]    buffer     Output bytes
+ * \param[in]     capacity   Output buffer capacity
+ * \param[in,out] offset     Byte offset of the string, advanced past its terminator
+ * \param[in]     text       Zero-terminated property value
+ *
+ * \retval        TRUE       if the string and its terminator fit the buffer.
+ * \retval        FALSE      otherwise.
+ */
+static bool_t WriteString(byte_t* buffer, uint64_t capacity, uint64_t* offset, const char_t* text);
 
 /*************************************************************************************************/
 /**
@@ -5142,7 +5189,7 @@ static uint64_t AlignToWord(uint64_t size);
  * \param[in]  capacity      Output buffer capacity
  * \param[in]  offset        Byte offset of the first byte
  *
- * \retval     TRUE          if the text holds exactly sizeOfValue bytes of valid digits.
+ * \retval     TRUE          if the text holds exactly sizeOfValue bytes of valid digits and they fit the buffer.
  * \retval     FALSE         otherwise.
  */
 static bool_t WriteHexBytes(const char_t* text, uint64_t sizeOfValue, byte_t* buffer, uint64_t capacity, uint64_t offset);
@@ -5199,6 +5246,19 @@ static bool_t ScanInteger(const Arinc661_Property_t* property, int64_t minimum, 
 
 /*************************************************************************************************/
 /**
+ * \brief Converts an optional property to a decimal number within a range.
+ *
+ * \param[in]  property   Property to convert, or NULL for zero
+ * \param[in]  limit      Largest accepted magnitude
+ * \param[out] value      Converted value
+ *
+ * \retval     TRUE       if the property is absent, or a complete decimal number from -limit to limit.
+ * \retval     FALSE      otherwise.
+ */
+static bool_t ScanReal(const Arinc661_Property_t* property, float64_t limit, float64_t* value);
+
+/*************************************************************************************************/
+/**
  * \brief Returns the byte count of an excluded region structure from its type byte.
  *
  * \param[in] regionType   ExcludedRegionType value
@@ -5231,6 +5291,123 @@ static Arinc661_ParameterKind_t FieldTypeToParameterKind(BinaryFieldType_t field
 
 /*************************************************************************************************/
 /**
+ * \brief Writes a uchar, ushort, long, or ulong parameter.
+ *
+ * \param[out]    buffer        Output bytes
+ * \param[in]     capacity      Output buffer capacity
+ * \param[in,out] offset        Byte offset of the parameter, advanced past it
+ * \param[in]     property      Property holding the value, or NULL for zero
+ * \param[in]     minimum       Smallest accepted value
+ * \param[in]     maximum       Largest accepted value
+ * \param[in]     sizeOfValue   Bytes of the encoded value
+ *
+ * \retval        TRUE          if the value was converted.
+ * \retval        FALSE         if the value does not fit the parameter or the buffer.
+ */
+static bool_t WriteInteger(byte_t* buffer, uint64_t capacity, uint64_t* offset, const Arinc661_Property_t* property, int64_t minimum, int64_t maximum, uint32_t sizeOfValue);
+
+/*************************************************************************************************/
+/**
+ * \brief Writes a float parameter as IEEE 754 single precision.
+ *
+ * \param[out]    buffer     Output bytes
+ * \param[in]     capacity   Output buffer capacity
+ * \param[in,out] offset     Byte offset of the parameter, advanced past it
+ * \param[in]     property   Property holding the value, or NULL for zero
+ *
+ * \retval        TRUE       if the value was converted.
+ * \retval        FALSE      if the value does not fit the parameter or the buffer.
+ */
+static bool_t WriteFloat(byte_t* buffer, uint64_t capacity, uint64_t* offset, const Arinc661_Property_t* property);
+
+/*************************************************************************************************/
+/**
+ * \brief Writes an fr(180) or fr(32768) parameter.
+ *
+ * \param[out]    buffer     Output bytes
+ * \param[in]     capacity   Output buffer capacity
+ * \param[in,out] offset     Byte offset of the parameter, advanced past it
+ * \param[in]     property   Property holding the value, or NULL for zero
+ * \param[in]     range      BINARY_FR180_RANGE or BINARY_FR32768_RANGE
+ *
+ * \retval        TRUE       if the value was converted.
+ * \retval        FALSE      if the value does not fit the parameter or the buffer.
+ */
+static bool_t WriteFraction(byte_t* buffer, uint64_t capacity, uint64_t* offset, const Arinc661_Property_t* property, float64_t range);
+
+/*************************************************************************************************/
+/**
+ * \brief Writes a parameter of a fixed number of bytes without a numeric type.
+ *
+ * \param[out]    buffer        Output bytes
+ * \param[in]     capacity      Output buffer capacity
+ * \param[in,out] offset        Byte offset of the parameter, advanced past it
+ * \param[in]     property      Property holding hexadecimal digits, or NULL for zeros
+ * \param[in]     sizeOfValue   Bytes of the parameter
+ *
+ * \retval        TRUE          if the value was converted.
+ * \retval        FALSE         if the value does not fit the parameter or the buffer.
+ */
+static bool_t WriteFixedBytes(byte_t* buffer, uint64_t capacity, uint64_t* offset, const Arinc661_Property_t* property, uint64_t sizeOfValue);
+
+/*************************************************************************************************/
+/**
+ * \brief Writes a StaticParamBuffer entry: its size, pad, bytes, and alignment.
+ *
+ * \param[out]    buffer     Output bytes
+ * \param[in]     capacity   Output buffer capacity
+ * \param[in,out] offset     Byte offset of the parameter, advanced past it
+ * \param[in]     text       Hexadecimal digits of the property value
+ *
+ * \retval        TRUE       if the digits were converted.
+ * \retval        FALSE      if they are not hexadecimal or too many.
+ */
+static bool_t WriteSizedBytes(byte_t* buffer, uint64_t capacity, uint64_t* offset, const char_t* text);
+
+/*************************************************************************************************/
+/**
+ * \brief Writes a complete excluded region structure.
+ *
+ * \param[out]    buffer     Output bytes
+ * \param[in]     capacity   Output buffer capacity
+ * \param[in,out] offset     Byte offset of the parameter, advanced past it
+ * \param[in]     text       Hexadecimal digits of the property value
+ *
+ * \retval        TRUE       if the digits hold a region of a known type and its full size.
+ * \retval        FALSE      otherwise.
+ */
+static bool_t WriteRegion(byte_t* buffer, uint64_t capacity, uint64_t* offset, const char_t* text);
+
+/*************************************************************************************************/
+/**
+ * \brief Writes a complete LayerReqResult entry.
+ *
+ * \param[out]    buffer     Output bytes
+ * \param[in]     capacity   Output buffer capacity
+ * \param[in,out] offset     Byte offset of the parameter, advanced past it
+ * \param[in]     text       Hexadecimal digits of the property value
+ *
+ * \retval        TRUE       if the digits hold an entry whose CommandSize matches the request that follows.
+ * \retval        FALSE      otherwise.
+ */
+static bool_t WriteLayerRequest(byte_t* buffer, uint64_t capacity, uint64_t* offset, const char_t* text);
+
+/*************************************************************************************************/
+/**
+ * \brief Writes an UnusedPad of zero bytes.
+ *
+ * \param[out]    buffer      Output bytes
+ * \param[in]     capacity    Output buffer capacity
+ * \param[in,out] offset      Byte offset of the pad, advanced past it
+ * \param[in]     sizeOfPad   Bytes of the pad
+ *
+ * \retval        TRUE        if the pad fit the buffer.
+ * \retval        FALSE       otherwise; nothing is stored and the offset is unchanged.
+ */
+static bool_t WritePad(byte_t* buffer, uint64_t capacity, uint64_t* offset, uint64_t sizeOfPad);
+
+/*************************************************************************************************/
+/**
  * \brief Appends one Creation Structure parameter to the output.
  *
  * \param[in]     field      Parameter encoding
@@ -5243,6 +5420,21 @@ static Arinc661_ParameterKind_t FieldTypeToParameterKind(BinaryFieldType_t field
  * \retval        FALSE      if the value does not fit the parameter type.
  */
 static bool_t WriteField(const BinaryField_t* field, const Arinc661_Property_t* property, byte_t* buffer, uint64_t capacity, uint64_t* offset);
+
+/*************************************************************************************************/
+/**
+ * \brief Appends one layer block with the commands of its widgets.
+ *
+ * \param[in]     definition   Definition File data to write
+ * \param[in]     layerIndex   Layer to write
+ * \param[out]    buffer       Output bytes
+ * \param[in]     capacity     Output buffer capacity
+ * \param[in,out] offset       Byte offset of the block, advanced past it
+ *
+ * \retval        TRUE         if the layer and its widgets were written.
+ * \retval        FALSE        if a value is unsupported or the block does not fit the buffer.
+ */
+static bool_t WriteLayer(const Arinc661_Definition_t* definition, uint32_t layerIndex, byte_t* buffer, uint64_t capacity, uint64_t* offset);
 
 /*************************************************************************************************/
 /**
@@ -5353,6 +5545,169 @@ static bool_t AddIntegerProperty(Arinc661_Definition_t* definition, Arinc661_Pro
  * \retval        FALSE         if the property array is full or the digits do not fit a value.
  */
 static bool_t AddHexProperty(Arinc661_Definition_t* definition, const char_t* name, const byte_t* value, uint64_t sizeOfValue);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads a uchar, ushort, or ulong parameter as a decimal property.
+ *
+ * \param[in,out] definition    Definition File gaining a property of the widget being read
+ * \param[in]     name          Parameter name
+ * \param[in]     buffer        Input bytes
+ * \param[in]     endOffset     Byte offset following the command
+ * \param[in,out] offset        Byte offset of the parameter, advanced past it
+ * \param[in]     sizeOfValue   Bytes of the encoded value
+ *
+ * \retval        TRUE          if the parameter was read.
+ * \retval        FALSE         if it exceeds the command or the result storage.
+ */
+static bool_t ReadInteger(Arinc661_Definition_t* definition, const char_t* name, const byte_t* buffer, uint64_t endOffset, uint64_t* offset, uint32_t sizeOfValue);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads a long parameter as a signed decimal property.
+ *
+ * \param[in,out] definition   Definition File gaining a property of the widget being read
+ * \param[in]     name         Parameter name
+ * \param[in]     buffer       Input bytes
+ * \param[in]     endOffset    Byte offset following the command
+ * \param[in,out] offset       Byte offset of the parameter, advanced past it
+ *
+ * \retval        TRUE         if the parameter was read.
+ * \retval        FALSE        if it exceeds the command or the result storage.
+ */
+static bool_t ReadLong(Arinc661_Definition_t* definition, const char_t* name, const byte_t* buffer, uint64_t endOffset, uint64_t* offset);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads a float parameter as a decimal property.
+ *
+ * \param[in,out] definition   Definition File gaining a property of the widget being read
+ * \param[in]     name         Parameter name
+ * \param[in]     buffer       Input bytes
+ * \param[in]     endOffset    Byte offset following the command
+ * \param[in,out] offset       Byte offset of the parameter, advanced past it
+ *
+ * \retval        TRUE         if the parameter was read.
+ * \retval        FALSE        if it exceeds the command or the result storage, or is not finite.
+ */
+static bool_t ReadFloat(Arinc661_Definition_t* definition, const char_t* name, const byte_t* buffer, uint64_t endOffset, uint64_t* offset);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads an fr(180) or fr(32768) parameter as a decimal property.
+ *
+ * \param[in,out] definition   Definition File gaining a property of the widget being read
+ * \param[in]     name         Parameter name
+ * \param[in]     buffer       Input bytes
+ * \param[in]     endOffset    Byte offset following the command
+ * \param[in,out] offset       Byte offset of the parameter, advanced past it
+ * \param[in]     range        BINARY_FR180_RANGE or BINARY_FR32768_RANGE
+ *
+ * \retval        TRUE         if the parameter was read.
+ * \retval        FALSE        if it exceeds the command or the result storage.
+ */
+static bool_t ReadFraction(Arinc661_Definition_t* definition, const char_t* name, const byte_t* buffer, uint64_t endOffset, uint64_t* offset, float64_t range);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads a string parameter up to its zero terminator.
+ *
+ * \param[in,out] definition   Definition File gaining a property of the widget being read
+ * \param[in]     name         Parameter name
+ * \param[in]     buffer       Input bytes
+ * \param[in]     endOffset    Byte offset following the command
+ * \param[in,out] offset       Byte offset of the parameter, advanced past it
+ *
+ * \retval        TRUE         if the parameter was read.
+ * \retval        FALSE        if the terminator is outside the command, or the result storage is full.
+ */
+static bool_t ReadString(Arinc661_Definition_t* definition, const char_t* name, const byte_t* buffer, uint64_t endOffset, uint64_t* offset);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads a parameter of a fixed number of bytes as hexadecimal digits.
+ *
+ * \param[in,out] definition    Definition File gaining a property of the widget being read
+ * \param[in]     name          Parameter name
+ * \param[in]     buffer        Input bytes
+ * \param[in]     endOffset     Byte offset following the command
+ * \param[in,out] offset        Byte offset of the parameter, advanced past it
+ * \param[in]     sizeOfValue   Bytes of the parameter
+ *
+ * \retval        TRUE          if the parameter was read.
+ * \retval        FALSE         if it exceeds the command or the result storage.
+ */
+static bool_t ReadFixedBytes(Arinc661_Definition_t* definition, const char_t* name, const byte_t* buffer, uint64_t endOffset, uint64_t* offset, uint64_t sizeOfValue);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads a StaticParamBuffer entry as hexadecimal digits of its bytes.
+ *
+ * \param[in,out] definition   Definition File gaining a property of the widget being read
+ * \param[in]     name         Parameter name
+ * \param[in]     buffer       Input bytes
+ * \param[in]     endOffset    Byte offset following the command
+ * \param[in,out] offset       Byte offset of the parameter, advanced past it
+ *
+ * \retval        TRUE         if the parameter was read.
+ * \retval        FALSE        if it exceeds the command or the result storage.
+ */
+static bool_t ReadSizedBytes(Arinc661_Definition_t* definition, const char_t* name, const byte_t* buffer, uint64_t endOffset, uint64_t* offset);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads a complete excluded region structure as hexadecimal digits.
+ *
+ * \param[in,out] definition   Definition File gaining a property of the widget being read
+ * \param[in]     name         Parameter name
+ * \param[in]     buffer       Input bytes
+ * \param[in]     endOffset    Byte offset following the command
+ * \param[in,out] offset       Byte offset of the parameter, advanced past it
+ *
+ * \retval        TRUE         if the parameter was read.
+ * \retval        FALSE        if its type is unknown, or it exceeds the command or the result storage.
+ */
+static bool_t ReadRegion(Arinc661_Definition_t* definition, const char_t* name, const byte_t* buffer, uint64_t endOffset, uint64_t* offset);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads a complete LayerReqResult entry as hexadecimal digits.
+ *
+ * \param[in,out] definition   Definition File gaining a property of the widget being read
+ * \param[in]     name         Parameter name
+ * \param[in]     buffer       Input bytes
+ * \param[in]     endOffset    Byte offset following the command
+ * \param[in,out] offset       Byte offset of the parameter, advanced past it
+ *
+ * \retval        TRUE         if the parameter was read.
+ * \retval        FALSE        if its CommandSize is not a multiple of four, or it exceeds the command or the result storage.
+ */
+static bool_t ReadLayerRequest(Arinc661_Definition_t* definition, const char_t* name, const byte_t* buffer, uint64_t endOffset, uint64_t* offset);
+
+/*************************************************************************************************/
+/**
+ * \brief Skips an UnusedPad without checking its content.
+ *
+ * \param[in]     endOffset   Byte offset following the command
+ * \param[in,out] offset      Byte offset of the parameter, advanced past it
+ * \param[in]     sizeOfPad   Bytes of the pad
+ *
+ * \retval        TRUE        if the pad lies inside the command.
+ * \retval        FALSE       otherwise.
+ */
+static bool_t ReadPad(uint64_t endOffset, uint64_t* offset, uint64_t sizeOfPad);
+
+/*************************************************************************************************/
+/**
+ * \brief Skips the zero bytes up to the next 32-bit boundary.
+ *
+ * \param[in]     endOffset   Byte offset following the command
+ * \param[in,out] offset      Byte offset of the parameter, advanced past it
+ *
+ * \retval        TRUE        if the boundary lies inside the command.
+ * \retval        FALSE       otherwise.
+ */
+static bool_t ReadAlignment(uint64_t endOffset, uint64_t* offset);
 
 /*************************************************************************************************/
 /**
@@ -5550,7 +5905,7 @@ static bool_t HasElementName(const FACEOE_Utl_Xml_Node_t* node, const char_t* na
     bool_t   has_length;
     bool_t   has_name;
 
-    byte_count = (uint32_t)strlen(name);
+    byte_count = (uint32_t)strnlen(name, FACEOE_UTL_XML_MAX_NAME_BYTES);
     // Check the pointer and node type before examining the counted name
     is_element = (NULL != node);
     if (is_element)
@@ -5647,7 +6002,7 @@ static const FACEOE_Utl_Xml_Attribute_t* FindAttribute(const FACEOE_Utl_Xml_Node
 
     attribute       = node->firstAttribute;
     found_attribute = NULL;
-    byte_count      = (uint32_t)strlen(name);
+    byte_count      = (uint32_t)strnlen(name, FACEOE_UTL_XML_MAX_NAME_BYTES);
     for (attribute_index = 0; attribute_index < node->attributeCount; ++attribute_index)
     {
         // Every attribute included in the count must have a corresponding list entry
@@ -5731,7 +6086,7 @@ static bool_t CopyAttribute(const FACEOE_Utl_Xml_Node_t* node, const char_t* nam
  *  "-20px" returns FALSE; accepting only the numeric prefix would lose input.
  *  The output value changes only after the complete scan succeeds.
  */
-static bool_t ReadInteger(const FACEOE_Utl_Xml_Node_t* node, const char_t* name, int64_t* value)
+static bool_t ReadIntegerAttribute(const FACEOE_Utl_Xml_Node_t* node, const char_t* name, int64_t* value)
 {
     const FACEOE_Utl_Xml_Attribute_t* attribute;
     int64_t                           parsed_value;
@@ -5778,7 +6133,7 @@ static FACEOE_Utl_Xml_Node_t* AppendElement(XmlWorkspace_t* xml, const char_t* n
     if (xml->nodeCount < ARINC661_XML_NODE_CAPACITY)
     {
         node = &xml->nodes[xml->nodeCount];
-        FACEOE_Utl_Xml_InitializeNode(node, FACEOE_UTL_XML_NODE_ELEMENT, (const byte_t*)name, (uint32_t)strlen(name));
+        FACEOE_Utl_Xml_InitializeNode(node, FACEOE_UTL_XML_NODE_ELEMENT, (const byte_t*)name, (uint32_t)strnlen(name, FACEOE_UTL_XML_MAX_NAME_BYTES));
         // Count the initialized node; linking it is the caller's responsibility
         xml->nodeCount += 1;
     }
@@ -5815,13 +6170,13 @@ static bool_t AppendAttribute(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* node, 
     is_valid    = FALSE;
     if (has_storage && has_value)
     {
-        byte_count = (uint32_t)strlen(value);
+        byte_count = (uint32_t)strnlen(value, FACEOE_UTL_XML_MAX_VALUE_BYTES);
         // Validate literal value bytes before the XML append function asserts its preconditions
         is_valid   = FACEOE_Utl_Xml_IsAttributeValue((const byte_t*)value, byte_count);
         if (is_valid)
         {
             attribute = &xml->attributes[xml->attributeCount];
-            FACEOE_Utl_Xml_InitializeAttribute(attribute, (const byte_t*)name, (uint32_t)strlen(name), (const byte_t*)value, byte_count);
+            FACEOE_Utl_Xml_InitializeAttribute(attribute, (const byte_t*)name, (uint32_t)strnlen(name, FACEOE_UTL_XML_MAX_NAME_BYTES), (const byte_t*)value, byte_count);
             FACEOE_Utl_Xml_AppendAttribute(node, attribute);
             // Count the attribute only after it has been linked
             xml->attributeCount += 1;
@@ -6340,10 +6695,9 @@ static bool_t WriteProperties(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent
 /**
  * \par Details:
  *  Stores the most significant byte first, as required by section 4.5.1. A value
- *  that would extend past capacity is not stored; callers keep advancing their
- *  offset and compare it with capacity once the complete file has been sized.
+ *  that would extend past capacity is not stored, and FALSE is returned.
  */
-static void WriteUnsigned(byte_t* buffer, uint64_t capacity, uint64_t offset, uint32_t value, uint32_t sizeOfValue)
+static bool_t WriteUnsigned(byte_t* buffer, uint64_t capacity, uint64_t offset, uint32_t value, uint32_t sizeOfValue)
 {
     uint32_t byte_index;
     bool_t   has_room;
@@ -6357,6 +6711,8 @@ static void WriteUnsigned(byte_t* buffer, uint64_t capacity, uint64_t offset, ui
             buffer[offset + byte_index] = (byte_t)(value >> (CHAR_BIT * (sizeOfValue - 1U - byte_index)));
         }
     }
+
+    return has_room;
 }
 
 /*************************************************************************************************/
@@ -6402,22 +6758,69 @@ static int64_t ToSigned32(uint32_t value)
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  Like WriteBytes in faceoe_utl_xml.c, the span is stored and the offset advanced
+ *  only when the whole span fits.
+ */
+static bool_t WriteBytes(byte_t* buffer, uint64_t capacity, uint64_t* offset, const byte_t* bytes, uint64_t sizeOfBytes)
+{
+    bool_t has_bytes;
+    bool_t has_room;
+
+    LOGASSERT((NULL != bytes) || (0 == sizeOfBytes));
+
+    has_bytes = (0 < sizeOfBytes);
+    has_room  = ((*offset) <= capacity) && (sizeOfBytes <= (capacity - (*offset)));
+
+    if (has_bytes && has_room)
+    {
+        (void)memcpy(&buffer[(*offset)], bytes, sizeOfBytes);
+    }
+    if (has_room)
+    {
+        (*offset) += sizeOfBytes;
+    }
+
+    return has_room;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  None
+ */
+static bool_t WriteByte(byte_t* buffer, uint64_t capacity, uint64_t* offset, byte_t value)
+{
+    return WriteBytes(buffer, capacity, offset, &value, sizeof(value));
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Offsets of blocks and commands are multiples of four, so aligning the output
  *  offset aligns the position inside the command.
  */
-static void WriteAlignment(byte_t* buffer, uint64_t capacity, uint64_t* offset)
+static bool_t WriteAlignment(byte_t* buffer, uint64_t capacity, uint64_t* offset)
 {
-    uint32_t byte_index;
+    return WritePad(buffer, capacity, offset, AlignToWord(*offset) - (*offset));
+}
 
-    for (byte_index = 0; byte_index < BINARY_WORD_BYTES; ++byte_index)
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  For example, "YOU" is written as 59 4F 55 00. Every string keeps its
+ *  terminator; the command is padded only after its last parameter.
+ */
+static bool_t WriteString(byte_t* buffer, uint64_t capacity, uint64_t* offset, const char_t* text)
+{
+    bool_t is_valid;
+
+    is_valid = WriteBytes(buffer, capacity, offset, (const byte_t*)text, strnlen(text, ARINC661_MAX_PROPERTY_BYTES));
+    if (is_valid)
     {
-        if (0 == ((*offset) % BINARY_WORD_BYTES))
-        {
-            break;
-        }
-        WriteUnsigned(buffer, capacity, (*offset), 0, BINARY_UCHAR_BYTES);
-        (*offset) += BINARY_UCHAR_BYTES;
+        is_valid = WriteByte(buffer, capacity, offset, '\0');
     }
+
+    return is_valid;
 }
 
 /*************************************************************************************************/
@@ -6452,22 +6855,27 @@ static bool_t WriteHexBytes(const char_t* text, uint64_t sizeOfValue, byte_t* bu
 {
     const char_t* high_digit;
     const char_t* low_digit;
+    uint64_t      cursor;
     uint64_t      byte_index;
     bool_t        is_valid;
 
-    is_valid = (strlen(text) == (sizeOfValue * HEX_DIGITS_PER_BYTE));
+    cursor   = offset;
+    is_valid = (strnlen(text, ARINC661_MAX_PROPERTY_BYTES) == (sizeOfValue * HEX_DIGITS_PER_BYTE));
     if (is_valid)
     {
         for (byte_index = 0; byte_index < sizeOfValue; ++byte_index)
         {
-            high_digit = strchr(c_binaryHexDigits, text[byte_index * HEX_DIGITS_PER_BYTE]);
-            low_digit  = strchr(c_binaryHexDigits, text[(byte_index * HEX_DIGITS_PER_BYTE) + 1U]);
+            high_digit = FACEOE_Utl_StrChr(c_binaryHexDigits, text[byte_index * HEX_DIGITS_PER_BYTE], sizeof(c_binaryHexDigits));
+            low_digit  = FACEOE_Utl_StrChr(c_binaryHexDigits, text[(byte_index * HEX_DIGITS_PER_BYTE) + 1U], sizeof(c_binaryHexDigits));
             is_valid   = (NULL != high_digit) && (NULL != low_digit);
+            if (is_valid)
+            {
+                is_valid = WriteByte(buffer, capacity, &cursor, (byte_t)(((high_digit - c_binaryHexDigits) << HEX_DIGIT_BITS) | (low_digit - c_binaryHexDigits)));
+            }
             if (FALSE == is_valid)
             {
                 break;
             }
-            WriteUnsigned(buffer, capacity, offset + byte_index, (uint32_t)(((high_digit - c_binaryHexDigits) << HEX_DIGIT_BITS) | (low_digit - c_binaryHexDigits)), BINARY_UCHAR_BYTES);
         }
     }
 
@@ -6624,6 +7032,38 @@ static bool_t ScanInteger(const Arinc661_Property_t* property, int64_t minimum, 
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  An absent property yields zero. A present value must be a complete decimal
+ *  number such as "90" or "-0.125"; "90deg" returns FALSE.
+ */
+static bool_t ScanReal(const Arinc661_Property_t* property, float64_t limit, float64_t* value)
+{
+    float64_t parsed_value;
+    int32_t   consumed;
+    bool_t    is_valid;
+
+    parsed_value = 0.0;
+    is_valid     = TRUE;
+    if (NULL != property)
+    {
+        consumed = FACEOE_Utl_Scan_Float(property->value, &parsed_value);
+        // Require a nonempty scan that consumes the complete value
+        is_valid = (0 < consumed) && ('\0' == property->value[consumed]);
+    }
+    if (is_valid)
+    {
+        is_valid = (-limit <= parsed_value) && (limit >= parsed_value);
+    }
+    if (is_valid)
+    {
+        (*value) = parsed_value;
+    }
+
+    return is_valid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Table 8.6.7-3: A661_NOT_USED (0) is 4 bytes, A661_EXCLUDED_RECTANGLE (1) is 20,
  *  A661_EXCLUDED_TRIANGLE (2) is 28, and A661_EXCLUDED_CIRCLE (3) is 24.
  */
@@ -6721,6 +7161,248 @@ static Arinc661_ParameterKind_t FieldTypeToParameterKind(BinaryFieldType_t field
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  For example, a uchar "21" is written as 15, and a long "-1" as FF FF FF FF.
+ *  A constant name such as A661_TRUE is written as its value.
+ */
+static bool_t WriteInteger(byte_t* buffer, uint64_t capacity, uint64_t* offset, const Arinc661_Property_t* property, int64_t minimum, int64_t maximum, uint32_t sizeOfValue)
+{
+    int64_t integer_value;
+    bool_t  is_valid;
+
+    is_valid = ScanInteger(property, minimum, maximum, &integer_value);
+    if (is_valid)
+    {
+        // Keep the 32-bit pattern of a negative long through two's complement truncation
+        is_valid = WriteUnsigned(buffer, capacity, (*offset), (uint32_t)integer_value, sizeOfValue);
+    }
+    if (is_valid)
+    {
+        (*offset) += sizeOfValue;
+    }
+
+    return is_valid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  For example, "1.5" is written as 3F C0 00 00.
+ */
+static bool_t WriteFloat(byte_t* buffer, uint64_t capacity, uint64_t* offset, const Arinc661_Property_t* property)
+{
+    float64_t real_value;
+    float32_t float_value;
+    uint32_t  encoded_value;
+    bool_t    is_valid;
+
+    is_valid = ScanReal(property, FLT_MAX, &real_value);
+    if (is_valid)
+    {
+        float_value = (float32_t)real_value;
+        (void)memcpy(&encoded_value, &float_value, sizeof(encoded_value));
+        is_valid = WriteUnsigned(buffer, capacity, (*offset), encoded_value, BINARY_ULONG_BYTES);
+    }
+    if (is_valid)
+    {
+        (*offset) += BINARY_ULONG_BYTES;
+    }
+
+    return is_valid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The value is scaled by 2^31 / range and rounded, so an fr(180) "90" is written
+ *  as 40 00 00 00. The full positive range is one LSB short of representable and
+ *  is clamped to it.
+ */
+static bool_t WriteFraction(byte_t* buffer, uint64_t capacity, uint64_t* offset, const Arinc661_Property_t* property, float64_t range)
+{
+    float64_t real_value;
+    bool_t    is_valid;
+
+    is_valid = ScanReal(property, range, &real_value);
+    if (is_valid)
+    {
+        is_valid = WriteUnsigned(buffer, capacity, (*offset), (uint32_t)EncodeFraction(real_value, range), BINARY_ULONG_BYTES);
+    }
+    if (is_valid)
+    {
+        (*offset) += BINARY_ULONG_BYTES;
+    }
+
+    return is_valid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  For example, a 4-byte FromValue "0000005A" is written as 00 00 00 5A; an
+ *  absent property is written as zeros.
+ */
+static bool_t WriteFixedBytes(byte_t* buffer, uint64_t capacity, uint64_t* offset, const Arinc661_Property_t* property, uint64_t sizeOfValue)
+{
+    bool_t is_valid;
+
+    if (NULL != property)
+    {
+        is_valid = WriteHexBytes(property->value, sizeOfValue, buffer, capacity, (*offset));
+        if (is_valid)
+        {
+            (*offset) += sizeOfValue;
+        }
+    }
+    else
+    {
+        is_valid = WritePad(buffer, capacity, offset, sizeOfValue);
+    }
+
+    return is_valid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Writes ParamBufferSize, the unused pad, the bytes, then 32-bit alignment
+ *  (Table 8.6.5-3), for example:
+ *
+ * \verbatim
+ * "0A0B0C"  ->  0003 0000 0A0B0C 00
+ * \endverbatim
+ */
+static bool_t WriteSizedBytes(byte_t* buffer, uint64_t capacity, uint64_t* offset, const char_t* text)
+{
+    uint64_t byte_count;
+    bool_t   is_valid;
+
+    byte_count = strnlen(text, ARINC661_MAX_PROPERTY_BYTES) / HEX_DIGITS_PER_BYTE;
+    is_valid   = (UINT16_MAX >= byte_count);
+    if (is_valid)
+    {
+        is_valid = WriteUnsigned(buffer, capacity, (*offset), (uint32_t)byte_count, BINARY_USHORT_BYTES);
+    }
+    if (is_valid)
+    {
+        is_valid = WriteUnsigned(buffer, capacity, (*offset) + OFFSET_OF(BinarySizedBytes_t, unusedPad), 0, BINARY_USHORT_BYTES);
+    }
+    if (is_valid)
+    {
+        is_valid = WriteHexBytes(text, byte_count, buffer, capacity, (*offset) + sizeof(BinarySizedBytes_t));
+    }
+    if (is_valid)
+    {
+        (*offset) += (sizeof(BinarySizedBytes_t) + byte_count);
+        is_valid   = WriteAlignment(buffer, capacity, offset);
+    }
+
+    return is_valid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Reads the structure size from its type byte, requiring both digits of that
+ *  byte to be valid; for example a rectangle (type 01) takes 20 bytes:
+ *
+ * \verbatim
+ * "0001000000000000000000000000006400000064"  ->  00 01 0000 00000000 00000000 00000064 00000064
+ * \endverbatim
+ */
+static bool_t WriteRegion(byte_t* buffer, uint64_t capacity, uint64_t* offset, const char_t* text)
+{
+    const char_t* type_digit;
+    uint64_t      byte_count;
+    bool_t        is_valid;
+
+    byte_count = 0;
+    is_valid   = ((sizeof(BinaryRegionHeader_t) * HEX_DIGITS_PER_BYTE) <= strnlen(text, ARINC661_MAX_PROPERTY_BYTES));
+    if (is_valid)
+    {
+        type_digit = FACEOE_Utl_StrChr(c_binaryHexDigits, text[(OFFSET_OF(BinaryRegionHeader_t, regionType) * HEX_DIGITS_PER_BYTE) + 1U], sizeof(c_binaryHexDigits));
+        is_valid   = ('0' == text[OFFSET_OF(BinaryRegionHeader_t, regionType) * HEX_DIGITS_PER_BYTE]) && (NULL != type_digit);
+    }
+    if (is_valid)
+    {
+        byte_count = RegionByteCount((uint32_t)(type_digit - c_binaryHexDigits));
+        is_valid   = (0 != byte_count);
+    }
+    if (is_valid)
+    {
+        is_valid = WriteHexBytes(text, byte_count, buffer, capacity, (*offset));
+    }
+    if (is_valid)
+    {
+        (*offset) += byte_count;
+    }
+
+    return is_valid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Requires the CommandSize in the third and fourth bytes to match the request
+ *  that follows and to be a multiple of four (Table 3.9.17-6).
+ */
+static bool_t WriteLayerRequest(byte_t* buffer, uint64_t capacity, uint64_t* offset, const char_t* text)
+{
+    uint64_t byte_count;
+    uint64_t digit_index;
+    uint32_t request_size;
+    bool_t   is_valid;
+
+    byte_count = strnlen(text, ARINC661_MAX_PROPERTY_BYTES) / HEX_DIGITS_PER_BYTE;
+    is_valid   = (sizeof(BinaryLayerRequest_t) <= byte_count);
+    if (is_valid)
+    {
+        is_valid = WriteHexBytes(text, byte_count, buffer, capacity, (*offset));
+    }
+    if (is_valid)
+    {
+        request_size = 0;
+        for (digit_index = OFFSET_OF(BinaryLayerRequest_t, commandSize) * HEX_DIGITS_PER_BYTE; digit_index < ((OFFSET_OF(BinaryLayerRequest_t, commandSize) + BINARY_USHORT_BYTES) * HEX_DIGITS_PER_BYTE); ++digit_index)
+        {
+            request_size = (request_size << HEX_DIGIT_BITS) | (uint32_t)(FACEOE_Utl_StrChr(c_binaryHexDigits, text[digit_index], sizeof(c_binaryHexDigits)) - c_binaryHexDigits);
+        }
+        is_valid = (byte_count == (sizeof(BinaryLayerRequest_t) + request_size)) && (0 == (request_size % BINARY_WORD_BYTES));
+    }
+    if (is_valid)
+    {
+        (*offset) += byte_count;
+    }
+
+    return is_valid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Stores the zeros and advances the offset only when the whole pad fits.
+ */
+static bool_t WritePad(byte_t* buffer, uint64_t capacity, uint64_t* offset, uint64_t sizeOfPad)
+{
+    bool_t has_bytes;
+    bool_t has_room;
+
+    has_bytes = (0 < sizeOfPad);
+    has_room  = ((*offset) <= capacity) && (sizeOfPad <= (capacity - (*offset)));
+
+    if (has_bytes && has_room)
+    {
+        (void)memset(&buffer[(*offset)], 0, sizeOfPad);
+    }
+    if (has_room)
+    {
+        (*offset) += sizeOfPad;
+    }
+
+    return has_room;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Converts the property text according to the parameter type:
  *
  * \verbatim
@@ -6742,171 +7424,177 @@ static Arinc661_ParameterKind_t FieldTypeToParameterKind(BinaryFieldType_t field
 static bool_t WriteField(const BinaryField_t* field, const Arinc661_Property_t* property, byte_t* buffer, uint64_t capacity, uint64_t* offset)
 {
     const char_t* text;
-    const char_t* type_digit;
-    float64_t     real_value;
-    float64_t     range;
-    float32_t     float_value;
-    int64_t       integer_value;
-    int64_t       minimum;
-    int64_t       maximum;
-    uint64_t      byte_count;
-    uint64_t      byte_index;
-    uint32_t      encoded_value;
-    uint32_t      request_size;
-    int32_t       consumed;
     bool_t        is_valid;
 
-    is_valid      = TRUE;
-    encoded_value = 0;
-    text          = "";
     if (NULL != property)
     {
         text = property->value;
     }
-    if (BINARY_FIELD_ALIGN == field->type)
-    {
-        WriteAlignment(buffer, capacity, offset);
-    }
-    else if (BINARY_FIELD_BYTES == field->type)
-    {
-        if (NULL != property)
-        {
-            is_valid = WriteHexBytes(text, field->byteCount, buffer, capacity, (*offset));
-        }
-        else
-        {
-            for (byte_index = 0; byte_index < field->byteCount; ++byte_index)
-            {
-                WriteUnsigned(buffer, capacity, (*offset) + byte_index, 0, BINARY_UCHAR_BYTES);
-            }
-        }
-        (*offset) += field->byteCount;
-    }
-    else if (BINARY_FIELD_SIZED_BYTES == field->type)
-    {
-        // Write ParamBufferSize, the unused pad, the bytes, then 32-bit alignment (Table 8.6.5-3)
-        byte_count = strlen(text) / HEX_DIGITS_PER_BYTE;
-        is_valid   = (UINT16_MAX >= byte_count);
-        if (is_valid)
-        {
-            WriteUnsigned(buffer, capacity, (*offset), (uint32_t)byte_count, BINARY_USHORT_BYTES);
-            WriteUnsigned(buffer, capacity, (*offset) + OFFSET_OF(BinarySizedBytes_t, unusedPad), 0, BINARY_USHORT_BYTES);
-            is_valid = WriteHexBytes(text, byte_count, buffer, capacity, (*offset) + sizeof(BinarySizedBytes_t));
-        }
-        (*offset) += (sizeof(BinarySizedBytes_t) + byte_count);
-        WriteAlignment(buffer, capacity, offset);
-    }
-    else if (BINARY_FIELD_REGION == field->type)
-    {
-        // Read the structure size from its second byte, requiring both digits of that byte to be valid
-        byte_count = 0;
-        is_valid   = ((sizeof(BinaryRegionHeader_t) * HEX_DIGITS_PER_BYTE) <= strlen(text));
-        if (is_valid)
-        {
-            type_digit = strchr(c_binaryHexDigits, text[(OFFSET_OF(BinaryRegionHeader_t, regionType) * HEX_DIGITS_PER_BYTE) + 1U]);
-            is_valid   = ('0' == text[OFFSET_OF(BinaryRegionHeader_t, regionType) * HEX_DIGITS_PER_BYTE]) && (NULL != type_digit);
-        }
-        if (is_valid)
-        {
-            byte_count = RegionByteCount((uint32_t)(type_digit - c_binaryHexDigits));
-            is_valid   = (0 != byte_count);
-        }
-        if (is_valid)
-        {
-            is_valid = WriteHexBytes(text, byte_count, buffer, capacity, (*offset));
-        }
-        (*offset) += byte_count;
-    }
-    else if (BINARY_FIELD_LAYER_REQUEST == field->type)
-    {
-        // Require the CommandSize in the third and fourth bytes to match the request that follows (Table 3.9.17-6)
-        byte_count = strlen(text) / HEX_DIGITS_PER_BYTE;
-        is_valid   = (sizeof(BinaryLayerRequest_t) <= byte_count);
-        if (is_valid)
-        {
-            is_valid = WriteHexBytes(text, byte_count, buffer, capacity, (*offset));
-        }
-        if (is_valid)
-        {
-            request_size = 0;
-            for (byte_index = OFFSET_OF(BinaryLayerRequest_t, commandSize) * HEX_DIGITS_PER_BYTE; byte_index < ((OFFSET_OF(BinaryLayerRequest_t, commandSize) + BINARY_USHORT_BYTES) * HEX_DIGITS_PER_BYTE); ++byte_index)
-            {
-                request_size = (request_size << HEX_DIGIT_BITS) | (uint32_t)(strchr(c_binaryHexDigits, text[byte_index]) - c_binaryHexDigits);
-            }
-            is_valid = (byte_count == (sizeof(BinaryLayerRequest_t) + request_size)) && (0 == (request_size % BINARY_WORD_BYTES));
-        }
-        (*offset) += byte_count;
-    }
-    else if (BINARY_FIELD_STRING == field->type)
-    {
-        byte_count = strlen(text);
-        for (byte_index = 0; byte_index < byte_count; ++byte_index)
-        {
-            WriteUnsigned(buffer, capacity, (*offset) + byte_index, (byte_t)text[byte_index], BINARY_UCHAR_BYTES);
-        }
-        // Keep each string's terminator; pad the command after its last parameter
-        WriteUnsigned(buffer, capacity, (*offset) + byte_count, 0, BINARY_UCHAR_BYTES);
-        (*offset) += (byte_count + 1);
-    }
     else
     {
-        if ((BINARY_FIELD_FLOAT == field->type) || (BINARY_FIELD_FR180 == field->type) || (BINARY_FIELD_FR32768 == field->type))
+        text = "";
+    }
+
+    switch (field->type)
+    {
+        case BINARY_FIELD_UCHAR:
         {
-            real_value = 0.0;
-            if (NULL != property)
+            is_valid = WriteInteger(buffer, capacity, offset, property, 0, UINT8_MAX, BINARY_UCHAR_BYTES);
+            break;
+        }
+        case BINARY_FIELD_USHORT:
+        {
+            is_valid = WriteInteger(buffer, capacity, offset, property, 0, UINT16_MAX, BINARY_USHORT_BYTES);
+            break;
+        }
+        case BINARY_FIELD_LONG:
+        {
+            is_valid = WriteInteger(buffer, capacity, offset, property, INT32_MIN, INT32_MAX, BINARY_ULONG_BYTES);
+            break;
+        }
+        case BINARY_FIELD_ULONG:
+        {
+            is_valid = WriteInteger(buffer, capacity, offset, property, 0, UINT32_MAX, BINARY_ULONG_BYTES);
+            break;
+        }
+        case BINARY_FIELD_FLOAT:
+        {
+            is_valid = WriteFloat(buffer, capacity, offset, property);
+            break;
+        }
+        case BINARY_FIELD_FR180:
+        {
+            is_valid = WriteFraction(buffer, capacity, offset, property, BINARY_FR180_RANGE);
+            break;
+        }
+        case BINARY_FIELD_FR32768:
+        {
+            is_valid = WriteFraction(buffer, capacity, offset, property, BINARY_FR32768_RANGE);
+            break;
+        }
+        case BINARY_FIELD_STRING:
+        {
+            is_valid = WriteString(buffer, capacity, offset, text);
+            break;
+        }
+        case BINARY_FIELD_BYTES:
+        {
+            is_valid = WriteFixedBytes(buffer, capacity, offset, property, field->byteCount);
+            break;
+        }
+        case BINARY_FIELD_SIZED_BYTES:
+        {
+            is_valid = WriteSizedBytes(buffer, capacity, offset, text);
+            break;
+        }
+        case BINARY_FIELD_REGION:
+        {
+            is_valid = WriteRegion(buffer, capacity, offset, text);
+            break;
+        }
+        case BINARY_FIELD_LAYER_REQUEST:
+        {
+            is_valid = WriteLayerRequest(buffer, capacity, offset, text);
+            break;
+        }
+        case BINARY_FIELD_PAD:
+        {
+            is_valid = WritePad(buffer, capacity, offset, field->byteCount);
+            break;
+        }
+        case BINARY_FIELD_ALIGN:
+        {
+            is_valid = WriteAlignment(buffer, capacity, offset);
+            break;
+        }
+        default:
+        {
+            LOGFATAL("Unknown field type!");
+        }
+    }
+
+    return is_valid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Writes the block laid out as in Table 4.5.3.2-4, the inverse of ReadLayer:
+ *
+ * \verbatim
+ * A0        A661_BEGIN_LAYER_BLOCK
+ * 01        LayerIdent          <- property LayerId
+ * 0000      ContextNumber       <- property ContextNumber
+ * 0000007C  Block Size, filled in once the commands are written
+ * ...       one command per widget of the layer, in array order
+ * C0        A661_END_LAYER_BLOCK
+ * 000000    UnusedPad
+ * \endverbatim
+ */
+static bool_t WriteLayer(const Arinc661_Definition_t* definition, uint32_t layerIndex, byte_t* buffer, uint64_t capacity, uint64_t* offset)
+{
+    const Arinc661_Property_t* property;
+    int64_t                    layer_id;
+    int64_t                    context_number;
+    uint64_t                   layer_offset;
+    uint32_t                   widget_index;
+    uint32_t                   last_widget_index;
+    bool_t                     is_valid;
+
+    layer_offset      = (*offset);
+    last_widget_index = UINT32_MAX;
+    property          = FindProperty(definition, ARINC661_PROPERTY_LAYER, layerIndex, BINARY_PROPERTY_LAYER_ID, 0);
+    is_valid          = ScanInteger(property, 0, UINT8_MAX, &layer_id);
+    if (is_valid)
+    {
+        property = FindProperty(definition, ARINC661_PROPERTY_LAYER, layerIndex, BINARY_PROPERTY_CONTEXT_NUMBER, 0);
+        is_valid = ScanInteger(property, 0, UINT16_MAX, &context_number);
+    }
+    if (is_valid)
+    {
+        is_valid = WriteUnsigned(buffer, capacity, layer_offset, BINARY_BEGIN_LAYER_BLOCK, BINARY_UCHAR_BYTES);
+    }
+    if (is_valid)
+    {
+        is_valid = WriteUnsigned(buffer, capacity, layer_offset + OFFSET_OF(BinaryLayerBlock_t, layerIdent), (uint32_t)layer_id, BINARY_UCHAR_BYTES);
+    }
+    if (is_valid)
+    {
+        is_valid = WriteUnsigned(buffer, capacity, layer_offset + OFFSET_OF(BinaryLayerBlock_t, contextNumber), (uint32_t)context_number, BINARY_USHORT_BYTES);
+    }
+    if (is_valid)
+    {
+        (*offset) += sizeof(BinaryLayerBlock_t);
+        for (widget_index = 0; widget_index < definition->widgetCount; ++widget_index)
+        {
+            // Select entries belonging to this layer while preserving their array order
+            if (layerIndex == definition->widgets[widget_index].layerIndex)
             {
-                consumed = FACEOE_Utl_Scan_Float(text, &real_value);
-                is_valid = (0 < consumed) && ('\0' == text[consumed]);
-            }
-            if (is_valid && (BINARY_FIELD_FLOAT == field->type))
-            {
-                is_valid = (real_value <= FLT_MAX) && (real_value >= -FLT_MAX);
-                if (is_valid)
+                is_valid = WriteCommand(definition, widget_index, last_widget_index, buffer, capacity, offset);
+                if (FALSE == is_valid)
                 {
-                    float_value = (float32_t)real_value;
-                    (void)memcpy(&encoded_value, &float_value, sizeof(encoded_value));
+                    break;
                 }
-            }
-            else if (is_valid)
-            {
-                range = BINARY_FR32768_RANGE;
-                if (BINARY_FIELD_FR180 == field->type)
+                if (FALSE == definition->widgets[widget_index].isExtension)
                 {
-                    range = BINARY_FR180_RANGE;
-                }
-                is_valid = (real_value <= range) && (real_value >= -range);
-                if (is_valid)
-                {
-                    encoded_value = (uint32_t)EncodeFraction(real_value, range);
+                    last_widget_index = widget_index;
                 }
             }
         }
-        else if (BINARY_FIELD_PAD != field->type)
-        {
-            minimum = 0;
-            maximum = UINT32_MAX;
-            if (BINARY_FIELD_UCHAR == field->type)
-            {
-                maximum = UINT8_MAX;
-            }
-            else if (BINARY_FIELD_USHORT == field->type)
-            {
-                maximum = UINT16_MAX;
-            }
-            else if (BINARY_FIELD_LONG == field->type)
-            {
-                minimum = INT32_MIN;
-                maximum = INT32_MAX;
-            }
-            is_valid = ScanInteger(property, minimum, maximum, &integer_value);
-            if (is_valid)
-            {
-                // Keep the 32-bit pattern of a negative long through two's complement truncation
-                encoded_value = (uint32_t)integer_value;
-            }
-        }
-        WriteUnsigned(buffer, capacity, (*offset), encoded_value, field->byteCount);
-        (*offset) += field->byteCount;
+    }
+    if (is_valid)
+    {
+        is_valid = WriteUnsigned(buffer, capacity, (*offset), (uint32_t)BINARY_END_LAYER_BLOCK << BINARY_BLOCK_CODE_SHIFT, sizeof(BinaryBlockEnd_t));
+    }
+    if (is_valid)
+    {
+        (*offset) += sizeof(BinaryBlockEnd_t);
+        // Count the block header and the end code in Block Size
+        is_valid = (((*offset) - layer_offset) <= UINT32_MAX);
+    }
+    if (is_valid)
+    {
+        is_valid = WriteUnsigned(buffer, capacity, layer_offset + OFFSET_OF(BinaryLayerBlock_t, blockSize), (uint32_t)((*offset) - layer_offset), BINARY_ULONG_BYTES);
     }
 
     return is_valid;
@@ -7086,19 +7774,35 @@ static bool_t WriteCommand(const Arinc661_Definition_t* definition, uint32_t wid
     }
     if (is_valid)
     {
-        WriteAlignment(buffer, capacity, &cursor);
-        is_valid = ((cursor - (*offset)) <= UINT16_MAX);
+        is_valid = WriteAlignment(buffer, capacity, &cursor);
     }
     if (is_valid)
     {
-        WriteUnsigned(buffer, capacity, (*offset), command, BINARY_USHORT_BYTES);
-        WriteUnsigned(buffer, capacity, (*offset) + OFFSET_OF(BinaryCommand_t, commandSize), (uint32_t)(cursor - (*offset)), BINARY_USHORT_BYTES);
-        WriteUnsigned(buffer, capacity, (*offset) + OFFSET_OF(BinaryCommand_t, type), type->code, BINARY_USHORT_BYTES);
-        if (FALSE == widget->isExtension)
-        {
-            WriteUnsigned(buffer, capacity, (*offset) + OFFSET_OF(BinaryCreateCommand_t, widgetIdent), (uint32_t)widget_ident, BINARY_USHORT_BYTES);
-            WriteUnsigned(buffer, capacity, (*offset) + OFFSET_OF(BinaryCreateCommand_t, parentIdent), (uint32_t)parent_ident, BINARY_USHORT_BYTES);
-        }
+        is_valid = ((cursor - (*offset)) <= UINT16_MAX);
+    }
+    // The header goes in front of the parameters once CommandSize is known
+    if (is_valid)
+    {
+        is_valid = WriteUnsigned(buffer, capacity, (*offset), command, BINARY_USHORT_BYTES);
+    }
+    if (is_valid)
+    {
+        is_valid = WriteUnsigned(buffer, capacity, (*offset) + OFFSET_OF(BinaryCommand_t, commandSize), (uint32_t)(cursor - (*offset)), BINARY_USHORT_BYTES);
+    }
+    if (is_valid)
+    {
+        is_valid = WriteUnsigned(buffer, capacity, (*offset) + OFFSET_OF(BinaryCommand_t, type), type->code, BINARY_USHORT_BYTES);
+    }
+    if (is_valid && (FALSE == widget->isExtension))
+    {
+        is_valid = WriteUnsigned(buffer, capacity, (*offset) + OFFSET_OF(BinaryCreateCommand_t, widgetIdent), (uint32_t)widget_ident, BINARY_USHORT_BYTES);
+    }
+    if (is_valid && (FALSE == widget->isExtension))
+    {
+        is_valid = WriteUnsigned(buffer, capacity, (*offset) + OFFSET_OF(BinaryCreateCommand_t, parentIdent), (uint32_t)parent_ident, BINARY_USHORT_BYTES);
+    }
+    if (is_valid)
+    {
         (*offset) = cursor;
     }
 
@@ -7118,7 +7822,7 @@ static uint32_t FormatReal(char_t* text, uint32_t capacity, float64_t value, int
 
     byte_count = FACEOE_Utl_Print_Float(text, capacity, value, (uint32_t)precision);
     LOGASSERT((0 < byte_count) && ((uint32_t)byte_count < capacity));
-    if (NULL != strchr(text, '.'))
+    if (NULL != FACEOE_Utl_StrChr(text, '.', capacity))
     {
         // Strip fractional zeros only; an integer such as 100 keeps its zeros
         for (byte_index = 0; byte_index < capacity; ++byte_index)
@@ -7151,14 +7855,8 @@ static int64_t EncodeFraction(float64_t value, float64_t range)
 
     scaled = (value * BINARY_FR_FULL_SCALE) / range;
     scaled = round(scaled);
-    if (scaled > (float64_t)INT32_MAX)
-    {
-        scaled = (float64_t)INT32_MAX;
-    }
-    if (scaled < (float64_t)INT32_MIN)
-    {
-        scaled = (float64_t)INT32_MIN;
-    }
+    scaled = FACEOE_Utl_Min(scaled, (float64_t)INT32_MAX);
+    scaled = FACEOE_Utl_Max(scaled, (float64_t)INT32_MIN);
 
     return (int64_t)scaled;
 }
@@ -7229,13 +7927,19 @@ static bool_t AddProperty(Arinc661_Definition_t* definition, Arinc661_PropertyOw
 {
     Arinc661_Property_t* property;
     uint64_t             name_byte_count;
+    bool_t               does_name_fit;
+    bool_t               does_value_fit;
     bool_t               is_valid;
 
-    name_byte_count = strlen(name);
+    name_byte_count = strnlen(name, ARINC661_MAX_NAME_BYTES);
     is_valid        = (definition->propertyCount < definition->propertyCapacity);
     if (is_valid)
     {
-        is_valid = (name_byte_count < sizeof(property->name)) && (sizeOfValue < sizeof(property->value));
+        // Leave room for each zero terminator
+        does_name_fit  = (name_byte_count < sizeof(property->name));
+        does_value_fit = (sizeOfValue < sizeof(property->value));
+
+        is_valid = does_name_fit && does_value_fit;
     }
     if (is_valid)
     {
@@ -7296,6 +8000,304 @@ static bool_t AddHexProperty(Arinc661_Definition_t* definition, const char_t* na
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  For example, a uchar 15 becomes "21" and a ulong 00002710 becomes "10000".
+ */
+static bool_t ReadInteger(Arinc661_Definition_t* definition, const char_t* name, const byte_t* buffer, uint64_t endOffset, uint64_t* offset, uint32_t sizeOfValue)
+{
+    bool_t has_value_bytes;
+    bool_t is_valid;
+
+    has_value_bytes = (sizeOfValue <= (endOffset - (*offset)));
+    is_valid        = has_value_bytes;
+    if (is_valid)
+    {
+        is_valid = AddIntegerProperty(definition, ARINC661_PROPERTY_WIDGET, definition->widgetCount, name, ReadUnsigned(buffer, (*offset), sizeOfValue));
+    }
+    if (is_valid)
+    {
+        (*offset) += sizeOfValue;
+    }
+
+    return is_valid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  For example, FFFFFFFF becomes "-1".
+ */
+static bool_t ReadLong(Arinc661_Definition_t* definition, const char_t* name, const byte_t* buffer, uint64_t endOffset, uint64_t* offset)
+{
+    bool_t has_value_bytes;
+    bool_t is_valid;
+
+    has_value_bytes = (BINARY_ULONG_BYTES <= (endOffset - (*offset)));
+    is_valid        = has_value_bytes;
+    if (is_valid)
+    {
+        is_valid = AddIntegerProperty(definition, ARINC661_PROPERTY_WIDGET, definition->widgetCount, name, ToSigned32(ReadUnsigned(buffer, (*offset), BINARY_ULONG_BYTES)));
+    }
+    if (is_valid)
+    {
+        (*offset) += BINARY_ULONG_BYTES;
+    }
+
+    return is_valid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  For example, 3FC00000 becomes "1.5", in the fewest decimal digits that
+ *  reproduce the stored bits exactly.
+ */
+static bool_t ReadFloat(Arinc661_Definition_t* definition, const char_t* name, const byte_t* buffer, uint64_t endOffset, uint64_t* offset)
+{
+    char_t    text[ARINC661_MAX_PROPERTY_BYTES];
+    float32_t float_value;
+    uint32_t  encoded_value;
+    uint64_t  byte_count;
+    bool_t    has_value_bytes;
+    bool_t    is_valid;
+
+    has_value_bytes = (BINARY_ULONG_BYTES <= (endOffset - (*offset)));
+    is_valid        = has_value_bytes;
+    if (is_valid)
+    {
+        encoded_value = ReadUnsigned(buffer, (*offset), BINARY_ULONG_BYTES);
+        (void)memcpy(&float_value, &encoded_value, sizeof(float_value));
+        // Reject infinities and NaN, which have no decimal property text
+        is_valid = (float_value <= FLT_MAX) && (float_value >= -FLT_MAX);
+    }
+    if (is_valid)
+    {
+        byte_count = FormatFloat32(text, sizeof(text), float_value);
+        is_valid   = AddProperty(definition, ARINC661_PROPERTY_WIDGET, definition->widgetCount, name, text, byte_count);
+    }
+    if (is_valid)
+    {
+        (*offset) += BINARY_ULONG_BYTES;
+    }
+
+    return is_valid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  For example, an fr(180) 40000000 becomes "90", in the fewest decimal digits
+ *  that reproduce the stored bits exactly.
+ */
+static bool_t ReadFraction(Arinc661_Definition_t* definition, const char_t* name, const byte_t* buffer, uint64_t endOffset, uint64_t* offset, float64_t range)
+{
+    char_t   text[ARINC661_MAX_PROPERTY_BYTES];
+    uint32_t encoded_value;
+    uint64_t byte_count;
+    bool_t   has_value_bytes;
+    bool_t   is_valid;
+
+    has_value_bytes = (BINARY_ULONG_BYTES <= (endOffset - (*offset)));
+    is_valid        = has_value_bytes;
+    if (is_valid)
+    {
+        encoded_value = ReadUnsigned(buffer, (*offset), BINARY_ULONG_BYTES);
+        byte_count    = FormatFraction(text, sizeof(text), ToSigned32(encoded_value), range);
+        is_valid      = AddProperty(definition, ARINC661_PROPERTY_WIDGET, definition->widgetCount, name, text, byte_count);
+    }
+    if (is_valid)
+    {
+        (*offset) += BINARY_ULONG_BYTES;
+    }
+
+    return is_valid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  For example, 59 4F 55 00 becomes "YOU". The terminator must lie inside the
+ *  command.
+ */
+static bool_t ReadString(Arinc661_Definition_t* definition, const char_t* name, const byte_t* buffer, uint64_t endOffset, uint64_t* offset)
+{
+    uint64_t remaining;
+    uint64_t byte_count;
+    bool_t   has_terminator;
+    bool_t   is_valid;
+
+    remaining = endOffset - (*offset);
+    // Locate the terminator without leaving the command
+    for (byte_count = 0; byte_count < remaining; ++byte_count)
+    {
+        if (0 == buffer[(*offset) + byte_count])
+        {
+            break;
+        }
+    }
+    has_terminator = (byte_count < remaining);
+    is_valid       = has_terminator;
+    if (is_valid)
+    {
+        is_valid   = AddProperty(definition, ARINC661_PROPERTY_WIDGET, definition->widgetCount, name, (const char_t*)&buffer[(*offset)], byte_count);
+        (*offset) += (byte_count + 1);
+    }
+
+    return is_valid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  For example, the bytes 1B 42 00 become "1B4200".
+ */
+static bool_t ReadFixedBytes(Arinc661_Definition_t* definition, const char_t* name, const byte_t* buffer, uint64_t endOffset, uint64_t* offset, uint64_t sizeOfValue)
+{
+    bool_t has_value_bytes;
+    bool_t is_valid;
+
+    has_value_bytes = (sizeOfValue <= (endOffset - (*offset)));
+    is_valid        = has_value_bytes;
+    if (is_valid)
+    {
+        is_valid   = AddHexProperty(definition, name, &buffer[(*offset)], sizeOfValue);
+        (*offset) += sizeOfValue;
+    }
+
+    return is_valid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  For example, 0003 0000 0A0B0C 00 becomes "0A0B0C"; the size and alignment
+ *  are dropped.
+ */
+static bool_t ReadSizedBytes(Arinc661_Definition_t* definition, const char_t* name, const byte_t* buffer, uint64_t endOffset, uint64_t* offset)
+{
+    uint64_t remaining;
+    uint64_t byte_count;
+    bool_t   has_header_bytes;
+    bool_t   has_buffer_bytes;
+    bool_t   is_valid;
+
+    remaining        = endOffset - (*offset);
+    has_header_bytes = (sizeof(BinarySizedBytes_t) <= remaining);
+    is_valid         = has_header_bytes;
+    if (is_valid)
+    {
+        byte_count       = ReadUnsigned(buffer, (*offset), BINARY_USHORT_BYTES);
+        has_buffer_bytes = (byte_count <= (remaining - sizeof(BinarySizedBytes_t)));
+        is_valid         = has_buffer_bytes;
+    }
+    if (is_valid)
+    {
+        is_valid  = AddHexProperty(definition, name, &buffer[(*offset) + sizeof(BinarySizedBytes_t)], byte_count);
+        (*offset) = AlignToWord((*offset) + sizeof(BinarySizedBytes_t) + byte_count);
+    }
+    if (is_valid)
+    {
+        is_valid = ((*offset) <= endOffset);
+    }
+
+    return is_valid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The structure size follows from its type byte; for example a rectangle
+ *  (type 01) takes 20 bytes and becomes 40 digits.
+ */
+static bool_t ReadRegion(Arinc661_Definition_t* definition, const char_t* name, const byte_t* buffer, uint64_t endOffset, uint64_t* offset)
+{
+    uint64_t remaining;
+    uint64_t byte_count;
+    bool_t   has_header_bytes;
+    bool_t   has_region_bytes;
+    bool_t   is_valid;
+
+    remaining        = endOffset - (*offset);
+    has_header_bytes = (sizeof(BinaryRegionHeader_t) <= remaining);
+    is_valid         = has_header_bytes;
+    if (is_valid)
+    {
+        byte_count       = RegionByteCount(buffer[(*offset) + OFFSET_OF(BinaryRegionHeader_t, regionType)]);
+        has_region_bytes = (byte_count <= remaining);
+        is_valid         = (0 != byte_count) && has_region_bytes;
+    }
+    if (is_valid)
+    {
+        is_valid   = AddHexProperty(definition, name, &buffer[(*offset)], byte_count);
+        (*offset) += byte_count;
+    }
+
+    return is_valid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The entry is its 4-byte header plus the CommandSize it holds (Table 3.9.17-6).
+ */
+static bool_t ReadLayerRequest(Arinc661_Definition_t* definition, const char_t* name, const byte_t* buffer, uint64_t endOffset, uint64_t* offset)
+{
+    uint64_t remaining;
+    uint64_t byte_count;
+    bool_t   has_header_bytes;
+    bool_t   has_request_bytes;
+    bool_t   is_valid;
+
+    remaining        = endOffset - (*offset);
+    has_header_bytes = (sizeof(BinaryLayerRequest_t) <= remaining);
+    is_valid         = has_header_bytes;
+    if (is_valid)
+    {
+        byte_count        = sizeof(BinaryLayerRequest_t) + ReadUnsigned(buffer, (*offset) + OFFSET_OF(BinaryLayerRequest_t, commandSize), BINARY_USHORT_BYTES);
+        has_request_bytes = (byte_count <= remaining);
+        is_valid          = has_request_bytes && (0 == (byte_count % BINARY_WORD_BYTES));
+    }
+    if (is_valid)
+    {
+        is_valid   = AddHexProperty(definition, name, &buffer[(*offset)], byte_count);
+        (*offset) += byte_count;
+    }
+
+    return is_valid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  None
+ */
+static bool_t ReadPad(uint64_t endOffset, uint64_t* offset, uint64_t sizeOfPad)
+{
+    bool_t has_pad_bytes;
+
+    has_pad_bytes = (sizeOfPad <= (endOffset - (*offset)));
+    if (has_pad_bytes)
+    {
+        (*offset) += sizeOfPad;
+    }
+
+    return has_pad_bytes;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  None
+ */
+static bool_t ReadAlignment(uint64_t endOffset, uint64_t* offset)
+{
+    (*offset) = AlignToWord(*offset);
+
+    return ((*offset) <= endOffset);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Converts one parameter to property text, the inverse of WriteField:
  *
  * \verbatim
@@ -7319,144 +8321,90 @@ static bool_t AddHexProperty(Arinc661_Definition_t* definition, const char_t* na
  *  which must lie inside the command. Bytes without a numeric type, sized
  *  buffers, and excluded regions become uppercase hexadecimal digits. Unused
  *  pads and alignment bytes are skipped without checking their content.
+ *  Each reader adds its property to widget widgetCount, the widget being read,
+ *  which is counted only after all of its parameters.
  */
 static bool_t ReadField(Arinc661_Definition_t* definition, const BinaryField_t* field, const byte_t* buffer, uint64_t endOffset, uint64_t* offset)
 {
-    char_t    text[ARINC661_MAX_PROPERTY_BYTES];
-    float64_t range;
-    float32_t float_value;
-    uint64_t  byte_count;
-    uint64_t  remaining;
-    uint32_t  encoded_value;
-    uint32_t  widget_index;
-    bool_t    has_buffer_bytes;
-    bool_t    has_region_bytes;
-    bool_t    has_request_bytes;
-    bool_t    is_valid;
+    bool_t is_valid;
 
-    // Use the current count as the index of the widget being read, which is not counted yet
-    widget_index = definition->widgetCount;
     LOGASSERT((*offset) <= endOffset);
-    remaining = endOffset - (*offset);
-    if (BINARY_FIELD_ALIGN == field->type)
+
+    switch (field->type)
     {
-        (*offset) = AlignToWord(*offset);
-        is_valid  = ((*offset) <= endOffset);
-    }
-    else if (BINARY_FIELD_BYTES == field->type)
-    {
-        is_valid = (field->byteCount <= remaining);
-        if (is_valid)
+        case BINARY_FIELD_UCHAR:
         {
-            is_valid = AddHexProperty(definition, field->name, &buffer[(*offset)], field->byteCount);
-            (*offset) += field->byteCount;
+            is_valid = ReadInteger(definition, field->name, buffer, endOffset, offset, BINARY_UCHAR_BYTES);
+            break;
         }
-    }
-    else if (BINARY_FIELD_SIZED_BYTES == field->type)
-    {
-        is_valid = (sizeof(BinarySizedBytes_t) <= remaining);
-        if (is_valid)
+        case BINARY_FIELD_USHORT:
         {
-            byte_count       = ReadUnsigned(buffer, (*offset), BINARY_USHORT_BYTES);
-            has_buffer_bytes = (byte_count <= (remaining - sizeof(BinarySizedBytes_t)));
-            is_valid         = has_buffer_bytes;
+            is_valid = ReadInteger(definition, field->name, buffer, endOffset, offset, BINARY_USHORT_BYTES);
+            break;
         }
-        if (is_valid)
+        case BINARY_FIELD_LONG:
         {
-            is_valid = AddHexProperty(definition, field->name, &buffer[(*offset) + sizeof(BinarySizedBytes_t)], byte_count);
-            (*offset) = AlignToWord((*offset) + sizeof(BinarySizedBytes_t) + byte_count);
+            is_valid = ReadLong(definition, field->name, buffer, endOffset, offset);
+            break;
         }
-        if (is_valid)
+        case BINARY_FIELD_ULONG:
         {
-            is_valid = ((*offset) <= endOffset);
+            is_valid = ReadInteger(definition, field->name, buffer, endOffset, offset, BINARY_ULONG_BYTES);
+            break;
         }
-    }
-    else if (BINARY_FIELD_REGION == field->type)
-    {
-        is_valid = (sizeof(BinaryRegionHeader_t) <= remaining);
-        if (is_valid)
+        case BINARY_FIELD_FLOAT:
         {
-            byte_count       = RegionByteCount(buffer[(*offset) + OFFSET_OF(BinaryRegionHeader_t, regionType)]);
-            has_region_bytes = (byte_count <= remaining);
-            is_valid         = (0 != byte_count) && has_region_bytes;
+            is_valid = ReadFloat(definition, field->name, buffer, endOffset, offset);
+            break;
         }
-        if (is_valid)
+        case BINARY_FIELD_FR180:
         {
-            is_valid = AddHexProperty(definition, field->name, &buffer[(*offset)], byte_count);
-            (*offset) += byte_count;
+            is_valid = ReadFraction(definition, field->name, buffer, endOffset, offset, BINARY_FR180_RANGE);
+            break;
         }
-    }
-    else if (BINARY_FIELD_LAYER_REQUEST == field->type)
-    {
-        is_valid = (sizeof(BinaryLayerRequest_t) <= remaining);
-        if (is_valid)
+        case BINARY_FIELD_FR32768:
         {
-            byte_count        = sizeof(BinaryLayerRequest_t) + ReadUnsigned(buffer, (*offset) + OFFSET_OF(BinaryLayerRequest_t, commandSize), BINARY_USHORT_BYTES);
-            has_request_bytes = (byte_count <= remaining);
-            is_valid          = has_request_bytes && (0 == (byte_count % BINARY_WORD_BYTES));
+            is_valid = ReadFraction(definition, field->name, buffer, endOffset, offset, BINARY_FR32768_RANGE);
+            break;
         }
-        if (is_valid)
+        case BINARY_FIELD_STRING:
         {
-            is_valid = AddHexProperty(definition, field->name, &buffer[(*offset)], byte_count);
-            (*offset) += byte_count;
+            is_valid = ReadString(definition, field->name, buffer, endOffset, offset);
+            break;
         }
-    }
-    else if (BINARY_FIELD_STRING == field->type)
-    {
-        // Locate the terminator without leaving the command
-        for (byte_count = 0; byte_count < remaining; ++byte_count)
+        case BINARY_FIELD_BYTES:
         {
-            if (0 == buffer[(*offset) + byte_count])
-            {
-                break;
-            }
+            is_valid = ReadFixedBytes(definition, field->name, buffer, endOffset, offset, field->byteCount);
+            break;
         }
-        is_valid = (byte_count < remaining);
-        if (is_valid)
+        case BINARY_FIELD_SIZED_BYTES:
         {
-            is_valid = AddProperty(definition, ARINC661_PROPERTY_WIDGET, widget_index, field->name, (const char_t*)&buffer[(*offset)], byte_count);
-            (*offset) += (byte_count + 1);
+            is_valid = ReadSizedBytes(definition, field->name, buffer, endOffset, offset);
+            break;
         }
-    }
-    else
-    {
-        is_valid = (field->byteCount <= remaining);
-        if (is_valid && (BINARY_FIELD_PAD != field->type))
+        case BINARY_FIELD_REGION:
         {
-            encoded_value = ReadUnsigned(buffer, (*offset), field->byteCount);
-            if (BINARY_FIELD_FLOAT == field->type)
-            {
-                (void)memcpy(&float_value, &encoded_value, sizeof(float_value));
-                // Reject infinities and NaN, which have no decimal property text
-                is_valid = (float_value <= FLT_MAX) && (float_value >= -FLT_MAX);
-                if (is_valid)
-                {
-                    byte_count = FormatFloat32(text, sizeof(text), float_value);
-                    is_valid   = AddProperty(definition, ARINC661_PROPERTY_WIDGET, widget_index, field->name, text, byte_count);
-                }
-            }
-            else if ((BINARY_FIELD_FR180 == field->type) || (BINARY_FIELD_FR32768 == field->type))
-            {
-                range = BINARY_FR32768_RANGE;
-                if (BINARY_FIELD_FR180 == field->type)
-                {
-                    range = BINARY_FR180_RANGE;
-                }
-                byte_count = FormatFraction(text, sizeof(text), ToSigned32(encoded_value), range);
-                is_valid   = AddProperty(definition, ARINC661_PROPERTY_WIDGET, widget_index, field->name, text, byte_count);
-            }
-            else if (BINARY_FIELD_LONG == field->type)
-            {
-                is_valid = AddIntegerProperty(definition, ARINC661_PROPERTY_WIDGET, widget_index, field->name, ToSigned32(encoded_value));
-            }
-            else
-            {
-                is_valid = AddIntegerProperty(definition, ARINC661_PROPERTY_WIDGET, widget_index, field->name, encoded_value);
-            }
+            is_valid = ReadRegion(definition, field->name, buffer, endOffset, offset);
+            break;
         }
-        if (is_valid)
+        case BINARY_FIELD_LAYER_REQUEST:
         {
-            (*offset) += field->byteCount;
+            is_valid = ReadLayerRequest(definition, field->name, buffer, endOffset, offset);
+            break;
+        }
+        case BINARY_FIELD_PAD:
+        {
+            is_valid = ReadPad(endOffset, offset, field->byteCount);
+            break;
+        }
+        case BINARY_FIELD_ALIGN:
+        {
+            is_valid = ReadAlignment(endOffset, offset);
+            break;
+        }
+        default:
+        {
+            LOGFATAL("Unknown field type!");
         }
     }
 
@@ -7948,6 +8896,7 @@ void Arinc661_Definition_Initialize(Arinc661_Definition_t* definition, Arinc661_
     LOGASSERT((NULL != widgets) || (0 == widgetCapacity));
     LOGASSERT((NULL != properties) || (0 == propertyCapacity));
     LOGASSERT((NULL != blocks) || (0 == blockCapacity));
+
     (void)memset(definition, 0, sizeof((*definition)));
     definition->layers           = layers;
     definition->widgets          = widgets;
@@ -7991,6 +8940,7 @@ const char_t* Arinc661_Definition_GetTypeName(bool_t isExtension, uint32_t typeI
     const char_t* name;
 
     LOGASSERT(typeIndex < Arinc661_Definition_GetTypeCount(isExtension));
+
     if (isExtension)
     {
         name = c_binaryExtensions[typeIndex].name;
@@ -8017,6 +8967,7 @@ bool_t Arinc661_Definition_FindType(const char_t* typeName, bool_t isExtension, 
 
     LOGASSERT(NULL != typeName);
     LOGASSERT(NULL != parameterCount);
+
     type     = FindTypeByName(typeName, isExtension);
     is_found = (NULL != type);
     if (is_found)
@@ -8051,6 +9002,7 @@ bool_t Arinc661_Definition_GetParameter(const char_t* typeName, bool_t isExtensi
 
     LOGASSERT(NULL != typeName);
     LOGASSERT(NULL != parameter);
+
     type     = FindTypeByName(typeName, isExtension);
     is_found = FALSE;
     if (NULL != type)
@@ -8129,6 +9081,7 @@ bool_t Arinc661_Definition_ExtensionApplies(const char_t* extensionType, const c
 
     LOGASSERT(NULL != extensionType);
     LOGASSERT(NULL != widgetType);
+
     applies = FALSE;
     for (extension_index = 0; extension_index < EXTENSION_TARGET_COUNT; ++extension_index)
     {
@@ -8158,12 +9111,18 @@ const char_t* Arinc661_Definition_GetExtensionTarget(const char_t* extensionType
 {
     uint32_t      extension_index;
     const char_t* widget;
+    bool_t        names_match;
+    bool_t        is_index_in_range;
 
     LOGASSERT(NULL != extensionType);
+
     widget = NULL;
     for (extension_index = 0; extension_index < EXTENSION_TARGET_COUNT; ++extension_index)
     {
-        if ((0 == strncmp(extensionType, c_extensionTargets[extension_index].extension, ARINC661_MAX_NAME_BYTES)) && (index < c_extensionTargets[extension_index].widgetCount))
+        names_match       = (0 == strncmp(extensionType, c_extensionTargets[extension_index].extension, ARINC661_MAX_NAME_BYTES));
+        is_index_in_range = (index < c_extensionTargets[extension_index].widgetCount);
+
+        if (names_match && is_index_in_range)
         {
             widget = c_extensionTargets[extension_index].widgets[index];
             break;
@@ -8238,6 +9197,7 @@ bool_t Arinc661_Definition_Read(Arinc661_Definition_t* definition, byte_t* buffe
     LOGASSERT(NULL != definition);
     LOGASSERT(NULL != bufferToReadXmlFrom);
     LOGASSERT(NULL != workspace);
+
     // Reset result counts while retaining the supplied arrays and capacities; XML carries no binary blocks
     ResetDefinition(definition);
     has_workspace = InitializeXmlWorkspace(&xml, workspace, workspaceSize);
@@ -8260,7 +9220,7 @@ bool_t Arinc661_Definition_Read(Arinc661_Definition_t* definition, byte_t* buffe
     if (is_valid)
     {
         // Read and range-check the version values before storing them as uint32_t
-        is_valid = ReadInteger(root, XML_ATTRIBUTE_LIBRARY_VERSION, &version);
+        is_valid = ReadIntegerAttribute(root, XML_ATTRIBUTE_LIBRARY_VERSION, &version);
         if (is_valid)
         {
             is_valid = (0 <= version);
@@ -8276,7 +9236,7 @@ bool_t Arinc661_Definition_Read(Arinc661_Definition_t* definition, byte_t* buffe
     }
     if (is_valid)
     {
-        is_valid = ReadInteger(root, XML_ATTRIBUTE_SUPPLEMENT_VERSION, &version);
+        is_valid = ReadIntegerAttribute(root, XML_ATTRIBUTE_SUPPLEMENT_VERSION, &version);
         if (is_valid)
         {
             is_valid = (0 <= version);
@@ -8510,6 +9470,7 @@ uint64_t Arinc661_Definition_Write(const Arinc661_Definition_t* definition, byte
     LOGASSERT(NULL != definition);
     LOGASSERT(NULL != bufferToWriteXmlTo);
     LOGASSERT(NULL != workspace);
+
     AssertStorage(definition);
     // Keep zero as the failure result until the complete document is written
     byte_count    = 0;
@@ -8755,7 +9716,8 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
             }
         }
     }
-    is_valid = is_valid && has_footer;
+    // The walk reaches the footer only after every block before it was read
+    is_valid = has_footer;
     if (FALSE == is_valid)
     {
         // Hide all partially read entries by clearing the published counts
@@ -8786,35 +9748,26 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
  *
  *  ApplicationId, LayerId, and ContextNumber come from the properties of those
  *  names and default to zero; other Definition File and layer properties, and
- *  all names, have no binary representation and are not written. The complete
- *  file is sized even when it exceeds capacityOfBinaryBuffer, in which case nothing past
- *  capacityOfBinaryBuffer is stored and zero is returned.
+ *  all names, have no binary representation and are not written. Writing stops
+ *  at the first value that does not fit capacityOfBinaryBuffer, and zero is
+ *  returned.
  */
 uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition, byte_t* bufferToWriteBinaryTo, uint64_t capacityOfBinaryBuffer)
 {
     const Arinc661_Property_t* property;
     int64_t                    application_id;
-    int64_t                    layer_id;
-    int64_t                    context_number;
     uint64_t                   byte_count;
-    uint64_t                   byte_index;
     uint64_t                   offset;
-    uint64_t                   layer_offset;
     uint32_t                   layer_index;
-    uint32_t                   widget_index;
-    uint32_t                   last_widget_index;
     bool_t                     is_valid;
 
     LOGASSERT(NULL != definition);
     LOGASSERT(NULL != bufferToWriteBinaryTo);
     AssertStorage(definition);
     // Keep zero as the failure result until the complete file is written
-    byte_count     = 0;
-    application_id = 0;
-    layer_id       = 0;
-    context_number = 0;
-    offset         = sizeof(BinaryHeader_t);
-    is_valid       = (UINT8_MAX >= definition->libraryVersion) && (UINT8_MAX >= definition->supplementVersion) && (UINT16_MAX >= definition->charsetEncoding);
+    byte_count = 0;
+    offset     = sizeof(BinaryHeader_t);
+    is_valid   = (UINT8_MAX >= definition->libraryVersion) && (UINT8_MAX >= definition->supplementVersion) && (UINT16_MAX >= definition->charsetEncoding);
     if (is_valid)
     {
         property = FindProperty(definition, ARINC661_PROPERTY_DEFINITION, 0, BINARY_PROPERTY_APPLICATION_ID, 0);
@@ -8822,82 +9775,60 @@ uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition
     }
     if (is_valid)
     {
-        WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, OFFSET_OF(BinaryHeader_t, magicNumber), BINARY_DF_MAGIC_NUMBER, BINARY_USHORT_BYTES);
-        WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, OFFSET_OF(BinaryHeader_t, libraryVersion), definition->libraryVersion, BINARY_UCHAR_BYTES);
-        WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, OFFSET_OF(BinaryHeader_t, supplementVersion), definition->supplementVersion, BINARY_UCHAR_BYTES);
-        WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, OFFSET_OF(BinaryHeader_t, appliIdent), (uint32_t)application_id, BINARY_USHORT_BYTES);
+        is_valid = WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, OFFSET_OF(BinaryHeader_t, magicNumber), BINARY_DF_MAGIC_NUMBER, BINARY_USHORT_BYTES);
+    }
+    if (is_valid)
+    {
+        is_valid = WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, OFFSET_OF(BinaryHeader_t, libraryVersion), definition->libraryVersion, BINARY_UCHAR_BYTES);
+    }
+    if (is_valid)
+    {
+        is_valid = WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, OFFSET_OF(BinaryHeader_t, supplementVersion), definition->supplementVersion, BINARY_UCHAR_BYTES);
+    }
+    if (is_valid)
+    {
+        is_valid = WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, OFFSET_OF(BinaryHeader_t, appliIdent), (uint32_t)application_id, BINARY_USHORT_BYTES);
+    }
+    if (is_valid)
+    {
         // Write no OEM free data
-        WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, OFFSET_OF(BinaryHeader_t, oemDataSize), 0, BINARY_USHORT_BYTES);
-        if (0 != definition->charsetEncoding)
+        is_valid = WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, OFFSET_OF(BinaryHeader_t, oemDataSize), 0, BINARY_USHORT_BYTES);
+    }
+    if (is_valid && (0 != definition->charsetEncoding))
+    {
+        is_valid = WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offset, (BINARY_BEGIN_CHARSET_BLOCK << BINARY_BLOCK_CODE_SHIFT) | definition->charsetEncoding, BINARY_ULONG_BYTES);
+        if (is_valid)
         {
-            WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offset, (BINARY_BEGIN_CHARSET_BLOCK << BINARY_BLOCK_CODE_SHIFT) | definition->charsetEncoding, BINARY_ULONG_BYTES);
-            WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offset + OFFSET_OF(BinaryCharsetBlock_t, endCode), BINARY_END_CHARSET_BLOCK << BINARY_BLOCK_CODE_SHIFT, BINARY_ULONG_BYTES);
+            is_valid = WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offset + OFFSET_OF(BinaryCharsetBlock_t, endCode), BINARY_END_CHARSET_BLOCK << BINARY_BLOCK_CODE_SHIFT, BINARY_ULONG_BYTES);
+        }
+        if (is_valid)
+        {
             offset += sizeof(BinaryCharsetBlock_t);
         }
+    }
+    if (is_valid)
+    {
         // Write symbol, picture, and animation law blocks before the layers (Table 4.5.3.2-1)
-        for (byte_index = 0; byte_index < definition->blockByteCount; ++byte_index)
-        {
-            WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offset + byte_index, definition->blocks[byte_index], BINARY_UCHAR_BYTES);
-        }
-        offset += definition->blockByteCount;
+        is_valid = WriteBytes(bufferToWriteBinaryTo, capacityOfBinaryBuffer, &offset, definition->blocks, definition->blockByteCount);
+    }
+    if (is_valid)
+    {
         for (layer_index = 0; layer_index < definition->layerCount; ++layer_index)
         {
-            layer_offset      = offset;
-            last_widget_index = UINT32_MAX;
-            property          = FindProperty(definition, ARINC661_PROPERTY_LAYER, layer_index, BINARY_PROPERTY_LAYER_ID, 0);
-            is_valid          = ScanInteger(property, 0, UINT8_MAX, &layer_id);
-            if (is_valid)
-            {
-                property = FindProperty(definition, ARINC661_PROPERTY_LAYER, layer_index, BINARY_PROPERTY_CONTEXT_NUMBER, 0);
-                is_valid = ScanInteger(property, 0, UINT16_MAX, &context_number);
-            }
+            is_valid = WriteLayer(definition, layer_index, bufferToWriteBinaryTo, capacityOfBinaryBuffer, &offset);
             if (FALSE == is_valid)
             {
                 break;
             }
-            WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, layer_offset, BINARY_BEGIN_LAYER_BLOCK, BINARY_UCHAR_BYTES);
-            WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, layer_offset + OFFSET_OF(BinaryLayerBlock_t, layerIdent), (uint32_t)layer_id, BINARY_UCHAR_BYTES);
-            WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, layer_offset + OFFSET_OF(BinaryLayerBlock_t, contextNumber), (uint32_t)context_number, BINARY_USHORT_BYTES);
-            offset += sizeof(BinaryLayerBlock_t);
-            for (widget_index = 0; widget_index < definition->widgetCount; ++widget_index)
-            {
-                // Select entries belonging to this layer while preserving their array order
-                if (layer_index == definition->widgets[widget_index].layerIndex)
-                {
-                    is_valid = WriteCommand(definition, widget_index, last_widget_index, bufferToWriteBinaryTo, capacityOfBinaryBuffer, &offset);
-                    if (FALSE == is_valid)
-                    {
-                        break;
-                    }
-                    if (FALSE == definition->widgets[widget_index].isExtension)
-                    {
-                        last_widget_index = widget_index;
-                    }
-                }
-            }
-            if (is_valid)
-            {
-                WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offset, (uint32_t)BINARY_END_LAYER_BLOCK << BINARY_BLOCK_CODE_SHIFT, sizeof(BinaryBlockEnd_t));
-                offset   += sizeof(BinaryBlockEnd_t);
-                // Count the block header and the end code in Block Size
-                is_valid  = ((offset - layer_offset) <= UINT32_MAX);
-            }
-            if (FALSE == is_valid)
-            {
-                break;
-            }
-            WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, layer_offset + OFFSET_OF(BinaryLayerBlock_t, blockSize), (uint32_t)(offset - layer_offset), BINARY_ULONG_BYTES);
         }
     }
     if (is_valid)
     {
-        WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offset, (uint32_t)BINARY_DF_FOOTER << BINARY_BLOCK_CODE_SHIFT, sizeof(BinaryBlockEnd_t));
-        offset   += sizeof(BinaryBlockEnd_t);
-        is_valid  = (offset <= capacityOfBinaryBuffer);
+        is_valid = WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offset, (uint32_t)BINARY_DF_FOOTER << BINARY_BLOCK_CODE_SHIFT, sizeof(BinaryBlockEnd_t));
     }
     if (is_valid)
     {
-        byte_count = offset;
+        byte_count = offset + sizeof(BinaryBlockEnd_t);
     }
 
     return byte_count;

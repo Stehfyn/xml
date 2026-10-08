@@ -135,7 +135,7 @@ static bool_t IsHttp(const char_t* url);
  */
 static bool_t IsHttp(const char_t* url)
 {
-    return (bool_t)((0 == _strnicmp(url, HTTP_PREFIX, strlen(HTTP_PREFIX))) || (0 == _strnicmp(url, HTTPS_PREFIX, strlen(HTTPS_PREFIX))));
+    return (bool_t)((0 == _strnicmp(url, HTTP_PREFIX, strnlen(HTTP_PREFIX, sizeof(HTTP_PREFIX)))) || (0 == _strnicmp(url, HTTPS_PREFIX, strnlen(HTTPS_PREFIX, sizeof(HTTPS_PREFIX)))));
 }
 
 /*************************************************************************************************/
@@ -244,6 +244,7 @@ static bool_t ReadLine(const char_t* line, const char_t* lineEnd, const char_t* 
     const char_t* value_start;
     const char_t* value_end;
     size_t        length;
+    size_t        key_length;
 
     equals = line;
     while ((equals < lineEnd) && ('=' != (*equals)))
@@ -263,7 +264,9 @@ static bool_t ReadLine(const char_t* line, const char_t* lineEnd, const char_t* 
     {
         line += 1;
     }
-    if (((size_t)(key_end - line) != strlen(key)) || (0 != _strnicmp(line, key, strlen(key))))
+    // A key longer than the text before the equals sign stops one past it and fails the length check
+    key_length = strnlen(key, (size_t)(key_end - line) + 1);
+    if (((size_t)(key_end - line) != key_length) || (0 != _strnicmp(line, key, key_length)))
     {
         return FALSE;
     }
@@ -348,7 +351,7 @@ static void JoinUrl(const char_t* baseUrl, const char_t* name, char_t* result, u
         (void)snprintf(result, capacity, "%s", name);
         return;
     }
-    base_length = strlen(baseUrl);
+    base_length = strnlen(baseUrl, ARINC661_UPDATE_MAX_URL_BYTES);
     cut         = base_length;
     while ((0 < cut) && ('/' != baseUrl[cut - 1]) && ('\\' != baseUrl[cut - 1]))
     {
@@ -640,9 +643,9 @@ bool_t Arinc661_Update_Apply(const char_t* packagePath, const char_t* relaunchPa
     startup.cb = sizeof(startup);
     (void)memset(&process, 0, sizeof(process));
     // CreateProcess wants a writable command line: the program name and the arguments together
-    (void)memmove(&arguments[strlen(command) + 1], arguments, strlen(arguments) + 1);
-    (void)memcpy(arguments, command, strlen(command));
-    arguments[strlen(command)] = ' ';
+    (void)memmove(&arguments[strnlen(command, sizeof(command)) + 1], arguments, strnlen(arguments, sizeof(arguments)) + 1);
+    (void)memcpy(arguments, command, strnlen(command, sizeof(command)));
+    arguments[strnlen(command, sizeof(command))] = ' ';
     is_started = (bool_t)CreateProcessA(NULL, arguments, NULL, NULL, FALSE, CREATE_NO_WINDOW | DETACHED_PROCESS, NULL, NULL, &startup, &process);
     if (is_started)
     {

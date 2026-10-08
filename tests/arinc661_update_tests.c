@@ -85,7 +85,7 @@ void RunArinc661UpdateTests(void)
 
     /* Manifest with a relative package name resolves against the manifest's folder */
     (void)snprintf(manifest_text, sizeof(manifest_text), "# comment\nversion = 9.1.0.0\r\nmsi=%s\nSHA256=%s\nnotes=Faster layers\n", PACKAGE_FILE, hex);
-    assert(Arinc661_Update_ParseManifest(manifest_text, (uint32_t)strlen(manifest_text), "C:\\share\\updates\\manifest.txt", &manifest));
+    assert(Arinc661_Update_ParseManifest(manifest_text, (uint32_t)strnlen(manifest_text, sizeof(manifest_text)), "C:\\share\\updates\\manifest.txt", &manifest));
     assert((9 == manifest.version.major) && (1 == manifest.version.minor));
     assert(0 == strncmp("9.1.0.0", manifest.versionText, sizeof("9.1.0.0")));
     assert(0 == strncmp("C:\\share\\updates\\arinc661_update_test_package.bin", manifest.packageUrl, sizeof("C:\\share\\updates\\arinc661_update_test_package.bin")));
@@ -100,7 +100,7 @@ void RunArinc661UpdateTests(void)
     assert(FALSE == Arinc661_Update_ParseManifest("version=1\nmsi=a\nsha256=zz\n", 26, "x", &manifest));
 
     /* Check through a file manifest beside the package in the working folder */
-    assert(0 <= OS_File_WriteFile(MANIFEST_FILE, (const byte_t*)manifest_text, (uint32_t)strlen(manifest_text)));
+    assert(0 <= OS_File_WriteFile(MANIFEST_FILE, (const byte_t*)manifest_text, (uint32_t)strnlen(manifest_text, sizeof(manifest_text))));
     assert(Arinc661_Update_ParseVersion("1.0.0.0", &left));
     assert(ARINC661_UPDATE_RESULT_AVAILABLE == Arinc661_Update_Check(MANIFEST_FILE, &left, &manifest));
     assert(Arinc661_Update_ParseVersion("9.1.0.0", &left));

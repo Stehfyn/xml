@@ -3395,7 +3395,7 @@ static void DrawDefinitionLayers(Arinc661_Configuration_Editor_t* editor, const 
             is_too_big = !!(has_window && ((layer_width > ((float32_t)pixel_width * units_per_pixel_x * 1.001f)) || (layer_height > ((float32_t)pixel_height * units_per_pixel_y * 1.001f))));
             if (is_too_big)
             {
-                ImStrncpy(&label[strlen(label)], LAYER_FIT_WARNING, (int)(sizeof(label) - strlen(label)));
+                ImStrncpy(&label[strnlen(label, sizeof(label))], LAYER_FIT_WARNING, (int)(sizeof(label) - strnlen(label, sizeof(label))));
                 ImGui::PushStyleColor(ImGuiCol_Text, INVALID_VALUE_COLOR);
             }
             ImGui::PushID((int)layer_index);

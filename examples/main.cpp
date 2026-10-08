@@ -23,6 +23,7 @@
 
 extern "C"
 {
+#include "faceoe_utl/faceoe_utl_util.h"
 #include "os/os_assert.h"
 #include "os/os_diagnostics.h"
 #include "os/os_file.h"
@@ -1408,22 +1409,22 @@ static void ClassifyFolderFile(const char_t* fileName, void* context)
     bool_t                    is_configuration;
 
     window              = (WindowThreadState_t*)context;
-    name_length         = strlen(fileName);
+    name_length         = strnlen(fileName, MAX_FILE_NAME_BYTES);
     has_known_extension = FALSE;
-    if ((strlen(XML_EXTENSION) < name_length) && (0 == _stricmp(fileName + name_length - strlen(XML_EXTENSION), XML_EXTENSION)))
+    if ((strnlen(XML_EXTENSION, sizeof(XML_EXTENSION)) < name_length) && (0 == _stricmp(fileName + name_length - strnlen(XML_EXTENSION, sizeof(XML_EXTENSION)), XML_EXTENSION)))
     {
         has_known_extension = TRUE;
     }
-    if ((strlen(BINARY_EXTENSION) < name_length) && (0 == _stricmp(fileName + name_length - strlen(BINARY_EXTENSION), BINARY_EXTENSION)))
+    if ((strnlen(BINARY_EXTENSION, sizeof(BINARY_EXTENSION)) < name_length) && (0 == _stricmp(fileName + name_length - strnlen(BINARY_EXTENSION, sizeof(BINARY_EXTENSION)), BINARY_EXTENSION)))
     {
         has_known_extension = TRUE;
     }
-    if ((FALSE == has_known_extension) || (window->fileCount >= MAX_PAGE_FILES) || (name_length >= MAX_FILE_NAME_BYTES) || ((strlen(window->folderPath) + 1 + name_length) >= MAX_FILE_PATH_BYTES))
+    if ((FALSE == has_known_extension) || (window->fileCount >= MAX_PAGE_FILES) || (name_length >= MAX_FILE_NAME_BYTES) || ((strnlen(window->folderPath, sizeof(window->folderPath)) + 1 + name_length) >= MAX_FILE_PATH_BYTES))
     {
         return;
     }
     // Prefabs are Definition File fragments kept apart from the documents
-    if ((strlen(PREFAB_EXTENSION) < name_length) && (0 == _stricmp(fileName + name_length - strlen(PREFAB_EXTENSION), PREFAB_EXTENSION)))
+    if ((strnlen(PREFAB_EXTENSION, sizeof(PREFAB_EXTENSION)) < name_length) && (0 == _stricmp(fileName + name_length - strnlen(PREFAB_EXTENSION, sizeof(PREFAB_EXTENSION)), PREFAB_EXTENSION)))
     {
         if (window->prefabCount < MAX_PREFABS)
         {
@@ -1462,7 +1463,7 @@ static void ClassifyFolderFile(const char_t* fileName, void* context)
             }
             break;
         }
-        is_configuration = !!(((index + strlen(CONFIGURATION_ROOT_ELEMENT)) < (size_t)byte_count) && (0 == memcmp(&text[index], CONFIGURATION_ROOT_ELEMENT, strlen(CONFIGURATION_ROOT_ELEMENT))));
+        is_configuration = !!(((index + strnlen(CONFIGURATION_ROOT_ELEMENT, sizeof(CONFIGURATION_ROOT_ELEMENT))) < (size_t)byte_count) && (0 == memcmp(&text[index], CONFIGURATION_ROOT_ELEMENT, strnlen(CONFIGURATION_ROOT_ELEMENT, sizeof(CONFIGURATION_ROOT_ELEMENT)))));
     }
     if (is_definition || is_configuration)
     {
@@ -3111,7 +3112,7 @@ static void DrawPalette(WindowThreadState_t* window)
         ImGui::SeparatorText(PREFAB_SECTION_LABEL);
         for (character = 0; character < window->prefabCount; ++character)
         {
-            (void)snprintf(upper_filter, sizeof(upper_filter), "%.*s", (int)(strlen(window->prefabNames[character]) - strlen(PREFAB_EXTENSION)), window->prefabNames[character]);
+            (void)snprintf(upper_filter, sizeof(upper_filter), "%.*s", (int)(strnlen(window->prefabNames[character], sizeof(window->prefabNames[character])) - strnlen(PREFAB_EXTENSION, sizeof(PREFAB_EXTENSION))), window->prefabNames[character]);
             ImGui::PushID((int)(50000 + character));
             if (ImGui::Selectable(upper_filter))
             {
@@ -3151,7 +3152,7 @@ static void DrawPalette(WindowThreadState_t* window)
                 is_in_category = TRUE;
                 for (character = 0; character < COUNT_OF(c_categories) - 2; ++character)
                 {
-                    if (0 == ImStrnicmp(categories, c_categories[character], (int)strlen(c_categories[character])))
+                    if (0 == ImStrnicmp(categories, c_categories[character], (int)strnlen(c_categories[character], ARINC661_MAX_NAME_BYTES)))
                     {
                         is_in_category = FALSE;
                     }
@@ -3159,7 +3160,7 @@ static void DrawPalette(WindowThreadState_t* window)
             }
             else
             {
-                is_in_category = (0 == ImStrnicmp(categories, category, (int)strlen(category)));
+                is_in_category = (0 == ImStrnicmp(categories, category, (int)strnlen(category, ARINC661_MAX_NAME_BYTES)));
             }
             if (FALSE == is_in_category)
             {
@@ -3197,7 +3198,7 @@ static void DrawPalette(WindowThreadState_t* window)
             }
             if (ImGui::BeginDragDropSource())
             {
-                ImGui::SetDragDropPayload(PALETTE_PAYLOAD_ID, type_name, strlen(type_name) + 1);
+                ImGui::SetDragDropPayload(PALETTE_PAYLOAD_ID, type_name, strnlen(type_name, ARINC661_MAX_NAME_BYTES) + 1);
                 ImGui::TextUnformatted(type_name);
                 ImGui::EndDragDropSource();
             }
@@ -3381,7 +3382,7 @@ static bool_t OpenPath(WindowThreadState_t* window, const char_t* path)
     {
         (void)memcpy(window->folderPath, path, folder_length - 1);
         window->folderPath[folder_length - 1] = '\0';
-        if ((2 == strlen(window->folderPath)) && (':' == window->folderPath[1]))
+        if ((2 == strnlen(window->folderPath, sizeof(window->folderPath))) && (':' == window->folderPath[1]))
         {
             // A drive root keeps its separator
             (void)strcat_s(window->folderPath, sizeof(window->folderPath), "\\");
@@ -3826,7 +3827,7 @@ static void DrawAboutPopup(WindowThreadState_t* window)
     {
         executable[0] = '\0';
         (void)::GetModuleFileNameA(NULL, executable, (DWORD)sizeof(executable));
-        cut = strlen(executable);
+        cut = strnlen(executable, sizeof(executable));
         while ((0 < cut) && ('\\' != executable[cut - 1]))
         {
             cut -= 1;
@@ -3850,11 +3851,11 @@ static void DrawAboutPopup(WindowThreadState_t* window)
         (void)snprintf(details, sizeof(details), ABOUT_DETAILS_FORMAT, ARINC661_EDITOR_VERSION_TEXT, __DATE__, __TIME__, IMGUI_VERSION, opengl, executable);
         if ('\0' != window->updateUrl[0])
         {
-            (void)snprintf(&details[strlen(details)], sizeof(details) - strlen(details), ABOUT_UPDATE_URL_FORMAT, window->updateUrl);
+            (void)snprintf(&details[strnlen(details, sizeof(details))], sizeof(details) - strnlen(details, sizeof(details)), ABOUT_UPDATE_URL_FORMAT, window->updateUrl);
         }
         else
         {
-            (void)snprintf(&details[strlen(details)], sizeof(details) - strlen(details), "%s", ABOUT_NO_UPDATE_URL_LABEL);
+            (void)snprintf(&details[strnlen(details, sizeof(details))], sizeof(details) - strnlen(details, sizeof(details)), "%s", ABOUT_NO_UPDATE_URL_LABEL);
         }
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 32.0f);
         ImGui::TextUnformatted(details);
@@ -4173,17 +4174,21 @@ static void TogglePlay(WindowThreadState_t* window)
  */
 static void BuildAll(WindowThreadState_t* window)
 {
-    char_t  report[BUILD_REPORT_BYTES];
-    char_t* line;
-    char_t* next;
+    char_t        report[BUILD_REPORT_BYTES];
+    char_t*       line;
+    char_t*       next;
+    const char_t* line_end;
 
     (void)Arinc661_Context_Build(window->context, report, sizeof(report));
     line = report;
     while (NULL != line)
     {
-        next = strchr(line, '\n');
-        if (NULL != next)
+        // Take the match as an index into the report, which stays writable
+        line_end = FACEOE_Utl_StrChr(line, '\n', sizeof(report) - (size_t)(line - report));
+        next     = NULL;
+        if (NULL != line_end)
         {
+            next    = &report[line_end - report];
             (*next) = '\0';
             next += 1;
         }

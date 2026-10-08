@@ -1376,7 +1376,7 @@ static void Chip(Scene_t* scene, uint32_t widgetIndex, float32_t alpha, Bounds_t
             FACEOE_Gfx_DrawList_UnitLengths(scene->drawList, &unit_x, &unit_y);
             height = ((scene->options->fontSize * 1.4f) / unit_y);
             gap    = (height * 0.25f);
-            width  = ((scene->options->fontSize * (float32_t)(strlen(widget->name) + strlen(widget->type) + 2) * 0.6f) / unit_x);
+            width  = ((scene->options->fontSize * (float32_t)(strnlen(widget->name, sizeof(widget->name)) + strnlen(widget->type, sizeof(widget->type)) + 2) * 0.6f) / unit_x);
             x      = SCENE_PAD;
             y      = scene->layerHeight - SCENE_PAD - ((float32_t)(scene->chipCount + 1) * (height + gap));
             scene->chipCount += 1;

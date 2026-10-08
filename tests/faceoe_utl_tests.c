@@ -443,7 +443,7 @@ static void TestXmlReaderBoundaries(void)
 
     for (case_index = 0; case_index < COUNT_OF(cases); ++case_index)
     {
-        input_byte_count = (uint64_t)strlen(cases[case_index].text);
+        input_byte_count = (uint64_t)strnlen(cases[case_index].text, sizeof(input));
         memcpy(input, cases[case_index].text, (size_t)input_byte_count);
         input[input_byte_count] = 0xA5;
         FACEOE_Utl_Xml_InitializeDocument(&document);

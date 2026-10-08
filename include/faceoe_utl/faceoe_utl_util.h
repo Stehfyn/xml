@@ -5,18 +5,6 @@
 
 /*************************************************************************************************/
 /**
- * \brief Splits a string at delimiters, like strtok but reentrant.
- *
- * \param str      Str
- * \param delems   Delems
- * \param intPos   Int pos
- *
- * \retval char_t*   Next token, or NULL when none remain.
- */
-char_t* FACEOE_Utl_Strtok(char_t* str, const char_t* delems, char_t** intPos);
-
-/*************************************************************************************************/
-/**
  * \brief Finds a substring.
  *
  * \param str1              Str1
@@ -26,6 +14,18 @@ char_t* FACEOE_Utl_Strtok(char_t* str, const char_t* delems, char_t** intPos);
  * \retval const char_t*   Pointer to the first match, or NULL.
  */
 const char_t* FACEOE_Utl_StrStr(const char_t* str1, const char_t* str2, bool_t caseInsensitive);
+
+/*************************************************************************************************/
+/**
+ * \brief Finds the first occurrence of a character, searching no further than a bound.
+ *
+ * \param[in] str         Text to search
+ * \param[in] character   Character to find; the zero terminator never matches
+ * \param[in] sizeOfStr   Most characters to search
+ *
+ * \retval    const char_t*   Pointer to the first match, or NULL when none comes before the terminator or the bound.
+ */
+const char_t* FACEOE_Utl_StrChr(const char_t* str, char_t character, uint64_t sizeOfStr);
 
 /*************************************************************************************************/
 /**

@@ -196,7 +196,7 @@ static void TestDefinitionBinaryLabelComplex(void)
     assert(0 == strncmp("DefaultStyleText", properties[22].name, sizeof("DefaultStyleText")));
     assert(0 == strncmp("1B42001B41001B4300000000", properties[22].value, sizeof("1B42001B41001B4300000000")));
     assert(0 == strncmp("LabelString", properties[23].name, sizeof("LabelString")));
-    assert(30 == strlen(properties[23].value));
+    assert(30 == strnlen(properties[23].value, sizeof(properties[23].value)));
 
     byte_count = Arinc661_Definition_WriteBinary(&definition, output, sizeof(output));
     assert(sizeof(expected) == byte_count);

@@ -14,6 +14,7 @@
 #include "faceoe/faceoe_displaymanagement.h"
 #include "faceoe_utl/faceoe_utl_print.h"
 #include "faceoe_utl/faceoe_utl_scan.h"
+#include "faceoe_utl/faceoe_utl_util.h"
 #include "faceoe_utl/faceoe_utl_xml.h"
 
 #include "os/os_assert.h"
@@ -616,7 +617,7 @@ static bool_t HasElementName(const FACEOE_Utl_Xml_Node_t* node, const char_t* na
     bool_t   has_length;
     bool_t   has_name;
 
-    byte_count = (uint32_t)strlen(name);
+    byte_count = (uint32_t)strnlen(name, FACEOE_UTL_XML_MAX_NAME_BYTES);
     // Check the pointer and node type before examining the counted name
     is_element = (NULL != node);
     if (is_element)
@@ -713,7 +714,7 @@ static const FACEOE_Utl_Xml_Attribute_t* FindAttribute(const FACEOE_Utl_Xml_Node
 
     attribute       = node->firstAttribute;
     found_attribute = NULL;
-    byte_count      = (uint32_t)strlen(name);
+    byte_count      = (uint32_t)strnlen(name, FACEOE_UTL_XML_MAX_NAME_BYTES);
     for (attribute_index = 0; attribute_index < node->attributeCount; ++attribute_index)
     {
         // Every attribute included in the count must have a corresponding list entry
@@ -762,7 +763,7 @@ static bool_t HasAttributeValue(const FACEOE_Utl_Xml_Attribute_t* attribute, con
     bool_t   has_length;
     bool_t   has_value;
 
-    byte_count = (uint32_t)strlen(value);
+    byte_count = (uint32_t)strnlen(value, FACEOE_UTL_XML_MAX_VALUE_BYTES);
     // Reject unequal lengths before comparing the value bytes
     has_length = (byte_count == attribute->valueByteCount);
     has_value  = FALSE;
@@ -1065,7 +1066,7 @@ static FACEOE_Utl_Xml_Node_t* AppendElement(XmlWorkspace_t* xml, const char_t* n
     if (xml->nodeCount < FACEOE_DISPLAYMANAGEMENT_XML_NODE_CAPACITY)
     {
         node = &xml->nodes[xml->nodeCount];
-        FACEOE_Utl_Xml_InitializeNode(node, FACEOE_UTL_XML_NODE_ELEMENT, (const byte_t*)name, (uint32_t)strlen(name));
+        FACEOE_Utl_Xml_InitializeNode(node, FACEOE_UTL_XML_NODE_ELEMENT, (const byte_t*)name, (uint32_t)strnlen(name, FACEOE_UTL_XML_MAX_NAME_BYTES));
         // Count the initialized node; linking it is the caller's responsibility
         xml->nodeCount += 1;
     }
@@ -1102,13 +1103,13 @@ static bool_t AppendAttribute(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* node, 
     is_valid    = FALSE;
     if (has_storage && has_value)
     {
-        byte_count = (uint32_t)strlen(value);
+        byte_count = (uint32_t)strnlen(value, FACEOE_UTL_XML_MAX_VALUE_BYTES);
         // Validate literal value bytes before the XML append function asserts its preconditions
         is_valid   = FACEOE_Utl_Xml_IsAttributeValue((const byte_t*)value, byte_count);
         if (is_valid)
         {
             attribute = &xml->attributes[xml->attributeCount];
-            FACEOE_Utl_Xml_InitializeAttribute(attribute, (const byte_t*)name, (uint32_t)strlen(name), (const byte_t*)value, byte_count);
+            FACEOE_Utl_Xml_InitializeAttribute(attribute, (const byte_t*)name, (uint32_t)strnlen(name, FACEOE_UTL_XML_MAX_NAME_BYTES), (const byte_t*)value, byte_count);
             FACEOE_Utl_Xml_AppendAttribute(node, attribute);
             // Count the attribute only after it has been linked
             xml->attributeCount += 1;
@@ -1232,7 +1233,7 @@ static const char_t* FormatDecimal(XmlWorkspace_t* xml, float32_t value)
         {
             byte_count = FACEOE_Utl_Print_Float(text, XML_DECIMAL_TEXT_BYTES, value, (uint32_t)precision);
             LOGASSERT((0 < byte_count) && ((uint32_t)byte_count < XML_DECIMAL_TEXT_BYTES));
-            if (NULL != strchr(text, '.'))
+            if (NULL != FACEOE_Utl_StrChr(text, '.', XML_DECIMAL_TEXT_BYTES))
             {
                 // Strip fractional zeros only; an integral value keeps its digits
                 for (byte_index = 0; byte_index < XML_DECIMAL_TEXT_BYTES; ++byte_index)

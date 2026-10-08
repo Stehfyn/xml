@@ -279,7 +279,7 @@ static BOOL HasWordAt(const char* text, size_t count, size_t index, const char* 
     size_t length;
     char   next;
 
-    length = strlen(word);
+    length = strnlen(word, count);
     if ((index + length) >= count)
     {
         return FALSE;

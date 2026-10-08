@@ -726,7 +726,7 @@ void FACEOE_Gfx_DrawList_Text(FACEOE_Gfx_DrawList_t* drawList, float32_t x, floa
 
     LOGASSERT(NULL != drawList);
     LOGASSERT(NULL != text);
-    length = strlen(text);
+    length = strnlen(text, FACEOE_GFX_MAX_TEXT_BYTES);
     if ((FACEOE_GFX_MAX_TEXT_BYTES - 1) < length)
     {
         length = (FACEOE_GFX_MAX_TEXT_BYTES - 1);

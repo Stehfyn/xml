@@ -27,6 +27,7 @@ extern "C"
 #include "os/os_file.h"
 #include "faceoe_utl/faceoe_utl_defines.h"
 #include "faceoe_utl/faceoe_utl_scan.h"
+#include "faceoe_utl/faceoe_utl_util.h"
 }
 
 #include <inttypes.h>
@@ -2498,7 +2499,7 @@ static uint32_t HexByteCount(const char_t* value)
     }
     for (index = 0; (INVALID_HIERARCHY_INDEX != byte_count) && (index < length); ++index)
     {
-        if (NULL == strchr(c_hexDigits, value[index]))
+        if (NULL == FACEOE_Utl_StrChr(c_hexDigits, value[index], sizeof(c_hexDigits)))
         {
             byte_count = INVALID_HIERARCHY_INDEX;
         }
@@ -2602,8 +2603,8 @@ static bool_t IsParameterValueValid(const Arinc661_Parameter_t* parameter, const
         is_valid   = !!((INVALID_HIERARCHY_INDEX != byte_count) && (4 <= byte_count));
         if (is_valid)
         {
-            integer_value = ((int64_t)(strchr(c_hexDigits, value[4]) - c_hexDigits) << 12) | ((int64_t)(strchr(c_hexDigits, value[5]) - c_hexDigits) << 8) |
-                            ((int64_t)(strchr(c_hexDigits, value[6]) - c_hexDigits) << 4) | (int64_t)(strchr(c_hexDigits, value[7]) - c_hexDigits);
+            integer_value = ((int64_t)(FACEOE_Utl_StrChr(c_hexDigits, value[4], sizeof(c_hexDigits)) - c_hexDigits) << 12) | ((int64_t)(FACEOE_Utl_StrChr(c_hexDigits, value[5], sizeof(c_hexDigits)) - c_hexDigits) << 8) |
+                            ((int64_t)(FACEOE_Utl_StrChr(c_hexDigits, value[6], sizeof(c_hexDigits)) - c_hexDigits) << 4) | (int64_t)(FACEOE_Utl_StrChr(c_hexDigits, value[7], sizeof(c_hexDigits)) - c_hexDigits);
             is_valid      = !!((byte_count == (4 + integer_value)) && (0 == (integer_value % 4)));
         }
     }
@@ -3433,7 +3434,7 @@ static uint32_t DuplicateWidget(Arinc661_Definition_Document_t* document, uint32
                 root_copy = destination;
                 if (FALSE == document->widgets[destination].isExtension)
                 {
-                    if ((strlen(document->widgets[destination].name) + strlen(COPY_SUFFIX)) < sizeof(document->widgets[destination].name))
+                    if ((strnlen(document->widgets[destination].name, sizeof(document->widgets[destination].name)) + strnlen(COPY_SUFFIX, sizeof(COPY_SUFFIX))) < sizeof(document->widgets[destination].name))
                     {
                         strcat(document->widgets[destination].name, COPY_SUFFIX);
                     }
@@ -6167,7 +6168,7 @@ static bool_t DrawParameterRow(Arinc661_Definition_Document_t* document, Arinc66
             ImGui::SetClipboardText(value);
         }
         clipboard = ImGui::GetClipboardText();
-        if (ImGui::MenuItem(PASTE_VALUE_LABEL, NULL, false, (NULL != clipboard) && ('\0' != clipboard[0]) && (NULL == strchr(clipboard, '\n'))))
+        if (ImGui::MenuItem(PASTE_VALUE_LABEL, NULL, false, (NULL != clipboard) && ('\0' != clipboard[0]) && (NULL == FACEOE_Utl_StrChr(clipboard, '\n', ARINC661_MAX_PROPERTY_BYTES))))
         {
             ImStrncpy(scratch, clipboard, sizeof(scratch));
             if (INVALID_HIERARCHY_INDEX != property_index)
@@ -8565,7 +8566,7 @@ bool_t Arinc661_Definition_SelectByName(Arinc661_Definition_Editor_t* editor, co
         // A comma-separated list selects several widgets; the first named is primary
         for (widget_index = 0; widget_index < document->definition.widgetCount; ++widget_index)
         {
-            name_length = strlen(document->widgets[widget_index].name);
+            name_length = strnlen(document->widgets[widget_index].name, sizeof(document->widgets[widget_index].name));
             cursor      = name;
             while (NULL != cursor)
             {
@@ -8581,7 +8582,7 @@ bool_t Arinc661_Definition_SelectByName(Arinc661_Definition_Editor_t* editor, co
                     is_found                           = TRUE;
                     break;
                 }
-                cursor = strchr(cursor, ',');
+                cursor = FACEOE_Utl_StrChr(cursor, ',', ARINC661_MAX_PROPERTY_BYTES);
                 if (NULL != cursor)
                 {
                     cursor += 1;
@@ -9594,7 +9595,7 @@ bool_t Arinc661_Definition_ExportBinary(Arinc661_Definition_Editor_t* editor, ui
         {
             JoinFolderPath(editor->folderPath, document->documentName, path, capacity);
         }
-        length = strlen(path);
+        length = strnlen(path, capacity);
         if (FALSE == HasExtension(path, BINARY_EXTENSION))
         {
             while ((0 < length) && ('.' != path[length - 1]) && ('\\' != path[length - 1]))
@@ -9605,7 +9606,7 @@ bool_t Arinc661_Definition_ExportBinary(Arinc661_Definition_Editor_t* editor, ui
             {
                 path[length - 1] = '\0';
             }
-            ImStrncpy(&path[strlen(path)], BINARY_EXTENSION, (int)(capacity - strlen(path)));
+            ImStrncpy(&path[strnlen(path, capacity)], BINARY_EXTENSION, (int)(capacity - strnlen(path, capacity)));
         }
         byte_count = Arinc661_Definition_WriteBinary(&document->definition, document->outputBuffer, sizeof(document->outputBuffer));
         if (0 < byte_count)

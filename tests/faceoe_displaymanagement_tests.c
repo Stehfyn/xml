@@ -187,7 +187,7 @@ static void TestConfigurationSchema(void)
 
     // Reusing a result clears absent metadata; writing still supplies the default hint
     strcpy((char_t*)input, "<configuration/>");
-    is_valid = FACEOE_DisplayManagement_ReadConfiguration(&configuration, input, strlen((const char_t*)input), c_workspace, sizeof(c_workspace));
+    is_valid = FACEOE_DisplayManagement_ReadConfiguration(&configuration, input, strnlen((const char_t*)input, sizeof(input)), c_workspace, sizeof(c_workspace));
     assert(is_valid);
     assert(FALSE == configuration.hasXmlDeclaration);
     assert('\0' == configuration.schemaLocation[0]);
@@ -202,7 +202,7 @@ static void TestConfigurationSchema(void)
         strcpy((char_t*)input, invalid_inputs[index]);
         configuration.hasXmlDeclaration = TRUE;
         strcpy(configuration.schemaLocation, "stale.xsd");
-        is_valid = FACEOE_DisplayManagement_ReadConfiguration(&configuration, input, strlen((const char_t*)input), c_workspace, sizeof(c_workspace));
+        is_valid = FACEOE_DisplayManagement_ReadConfiguration(&configuration, input, strnlen((const char_t*)input, sizeof(input)), c_workspace, sizeof(c_workspace));
         assert(FALSE == is_valid);
         assert(0 == configuration.screenCount);
         assert(FALSE == configuration.hasXmlDeclaration);
@@ -211,7 +211,7 @@ static void TestConfigurationSchema(void)
 
     // An oversized schema location must fail without leaving published metadata
     strcpy((char_t*)input, "<configuration xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:noNamespaceSchemaLocation=\"");
-    byte_count = strlen((const char_t*)input);
+    byte_count = strnlen((const char_t*)input, sizeof(input));
     memset(input + byte_count, 'a', FACEOE_DISPLAYMANAGEMENT_MAX_PATH_BYTES);
     byte_count += FACEOE_DISPLAYMANAGEMENT_MAX_PATH_BYTES;
     strcpy((char_t*)input + byte_count, "\"/>");
