@@ -1147,18 +1147,11 @@ typedef struct ExtensionTargets_s
     uint32_t             widgetCount; ///< Number of widget type names
 } ExtensionTargets_t;
 
-/*
- * Records of the binary Definition File, byte for byte. They are packed to 1-byte alignment so
- * offsetof and sizeof give the offsets and sizes of the binary form. Multi-byte fields are
- * big-endian in the file, so values are read and written with GetUnsigned and PutUnsigned at
- * these offsets, never through a cast of the buffer.
- */
-#pragma pack(push, 1)
-
 /*************************************************************************************************/
 /**
  * \brief Definition File header (Table 4.5.3.2-2).
  */
+#pragma pack(push, 1)
 typedef struct BinaryHeader_s
 {
     uint16_t magicNumber;       ///< A661_DF_MAGIC_NUMBER
@@ -1167,11 +1160,14 @@ typedef struct BinaryHeader_s
     uint16_t appliIdent;        ///< AppliIdent
     uint16_t oemDataSize;       ///< Bytes of OEM data after the header
 } BinaryHeader_t;
+#pragma pack(pop)
+_Static_assert(8U == sizeof(BinaryHeader_t), "BinaryHeader_t is 8 bytes");
 
 /*************************************************************************************************/
 /**
  * \brief Header of a layer block (Table 4.5.3.2-4); its commands and end code follow.
  */
+#pragma pack(push, 1)
 typedef struct BinaryLayerBlock_s
 {
     byte_t   blockCode;     ///< A661_BEGIN_LAYER_BLOCK
@@ -1179,22 +1175,28 @@ typedef struct BinaryLayerBlock_s
     uint16_t contextNumber; ///< ContextNumber
     uint32_t blockSize;     ///< Block Size, including this header and the end code
 } BinaryLayerBlock_t;
+#pragma pack(pop)
+_Static_assert(8U == sizeof(BinaryLayerBlock_t), "BinaryLayerBlock_t is 8 bytes");
 
 /*************************************************************************************************/
 /**
  * \brief Header of a symbol or animation law block (Tables 4.5.3.2-5 and 9.2-1).
  */
+#pragma pack(push, 1)
 typedef struct BinarySizedBlock_s
 {
     byte_t   blockCode;    ///< A661_BEGIN_SYMBOL_BLOCK or A661_BEGIN_ANIMATION_LAW_BLOCK
     byte_t   unusedPad[3]; ///< UnusedPad
     uint32_t blockSize;    ///< Block Size, including this header and the end code
 } BinarySizedBlock_t;
+#pragma pack(pop)
+_Static_assert(8U == sizeof(BinarySizedBlock_t), "BinarySizedBlock_t is 8 bytes");
 
 /*************************************************************************************************/
 /**
  * \brief Complete charset encoding block (Table 4.5.3.2-6).
  */
+#pragma pack(push, 1)
 typedef struct BinaryCharsetBlock_s
 {
     byte_t   blockCode; ///< A661_BEGIN_CHARSET_ENCODING_BLOCK
@@ -1203,21 +1205,27 @@ typedef struct BinaryCharsetBlock_s
     byte_t   endCode;   ///< A661_END_CHARSET_ENCODING_BLOCK
     byte_t   endPad[3]; ///< UnusedPad
 } BinaryCharsetBlock_t;
+#pragma pack(pop)
+_Static_assert(8U == sizeof(BinaryCharsetBlock_t), "BinaryCharsetBlock_t is 8 bytes");
 
 /*************************************************************************************************/
 /**
  * \brief End code that closes a block, a picture, or the file.
  */
+#pragma pack(push, 1)
 typedef struct BinaryBlockEnd_s
 {
     byte_t endCode;      ///< Block end code or A661_DF_FOOTER
     byte_t unusedPad[3]; ///< UnusedPad
 } BinaryBlockEnd_t;
+#pragma pack(pop)
+_Static_assert(4U == sizeof(BinaryBlockEnd_t), "BinaryBlockEnd_t is 4 bytes");
 
 /*************************************************************************************************/
 /**
  * \brief Header of a picture block (Table 7-1); the color table and pictures follow.
  */
+#pragma pack(push, 1)
 typedef struct BinaryPictureBlock_s
 {
     byte_t blockCode;    ///< A661_BEGIN_PICTURE_BLOCK
@@ -1227,11 +1235,14 @@ typedef struct BinaryPictureBlock_s
     byte_t colorFormat;  ///< Table 7-3 format of the color table entries
     byte_t unusedPad[3]; ///< UnusedPad
 } BinaryPictureBlock_t;
+#pragma pack(pop)
+_Static_assert(8U == sizeof(BinaryPictureBlock_t), "BinaryPictureBlock_t is 8 bytes");
 
 /*************************************************************************************************/
 /**
  * \brief Header of one picture in a picture block (Table 7-2); its pixels and end code follow.
  */
+#pragma pack(push, 1)
 typedef struct BinaryPicture_s
 {
     byte_t   pictureCode; ///< A661_BEGIN_PICTURE
@@ -1240,54 +1251,69 @@ typedef struct BinaryPicture_s
     uint16_t width;       ///< Width in pixels
     uint16_t height;      ///< Height in pixels
 } BinaryPicture_t;
+#pragma pack(pop)
+_Static_assert(8U == sizeof(BinaryPicture_t), "BinaryPicture_t is 8 bytes");
 
 /*************************************************************************************************/
 /**
  * \brief Start of every command, and all of A661_CMD_EXTEND (Table 4.5.3.3.2); parameters follow.
  */
+#pragma pack(push, 1)
 typedef struct BinaryCommand_s
 {
     uint16_t commandCode; ///< A661_CMD_CREATE or A661_CMD_EXTEND
     uint16_t commandSize; ///< CommandSize, including this header and the padding
     uint16_t type;        ///< WidgetType or ExtensionType
 } BinaryCommand_t;
+#pragma pack(pop)
+_Static_assert(6U == sizeof(BinaryCommand_t), "BinaryCommand_t is 6 bytes");
 
 /*************************************************************************************************/
 /**
  * \brief Header of A661_CMD_CREATE (Table 4.5.3.3.1); parameters follow.
  */
+#pragma pack(push, 1)
 typedef struct BinaryCreateCommand_s
 {
     BinaryCommand_t command;     ///< Command code, CommandSize, and WidgetType
     uint16_t        widgetIdent; ///< WidgetIdent
     uint16_t        parentIdent; ///< ParentIdent, or zero for a widget directly under its layer
 } BinaryCreateCommand_t;
+#pragma pack(pop)
+_Static_assert(10U == sizeof(BinaryCreateCommand_t), "BinaryCreateCommand_t is 10 bytes");
 
 /*************************************************************************************************/
 /**
  * \brief Header of one StaticParamBuffer entry (Table 8.6.5-3); the bytes and their alignment follow.
  */
+#pragma pack(push, 1)
 typedef struct BinarySizedBytes_s
 {
     uint16_t paramBufferSize; ///< ParamBufferSize, the bytes that follow before alignment
     uint16_t unusedPad;       ///< UnusedPad
 } BinarySizedBytes_t;
+#pragma pack(pop)
+_Static_assert(4U == sizeof(BinarySizedBytes_t), "BinarySizedBytes_t is 4 bytes");
 
 /*************************************************************************************************/
 /**
  * \brief Header of one LayerReqResult entry (Table 3.9.17-6); the request follows.
  */
+#pragma pack(push, 1)
 typedef struct BinaryLayerRequest_s
 {
     byte_t   layerIdent;  ///< LayerIdent
     byte_t   unusedPad;   ///< UnusedPad
     uint16_t commandSize; ///< CommandSize of the request that follows
 } BinaryLayerRequest_t;
+#pragma pack(pop)
+_Static_assert(4U == sizeof(BinaryLayerRequest_t), "BinaryLayerRequest_t is 4 bytes");
 
 /*************************************************************************************************/
 /**
  * \brief Header of an excluded region structure (Table 8.6.7-3); the region follows.
  */
+#pragma pack(push, 1)
 typedef struct BinaryRegionHeader_s
 {
     byte_t   excludedItemIndex; ///< ExcludedItemIndex
@@ -1295,18 +1321,6 @@ typedef struct BinaryRegionHeader_s
     uint16_t unusedPad;         ///< UnusedPad
 } BinaryRegionHeader_t;
 #pragma pack(pop)
-
-_Static_assert(8U == sizeof(BinaryHeader_t), "BinaryHeader_t is 8 bytes");
-_Static_assert(8U == sizeof(BinaryLayerBlock_t), "BinaryLayerBlock_t is 8 bytes");
-_Static_assert(8U == sizeof(BinarySizedBlock_t), "BinarySizedBlock_t is 8 bytes");
-_Static_assert(8U == sizeof(BinaryCharsetBlock_t), "BinaryCharsetBlock_t is 8 bytes");
-_Static_assert(4U == sizeof(BinaryBlockEnd_t), "BinaryBlockEnd_t is 4 bytes");
-_Static_assert(8U == sizeof(BinaryPictureBlock_t), "BinaryPictureBlock_t is 8 bytes");
-_Static_assert(8U == sizeof(BinaryPicture_t), "BinaryPicture_t is 8 bytes");
-_Static_assert(6U == sizeof(BinaryCommand_t), "BinaryCommand_t is 6 bytes");
-_Static_assert(10U == sizeof(BinaryCreateCommand_t), "BinaryCreateCommand_t is 10 bytes");
-_Static_assert(4U == sizeof(BinarySizedBytes_t), "BinarySizedBytes_t is 4 bytes");
-_Static_assert(4U == sizeof(BinaryLayerRequest_t), "BinaryLayerRequest_t is 4 bytes");
 _Static_assert(4U == sizeof(BinaryRegionHeader_t), "BinaryRegionHeader_t is 4 bytes");
 
 /*=================================================================================================
