@@ -368,6 +368,7 @@ bool_t Arinc661_Definition_Read(Arinc661_Definition_t* definition, byte_t* buffe
  *  - 004 This function shall return zero when FACEOE_Utl_Xml_WriteDocument rejects the output capacity.
  *  - 005 This function shall write the document element without an XML declaration.
  *  - 006 This function shall fail an assertion if definition, bufferToWriteXmlTo, or workspace is NULL.
+ *  - 007 This function shall fail an assertion if a count exceeds its capacity, or an array with a nonzero count is NULL.
  *
  * \param[in]     definition            Definition File data to write
  * \param[out]    bufferToWriteXmlTo    Output XML bytes
@@ -453,6 +454,7 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
  *  - 003 This function shall return zero when a widget type is unsupported, a widget property names no Creation Structure parameter, a value does not fit its parameter, or an array does not match its count.
  *  - 004 This function shall return zero without writing past capacityOfBinaryBuffer when the output does not fit.
  *  - 005 This function shall fail an assertion if definition or bufferToWriteBinaryTo is NULL.
+ *  - 006 This function shall fail an assertion if a count exceeds its capacity, or an array with a nonzero count is NULL.
  *
  * \param[in]     definition               Definition File data to write
  * \param[out]    bufferToWriteBinaryTo    Output binary bytes

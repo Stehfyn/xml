@@ -30,7 +30,6 @@
 #include <float.h>
 #include <limits.h>
 #include <math.h>
-#include <stddef.h>
 #include <string.h>
 
 /*=================================================================================================
@@ -4820,6 +4819,16 @@ static const ExtensionTargets_t c_extensionTargets[] =
 
 /*************************************************************************************************/
 /**
+ * \brief Asserts that each array of a Definition File holds its count.
+ *
+ * \param[in] definition   Definition File about to be written
+ *
+ * \retval    None
+ */
+static void AssertStorage(const Arinc661_Definition_t* definition);
+
+/*************************************************************************************************/
+/**
  * \brief Clears the published counts, block bytes, and charset of a Definition File.
  *
  * \param[in,out] definition   Definition File whose arrays and capacities are retained
@@ -5436,6 +5445,24 @@ static bool_t ReadOpaqueBlock(Arinc661_Definition_t* definition, const byte_t* b
 /*=================================================================================================
 ** 4. PRIVATE FUNCTIONS
 **===============================================================================================*/
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Each count must be within its capacity, and an array may be NULL only while
+ *  its count is zero, since the writers index every array up to its count.
+ */
+static void AssertStorage(const Arinc661_Definition_t* definition)
+{
+    LOGASSERT(definition->layerCount <= definition->layerCapacity);
+    LOGASSERT(definition->widgetCount <= definition->widgetCapacity);
+    LOGASSERT(definition->propertyCount <= definition->propertyCapacity);
+    LOGASSERT(definition->blockByteCount <= definition->blockCapacity);
+    LOGASSERT((NULL != definition->layers) || (0 == definition->layerCount));
+    LOGASSERT((NULL != definition->widgets) || (0 == definition->widgetCount));
+    LOGASSERT((NULL != definition->properties) || (0 == definition->propertyCount));
+    LOGASSERT((NULL != definition->blocks) || (0 == definition->blockByteCount));
+}
 
 /*************************************************************************************************/
 /**
@@ -6753,7 +6780,7 @@ static bool_t WriteField(const BinaryField_t* field, const Arinc661_Property_t* 
         if (is_valid)
         {
             WriteUnsigned(buffer, capacity, (*offset), (uint32_t)byte_count, BINARY_USHORT_BYTES);
-            WriteUnsigned(buffer, capacity, (*offset) + offsetof(BinarySizedBytes_t, unusedPad), 0, BINARY_USHORT_BYTES);
+            WriteUnsigned(buffer, capacity, (*offset) + OFFSET_OF(BinarySizedBytes_t, unusedPad), 0, BINARY_USHORT_BYTES);
             is_valid = WriteHexBytes(text, byte_count, buffer, capacity, (*offset) + sizeof(BinarySizedBytes_t));
         }
         (*offset) += (sizeof(BinarySizedBytes_t) + byte_count);
@@ -6766,8 +6793,8 @@ static bool_t WriteField(const BinaryField_t* field, const Arinc661_Property_t* 
         is_valid   = ((sizeof(BinaryRegionHeader_t) * HEX_DIGITS_PER_BYTE) <= strlen(text));
         if (is_valid)
         {
-            type_digit = strchr(c_binaryHexDigits, text[(offsetof(BinaryRegionHeader_t, regionType) * HEX_DIGITS_PER_BYTE) + 1U]);
-            is_valid   = ('0' == text[offsetof(BinaryRegionHeader_t, regionType) * HEX_DIGITS_PER_BYTE]) && (NULL != type_digit);
+            type_digit = strchr(c_binaryHexDigits, text[(OFFSET_OF(BinaryRegionHeader_t, regionType) * HEX_DIGITS_PER_BYTE) + 1U]);
+            is_valid   = ('0' == text[OFFSET_OF(BinaryRegionHeader_t, regionType) * HEX_DIGITS_PER_BYTE]) && (NULL != type_digit);
         }
         if (is_valid)
         {
@@ -6792,7 +6819,7 @@ static bool_t WriteField(const BinaryField_t* field, const Arinc661_Property_t* 
         if (is_valid)
         {
             request_size = 0;
-            for (byte_index = offsetof(BinaryLayerRequest_t, commandSize) * HEX_DIGITS_PER_BYTE; byte_index < ((offsetof(BinaryLayerRequest_t, commandSize) + BINARY_USHORT_BYTES) * HEX_DIGITS_PER_BYTE); ++byte_index)
+            for (byte_index = OFFSET_OF(BinaryLayerRequest_t, commandSize) * HEX_DIGITS_PER_BYTE; byte_index < ((OFFSET_OF(BinaryLayerRequest_t, commandSize) + BINARY_USHORT_BYTES) * HEX_DIGITS_PER_BYTE); ++byte_index)
             {
                 request_size = (request_size << HEX_DIGIT_BITS) | (uint32_t)(strchr(c_binaryHexDigits, text[byte_index]) - c_binaryHexDigits);
             }
@@ -7055,12 +7082,12 @@ static bool_t WriteCommand(const Arinc661_Definition_t* definition, uint32_t wid
     if (is_valid)
     {
         WriteUnsigned(buffer, capacity, (*offset), command, BINARY_USHORT_BYTES);
-        WriteUnsigned(buffer, capacity, (*offset) + offsetof(BinaryCommand_t, commandSize), (uint32_t)(cursor - (*offset)), BINARY_USHORT_BYTES);
-        WriteUnsigned(buffer, capacity, (*offset) + offsetof(BinaryCommand_t, type), type->code, BINARY_USHORT_BYTES);
+        WriteUnsigned(buffer, capacity, (*offset) + OFFSET_OF(BinaryCommand_t, commandSize), (uint32_t)(cursor - (*offset)), BINARY_USHORT_BYTES);
+        WriteUnsigned(buffer, capacity, (*offset) + OFFSET_OF(BinaryCommand_t, type), type->code, BINARY_USHORT_BYTES);
         if (FALSE == widget->isExtension)
         {
-            WriteUnsigned(buffer, capacity, (*offset) + offsetof(BinaryCreateCommand_t, widgetIdent), (uint32_t)widget_ident, BINARY_USHORT_BYTES);
-            WriteUnsigned(buffer, capacity, (*offset) + offsetof(BinaryCreateCommand_t, parentIdent), (uint32_t)parent_ident, BINARY_USHORT_BYTES);
+            WriteUnsigned(buffer, capacity, (*offset) + OFFSET_OF(BinaryCreateCommand_t, widgetIdent), (uint32_t)widget_ident, BINARY_USHORT_BYTES);
+            WriteUnsigned(buffer, capacity, (*offset) + OFFSET_OF(BinaryCreateCommand_t, parentIdent), (uint32_t)parent_ident, BINARY_USHORT_BYTES);
         }
         (*offset) = cursor;
     }
@@ -7339,7 +7366,7 @@ static bool_t ReadField(Arinc661_Definition_t* definition, const BinaryField_t* 
         is_valid = (sizeof(BinaryRegionHeader_t) <= remaining);
         if (is_valid)
         {
-            byte_count       = RegionByteCount(buffer[(*offset) + offsetof(BinaryRegionHeader_t, regionType)]);
+            byte_count       = RegionByteCount(buffer[(*offset) + OFFSET_OF(BinaryRegionHeader_t, regionType)]);
             has_region_bytes = (byte_count <= remaining);
             is_valid         = (0 != byte_count) && has_region_bytes;
         }
@@ -7354,7 +7381,7 @@ static bool_t ReadField(Arinc661_Definition_t* definition, const BinaryField_t* 
         is_valid = (sizeof(BinaryLayerRequest_t) <= remaining);
         if (is_valid)
         {
-            byte_count        = sizeof(BinaryLayerRequest_t) + ReadUnsigned(buffer, (*offset) + offsetof(BinaryLayerRequest_t, commandSize), BINARY_USHORT_BYTES);
+            byte_count        = sizeof(BinaryLayerRequest_t) + ReadUnsigned(buffer, (*offset) + OFFSET_OF(BinaryLayerRequest_t, commandSize), BINARY_USHORT_BYTES);
             has_request_bytes = (byte_count <= remaining);
             is_valid          = has_request_bytes && (0 == (byte_count % BINARY_WORD_BYTES));
         }
@@ -7500,7 +7527,7 @@ static bool_t ReadCommand(Arinc661_Definition_t* definition, const byte_t* buffe
     is_valid = is_extension || (BINARY_CMD_CREATE == command);
     if (is_valid)
     {
-        type     = FindTypeByCode(ReadUnsigned(buffer, commandOffset + offsetof(BinaryCommand_t, type), BINARY_USHORT_BYTES), is_extension);
+        type     = FindTypeByCode(ReadUnsigned(buffer, commandOffset + OFFSET_OF(BinaryCommand_t, type), BINARY_USHORT_BYTES), is_extension);
         is_valid = (NULL != type);
     }
     if (is_valid)
@@ -7526,25 +7553,25 @@ static bool_t ReadCommand(Arinc661_Definition_t* definition, const byte_t* buffe
         else
         {
             cursor       = commandOffset + sizeof(BinaryCreateCommand_t);
-            parent_ident = ReadUnsigned(buffer, commandOffset + offsetof(BinaryCreateCommand_t, parentIdent), BINARY_USHORT_BYTES);
+            parent_ident = ReadUnsigned(buffer, commandOffset + OFFSET_OF(BinaryCreateCommand_t, parentIdent), BINARY_USHORT_BYTES);
             if (0 != parent_ident)
             {
                 cursor = firstCommandOffset;
                 for (widget_index = firstWidgetIndex; widget_index < definition->widgetCount; ++widget_index)
                 {
-                    if ((BINARY_CMD_CREATE == ReadUnsigned(buffer, cursor, BINARY_USHORT_BYTES)) && (parent_ident == ReadUnsigned(buffer, cursor + offsetof(BinaryCreateCommand_t, widgetIdent), BINARY_USHORT_BYTES)))
+                    if ((BINARY_CMD_CREATE == ReadUnsigned(buffer, cursor, BINARY_USHORT_BYTES)) && (parent_ident == ReadUnsigned(buffer, cursor + OFFSET_OF(BinaryCreateCommand_t, widgetIdent), BINARY_USHORT_BYTES)))
                     {
                         widget->parentWidgetIndex = widget_index;
                         break;
                     }
-                    cursor += ReadUnsigned(buffer, cursor + offsetof(BinaryCommand_t, commandSize), BINARY_USHORT_BYTES);
+                    cursor += ReadUnsigned(buffer, cursor + OFFSET_OF(BinaryCommand_t, commandSize), BINARY_USHORT_BYTES);
                 }
                 cursor   = commandOffset + sizeof(BinaryCreateCommand_t);
                 is_valid = (UINT32_MAX != widget->parentWidgetIndex);
             }
             if (is_valid)
             {
-                is_valid = AddIntegerProperty(definition, ARINC661_PROPERTY_WIDGET, definition->widgetCount, BINARY_PROPERTY_WIDGET_IDENT, ReadUnsigned(buffer, commandOffset + offsetof(BinaryCreateCommand_t, widgetIdent), BINARY_USHORT_BYTES));
+                is_valid = AddIntegerProperty(definition, ARINC661_PROPERTY_WIDGET, definition->widgetCount, BINARY_PROPERTY_WIDGET_IDENT, ReadUnsigned(buffer, commandOffset + OFFSET_OF(BinaryCreateCommand_t, widgetIdent), BINARY_USHORT_BYTES));
             }
         }
     }
@@ -7642,7 +7669,7 @@ static bool_t ReadLayer(Arinc661_Definition_t* definition, const byte_t* buffer,
     is_valid           = has_minimum_bytes;
     if (is_valid)
     {
-        block_size          = ReadUnsigned(buffer, (*offset) + offsetof(BinaryLayerBlock_t, blockSize), BINARY_ULONG_BYTES);
+        block_size          = ReadUnsigned(buffer, (*offset) + OFFSET_OF(BinaryLayerBlock_t, blockSize), BINARY_ULONG_BYTES);
         is_block_size_valid = ((sizeof(BinaryLayerBlock_t) + sizeof(BinaryBlockEnd_t)) <= block_size) && (0 == (block_size % BINARY_WORD_BYTES));
         has_block_bytes     = (block_size <= (sizeOfBinaryBuffer - (*offset)));
         is_valid            = is_block_size_valid && has_block_bytes;
@@ -7660,11 +7687,11 @@ static bool_t ReadLayer(Arinc661_Definition_t* definition, const byte_t* buffer,
     {
         layer = &definition->layers[layer_index];
         (void)memset(layer, 0, sizeof((*layer)));
-        is_valid = AddIntegerProperty(definition, ARINC661_PROPERTY_LAYER, layer_index, BINARY_PROPERTY_LAYER_ID, buffer[(*offset) + offsetof(BinaryLayerBlock_t, layerIdent)]);
+        is_valid = AddIntegerProperty(definition, ARINC661_PROPERTY_LAYER, layer_index, BINARY_PROPERTY_LAYER_ID, buffer[(*offset) + OFFSET_OF(BinaryLayerBlock_t, layerIdent)]);
     }
     if (is_valid)
     {
-        is_valid = AddIntegerProperty(definition, ARINC661_PROPERTY_LAYER, layer_index, BINARY_PROPERTY_CONTEXT_NUMBER, ReadUnsigned(buffer, (*offset) + offsetof(BinaryLayerBlock_t, contextNumber), BINARY_USHORT_BYTES));
+        is_valid = AddIntegerProperty(definition, ARINC661_PROPERTY_LAYER, layer_index, BINARY_PROPERTY_CONTEXT_NUMBER, ReadUnsigned(buffer, (*offset) + OFFSET_OF(BinaryLayerBlock_t, contextNumber), BINARY_USHORT_BYTES));
     }
     if (is_valid)
     {
@@ -7682,7 +7709,7 @@ static bool_t ReadLayer(Arinc661_Definition_t* definition, const byte_t* buffer,
             is_valid           = has_command_header;
             if (is_valid)
             {
-                command_size          = ReadUnsigned(buffer, cursor + offsetof(BinaryCommand_t, commandSize), BINARY_USHORT_BYTES);
+                command_size          = ReadUnsigned(buffer, cursor + OFFSET_OF(BinaryCommand_t, commandSize), BINARY_USHORT_BYTES);
                 is_command_size_valid = (AlignToWord(sizeof(BinaryCommand_t)) <= command_size) && (0 == (command_size % BINARY_WORD_BYTES));
                 has_command_bytes     = (command_size <= (end_offset - cursor));
                 is_valid              = is_command_size_valid && has_command_bytes;
@@ -7739,8 +7766,8 @@ static bool_t MeasurePicture(const byte_t* buffer, uint64_t sizeOfBinaryBuffer, 
     is_valid          = has_picture_bytes && (BINARY_BEGIN_PICTURE == buffer[(*cursor)]);
     if (is_valid)
     {
-        width              = ReadUnsigned(buffer, (*cursor) + offsetof(BinaryPicture_t, width), BINARY_USHORT_BYTES);
-        height             = ReadUnsigned(buffer, (*cursor) + offsetof(BinaryPicture_t, height), BINARY_USHORT_BYTES);
+        width              = ReadUnsigned(buffer, (*cursor) + OFFSET_OF(BinaryPicture_t, width), BINARY_USHORT_BYTES);
+        height             = ReadUnsigned(buffer, (*cursor) + OFFSET_OF(BinaryPicture_t, height), BINARY_USHORT_BYTES);
         pixel_bytes        = (uint64_t)width * height * c_pixelFormatBytes[pixelFormat - BINARY_PIX_FMT_RGBA_8];
         (*cursor)         += sizeof(BinaryPicture_t) + AlignToWord(pixel_bytes);
         has_end_code_bytes = ((*cursor) <= sizeOfBinaryBuffer) && (sizeof(BinaryBlockEnd_t) <= (sizeOfBinaryBuffer - (*cursor)));
@@ -7780,10 +7807,10 @@ static bool_t MeasurePictureBlock(const byte_t* buffer, uint64_t sizeOfBinaryBuf
     is_valid         = has_header_bytes;
     if (is_valid)
     {
-        pixel_format  = buffer[offset + offsetof(BinaryPictureBlock_t, pixelFormat)];
-        picture_count = buffer[offset + offsetof(BinaryPictureBlock_t, pictureCount)];
-        color_count   = buffer[offset + offsetof(BinaryPictureBlock_t, colorCount)];
-        color_format  = buffer[offset + offsetof(BinaryPictureBlock_t, colorFormat)];
+        pixel_format  = buffer[offset + OFFSET_OF(BinaryPictureBlock_t, pixelFormat)];
+        picture_count = buffer[offset + OFFSET_OF(BinaryPictureBlock_t, pictureCount)];
+        color_count   = buffer[offset + OFFSET_OF(BinaryPictureBlock_t, colorCount)];
+        color_format  = buffer[offset + OFFSET_OF(BinaryPictureBlock_t, colorFormat)];
         is_valid      = (BINARY_PIX_FMT_RGBA_8 <= pixel_format) && (BINARY_PIX_FMT_COLOR_INDEXED_8 >= pixel_format);
         if (is_valid && (0 != color_count))
         {
@@ -7871,7 +7898,7 @@ static bool_t ReadOpaqueBlock(Arinc661_Definition_t* definition, const byte_t* b
         is_valid         = has_header_bytes;
         if (is_valid)
         {
-            block_size          = ReadUnsigned(buffer, (*offset) + offsetof(BinarySizedBlock_t, blockSize), BINARY_ULONG_BYTES);
+            block_size          = ReadUnsigned(buffer, (*offset) + OFFSET_OF(BinarySizedBlock_t, blockSize), BINARY_ULONG_BYTES);
             is_block_size_valid = ((sizeof(BinarySizedBlock_t) + sizeof(BinaryBlockEnd_t)) <= block_size);
             has_block_bytes     = (block_size <= (sizeOfBinaryBuffer - (*offset)));
             is_valid            = is_block_size_valid && has_block_bytes;
@@ -8473,6 +8500,7 @@ uint64_t Arinc661_Definition_Write(const Arinc661_Definition_t* definition, byte
     LOGASSERT(NULL != definition);
     LOGASSERT(NULL != bufferToWriteXmlTo);
     LOGASSERT(NULL != workspace);
+    AssertStorage(definition);
     // Keep zero as the failure result until the complete document is written
     byte_count    = 0;
     has_workspace = InitializeXmlWorkspace(&xml, workspace, workspaceSize);
@@ -8659,16 +8687,16 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
     is_valid   = (sizeof(BinaryHeader_t) <= sizeOfBinaryBuffer);
     if (is_valid)
     {
-        is_valid = (BINARY_DF_MAGIC_NUMBER == ReadUnsigned(bufferToReadBinaryFrom, offsetof(BinaryHeader_t, magicNumber), BINARY_USHORT_BYTES));
+        is_valid = (BINARY_DF_MAGIC_NUMBER == ReadUnsigned(bufferToReadBinaryFrom, OFFSET_OF(BinaryHeader_t, magicNumber), BINARY_USHORT_BYTES));
     }
     if (is_valid)
     {
         definition->name[0]           = '\0';
-        definition->libraryVersion    = bufferToReadBinaryFrom[offsetof(BinaryHeader_t, libraryVersion)];
-        definition->supplementVersion = bufferToReadBinaryFrom[offsetof(BinaryHeader_t, supplementVersion)];
-        is_valid                      = AddIntegerProperty(definition, ARINC661_PROPERTY_DEFINITION, 0, BINARY_PROPERTY_APPLICATION_ID, ReadUnsigned(bufferToReadBinaryFrom, offsetof(BinaryHeader_t, appliIdent), BINARY_USHORT_BYTES));
+        definition->libraryVersion    = bufferToReadBinaryFrom[OFFSET_OF(BinaryHeader_t, libraryVersion)];
+        definition->supplementVersion = bufferToReadBinaryFrom[OFFSET_OF(BinaryHeader_t, supplementVersion)];
+        is_valid                      = AddIntegerProperty(definition, ARINC661_PROPERTY_DEFINITION, 0, BINARY_PROPERTY_APPLICATION_ID, ReadUnsigned(bufferToReadBinaryFrom, OFFSET_OF(BinaryHeader_t, appliIdent), BINARY_USHORT_BYTES));
         // Skip the implementation-dependent OEM data, which occupies whole words
-        offset += AlignToWord(ReadUnsigned(bufferToReadBinaryFrom, offsetof(BinaryHeader_t, oemDataSize), BINARY_USHORT_BYTES));
+        offset += AlignToWord(ReadUnsigned(bufferToReadBinaryFrom, OFFSET_OF(BinaryHeader_t, oemDataSize), BINARY_USHORT_BYTES));
     }
     if (is_valid)
     {
@@ -8695,10 +8723,10 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
             {
                 // Read the block as code, pad, encoding, end code, pad (Table 4.5.3.2-6) and allow one per file
                 has_charset_bytes = (sizeof(BinaryCharsetBlock_t) <= (sizeOfBinaryBuffer - offset));
-                is_valid          = has_charset_bytes && (BINARY_END_CHARSET_BLOCK == bufferToReadBinaryFrom[offset + offsetof(BinaryCharsetBlock_t, endCode)]) && (0 == definition->charsetEncoding);
+                is_valid          = has_charset_bytes && (BINARY_END_CHARSET_BLOCK == bufferToReadBinaryFrom[offset + OFFSET_OF(BinaryCharsetBlock_t, endCode)]) && (0 == definition->charsetEncoding);
                 if (is_valid)
                 {
-                    definition->charsetEncoding = ReadUnsigned(bufferToReadBinaryFrom, offset + offsetof(BinaryCharsetBlock_t, encoding), BINARY_USHORT_BYTES);
+                    definition->charsetEncoding = ReadUnsigned(bufferToReadBinaryFrom, offset + OFFSET_OF(BinaryCharsetBlock_t, encoding), BINARY_USHORT_BYTES);
                     is_valid                    = (0 != definition->charsetEncoding);
                     offset                     += sizeof(BinaryCharsetBlock_t);
                 }
@@ -8769,7 +8797,7 @@ uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition
 
     LOGASSERT(NULL != definition);
     LOGASSERT(NULL != bufferToWriteBinaryTo);
-    LOGASSERT((NULL != definition->blocks) || (0 == definition->blockByteCount));
+    AssertStorage(definition);
     // Keep zero as the failure result until the complete file is written
     byte_count     = 0;
     application_id = 0;
@@ -8784,16 +8812,16 @@ uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition
     }
     if (is_valid)
     {
-        WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offsetof(BinaryHeader_t, magicNumber), BINARY_DF_MAGIC_NUMBER, BINARY_USHORT_BYTES);
-        WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offsetof(BinaryHeader_t, libraryVersion), definition->libraryVersion, BINARY_UCHAR_BYTES);
-        WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offsetof(BinaryHeader_t, supplementVersion), definition->supplementVersion, BINARY_UCHAR_BYTES);
-        WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offsetof(BinaryHeader_t, appliIdent), (uint32_t)application_id, BINARY_USHORT_BYTES);
+        WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, OFFSET_OF(BinaryHeader_t, magicNumber), BINARY_DF_MAGIC_NUMBER, BINARY_USHORT_BYTES);
+        WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, OFFSET_OF(BinaryHeader_t, libraryVersion), definition->libraryVersion, BINARY_UCHAR_BYTES);
+        WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, OFFSET_OF(BinaryHeader_t, supplementVersion), definition->supplementVersion, BINARY_UCHAR_BYTES);
+        WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, OFFSET_OF(BinaryHeader_t, appliIdent), (uint32_t)application_id, BINARY_USHORT_BYTES);
         // Write no OEM free data
-        WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offsetof(BinaryHeader_t, oemDataSize), 0, BINARY_USHORT_BYTES);
+        WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, OFFSET_OF(BinaryHeader_t, oemDataSize), 0, BINARY_USHORT_BYTES);
         if (0 != definition->charsetEncoding)
         {
             WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offset, (BINARY_BEGIN_CHARSET_BLOCK << BINARY_BLOCK_CODE_SHIFT) | definition->charsetEncoding, BINARY_ULONG_BYTES);
-            WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offset + offsetof(BinaryCharsetBlock_t, endCode), BINARY_END_CHARSET_BLOCK << BINARY_BLOCK_CODE_SHIFT, BINARY_ULONG_BYTES);
+            WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, offset + OFFSET_OF(BinaryCharsetBlock_t, endCode), BINARY_END_CHARSET_BLOCK << BINARY_BLOCK_CODE_SHIFT, BINARY_ULONG_BYTES);
             offset += sizeof(BinaryCharsetBlock_t);
         }
         // Write symbol, picture, and animation law blocks before the layers (Table 4.5.3.2-1)
@@ -8818,8 +8846,8 @@ uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition
                 break;
             }
             WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, layer_offset, BINARY_BEGIN_LAYER_BLOCK, BINARY_UCHAR_BYTES);
-            WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, layer_offset + offsetof(BinaryLayerBlock_t, layerIdent), (uint32_t)layer_id, BINARY_UCHAR_BYTES);
-            WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, layer_offset + offsetof(BinaryLayerBlock_t, contextNumber), (uint32_t)context_number, BINARY_USHORT_BYTES);
+            WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, layer_offset + OFFSET_OF(BinaryLayerBlock_t, layerIdent), (uint32_t)layer_id, BINARY_UCHAR_BYTES);
+            WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, layer_offset + OFFSET_OF(BinaryLayerBlock_t, contextNumber), (uint32_t)context_number, BINARY_USHORT_BYTES);
             offset += sizeof(BinaryLayerBlock_t);
             for (widget_index = 0; widget_index < definition->widgetCount; ++widget_index)
             {
@@ -8848,7 +8876,7 @@ uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition
             {
                 break;
             }
-            WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, layer_offset + offsetof(BinaryLayerBlock_t, blockSize), (uint32_t)(offset - layer_offset), BINARY_ULONG_BYTES);
+            WriteUnsigned(bufferToWriteBinaryTo, capacityOfBinaryBuffer, layer_offset + OFFSET_OF(BinaryLayerBlock_t, blockSize), (uint32_t)(offset - layer_offset), BINARY_ULONG_BYTES);
         }
     }
     if (is_valid)

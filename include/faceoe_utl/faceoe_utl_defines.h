@@ -9,14 +9,17 @@
 ** 2. INCLUDE FILES
 **===============================================================================================*/
 
+#include <stddef.h>
+
 /*=================================================================================================
 ** 3. DECLARATIONS
 **
 ** 3.1 Macros
 **===============================================================================================*/
 
-#define BYTE_TO_BITS    (0x08)                               ///< Number of bits in one byte.
-#define COUNT_OF(array) (sizeof(array) / sizeof((array)[0])) ///< Compile-time element count of a true array object.
+#define BYTE_TO_BITS            (0x08)                               ///< Number of bits in one byte.
+#define COUNT_OF(array)         (sizeof(array) / sizeof((array)[0])) ///< Compile-time element count of a true array object.
+#define OFFSET_OF(type, member) (offsetof(type, member))             ///< Compile-time byte offset of a member within its structure.
 
 #define LBIT0 (1 << 0) ///< Bit zero mask.
 #define LBIT1 (1 << 1) ///< Bit one mask.
