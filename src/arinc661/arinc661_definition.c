@@ -6698,28 +6698,24 @@ static uint32_t GetEntryCount(const BinaryWidget_t* type, const BinaryField_t* f
  */
 static Arinc661_ParameterKind_t FieldTypeToParameterKind(BinaryFieldType_t fieldType)
 {
-    Arinc661_ParameterKind_t kind;
-
     switch (fieldType)
     {
-        case BINARY_FIELD_UCHAR:         kind = ARINC661_PARAMETER_UCHAR;         break;
-        case BINARY_FIELD_USHORT:        kind = ARINC661_PARAMETER_USHORT;        break;
-        case BINARY_FIELD_LONG:          kind = ARINC661_PARAMETER_LONG;          break;
-        case BINARY_FIELD_ULONG:         kind = ARINC661_PARAMETER_ULONG;         break;
-        case BINARY_FIELD_FLOAT:         kind = ARINC661_PARAMETER_FLOAT;         break;
-        case BINARY_FIELD_FR180:         kind = ARINC661_PARAMETER_FR180;         break;
-        case BINARY_FIELD_FR32768:       kind = ARINC661_PARAMETER_FR32768;       break;
-        case BINARY_FIELD_STRING:        kind = ARINC661_PARAMETER_STRING;        break;
-        case BINARY_FIELD_BYTES:         kind = ARINC661_PARAMETER_BYTES;         break;
-        case BINARY_FIELD_SIZED_BYTES:   kind = ARINC661_PARAMETER_SIZED_BYTES;   break;
-        case BINARY_FIELD_REGION:        kind = ARINC661_PARAMETER_REGION;        break;
-        case BINARY_FIELD_LAYER_REQUEST: kind = ARINC661_PARAMETER_LAYER_REQUEST; break;
+        case BINARY_FIELD_UCHAR:         return ARINC661_PARAMETER_UCHAR;
+        case BINARY_FIELD_USHORT:        return ARINC661_PARAMETER_USHORT;
+        case BINARY_FIELD_LONG:          return ARINC661_PARAMETER_LONG;
+        case BINARY_FIELD_ULONG:         return ARINC661_PARAMETER_ULONG;
+        case BINARY_FIELD_FLOAT:         return ARINC661_PARAMETER_FLOAT;
+        case BINARY_FIELD_FR180:         return ARINC661_PARAMETER_FR180;
+        case BINARY_FIELD_FR32768:       return ARINC661_PARAMETER_FR32768;
+        case BINARY_FIELD_STRING:        return ARINC661_PARAMETER_STRING;
+        case BINARY_FIELD_BYTES:         return ARINC661_PARAMETER_BYTES;
+        case BINARY_FIELD_SIZED_BYTES:   return ARINC661_PARAMETER_SIZED_BYTES;
+        case BINARY_FIELD_REGION:        return ARINC661_PARAMETER_REGION;
+        case BINARY_FIELD_LAYER_REQUEST: return ARINC661_PARAMETER_LAYER_REQUEST;
         case BINARY_FIELD_PAD:
         case BINARY_FIELD_ALIGN:
         default:                         LOGFATAL("Named parameter with a pad type!");
     }
-
-    return kind;
 }
 
 /*************************************************************************************************/
