@@ -755,7 +755,7 @@ static const FACEOE_Utl_Xml_Attribute_t* FindAttribute(const FACEOE_Utl_Xml_Node
  * \endverbatim
  *
  *  The attribute's valueByteCount supplies its length, so its value does not need
- *  a zero terminator. Only the expected literal is measured with strlen.
+ *  a zero terminator. Only the length of the expected literal is taken, with strnlen.
  */
 static bool_t HasAttributeValue(const FACEOE_Utl_Xml_Attribute_t* attribute, const char_t* value)
 {

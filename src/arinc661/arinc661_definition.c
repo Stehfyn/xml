@@ -5757,21 +5757,33 @@ static bool_t ReadLayer(Arinc661_Definition_t* definition, const byte_t* buffer,
  * \retval        TRUE                 if the picture lies inside the input and ends with A661_END_PICTURE.
  * \retval        FALSE                otherwise.
  */
-static bool_t MeasurePicture(const byte_t* buffer, uint64_t sizeOfBinaryBuffer, uint32_t pixelFormat, uint64_t* cursor);
+static bool_t ReadPicture(const byte_t* buffer, uint64_t sizeOfBinaryBuffer, uint32_t pixelFormat, uint64_t* cursor);
 
 /*************************************************************************************************/
 /**
- * \brief Measures a picture block (Tables 7-1 and 7-2).
+ * \brief Reads past a picture block (Tables 7-1 and 7-2).
  *
- * \param[in]  buffer               Input bytes
- * \param[in]  sizeOfBinaryBuffer   Number of input bytes
- * \param[in]  offset               Byte offset of the block
- * \param[out] blockSize            Number of bytes in the block
+ * \param[in]     buffer               Input bytes
+ * \param[in]     sizeOfBinaryBuffer   Number of input bytes
+ * \param[in,out] offset               Byte offset of the block, advanced past its end code
  *
- * \retval     TRUE                 if the block is well formed and complete.
- * \retval     FALSE                if it is truncated or uses an unknown pixel format.
+ * \retval        TRUE                 if the block is well formed and complete.
+ * \retval        FALSE                if it is truncated or uses an unknown pixel format.
  */
-static bool_t MeasurePictureBlock(const byte_t* buffer, uint64_t sizeOfBinaryBuffer, uint64_t offset, uint64_t* blockSize);
+static bool_t ReadPictureBlock(const byte_t* buffer, uint64_t sizeOfBinaryBuffer, uint64_t* offset);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads past a symbol or animation law block by its Block Size.
+ *
+ * \param[in]     buffer               Input bytes
+ * \param[in]     sizeOfBinaryBuffer   Number of input bytes
+ * \param[in,out] offset               Byte offset of the block, advanced past its end code
+ *
+ * \retval        TRUE                 if the Block Size stays inside the input and ends at the block's end code.
+ * \retval        FALSE                otherwise.
+ */
+static bool_t ReadSizedBlock(const byte_t* buffer, uint64_t sizeOfBinaryBuffer, uint64_t* offset);
 
 /*************************************************************************************************/
 /**
@@ -5782,7 +5794,7 @@ static bool_t MeasurePictureBlock(const byte_t* buffer, uint64_t sizeOfBinaryBuf
  * \param[in]     sizeOfBinaryBuffer   Number of input bytes
  * \param[in,out] offset               Byte offset of the block, advanced past it
  *
- * \retval        TRUE                 if the block was measured and copied.
+ * \retval        TRUE                 if the block was read and copied.
  * \retval        FALSE                if the block is malformed or block storage is insufficient.
  */
 static bool_t ReadOpaqueBlock(Arinc661_Definition_t* definition, const byte_t* buffer, uint64_t sizeOfBinaryBuffer, uint64_t* offset);
@@ -8683,7 +8695,7 @@ static bool_t ReadLayer(Arinc661_Definition_t* definition, const byte_t* buffer,
  * 000000    UnusedPad
  * \endverbatim
  */
-static bool_t MeasurePicture(const byte_t* buffer, uint64_t sizeOfBinaryBuffer, uint32_t pixelFormat, uint64_t* cursor)
+static bool_t ReadPicture(const byte_t* buffer, uint64_t sizeOfBinaryBuffer, uint32_t pixelFormat, uint64_t* cursor)
 {
     uint64_t pixel_bytes;
     uint32_t width;
@@ -8714,11 +8726,11 @@ static bool_t MeasurePicture(const byte_t* buffer, uint64_t sizeOfBinaryBuffer, 
  *  Walks Table 7-1: the block header, an optional color table, each picture of
  *  Table 7-2 with its pixel data padded to 32 bits, an optional reserved word,
  *  and the end code. Bytes per pixel and per color table entry follow
- *  Table 7-3; an implementation-dependent format cannot be measured and
+ *  Table 7-3; an implementation-dependent format cannot be read and
  *  returns FALSE. Appendix C shows the end code directly after the last
  *  picture, while Table 7-1 lists a reserved word before it, so both are accepted.
  */
-static bool_t MeasurePictureBlock(const byte_t* buffer, uint64_t sizeOfBinaryBuffer, uint64_t offset, uint64_t* blockSize)
+static bool_t ReadPictureBlock(const byte_t* buffer, uint64_t sizeOfBinaryBuffer, uint64_t* offset)
 {
     uint64_t cursor;
     uint32_t pixel_format;
@@ -8730,24 +8742,24 @@ static bool_t MeasurePictureBlock(const byte_t* buffer, uint64_t sizeOfBinaryBuf
     bool_t   has_header_bytes;
     bool_t   is_valid;
 
-    cursor           = offset + sizeof(BinaryPictureBlock_t);
+    cursor           = (*offset) + sizeof(BinaryPictureBlock_t);
     pixel_format     = 0;
     picture_count    = 0;
-    has_header_bytes = (sizeof(BinaryPictureBlock_t) <= (sizeOfBinaryBuffer - offset));
+    has_header_bytes = (sizeof(BinaryPictureBlock_t) <= (sizeOfBinaryBuffer - (*offset)));
     is_valid         = has_header_bytes;
     if (is_valid)
     {
-        pixel_format  = buffer[offset + OFFSET_OF(BinaryPictureBlock_t, pixelFormat)];
-        picture_count = buffer[offset + OFFSET_OF(BinaryPictureBlock_t, pictureCount)];
-        color_count   = buffer[offset + OFFSET_OF(BinaryPictureBlock_t, colorCount)];
-        color_format  = buffer[offset + OFFSET_OF(BinaryPictureBlock_t, colorFormat)];
+        pixel_format  = buffer[(*offset) + OFFSET_OF(BinaryPictureBlock_t, pixelFormat)];
+        picture_count = buffer[(*offset) + OFFSET_OF(BinaryPictureBlock_t, pictureCount)];
+        color_count   = buffer[(*offset) + OFFSET_OF(BinaryPictureBlock_t, colorCount)];
+        color_format  = buffer[(*offset) + OFFSET_OF(BinaryPictureBlock_t, colorFormat)];
         is_valid      = (BINARY_PIX_FMT_RGBA_8 <= pixel_format) && (BINARY_PIX_FMT_COLOR_INDEXED_8 >= pixel_format);
         if (is_valid && (0 != color_count))
         {
             is_valid = (BINARY_PIX_FMT_RGBA_8 <= color_format) && (BINARY_PIX_FMT_COLOR_INDEXED_8 >= color_format);
             if (is_valid)
             {
-                // Measure color table entries in their own format and pad them as a whole
+                // Step over the color table entries, sized in their own format and padded as a whole
                 cursor += AlignToWord((uint64_t)color_count * c_pixelFormatBytes[color_format - BINARY_PIX_FMT_RGBA_8]);
             }
         }
@@ -8756,7 +8768,7 @@ static bool_t MeasurePictureBlock(const byte_t* buffer, uint64_t sizeOfBinaryBuf
     {
         for (picture_index = 0; picture_index < picture_count; ++picture_index)
         {
-            is_valid = MeasurePicture(buffer, sizeOfBinaryBuffer, pixel_format, &cursor);
+            is_valid = ReadPicture(buffer, sizeOfBinaryBuffer, pixel_format, &cursor);
             if (FALSE == is_valid)
             {
                 break;
@@ -8777,7 +8789,7 @@ static bool_t MeasurePictureBlock(const byte_t* buffer, uint64_t sizeOfBinaryBuf
     }
     if (is_valid)
     {
-        (*blockSize) = (cursor + sizeof(BinaryBlockEnd_t)) - offset;
+        (*offset) = cursor + sizeof(BinaryBlockEnd_t);
     }
 
     return is_valid;
@@ -8797,13 +8809,8 @@ static bool_t MeasurePictureBlock(const byte_t* buffer, uint64_t sizeOfBinaryBuf
  * F8        A661_END_SYMBOL_BLOCK (CB for A661_END_ANIMATION_LAW_BLOCK)
  * 000000    UnusedPad
  * \endverbatim
- *
- *  Picture blocks have no Block Size and are measured by MeasurePictureBlock
- *  instead. The block is appended unchanged to the caller's block
- *  storage, so Arinc661_Definition_WriteBinary can emit it again. The storage
- *  pointer may be NULL only while its capacity is zero.
  */
-static bool_t ReadOpaqueBlock(Arinc661_Definition_t* definition, const byte_t* buffer, uint64_t sizeOfBinaryBuffer, uint64_t* offset)
+static bool_t ReadSizedBlock(const byte_t* buffer, uint64_t sizeOfBinaryBuffer, uint64_t* offset)
 {
     uint64_t block_size;
     uint32_t end_code;
@@ -8812,41 +8819,69 @@ static bool_t ReadOpaqueBlock(Arinc661_Definition_t* definition, const byte_t* b
     bool_t   has_block_bytes;
     bool_t   is_valid;
 
-    block_size = 0;
-    if (BINARY_BEGIN_PICTURE_BLOCK == buffer[(*offset)])
+    if (BINARY_BEGIN_SYMBOL_BLOCK == buffer[(*offset)])
     {
-        is_valid = MeasurePictureBlock(buffer, sizeOfBinaryBuffer, (*offset), &block_size);
+        end_code = BINARY_END_SYMBOL_BLOCK;
     }
     else
     {
         end_code = BINARY_END_ANIMATION_BLOCK;
-        if (BINARY_BEGIN_SYMBOL_BLOCK == buffer[(*offset)])
-        {
-            end_code = BINARY_END_SYMBOL_BLOCK;
-        }
-        has_header_bytes = (sizeof(BinarySizedBlock_t) <= (sizeOfBinaryBuffer - (*offset)));
-        is_valid         = has_header_bytes;
-        if (is_valid)
-        {
-            block_size          = ReadUnsigned(buffer, (*offset) + OFFSET_OF(BinarySizedBlock_t, blockSize), BINARY_ULONG_BYTES);
-            is_block_size_valid = ((sizeof(BinarySizedBlock_t) + sizeof(BinaryBlockEnd_t)) <= block_size);
-            has_block_bytes     = (block_size <= (sizeOfBinaryBuffer - (*offset)));
-            is_valid            = is_block_size_valid && has_block_bytes;
-        }
-        if (is_valid)
-        {
-            is_valid = (end_code == buffer[(*offset) + block_size - sizeof(BinaryBlockEnd_t)]);
-        }
+    }
+    has_header_bytes = (sizeof(BinarySizedBlock_t) <= (sizeOfBinaryBuffer - (*offset)));
+    is_valid         = has_header_bytes;
+    if (is_valid)
+    {
+        block_size          = ReadUnsigned(buffer, (*offset) + OFFSET_OF(BinarySizedBlock_t, blockSize), BINARY_ULONG_BYTES);
+        is_block_size_valid = ((sizeof(BinarySizedBlock_t) + sizeof(BinaryBlockEnd_t)) <= block_size);
+        has_block_bytes     = (block_size <= (sizeOfBinaryBuffer - (*offset)));
+        is_valid            = is_block_size_valid && has_block_bytes;
     }
     if (is_valid)
     {
-        is_valid = (block_size <= (definition->blockCapacity - definition->blockByteCount));
+        is_valid = (end_code == buffer[(*offset) + block_size - sizeof(BinaryBlockEnd_t)]);
     }
     if (is_valid)
     {
-        (void)memcpy(&definition->blocks[definition->blockByteCount], &buffer[(*offset)], (size_t)block_size);
+        (*offset) += block_size;
+    }
+
+    return is_valid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Reads past the block with ReadPictureBlock, since picture blocks have no Block
+ *  Size, or with ReadSizedBlock, then appends the bytes it covered unchanged to the
+ *  caller's block storage, so Arinc661_Definition_WriteBinary can emit them again.
+ *  The storage pointer may be NULL only while its capacity is zero.
+ */
+static bool_t ReadOpaqueBlock(Arinc661_Definition_t* definition, const byte_t* buffer, uint64_t sizeOfBinaryBuffer, uint64_t* offset)
+{
+    uint64_t block_offset;
+    uint64_t block_size;
+    bool_t   has_storage;
+    bool_t   is_valid;
+
+    block_offset = (*offset);
+    if (BINARY_BEGIN_PICTURE_BLOCK == buffer[block_offset])
+    {
+        is_valid = ReadPictureBlock(buffer, sizeOfBinaryBuffer, offset);
+    }
+    else
+    {
+        is_valid = ReadSizedBlock(buffer, sizeOfBinaryBuffer, offset);
+    }
+    if (is_valid)
+    {
+        block_size  = (*offset) - block_offset;
+        has_storage = (block_size <= (definition->blockCapacity - definition->blockByteCount));
+        is_valid    = has_storage;
+    }
+    if (is_valid)
+    {
+        (void)memcpy(&definition->blocks[definition->blockByteCount], &buffer[block_offset], (size_t)block_size);
         definition->blockByteCount += block_size;
-        (*offset)                  += block_size;
     }
 
     return is_valid;
