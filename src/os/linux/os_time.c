@@ -29,7 +29,7 @@
  */
 uint64_t Os_Time_GetNanoseconds(void)
 {
-    int clock_result;
+    int             clock_result;
     struct timespec now;
 
     clock_result = clock_gettime(CLOCK_MONOTONIC, &now);

@@ -1024,9 +1024,9 @@ static const FACEOE_Utl_Xml_Attribute_t* FindAttribute(const FACEOE_Utl_Xml_Node
 {
     const FACEOE_Utl_Xml_Attribute_t* current_attribute;
     const FACEOE_Utl_Xml_Attribute_t* found_attribute;
-    uint32_t                   attribute_index;
-    bool_t                     has_same_name_byte_count;
-    bool_t                     has_same_name;
+    uint32_t                          attribute_index;
+    bool_t                            has_same_name_byte_count;
+    bool_t                            has_same_name;
 
     current_attribute = node->firstAttribute;
     found_attribute   = NULL;
@@ -1066,8 +1066,8 @@ static const FACEOE_Utl_Xml_Node_t* FindAncestor(const FACEOE_Utl_Xml_Node_t* pa
 {
     const FACEOE_Utl_Xml_Node_t* current_node;
     const FACEOE_Utl_Xml_Node_t* ancestor;
-    bool_t                is_ancestor;
-    uint32_t              node_depth;
+    bool_t                       is_ancestor;
+    uint32_t                     node_depth;
 
     current_node = parent;
     ancestor     = NULL;
@@ -1104,8 +1104,8 @@ static const FACEOE_Utl_Xml_Node_t* FindRootNode(const FACEOE_Utl_Xml_Document_t
 {
     const FACEOE_Utl_Xml_Node_t* current_node;
     const FACEOE_Utl_Xml_Node_t* found_node;
-    uint32_t              node_index;
-    bool_t                has_node;
+    uint32_t                     node_index;
+    bool_t                       has_node;
 
     found_node   = NULL;
     current_node = document->firstNode;
@@ -1450,11 +1450,11 @@ static bool_t ReadAttributeValue(const byte_t* bytes, uint64_t byteCount, uint64
 static bool_t ReadAttribute(const byte_t* markup, uint64_t markupByteCount, uint64_t* position, FACEOE_Utl_Xml_Node_t* node, FACEOE_Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity, uint32_t* attributeCount)
 {
     FACEOE_Utl_Xml_Attribute_t* attribute;
-    const byte_t*       name;
-    const byte_t*       value;
-    uint32_t            name_byte_count;
-    uint32_t            value_byte_count;
-    bool_t              is_valid;
+    const byte_t*               name;
+    const byte_t*               value;
+    uint32_t                    name_byte_count;
+    uint32_t                    value_byte_count;
+    bool_t                      is_valid;
 
     is_valid = ((*attributeCount) < attributeCapacity);
     if (is_valid)
@@ -1743,14 +1743,14 @@ static bool_t ReadElement(XmlReader_t* reader)
 {
     FACEOE_Utl_Xml_Node_t* node;
     FACEOE_Utl_Xml_Node_t* parent;
-    const byte_t*   markup;
-    uint64_t        markup_byte_count;
-    uint64_t        position;
-    uint64_t        token_position;
-    uint32_t        markup_index;
-    bool_t          is_end_tag;
-    bool_t          is_start_tag;
-    bool_t          is_valid;
+    const byte_t*          markup;
+    uint64_t               markup_byte_count;
+    uint64_t               position;
+    uint64_t               token_position;
+    uint32_t               markup_index;
+    bool_t                 is_end_tag;
+    bool_t                 is_start_tag;
+    bool_t                 is_valid;
 
     // No element is open yet; reading no markup must leave the result invalid
     parent   = NULL;
@@ -1846,13 +1846,13 @@ static bool_t ReadElement(XmlReader_t* reader)
 static bool_t ReadRootNode(XmlReader_t* reader)
 {
     FACEOE_Utl_Xml_Node_t* node;
-    const byte_t*  markup;
-    uint64_t       markup_byte_count;
-    uint64_t       position;
-    bool_t         is_declaration;
-    bool_t         is_first_markup;
-    bool_t         is_empty_document;
-    bool_t         is_valid;
+    const byte_t*          markup;
+    uint64_t               markup_byte_count;
+    uint64_t               position;
+    bool_t                 is_declaration;
+    bool_t                 is_first_markup;
+    bool_t                 is_empty_document;
+    bool_t                 is_valid;
 
     position = reader->position;
     is_declaration = ReadToken(reader->bytes, reader->byteCount, &position, DECL_OPEN);
@@ -2013,15 +2013,15 @@ static bool_t WriteDeclaration(byte_t* output, uint64_t capacity, uint64_t* byte
 static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byteCount, const FACEOE_Utl_Xml_Node_t* node)
 {
     const FACEOE_Utl_Xml_Attribute_t* current_attribute;
-    uint32_t                   attribute_index;
-    bool_t                     has_name;
-    bool_t                     has_name_bytes;
-    bool_t                     is_name_within_limit;
-    bool_t                     is_attribute_count_within_limit;
-    bool_t                     has_value;
-    bool_t                     is_value_within_limit;
-    bool_t                     has_value_bytes;
-    bool_t                     is_valid;
+    uint32_t                          attribute_index;
+    bool_t                            has_name;
+    bool_t                            has_name_bytes;
+    bool_t                            is_name_within_limit;
+    bool_t                            is_attribute_count_within_limit;
+    bool_t                            has_value;
+    bool_t                            is_value_within_limit;
+    bool_t                            has_value_bytes;
+    bool_t                            is_valid;
 
     // Check storage pointers and limits before validating or writing the element name
     has_name                        = (NULL != node->name);
@@ -2197,17 +2197,17 @@ static bool_t WriteElementEnd(byte_t* output, uint64_t capacity, uint64_t* byteC
 static bool_t WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCount, const FACEOE_Utl_Xml_Node_t* root)
 {
     const FACEOE_Utl_Xml_Node_t* current_node;
-    uint32_t              depth;
-    uint32_t              node_index;
-    uint32_t              ancestor_index;
-    bool_t                is_non_root;
-    bool_t                has_no_next_sibling;
-    bool_t                has_current_node;
-    bool_t                has_depth;
-    bool_t                is_at_end;
-    bool_t                is_at_root_depth;
-    bool_t                should_close_parent;
-    bool_t                is_valid;
+    uint32_t                     depth;
+    uint32_t                     node_index;
+    uint32_t                     ancestor_index;
+    bool_t                       is_non_root;
+    bool_t                       has_no_next_sibling;
+    bool_t                       has_current_node;
+    bool_t                       has_depth;
+    bool_t                       is_at_end;
+    bool_t                       is_at_root_depth;
+    bool_t                       should_close_parent;
+    bool_t                       is_valid;
 
     current_node = root;
     depth        = 0;
@@ -2576,8 +2576,8 @@ void FACEOE_Utl_Xml_InitializeDocument(FACEOE_Utl_Xml_Document_t* document)
  */
 void FACEOE_Utl_Xml_AppendAttribute(FACEOE_Utl_Xml_Node_t* node, FACEOE_Utl_Xml_Attribute_t* attribute)
 {
-    bool_t                     is_name;
-    bool_t                     is_attribute_value;
+    bool_t                            is_name;
+    bool_t                            is_attribute_value;
     const FACEOE_Utl_Xml_Attribute_t* found_attribute;
 
     // Require an element with room for an initialized, unlinked attribute
@@ -2856,9 +2856,9 @@ uint64_t FACEOE_Utl_Xml_ReadDocument(FACEOE_Utl_Xml_Document_t* document, byte_t
 uint64_t FACEOE_Utl_Xml_WriteDocument(const FACEOE_Utl_Xml_Document_t* document, byte_t* bufferToWriteDocumentIn, uint64_t sizeOfDocumentBuffer)
 {
     const FACEOE_Utl_Xml_Node_t* current_node;
-    uint64_t              bytes_written;
-    bool_t                is_valid;
-    uint32_t              node_index;
+    uint64_t                     bytes_written;
+    bool_t                       is_valid;
+    uint32_t                     node_index;
 
     LOGASSERT(NULL != document);
     LOGASSERT(NULL != bufferToWriteDocumentIn);

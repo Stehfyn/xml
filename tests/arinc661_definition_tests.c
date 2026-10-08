@@ -16,13 +16,13 @@ static uint64_t c_workspace[ARINC661_WORKSPACE_BYTES / sizeof(uint64_t)];
 static void TestDefinition(void)
 {
     byte_t input[] = "<?xml version=\"1.0\"?><a661_df name=\"example\" library_version=\"0\" supp_version=\"6\"><model><prop name=\"ApplicationId\" value=\"1\"/></model><a661_layer name=\"Primary\"><model><prop name=\"LayerId\" value=\"1\"/></model><a661_widget name=\"Panel\" type=\"A661_PANEL\"><model><prop name=\"WidgetIdent\" value=\"1\"/></model><a661_widget name=\"Label\" type=\"A661_LABEL\"><model><prop name=\"WidgetIdent\" value=\"2\"/></model></a661_widget></a661_widget></a661_layer></a661_df>";
-    byte_t output[2048];
-    Arinc661_Layer_t layers[2];
-    Arinc661_Widget_t widgets[3];
-    Arinc661_Property_t properties[8];
+    byte_t                output[2048];
+    Arinc661_Layer_t      layers[2];
+    Arinc661_Widget_t     widgets[3];
+    Arinc661_Property_t   properties[8];
     Arinc661_Definition_t definition;
-    uint64_t output_byte_count;
-    bool_t is_valid;
+    uint64_t              output_byte_count;
+    bool_t                is_valid;
 
     Arinc661_Definition_Initialize(&definition, layers, 2, widgets, 3, properties, 8, NULL, 0);
     is_valid = Arinc661_Definition_Read(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
@@ -50,9 +50,9 @@ static void TestDefinition(void)
 static void TestDefinitionWithoutDeclaration(void)
 {
     Arinc661_Definition_t definition;
-    byte_t output[1024];
-    uint64_t byte_count;
-    bool_t is_valid;
+    byte_t                output[1024];
+    uint64_t              byte_count;
+    bool_t                is_valid;
 
     memset(&definition, 0, sizeof(definition));
     definition.supplementVersion = 6;
@@ -86,14 +86,14 @@ static void TestDefinitionBinary(void)
         0xC0, 0x00, 0x00, 0x00,
         0xE0, 0x00, 0x00, 0x00
     };
-    byte_t output[256];
-    Arinc661_Layer_t layers[1];
-    Arinc661_Widget_t widgets[2];
-    Arinc661_Property_t properties[32];
+    byte_t                output[256];
+    Arinc661_Layer_t      layers[1];
+    Arinc661_Widget_t     widgets[2];
+    Arinc661_Property_t   properties[32];
     Arinc661_Definition_t definition;
-    uint64_t byte_count;
-    uint32_t index;
-    bool_t is_valid;
+    uint64_t              byte_count;
+    uint32_t              index;
+    bool_t                is_valid;
 
     Arinc661_Definition_Initialize(&definition, layers, 1, widgets, 2, properties, 32, NULL, 0);
     is_valid = Arinc661_Definition_Read(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
@@ -176,13 +176,13 @@ static void TestDefinitionBinaryLabelComplex(void)
         0xC0, 0x00, 0x00, 0x00,
         0xE0, 0x00, 0x00, 0x00
     };
-    byte_t output[256];
-    Arinc661_Layer_t layers[1];
-    Arinc661_Widget_t widgets[2];
-    Arinc661_Property_t properties[32];
+    byte_t                output[256];
+    Arinc661_Layer_t      layers[1];
+    Arinc661_Widget_t     widgets[2];
+    Arinc661_Property_t   properties[32];
     Arinc661_Definition_t definition;
-    uint64_t byte_count;
-    bool_t is_valid;
+    uint64_t              byte_count;
+    bool_t                is_valid;
 
     Arinc661_Definition_Initialize(&definition, layers, 1, widgets, 2, properties, 32, NULL, 0);
     is_valid = Arinc661_Definition_ReadBinary(&definition, expected, sizeof(expected));
@@ -236,14 +236,14 @@ static void TestDefinitionBinaryArrays(void)
         0x01, 0x00, 0x01, 0x01, 0x00, 0x00,
         'A', 0x00, 'B', 'C', 0x00, 0x00, 0x00, 0x00
     };
-    byte_t output[256];
-    byte_t copy[256];
-    Arinc661_Layer_t layers[1];
-    Arinc661_Widget_t widgets[2];
-    Arinc661_Property_t properties[64];
+    byte_t                output[256];
+    byte_t                copy[256];
+    Arinc661_Layer_t      layers[1];
+    Arinc661_Widget_t     widgets[2];
+    Arinc661_Property_t   properties[64];
     Arinc661_Definition_t definition;
-    uint64_t byte_count;
-    bool_t is_valid;
+    uint64_t              byte_count;
+    bool_t                is_valid;
 
     Arinc661_Definition_Initialize(&definition, layers, 1, widgets, 2, properties, 64, NULL, 0);
     is_valid = Arinc661_Definition_Read(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
@@ -296,13 +296,13 @@ static void TestDefinitionArrayProperties(void)
                      "<a661_widget name=\"Format\" type=\"A661_BUFFER_FORMAT\"><model><prop name=\"WidgetIdent\" value=\"4\"/><prop name=\"NumberOfFields\" value=\"1\"/>"
                      "<arrayprop name=\"BufferStructure\"><structentry><field name=\"WidgetIdent\" value=\"2\"/><field name=\"ParameterIdent\" value=\"A661_ENABLE\"/></structentry></arrayprop>"
                      "<arrayprop name=\"Single\"><entry value=\"1\"/></arrayprop></model></a661_widget></a661_layer></a661_df>";
-    byte_t output[2048];
-    Arinc661_Layer_t layers[1];
-    Arinc661_Widget_t widgets[2];
-    Arinc661_Property_t properties[16];
+    byte_t                output[2048];
+    Arinc661_Layer_t      layers[1];
+    Arinc661_Widget_t     widgets[2];
+    Arinc661_Property_t   properties[16];
     Arinc661_Definition_t definition;
-    uint64_t byte_count;
-    bool_t is_valid;
+    uint64_t              byte_count;
+    bool_t                is_valid;
 
     Arinc661_Definition_Initialize(&definition, layers, 1, widgets, 2, properties, 16, NULL, 0);
     is_valid = Arinc661_Definition_Read(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
@@ -385,15 +385,15 @@ static void TestDefinitionBinaryExtensions(void)
         0x00, 0x03, 0x00, 0x00, 0x0A, 0x0B, 0x0C, 0x00,
         0x00, 0x00, 0x00, 0x00
     };
-    byte_t output[4096];
-    byte_t copy[512];
-    Arinc661_Layer_t layers[1];
-    Arinc661_Widget_t widgets[8];
-    Arinc661_Property_t properties[64];
+    byte_t                output[4096];
+    byte_t                copy[512];
+    Arinc661_Layer_t      layers[1];
+    Arinc661_Widget_t     widgets[8];
+    Arinc661_Property_t   properties[64];
     Arinc661_Definition_t definition;
-    uint64_t byte_count;
-    uint64_t offset;
-    bool_t is_valid;
+    uint64_t              byte_count;
+    uint64_t              offset;
+    bool_t                is_valid;
 
     Arinc661_Definition_Initialize(&definition, layers, 1, widgets, 8, properties, 64, NULL, 0);
     is_valid = Arinc661_Definition_Read(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
@@ -481,14 +481,14 @@ static void TestDefinitionBinaryBlocks(void)
         0xA0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0C, 0xC0, 0x00, 0x00, 0x00,
         0xE0, 0x00, 0x00, 0x00
     };
-    byte_t output[1024];
-    byte_t blocks[128];
-    Arinc661_Layer_t layers[1];
-    Arinc661_Property_t properties[8];
+    byte_t                output[1024];
+    byte_t                blocks[128];
+    Arinc661_Layer_t      layers[1];
+    Arinc661_Property_t   properties[8];
     Arinc661_Definition_t definition;
-    uint64_t byte_count;
-    uint32_t index;
-    bool_t is_valid;
+    uint64_t              byte_count;
+    uint32_t              index;
+    bool_t                is_valid;
 
     Arinc661_Definition_Initialize(&definition, layers, 1, NULL, 0, properties, 8, blocks, sizeof(blocks));
     is_valid = Arinc661_Definition_ReadBinary(&definition, expected, sizeof(expected));
@@ -546,15 +546,15 @@ static void TestDefinitionBinaryPrecision(void)
     byte_t input[] = "<a661_df name=\"example\" library_version=\"0\" supp_version=\"7\"><model/><a661_layer name=\"Primary\"><model/>"
                      "<a661_widget name=\"Slide\" type=\"A661_SLIDER\"><model><prop name=\"WidgetIdent\" value=\"1\"/><prop name=\"MinValue\" value=\"0.1\"/><prop name=\"MaxValue\" value=\"123456.7\"/><prop name=\"Value\" value=\"100\"/></model></a661_widget>"
                      "<a661_widget name=\"Text\" type=\"A661_LABEL\"><model><prop name=\"WidgetIdent\" value=\"2\"/><prop name=\"RotationAngle\" value=\"0.0000001\"/></model></a661_widget></a661_layer></a661_df>";
-    byte_t output[512];
-    Arinc661_Layer_t layers[1];
-    Arinc661_Widget_t widgets[2];
-    Arinc661_Property_t properties[64];
+    byte_t                output[512];
+    Arinc661_Layer_t      layers[1];
+    Arinc661_Widget_t     widgets[2];
+    Arinc661_Property_t   properties[64];
     Arinc661_Definition_t definition;
-    uint64_t byte_count;
-    uint32_t index;
-    uint32_t found;
-    bool_t is_valid;
+    uint64_t              byte_count;
+    uint32_t              index;
+    uint32_t              found;
+    bool_t                is_valid;
 
     Arinc661_Definition_Initialize(&definition, layers, 1, widgets, 2, properties, 64, NULL, 0);
     is_valid = Arinc661_Definition_Read(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));

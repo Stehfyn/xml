@@ -2243,8 +2243,8 @@ static void SaveDocument(Arinc661_Definition_Editor_t* editor, uint32_t document
 static void SaveAllDocuments(Arinc661_Definition_Editor_t* editor)
 {
     Arinc661_Definition_Document_t* document;
-    uint32_t                           document_index;
-    bool_t                             all_saved;
+    uint32_t                        document_index;
+    bool_t                          all_saved;
 
     all_saved = TRUE;
     editor->pendingSaveDocumentIndex = INVALID_DOCUMENT_INDEX;
@@ -5069,31 +5069,31 @@ static void DrawSceneToolbar(Arinc661_Definition_Document_t* document, uint32_t*
  */
 static void DrawSceneInteraction(Arinc661_Definition_Document_t* document, uint32_t layerIndex, ImVec2 layerMin, ImVec2 layerMax, float32_t scale, ImDrawList* drawList, bool_t isCanvasHovered)
 {
-    Arinc661_Definition_Editor_t* owner;
+    Arinc661_Definition_Editor_t*  owner;
     const Arinc661_Scene_Bounds_t* bounds;
-    FACEOE_Gfx_Point_t            mouse_point;
-    ImVec2                        mouse;
-    ImVec2                        corners[4];
-    ImVec2                        marquee_min;
-    ImVec2                        marquee_max;
-    ImVec2                        selected_min;
-    ImVec2                        selected_max;
-    float32_t                     delta_x;
-    float32_t                     delta_y;
-    float32_t                     step;
-    float32_t                     value;
-    float32_t                     width;
-    float32_t                     height;
-    uint32_t                      hit_index;
-    uint32_t                      bounds_index;
-    uint32_t                      corner;
-    int32_t                       hover_mode;
-    bool_t                        has_selected_bounds;
-    bool_t                        has_position;
-    bool_t                        has_size;
-    bool_t                        has_angle;
-    ImVec2                        rotate_handle;
-    ImVec2                        center;
+    FACEOE_Gfx_Point_t             mouse_point;
+    ImVec2                         mouse;
+    ImVec2                         corners[4];
+    ImVec2                         marquee_min;
+    ImVec2                         marquee_max;
+    ImVec2                         selected_min;
+    ImVec2                         selected_max;
+    float32_t                      delta_x;
+    float32_t                      delta_y;
+    float32_t                      step;
+    float32_t                      value;
+    float32_t                      width;
+    float32_t                      height;
+    uint32_t                       hit_index;
+    uint32_t                       bounds_index;
+    uint32_t                       corner;
+    int32_t                        hover_mode;
+    bool_t                         has_selected_bounds;
+    bool_t                         has_position;
+    bool_t                         has_size;
+    bool_t                         has_angle;
+    ImVec2                         rotate_handle;
+    ImVec2                         center;
 
     owner               = document->owner;
     mouse               = ImGui::GetMousePos();
@@ -6328,10 +6328,10 @@ static bool_t DrawTypeField(const char_t* label, char_t* type, uint32_t capacity
     const char_t* categories;
     const char_t* restriction;
     bool_t        is_applicable;
-    uint32_t type_count;
-    uint32_t type_index;
-    int      selected;
-    bool_t   has_changed;
+    uint32_t      type_count;
+    uint32_t      type_index;
+    int           selected;
+    bool_t        has_changed;
 
     type_count = Arinc661_Definition_GetTypeCount(isExtension);
     selected   = -1;
@@ -6958,10 +6958,10 @@ static void CloseDocument(Arinc661_Definition_Editor_t* editor, uint32_t documen
 static void DrawFileMenuBar(Arinc661_Definition_Editor_t* editor)
 {
     Arinc661_Definition_Document_t* document;
-    uint32_t                           document_index;
-    bool_t                             has_active_document;
-    bool_t                             has_dirty_documents;
-    bool_t                             has_available_document;
+    uint32_t                        document_index;
+    bool_t                          has_active_document;
+    bool_t                          has_dirty_documents;
+    bool_t                          has_available_document;
 
     has_active_document    = (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex);
     has_dirty_documents    = FALSE;
@@ -7030,17 +7030,17 @@ static void DrawFileMenuBar(Arinc661_Definition_Editor_t* editor)
 static void DrawDocumentTabs(Arinc661_Definition_Editor_t* editor)
 {
     Arinc661_Definition_Document_t* document;
-    ImGuiTabItemFlags                   tab_flags;
-    ImVec2                              popup_center;
-    char_t                              tab_label[DOCUMENT_TAB_LABEL_BYTES];
-    uint32_t                            document_index;
-    uint32_t                            document_to_close;
-    bool                                is_tab_open;
-    bool                                is_tab_visible;
-    bool_t                              has_available_document;
-    bool_t                              has_pending_close;
-    bool_t                              has_pending_save;
-    bool_t                              should_create_document;
+    ImGuiTabItemFlags               tab_flags;
+    ImVec2                          popup_center;
+    char_t                          tab_label[DOCUMENT_TAB_LABEL_BYTES];
+    uint32_t                        document_index;
+    uint32_t                        document_to_close;
+    bool                            is_tab_open;
+    bool                            is_tab_visible;
+    bool_t                          has_available_document;
+    bool_t                          has_pending_close;
+    bool_t                          has_pending_save;
+    bool_t                          should_create_document;
 
     has_available_document = FALSE;
     should_create_document = FALSE;
@@ -7165,18 +7165,18 @@ static void DrawDocumentTabs(Arinc661_Definition_Editor_t* editor)
 static void DrawSaveAsDialog(Arinc661_Definition_Editor_t* editor)
 {
     Arinc661_Definition_Document_t* document;
-    FileMatchContext_t                 match_context;
-    const char_t*                      status_text;
-    char_t                             file_path[ARINC661_DEFINITION_MAX_FILE_PATH_BYTES];
-    char_t                             previous_name[ARINC661_DEFINITION_MAX_XML_NAME_BYTES];
-    uint32_t                           document_index;
-    uint32_t                           open_document_index;
-    bool_t                             has_folder_path;
-    bool_t                             has_file_name;
-    bool_t                             has_valid_name;
-    bool_t                             is_enumerated;
-    bool_t                             is_already_open;
-    bool_t                             was_save_all_pending;
+    FileMatchContext_t              match_context;
+    const char_t*                   status_text;
+    char_t                          file_path[ARINC661_DEFINITION_MAX_FILE_PATH_BYTES];
+    char_t                          previous_name[ARINC661_DEFINITION_MAX_XML_NAME_BYTES];
+    uint32_t                        document_index;
+    uint32_t                        open_document_index;
+    bool_t                          has_folder_path;
+    bool_t                          has_file_name;
+    bool_t                          has_valid_name;
+    bool_t                          is_enumerated;
+    bool_t                          is_already_open;
+    bool_t                          was_save_all_pending;
 
     if (INVALID_DOCUMENT_INDEX != editor->pendingSaveDocumentIndex)
     {
@@ -7320,7 +7320,7 @@ static void DrawSaveAsDialog(Arinc661_Definition_Editor_t* editor)
 static void DrawStatusBar(const Arinc661_Definition_Editor_t* editor)
 {
     const Arinc661_Definition_Document_t* document;
-    const char_t* status_text;
+    const char_t*                         status_text;
 
     status_text = EditorStatusToString(editor->status);
     if (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex)
@@ -7436,37 +7436,37 @@ static void ResolveWidgetArea(const Arinc661_Definition_Document_t* document, ui
  */
 static void DrawScenePane(Arinc661_Definition_Document_t* editor)
 {
-    const ImGuiStyle*        style;
+    const ImGuiStyle*             style;
     Arinc661_Definition_Editor_t* owner;
-    Arinc661_Scene_Options_t options;
-    FACEOE_Gfx_Transform_t   transform;
-    ImDrawList*              draw_list;
-    ImVec2                   canvas_min;
-    ImVec2                   canvas_size;
-    ImVec2                   canvas_max;
-    ImVec2                   layer_min;
-    ImVec2                   layer_size;
-    char_t                   layer_label[HIERARCHY_LABEL_BYTES];
-    const char_t*            width_text;
-    const char_t*            height_text;
-    float32_t                layer_width;
-    float32_t                layer_height;
-    float32_t                label_height;
-    float32_t                scale;
-    uint32_t                 layer_index;
-    uint32_t                 property_index;
-    char_t                   zoom_label[LABEL_FORMAT_BYTES];
-    char_t                   readout[LABEL_FORMAT_BYTES * 2];
-    WidgetArea_t             zoom_area;
-    char_t                   frame_label[FRAME_LABEL_BYTES];
-    ImVec2                   frame_min;
-    ImVec2                   frame_max;
-    float32_t                frame_width;
-    float32_t                frame_height;
-    uint32_t                 frame_index;
-    float32_t                zoom_factor;
-    bool_t                   has_layer;
-    bool_t                   is_canvas_hovered;
+    Arinc661_Scene_Options_t      options;
+    FACEOE_Gfx_Transform_t        transform;
+    ImDrawList*                   draw_list;
+    ImVec2                        canvas_min;
+    ImVec2                        canvas_size;
+    ImVec2                        canvas_max;
+    ImVec2                        layer_min;
+    ImVec2                        layer_size;
+    char_t                        layer_label[HIERARCHY_LABEL_BYTES];
+    const char_t*                 width_text;
+    const char_t*                 height_text;
+    float32_t                     layer_width;
+    float32_t                     layer_height;
+    float32_t                     label_height;
+    float32_t                     scale;
+    uint32_t                      layer_index;
+    uint32_t                      property_index;
+    char_t                        zoom_label[LABEL_FORMAT_BYTES];
+    char_t                        readout[LABEL_FORMAT_BYTES * 2];
+    WidgetArea_t                  zoom_area;
+    char_t                        frame_label[FRAME_LABEL_BYTES];
+    ImVec2                        frame_min;
+    ImVec2                        frame_max;
+    float32_t                     frame_width;
+    float32_t                     frame_height;
+    uint32_t                      frame_index;
+    float32_t                     zoom_factor;
+    bool_t                        has_layer;
+    bool_t                        is_canvas_hovered;
 
     owner = editor->owner;
     // A primary selection made elsewhere (hierarchy, problems, context) becomes the whole selection
@@ -7773,10 +7773,10 @@ static void MeasurePaneWidths(const Arinc661_Definition_Document_t* editor, floa
 static void DrawPanes(Arinc661_Definition_Editor_t* editor)
 {
     Arinc661_Definition_Document_t* document;
-    ImVec2                             table_size;
-    float32_t                          minimum_hierarchy_width;
-    float32_t                          inspector_width;
-    float32_t                          status_bar_height;
+    ImVec2                          table_size;
+    float32_t                       minimum_hierarchy_width;
+    float32_t                       inspector_width;
+    float32_t                       status_bar_height;
 
     document = &editor->documents[0];
     if (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex)

@@ -194,6 +194,113 @@ void Arinc661_Definition_Initialize(Arinc661_Definition_t* definition, Arinc661_
 
 /*************************************************************************************************/
 /**
+ * \brief Counts the widget types or extension types known to the binary reader and writer.
+ *
+ * \param[in] isExtension   TRUE for extension types (Table 4.6-12), FALSE for widget types (Table 4.6-7)
+ *
+ * \retval    uint32_t      Number of types.
+ */
+uint32_t Arinc661_Definition_GetTypeCount(bool_t isExtension);
+
+/*************************************************************************************************/
+/**
+ * \brief Returns the name of a widget or extension type.
+ *
+ * \param[in] isExtension   TRUE for extension types, FALSE for widget types
+ * \param[in] typeIndex     Index below Arinc661_Definition_GetTypeCount
+ *
+ * \retval    const char_t*   Zero-terminated type name, such as A661_PANEL.
+ */
+const char_t* Arinc661_Definition_GetTypeName(bool_t isExtension, uint32_t typeIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Looks up a widget or extension type by name and counts its named Creation Structure parameters.
+ *
+ * \param[in]  typeName         Zero-terminated type name
+ * \param[in]  isExtension      TRUE for extension types, FALSE for widget types
+ * \param[out] parameterCount   Number of named parameters, excluding unused pads
+ *
+ * \retval     TRUE             if the type is known.
+ * \retval     FALSE            otherwise.
+ */
+bool_t Arinc661_Definition_FindType(const char_t* typeName, bool_t isExtension, uint32_t* parameterCount);
+
+/*************************************************************************************************/
+/**
+ * \brief Describes one named Creation Structure parameter of a type.
+ *
+ * \par Details:
+ *  Parameters follow Creation Structure order; WidgetType, WidgetIdent, ParentIdent, and
+ *  ExtensionType are not included. The listed constant names come from the Value/Range
+ *  column of the Creation Structure table.
+ *
+ * \param[in]  typeName         Zero-terminated type name
+ * \param[in]  isExtension      TRUE for extension types, FALSE for widget types
+ * \param[in]  parameterIndex   Index below the count from Arinc661_Definition_FindType
+ * \param[out] parameter        Parameter description; its pointers stay valid for the program lifetime
+ *
+ * \retval     TRUE             if the type and parameter exist.
+ * \retval     FALSE            otherwise.
+ */
+bool_t Arinc661_Definition_GetParameter(const char_t* typeName, bool_t isExtension, uint32_t parameterIndex, Arinc661_Parameter_t* parameter);
+
+/*************************************************************************************************/
+/**
+ * \brief Counts the section 4.6 constant names accepted as property values.
+ *
+ * \retval    uint32_t   Number of constants.
+ */
+uint32_t Arinc661_Definition_GetConstantCount(void);
+
+/*************************************************************************************************/
+/**
+ * \brief Returns a constant name.
+ *
+ * \param[in] constantIndex   Index below Arinc661_Definition_GetConstantCount
+ *
+ * \retval    const char_t*   Zero-terminated constant name, such as A661_TRUE.
+ */
+const char_t* Arinc661_Definition_GetConstantName(uint32_t constantIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Returns the value the binary form stores for a constant.
+ *
+ * \param[in] constantIndex   Index below Arinc661_Definition_GetConstantCount
+ *
+ * \retval    uint32_t        Constant value.
+ */
+uint32_t Arinc661_Definition_GetConstantValue(uint32_t constantIndex);
+
+/*************************************************************************************************/
+/**
+ * \brief Tells whether an extension may be attached to a widget type.
+ *
+ * \par Details:
+ *  Part 1-7, Table 8.4, Possible Widgets for Extension.
+ *
+ * \param[in] extensionType   Extension type name
+ * \param[in] widgetType      Widget type name
+ *
+ * \retval    TRUE            if the table lists the widget for the extension.
+ * \retval    FALSE           otherwise.
+ */
+bool_t Arinc661_Definition_ExtensionApplies(const char_t* extensionType, const char_t* widgetType);
+
+/*************************************************************************************************/
+/**
+ * \brief Lists the widget types an extension may be attached to.
+ *
+ * \param[in] extensionType   Extension type name
+ * \param[in] index           Position in the list
+ *
+ * \retval    const char_t*   Widget type name, or NULL past the end.
+ */
+const char_t* Arinc661_Definition_GetExtensionTarget(const char_t* extensionType, uint32_t index);
+
+/*************************************************************************************************/
+/**
  * \brief Reads an ARINC 661 Definition File from memory into caller-owned data.
  *
  * \par Details:
@@ -354,112 +461,5 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
  * \retval        uint64_t                 Number of bytes written, or zero when a value is unsupported or the capacity is insufficient.
  */
 uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition, byte_t* bufferToWriteBinaryTo, uint64_t capacityOfBinaryBuffer);
-
-/*************************************************************************************************/
-/**
- * \brief Counts the widget types or extension types known to the binary reader and writer.
- *
- * \param[in] isExtension   TRUE for extension types (Table 4.6-12), FALSE for widget types (Table 4.6-7)
- *
- * \retval    uint32_t      Number of types.
- */
-uint32_t Arinc661_Definition_GetTypeCount(bool_t isExtension);
-
-/*************************************************************************************************/
-/**
- * \brief Returns the name of a widget or extension type.
- *
- * \param[in] isExtension   TRUE for extension types, FALSE for widget types
- * \param[in] typeIndex     Index below Arinc661_Definition_GetTypeCount
- *
- * \retval    const char_t*   Zero-terminated type name, such as A661_PANEL.
- */
-const char_t* Arinc661_Definition_GetTypeName(bool_t isExtension, uint32_t typeIndex);
-
-/*************************************************************************************************/
-/**
- * \brief Looks up a widget or extension type by name and counts its named Creation Structure parameters.
- *
- * \param[in]  typeName         Zero-terminated type name
- * \param[in]  isExtension      TRUE for extension types, FALSE for widget types
- * \param[out] parameterCount   Number of named parameters, excluding unused pads
- *
- * \retval     TRUE             if the type is known.
- * \retval     FALSE            otherwise.
- */
-bool_t Arinc661_Definition_FindType(const char_t* typeName, bool_t isExtension, uint32_t* parameterCount);
-
-/*************************************************************************************************/
-/**
- * \brief Describes one named Creation Structure parameter of a type.
- *
- * \par Details:
- *  Parameters follow Creation Structure order; WidgetType, WidgetIdent, ParentIdent, and
- *  ExtensionType are not included. The listed constant names come from the Value/Range
- *  column of the Creation Structure table.
- *
- * \param[in]  typeName         Zero-terminated type name
- * \param[in]  isExtension      TRUE for extension types, FALSE for widget types
- * \param[in]  parameterIndex   Index below the count from Arinc661_Definition_FindType
- * \param[out] parameter        Parameter description; its pointers stay valid for the program lifetime
- *
- * \retval     TRUE             if the type and parameter exist.
- * \retval     FALSE            otherwise.
- */
-bool_t Arinc661_Definition_GetParameter(const char_t* typeName, bool_t isExtension, uint32_t parameterIndex, Arinc661_Parameter_t* parameter);
-
-/*************************************************************************************************/
-/**
- * \brief Counts the section 4.6 constant names accepted as property values.
- *
- * \retval    uint32_t   Number of constants.
- */
-uint32_t Arinc661_Definition_GetConstantCount(void);
-
-/*************************************************************************************************/
-/**
- * \brief Returns a constant name.
- *
- * \param[in] constantIndex   Index below Arinc661_Definition_GetConstantCount
- *
- * \retval    const char_t*   Zero-terminated constant name, such as A661_TRUE.
- */
-const char_t* Arinc661_Definition_GetConstantName(uint32_t constantIndex);
-
-/*************************************************************************************************/
-/**
- * \brief Returns the value the binary form stores for a constant.
- *
- * \param[in] constantIndex   Index below Arinc661_Definition_GetConstantCount
- *
- * \retval    uint32_t        Constant value.
- */
-uint32_t Arinc661_Definition_GetConstantValue(uint32_t constantIndex);
-
-/*************************************************************************************************/
-/**
- * \brief Tells whether an extension may be attached to a widget type.
- *
- * \par Details:
- *  Part 1-7, Table 8.4, Possible Widgets for Extension.
- *
- * \param[in] extensionType   Extension type name
- * \param[in] widgetType      Widget type name
- *
- * \retval    TRUE            if the table lists the widget for the extension.
- * \retval    FALSE           otherwise.
- */
-bool_t Arinc661_Definition_ExtensionApplies(const char_t* extensionType, const char_t* widgetType);
-
-/*************************************************************************************************/
-/**
- * \brief Lists the widget types an extension may be attached to.
- *
- * \param[in] extensionType   Extension type name
- * \param[in] index           Position in the list
- *
- * \retval    const char_t*   Widget type name, or NULL past the end.
- */
-const char_t* Arinc661_Definition_GetExtensionTarget(const char_t* extensionType, uint32_t index);
 
 #endif /* ARINC661_DEFINITION_H */

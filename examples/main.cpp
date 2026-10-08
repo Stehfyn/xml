@@ -1255,10 +1255,10 @@ static void EndFrame(WindowThreadState_t* window)
  */
 static void CaptureScreenshot(WindowThreadState_t* window)
 {
-    byte_t*    pixels;
-    byte_t*    row;
-    byte_t     header[BMP_HEADER_BYTES];
-    FILE*      file;
+    byte_t*  pixels;
+    byte_t*  row;
+    byte_t   header[BMP_HEADER_BYTES];
+    FILE*    file;
     int32_t  width;
     int32_t  height;
     int32_t  x;
@@ -1396,16 +1396,16 @@ static void ParseOptions(int argc, char** argv)
 static void ClassifyFolderFile(const char_t* fileName, void* context)
 {
     WIN32_FILE_ATTRIBUTE_DATA attributes;
-    WindowThreadState_t* window;
-    byte_t               head[FILE_HEAD_BYTES];
-    char_t               file_path[MAX_FILE_PATH_BYTES];
-    const char_t*        text;
-    int32_t              byte_count;
-    size_t               name_length;
-    size_t               index;
-    bool_t               has_known_extension;
-    bool_t               is_definition;
-    bool_t               is_configuration;
+    WindowThreadState_t*      window;
+    byte_t                    head[FILE_HEAD_BYTES];
+    char_t                    file_path[MAX_FILE_PATH_BYTES];
+    const char_t*             text;
+    int32_t                   byte_count;
+    size_t                    name_length;
+    size_t                    index;
+    bool_t                    has_known_extension;
+    bool_t                    is_definition;
+    bool_t                    is_configuration;
 
     window              = (WindowThreadState_t*)context;
     name_length         = strlen(fileName);
@@ -1522,12 +1522,12 @@ static void DrawToolbar(WindowThreadState_t* window)
     const char_t* new_label;
     const char_t* new_shortcut;
     const char_t* play_label;
-    bool_t has_active;
-    bool_t is_dirty;
-    bool_t has_free;
-    bool_t can_undo;
-    bool_t can_redo;
-    bool_t has_selection;
+    bool_t        has_active;
+    bool_t        is_dirty;
+    bool_t        has_free;
+    bool_t        can_undo;
+    bool_t        can_redo;
+    bool_t        has_selection;
 
     if (window->isDefinitionActive)
     {
@@ -1817,22 +1817,22 @@ static void OpenWindowsHelp(WindowThreadState_t* window, uint32_t command)
  */
 static void DrawHelpWindow(WindowThreadState_t* window)
 {
-    const char_t* description;
-    const char_t* categories;
-    const char_t* restriction;
-    const char_t* type_name;
-    const char_t* change;
-    const char_t* parameter_description;
+    const char_t*        description;
+    const char_t*        categories;
+    const char_t*        restriction;
+    const char_t*        type_name;
+    const char_t*        change;
+    const char_t*        parameter_description;
     Arinc661_Parameter_t parameter;
-    char_t        upper_filter[MAX_HELP_FILTER_BYTES];
-    char_t        upper_name[ARINC661_MAX_NAME_BYTES];
-    uint32_t      index;
-    uint32_t      character;
-    uint32_t      parameter_count;
-    uint32_t      pass;
-    bool_t        is_extension;
-    bool_t        is_match;
-    bool          is_open;
+    char_t               upper_filter[MAX_HELP_FILTER_BYTES];
+    char_t               upper_name[ARINC661_MAX_NAME_BYTES];
+    uint32_t             index;
+    uint32_t             character;
+    uint32_t             parameter_count;
+    uint32_t             pass;
+    bool_t               is_extension;
+    bool_t               is_match;
+    bool                 is_open;
 
     if (window->isHelpOpen)
     {
@@ -2013,19 +2013,19 @@ static void DrawHelpWindow(WindowThreadState_t* window)
  */
 static void DrawPageMenu(WindowThreadState_t* window)
 {
-    bool_t has_active;
-    bool_t is_dirty;
-    bool_t has_free_configuration;
-    bool_t has_free_definition;
-    bool_t has_dirty_configuration;
-    bool_t has_dirty_definition;
-    bool_t has_active_configuration;
-    bool_t has_active_definition;
-    bool_t can_undo;
-    bool_t can_redo;
-    bool_t has_selection;
-    uint32_t panel_index;
-    uint32_t preset_index;
+    bool_t        has_active;
+    bool_t        is_dirty;
+    bool_t        has_free_configuration;
+    bool_t        has_free_definition;
+    bool_t        has_dirty_configuration;
+    bool_t        has_dirty_definition;
+    bool_t        has_active_configuration;
+    bool_t        has_active_definition;
+    bool_t        can_undo;
+    bool_t        can_redo;
+    bool_t        has_selection;
+    uint32_t      panel_index;
+    uint32_t      preset_index;
     const char_t* play_label;
 
     has_active_configuration = Arinc661_Configuration_HasActiveDocument(window->configurationEditor, &has_dirty_configuration, &has_free_configuration);
@@ -2886,12 +2886,12 @@ static void DrawPageHierarchy(WindowThreadState_t* window)
 static void DrawEditors(WindowThreadState_t* window)
 {
     const FACEOE_Gfx_DrawList_t* stats_list;
-    bool_t is_dirty;
-    bool_t has_free;
-    const ImGuiViewport* viewport;
-    ImGuiID              dockspace_id;
-    uint32_t             panel_index;
-    bool_t               is_definition_focused;
+    bool_t                       is_dirty;
+    bool_t                       has_free;
+    const ImGuiViewport*         viewport;
+    ImGuiID                      dockspace_id;
+    uint32_t                     panel_index;
+    bool_t                       is_definition_focused;
 
     // Honour a cross-editor navigation request before drawing so the focused section follows it
     if (Arinc661_Context_TakeFocusRequest(window->context, &is_definition_focused))
@@ -4904,18 +4904,18 @@ static LRESULT WINAPI WindowProcedure(HWND windowHandle, UINT message, WPARAM wo
  */
 static DWORD WINAPI WindowThread(LPVOID parameter)
 {
-    uint32_t panel_index;
-    WindowThreadState_t*       window;
-    WNDCLASSEXW                window_class;
-    MONITORINFO                monitor_info;
-    RECT                       monitor_rect;
-    int                        window_width;
-    int                        window_height;
-    ImGuiIO*                   io;
-    ImGuiStyle*                style;
-    ImGuiPlatformIO*           platform_io;
-    WglSwapIntervalFunction_t  swap_interval;
-    MSG                        message;
+    uint32_t                  panel_index;
+    WindowThreadState_t*      window;
+    WNDCLASSEXW               window_class;
+    MONITORINFO               monitor_info;
+    RECT                      monitor_rect;
+    int                       window_width;
+    int                       window_height;
+    ImGuiIO*                  io;
+    ImGuiStyle*               style;
+    ImGuiPlatformIO*          platform_io;
+    WglSwapIntervalFunction_t swap_interval;
+    MSG                       message;
 
     window = (WindowThreadState_t*)parameter;
     window->configurationEditor = NULL;
@@ -5159,11 +5159,11 @@ static DWORD WINAPI WindowThread(LPVOID parameter)
  */
 int main(int argc, char** argv)
 {
-    float32_t                            main_scale;
-    WindowThreadState_t                  window;
-    HANDLE                               window_thread;
-    HDC                                  present_device_context;
-    D3DKMT_WAITFORVERTICALBLANKEVENT      vbe;
+    float32_t                        main_scale;
+    WindowThreadState_t              window;
+    HANDLE                           window_thread;
+    HDC                              present_device_context;
+    D3DKMT_WAITFORVERTICALBLANKEVENT vbe;
 
     // Route assertion and runtime failures to stderr instead of dialog boxes
     Os_Diagnostics_Initialize();

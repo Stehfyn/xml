@@ -154,17 +154,17 @@ int main(void)
     FACEOE_DisplayManagement_Layout_t          layouts[1];
     FACEOE_DisplayManagement_Window_t          windows[1];
     FACEOE_DisplayManagement_UserApplication_t applications[1];
-    Arinc661_Definition_t      definition_file;
-    Arinc661_Layer_t           layers[1];
-    Arinc661_Widget_t          widgets[3];
-    Arinc661_Property_t        properties[COUNT_OF(c_arinc661Properties)];
-    byte_t                         xml_buffer[XML_BUFFER_BYTES + 1];
-    uint64_t                       byte_count;
-    int32_t                        bytes_written;
-    int32_t                        bytes_read;
-    uint32_t                       index;
-    uint32_t                       owner_index;
-    bool_t                         is_valid;
+    Arinc661_Definition_t                      definition_file;
+    Arinc661_Layer_t                           layers[1];
+    Arinc661_Widget_t                          widgets[3];
+    Arinc661_Property_t                        properties[COUNT_OF(c_arinc661Properties)];
+    byte_t                                     xml_buffer[XML_BUFFER_BYTES + 1];
+    uint64_t                                   byte_count;
+    int32_t                                    bytes_written;
+    int32_t                                    bytes_read;
+    uint32_t                                   index;
+    uint32_t                                   owner_index;
+    bool_t                                     is_valid;
 
     // Route assertion and runtime failures to stderr instead of dialog boxes
     Os_Diagnostics_Initialize();

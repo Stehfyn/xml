@@ -61,7 +61,7 @@ static uint64_t WriteTestElement(const byte_t* name, uint32_t nameByteCount)
 {
     FACEOE_Utl_Xml_Document_t document;
     FACEOE_Utl_Xml_Node_t     root;
-    byte_t            output[FACEOE_UTL_XML_MAX_NAME_BYTES + sizeof("</>\n")];
+    byte_t                    output[FACEOE_UTL_XML_MAX_NAME_BYTES + sizeof("</>\n")];
 
     FACEOE_Utl_Xml_InitializeDocument(&document);
     FACEOE_Utl_Xml_InitializeNode(&root, FACEOE_UTL_XML_NODE_ELEMENT, name, nameByteCount);
@@ -327,9 +327,9 @@ static void TestXmlDocumentRoundTrip(void)
     FACEOE_Utl_Xml_Document_t  document;
     FACEOE_Utl_Xml_Node_t      nodes[8];
     FACEOE_Utl_Xml_Attribute_t attributes[10];
-    byte_t              input[sizeof(text)];
-    byte_t              output[sizeof(text)];
-    uint64_t            byte_count;
+    byte_t                     input[sizeof(text)];
+    byte_t                     output[sizeof(text)];
+    uint64_t                   byte_count;
 
     memcpy(input, text, sizeof(text));
     FACEOE_Utl_Xml_InitializeDocument(&document);
@@ -435,10 +435,10 @@ static void TestXmlReaderBoundaries(void)
     FACEOE_Utl_Xml_Document_t  document;
     FACEOE_Utl_Xml_Node_t      nodes[4];
     FACEOE_Utl_Xml_Attribute_t attributes[2];
-    byte_t             input[128];
-    uint32_t           case_index;
-    uint64_t           input_byte_count;
-    uint64_t           bytes_read;
+    byte_t                     input[128];
+    uint32_t                   case_index;
+    uint64_t                   input_byte_count;
+    uint64_t                   bytes_read;
 
     for (case_index = 0; case_index < COUNT_OF(cases); ++case_index)
     {
@@ -463,14 +463,14 @@ static void TestXmlReaderBoundaries(void)
 static void TestXmlReaderMarkupLimit(void)
 {
     static FACEOE_Utl_Xml_Node_t nodes[FACEOE_UTL_XML_DOCUMENT_MAX_NODES];
-    static byte_t input[FACEOE_UTL_XML_DOCUMENT_MAX_NODES * 4 + sizeof("<?xml version=\"1.0\"?><r></r>")];
+    static byte_t                input[FACEOE_UTL_XML_DOCUMENT_MAX_NODES * 4 + sizeof("<?xml version=\"1.0\"?><r></r>")];
     static const char_t declaration[] = "<?xml version=\"1.0\"?>";
     FACEOE_Utl_Xml_Document_t  document;
     FACEOE_Utl_Xml_Attribute_t attributes[1];
-    uint32_t           child_index;
-    uint64_t           element_offset;
-    uint64_t           position;
-    uint64_t           bytes_read;
+    uint32_t                   child_index;
+    uint64_t                   element_offset;
+    uint64_t                   position;
+    uint64_t                   bytes_read;
 
     element_offset = sizeof(declaration) - 1;
     memcpy(input, declaration, (size_t)element_offset);

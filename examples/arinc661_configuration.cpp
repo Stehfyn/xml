@@ -1410,10 +1410,10 @@ static bool_t GetXmlFilePath(Arinc661_Configuration_Editor_t* editor, const char
 static void UpdatePreviewMeasurements(Arinc661_Configuration_Document_t* editor)
 {
     const FACEOE_DisplayManagement_Screen_t* screen;
-    uint32_t                     screen_index;
-    bool_t                       has_screen_width;
-    bool_t                       has_screen_height;
-    bool_t                       is_drawable_screen;
+    uint32_t                                 screen_index;
+    bool_t                                   has_screen_width;
+    bool_t                                   has_screen_height;
+    bool_t                                   is_drawable_screen;
 
     editor->totalScreenWidth    = 0.0f;
     editor->maximumScreenHeight = 0.0f;
@@ -1915,8 +1915,8 @@ static bool_t DrawDefinitionChoiceField(const Arinc661_Configuration_Editor_t* e
  */
 static bool_t NextIdentifier(const Arinc661_Configuration_Document_t* editor, SelectionKind_t kind, uint32_t screenIndex, int64_t* id)
 {
-    int64_t maximum_id;
-    bool_t  has_next_id;
+    int64_t  maximum_id;
+    bool_t   has_next_id;
     uint32_t index;
 
     switch (kind)
@@ -2218,9 +2218,9 @@ static int64_t GetMaxUserApplicationIdentifier(const Arinc661_Configuration_Docu
 static void AddScreen(Arinc661_Configuration_Document_t* editor)
 {
     FACEOE_DisplayManagement_Screen_t* screen;
-    int64_t                id;
-    bool_t                 has_capacity;
-    bool_t                 has_id;
+    int64_t                            id;
+    bool_t                             has_capacity;
+    bool_t                             has_id;
 
     has_capacity = (editor->configuration.screenCount < editor->configuration.screenCapacity);
     has_id       = NextIdentifier(editor, SELECTION_SCREEN, 0, &id);
@@ -2256,9 +2256,9 @@ static void AddScreen(Arinc661_Configuration_Document_t* editor)
 static void AddLayout(Arinc661_Configuration_Document_t* editor, uint32_t screenIndex)
 {
     FACEOE_DisplayManagement_Layout_t* layout;
-    int64_t                id;
-    bool_t                 has_capacity;
-    bool_t                 has_id;
+    int64_t                            id;
+    bool_t                             has_capacity;
+    bool_t                             has_id;
 
     has_capacity = (editor->configuration.layoutCount < editor->configuration.layoutCapacity);
     has_id       = NextIdentifier(editor, SELECTION_LAYOUT, screenIndex, &id);
@@ -2290,9 +2290,9 @@ static void AddWindow(Arinc661_Configuration_Document_t* editor, uint32_t layout
     FACEOE_DisplayManagement_Window_t*       window;
     const FACEOE_DisplayManagement_Layout_t* layout;
     const FACEOE_DisplayManagement_Screen_t* screen;
-    int64_t                      id;
-    bool_t                       has_capacity;
-    bool_t                       has_id;
+    int64_t                                  id;
+    bool_t                                   has_capacity;
+    bool_t                                   has_id;
 
     has_capacity = (editor->configuration.windowCount < editor->configuration.windowCapacity);
     has_id       = NextIdentifier(editor, SELECTION_WINDOW, 0, &id);
@@ -2331,10 +2331,10 @@ static void AddWindow(Arinc661_Configuration_Document_t* editor, uint32_t layout
 static void AddUserApplication(Arinc661_Configuration_Document_t* editor)
 {
     FACEOE_DisplayManagement_UserApplication_t* application;
-    int64_t                          id;
-    bool_t                           has_capacity;
-    bool_t                           has_id;
-    bool_t                           has_window;
+    int64_t                                     id;
+    bool_t                                      has_capacity;
+    bool_t                                      has_id;
+    bool_t                                      has_window;
 
     has_capacity = (editor->configuration.userApplicationCount < editor->configuration.userApplicationCapacity);
     has_id       = NextIdentifier(editor, SELECTION_USER_APPLICATION, 0, &id);
@@ -2596,24 +2596,24 @@ static void DrawHierarchy(Arinc661_Configuration_Document_t* editor)
     const FACEOE_DisplayManagement_Layout_t*          layout;
     const FACEOE_DisplayManagement_Window_t*          window;
     const FACEOE_DisplayManagement_UserApplication_t* application;
-    ImGuiTreeNodeFlags                    flags;
-    float32_t                             row_height;
-    uint32_t                              screen_index;
-    uint32_t                              layout_index;
-    uint32_t                              window_index;
-    uint32_t                              application_index;
-    uint32_t                              parent_index;
-    uint32_t                              add_layout_screen_index;
-    uint32_t                              add_window_layout_index;
-    uint32_t                              remove_screen_index;
-    uint32_t                              remove_layout_index;
-    uint32_t                              remove_window_index;
-    uint32_t                              remove_application_index;
-    uint32_t                              remove_source_index;
-    uint32_t                              source_index;
-    bool_t                                is_screen_open;
-    bool_t                                is_layout_open;
-    bool_t                       is_open;
+    ImGuiTreeNodeFlags                                flags;
+    float32_t                                         row_height;
+    uint32_t                                          screen_index;
+    uint32_t                                          layout_index;
+    uint32_t                                          window_index;
+    uint32_t                                          application_index;
+    uint32_t                                          parent_index;
+    uint32_t                                          add_layout_screen_index;
+    uint32_t                                          add_window_layout_index;
+    uint32_t                                          remove_screen_index;
+    uint32_t                                          remove_layout_index;
+    uint32_t                                          remove_window_index;
+    uint32_t                                          remove_application_index;
+    uint32_t                                          remove_source_index;
+    uint32_t                                          source_index;
+    bool_t                                            is_screen_open;
+    bool_t                                            is_layout_open;
+    bool_t                                            is_open;
 
     add_layout_screen_index  = INVALID_HIERARCHY_INDEX;
     add_window_layout_index  = INVALID_HIERARCHY_INDEX;
@@ -3062,15 +3062,15 @@ static void MarkDocumentDirty(Arinc661_Configuration_Document_t* editor, bool_t 
  */
 static void DrawScreenInspector(Arinc661_Configuration_Document_t* editor)
 {
-    char_t   layout_label[LABEL_FORMAT_BYTES];
-    uint32_t layout_index;
-    uint32_t window_index;
-    uint32_t window_count;
-    uint32_t layout_count;
+    char_t                             layout_label[LABEL_FORMAT_BYTES];
+    uint32_t                           layout_index;
+    uint32_t                           window_index;
+    uint32_t                           window_count;
+    uint32_t                           layout_count;
     FACEOE_DisplayManagement_Screen_t* screen;
-    bool_t                 has_width_changed;
-    bool_t                 has_height_changed;
-    bool_t                 has_pixel_size_changed;
+    bool_t                             has_width_changed;
+    bool_t                             has_height_changed;
+    bool_t                             has_pixel_size_changed;
 
     screen = &editor->screens[editor->selectedIndex];
 
@@ -3776,17 +3776,17 @@ static void DrawFileMenuBar(Arinc661_Configuration_Editor_t* editor)
 static void DrawDocumentTabs(Arinc661_Configuration_Editor_t* editor)
 {
     Arinc661_Configuration_Document_t* document;
-    ImGuiTabItemFlags                   tab_flags;
-    ImVec2                              popup_center;
-    char_t                              tab_label[DOCUMENT_TAB_LABEL_BYTES];
-    uint32_t                            document_index;
-    uint32_t                            document_to_close;
-    bool                                is_tab_open;
-    bool                                is_tab_visible;
-    bool_t                              has_available_document;
-    bool_t                              has_pending_close;
-    bool_t                              has_pending_save;
-    bool_t                              should_create_document;
+    ImGuiTabItemFlags                  tab_flags;
+    ImVec2                             popup_center;
+    char_t                             tab_label[DOCUMENT_TAB_LABEL_BYTES];
+    uint32_t                           document_index;
+    uint32_t                           document_to_close;
+    bool                               is_tab_open;
+    bool                               is_tab_visible;
+    bool_t                             has_available_document;
+    bool_t                             has_pending_close;
+    bool_t                             has_pending_save;
+    bool_t                             should_create_document;
 
     has_available_document = FALSE;
     should_create_document = FALSE;
@@ -4060,7 +4060,7 @@ static void DrawSaveAsDialog(Arinc661_Configuration_Editor_t* editor)
 static void DrawStatusBar(const Arinc661_Configuration_Editor_t* editor)
 {
     const Arinc661_Configuration_Document_t* document;
-    const char_t* status_text;
+    const char_t*                            status_text;
 
     status_text = EditorStatusToString(editor->status);
     if (INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex)
@@ -4146,57 +4146,57 @@ static void DrawInspectorPane(Arinc661_Configuration_Editor_t* editor, Arinc661_
  */
 static void DrawScenePane(Arinc661_Configuration_Editor_t* owner, Arinc661_Configuration_Document_t* editor)
 {
-    const ImGuiStyle*            style;
+    const ImGuiStyle*                        style;
     const FACEOE_DisplayManagement_Screen_t* screen;
     const FACEOE_DisplayManagement_Layout_t* layout;
     const FACEOE_DisplayManagement_Window_t* window;
-    const char_t*                fmt;
-    ImDrawList*                  draw_list;
-    ImVec2                       canvas_min;
-    ImVec2                       canvas_size;
-    ImVec2                       canvas_max;
-    ImVec2                       content_size;
-    ImVec2                       screen_min;
-    ImVec2                       screen_position;
-    ImVec2                       screen_size;
-    ImVec2                       screen_max;
-    ImVec2                       screen_label_size;
-    ImVec2                       screen_label_position;
-    ImVec2                       area_offset;
-    ImVec2                       area_size;
-    ImVec2                       area_min;
-    ImVec2                       area_max;
-    ImVec2                       selected_window_min;
-    ImVec2                       selected_window_max;
-    ImVec2                       mouse_position;
-    char_t                       screen_label[LABEL_FORMAT_BYTES];
-    char_t                       window_label[FACEOE_DISPLAYMANAGEMENT_MAX_NAME_BYTES + LABEL_FORMAT_BYTES];
-    float32_t                    label_height;
-    float32_t                    unused_height;
-    float32_t                    width_scale;
-    float32_t                    height_scale;
-    float32_t                    scale;
-    uint32_t                     screen_index;
-    uint32_t                     window_index;
-    bool_t                       has_canvas_width;
-    bool_t                       has_canvas_height;
-    bool_t                       has_canvas_space;
-    bool_t                       has_valid_layout;
-    bool_t                       is_window_on_screen;
-    bool_t                       has_screen_width;
-    bool_t                       has_screen_height;
-    bool_t                       is_drawable_screen;
-    bool_t                       is_selected_screen;
-    bool_t                       is_selected_layout_window;
-    bool_t                       has_selected_window_area;
-    bool_t                       is_canvas_clicked;
-    bool_t                       is_screen_body_hit;
-    bool_t                       is_screen_label_hit;
-    bool_t                       is_screen_hit;
-    bool_t                       is_window_hit;
-    bool_t                       is_canvas_hovered;
-    uint32_t                     hover_screen;
-    uint32_t                     hover_window;
+    const char_t*                            fmt;
+    ImDrawList*                              draw_list;
+    ImVec2                                   canvas_min;
+    ImVec2                                   canvas_size;
+    ImVec2                                   canvas_max;
+    ImVec2                                   content_size;
+    ImVec2                                   screen_min;
+    ImVec2                                   screen_position;
+    ImVec2                                   screen_size;
+    ImVec2                                   screen_max;
+    ImVec2                                   screen_label_size;
+    ImVec2                                   screen_label_position;
+    ImVec2                                   area_offset;
+    ImVec2                                   area_size;
+    ImVec2                                   area_min;
+    ImVec2                                   area_max;
+    ImVec2                                   selected_window_min;
+    ImVec2                                   selected_window_max;
+    ImVec2                                   mouse_position;
+    char_t                                   screen_label[LABEL_FORMAT_BYTES];
+    char_t                                   window_label[FACEOE_DISPLAYMANAGEMENT_MAX_NAME_BYTES + LABEL_FORMAT_BYTES];
+    float32_t                                label_height;
+    float32_t                                unused_height;
+    float32_t                                width_scale;
+    float32_t                                height_scale;
+    float32_t                                scale;
+    uint32_t                                 screen_index;
+    uint32_t                                 window_index;
+    bool_t                                   has_canvas_width;
+    bool_t                                   has_canvas_height;
+    bool_t                                   has_canvas_space;
+    bool_t                                   has_valid_layout;
+    bool_t                                   is_window_on_screen;
+    bool_t                                   has_screen_width;
+    bool_t                                   has_screen_height;
+    bool_t                                   is_drawable_screen;
+    bool_t                                   is_selected_screen;
+    bool_t                                   is_selected_layout_window;
+    bool_t                                   has_selected_window_area;
+    bool_t                                   is_canvas_clicked;
+    bool_t                                   is_screen_body_hit;
+    bool_t                                   is_screen_label_hit;
+    bool_t                                   is_screen_hit;
+    bool_t                                   is_window_hit;
+    bool_t                                   is_canvas_hovered;
+    uint32_t                                 hover_screen;
+    uint32_t                                 hover_window;
 
     ImVec2                       handle_min;
     ImVec2                       handle_max;
@@ -5449,7 +5449,7 @@ static void DrawPanes(Arinc661_Configuration_Editor_t* editor)
  */
 void Arinc661_Configuration_Initialize(Arinc661_Configuration_Editor_t* editor)
 {
-    uint32_t owner_index;
+    uint32_t                           owner_index;
     Arinc661_Configuration_Document_t* document;
     uint32_t                           document_index;
 

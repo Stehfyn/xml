@@ -3851,7 +3851,7 @@ static FACEOE_Utl_Xml_Node_t* FindChild(FACEOE_Utl_Xml_Node_t* parent, const cha
 {
     FACEOE_Utl_Xml_Node_t* node;
     FACEOE_Utl_Xml_Node_t* found_node;
-    uint32_t        node_index;
+    uint32_t               node_index;
 
     node       = parent->firstChild;
     found_node = NULL;
@@ -3897,10 +3897,10 @@ static const FACEOE_Utl_Xml_Attribute_t* FindAttribute(const FACEOE_Utl_Xml_Node
 {
     const FACEOE_Utl_Xml_Attribute_t* attribute;
     const FACEOE_Utl_Xml_Attribute_t* found_attribute;
-    uint32_t                   byte_count;
-    uint32_t                   attribute_index;
-    bool_t                     has_length;
-    bool_t                     has_name;
+    uint32_t                          byte_count;
+    uint32_t                          attribute_index;
+    bool_t                            has_length;
+    bool_t                            has_name;
 
     attribute       = node->firstAttribute;
     found_attribute = NULL;
@@ -3954,7 +3954,7 @@ static const FACEOE_Utl_Xml_Attribute_t* FindAttribute(const FACEOE_Utl_Xml_Node
 static bool_t CopyAttribute(const FACEOE_Utl_Xml_Node_t* node, const char_t* name, char_t* destination, uint32_t capacity)
 {
     const FACEOE_Utl_Xml_Attribute_t* attribute;
-    bool_t                     fits;
+    bool_t                            fits;
 
     attribute      = FindAttribute(node, name);
     // Missing or oversized attributes leave an empty destination
@@ -3991,9 +3991,9 @@ static bool_t CopyAttribute(const FACEOE_Utl_Xml_Node_t* node, const char_t* nam
 static bool_t ReadInteger(const FACEOE_Utl_Xml_Node_t* node, const char_t* name, int64_t* value)
 {
     const FACEOE_Utl_Xml_Attribute_t* attribute;
-    int64_t                    parsed_value;
-    int32_t                    consumed;
-    bool_t                     is_valid;
+    int64_t                           parsed_value;
+    int32_t                           consumed;
+    bool_t                            is_valid;
 
     attribute = FindAttribute(node, name);
     // The numeric attribute is required
@@ -4061,10 +4061,10 @@ static FACEOE_Utl_Xml_Node_t* AppendElement(XmlWorkspace_t* xml, const char_t* n
 static bool_t AppendAttribute(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* node, const char_t* name, const char_t* value)
 {
     FACEOE_Utl_Xml_Attribute_t* attribute;
-    uint32_t             byte_count;
-    bool_t               has_storage;
-    bool_t               has_value;
-    bool_t               is_valid;
+    uint32_t                    byte_count;
+    bool_t                      has_storage;
+    bool_t                      has_value;
+    bool_t                      is_valid;
 
     // A formatter may return NULL, and the shared attribute array may be full
     has_storage = (xml->attributeCount < ARINC661_XML_ATTRIBUTE_CAPACITY);
@@ -4164,7 +4164,7 @@ static FACEOE_Utl_Xml_Node_t* FindDocumentElement(const FACEOE_Utl_Xml_Document_
 {
     FACEOE_Utl_Xml_Node_t* node;
     FACEOE_Utl_Xml_Node_t* element;
-    uint32_t        node_index;
+    uint32_t               node_index;
 
     node    = document->firstNode;
     element = NULL;
@@ -4216,7 +4216,7 @@ static FACEOE_Utl_Xml_Node_t* NextSubtreeNode(FACEOE_Utl_Xml_Node_t* root, FACEO
 {
     FACEOE_Utl_Xml_Node_t* next_node;
     FACEOE_Utl_Xml_Node_t* ancestor;
-    uint32_t        ancestor_index;
+    uint32_t               ancestor_index;
 
     // Descend first so parents are visited before their descendants
     next_node = current->firstChild;
@@ -4271,7 +4271,7 @@ static bool_t IsModelContent(const FACEOE_Utl_Xml_Node_t* node)
 static bool_t AppendProperty(Arinc661_Definition_t* definition, Arinc661_PropertyOwner_t owner, uint32_t ownerIndex, const FACEOE_Utl_Xml_Node_t* nameNode, const FACEOE_Utl_Xml_Node_t* valueNode, const char_t* valueAttribute)
 {
     Arinc661_Property_t* property;
-    bool_t                   is_valid;
+    bool_t               is_valid;
 
     is_valid = (definition->propertyCount < definition->propertyCapacity);
     if (is_valid)
@@ -4325,9 +4325,9 @@ static bool_t ReadArrayProperty(Arinc661_Definition_t* definition, FACEOE_Utl_Xm
 {
     FACEOE_Utl_Xml_Node_t* entry_node;
     FACEOE_Utl_Xml_Node_t* field_node;
-    uint32_t        entry_index;
-    uint32_t        field_index;
-    bool_t          is_valid;
+    uint32_t               entry_index;
+    uint32_t               field_index;
+    bool_t                 is_valid;
 
     is_valid   = TRUE;
     entry_node = array->firstChild;
@@ -4406,8 +4406,8 @@ static bool_t ReadArrayProperty(Arinc661_Definition_t* definition, FACEOE_Utl_Xm
 static bool_t ReadProperties(Arinc661_Definition_t* definition, FACEOE_Utl_Xml_Node_t* model, Arinc661_PropertyOwner_t owner, uint32_t ownerIndex)
 {
     FACEOE_Utl_Xml_Node_t* property_node;
-    uint32_t        node_index;
-    bool_t          is_valid;
+    uint32_t               node_index;
+    bool_t                 is_valid;
 
     // Every supported owner needs a model, even when it has no properties
     is_valid = (NULL != model);
@@ -4458,8 +4458,8 @@ static uint32_t FindSameNameProperty(const Arinc661_Definition_t* definition, ui
 {
     const Arinc661_Property_t* property;
     const Arinc661_Property_t* candidate;
-    uint32_t                       match_index;
-    uint32_t                       candidate_index;
+    uint32_t                   match_index;
+    uint32_t                   candidate_index;
 
     property    = &definition->properties[propertyIndex];
     match_index = UINT32_MAX;
@@ -4508,18 +4508,18 @@ static uint32_t FindSameNameProperty(const Arinc661_Definition_t* definition, ui
  */
 static bool_t WriteProperties(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent, const Arinc661_Definition_t* definition, Arinc661_PropertyOwner_t owner, uint32_t ownerIndex)
 {
-    FACEOE_Utl_Xml_Node_t*                model;
-    FACEOE_Utl_Xml_Node_t*                property_node;
-    FACEOE_Utl_Xml_Node_t*                entry_node;
+    FACEOE_Utl_Xml_Node_t*     model;
+    FACEOE_Utl_Xml_Node_t*     property_node;
+    FACEOE_Utl_Xml_Node_t*     entry_node;
     const Arinc661_Property_t* property;
-    const char_t*                  element_name;
-    uint32_t                       property_index;
-    uint32_t                       entry_index;
-    uint32_t                       element_index;
-    bool_t                         is_owner;
-    bool_t                         has_index;
-    bool_t                         is_array;
-    bool_t                         is_valid;
+    const char_t*              element_name;
+    uint32_t                   property_index;
+    uint32_t                   entry_index;
+    uint32_t                   element_index;
+    bool_t                     is_owner;
+    bool_t                     has_index;
+    bool_t                     is_array;
+    bool_t                     is_valid;
 
     // Always create the owner's model, including when no properties match
     model    = AppendElement(xml, DF_ELEMENT_MODEL);
@@ -5460,15 +5460,29 @@ static bool_t AddHexProperty(Arinc661_Definition_t* definition, const char_t* na
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Converts one parameter to property text, the inverse of WriteField. Integers
- *  become decimal numbers; constant names such as A661_TRUE are not restored
- *  because the same number has different names for different parameters.
- *  Floats and fr() angles use the fewest decimal digits that reproduce the
- *  stored bits exactly. A
- *  string extends to its zero terminator, which must lie inside the command.
- *  Bytes without a numeric type, sized buffers, and excluded regions become
- *  uppercase hexadecimal digits. Unused pads and alignment bytes are skipped
- *  without checking their content.
+ *  Converts one parameter to property text, the inverse of WriteField:
+ *
+ * \verbatim
+ * Parameter     Bytes                                      Property value
+ * uchar         15                                         "21"
+ * ushort        1221                                       "4641"
+ * long          FFFFFFFF                                   "-1"
+ * ulong         00002710                                   "10000"
+ * float         3FC00000                                   "1.5"
+ * fr(180)       40000000                                   "90"
+ * string        59 4F 55 00                                "YOU"
+ * sized bytes   0003 0000 0A0B0C 00                        "0A0B0C"
+ * region        0001 0000 00000000 00000000 00000064 ...   "0001000000000000000000000000006400000064"
+ * UnusedPad     00                                         none; skipped
+ * \endverbatim
+ *
+ *  Integers become decimal numbers; constant names such as A661_TRUE are not
+ *  restored because the same number has different names for different
+ *  parameters. Floats and fr() angles use the fewest decimal digits that
+ *  reproduce the stored bits exactly. A string extends to its zero terminator,
+ *  which must lie inside the command. Bytes without a numeric type, sized
+ *  buffers, and excluded regions become uppercase hexadecimal digits. Unused
+ *  pads and alignment bytes are skipped without checking their content.
  */
 static bool_t ReadField(Arinc661_Definition_t* definition, const BinaryField_t* field, const byte_t* buffer, uint64_t endOffset, uint64_t* offset)
 {
@@ -5610,7 +5624,32 @@ static bool_t ReadField(Arinc661_Definition_t* definition, const BinaryField_t* 
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Adds one widget array entry and its properties in Creation Structure order.
+ *  Adds one widget array entry and its properties in Creation Structure order,
+ *  for example a label under the panel whose WidgetIdent is 4641 (Table 4.5.3.3.1):
+ *
+ * \verbatim
+ * CA01      A661_CMD_CREATE
+ * 002C      CommandSize (44 bytes, including this header)
+ * A160      WidgetType          -> widget type A661_LABEL
+ * 0002      WidgetIdent         -> property WidgetIdent = "2"
+ * 1221      ParentIdent         -> parentWidgetIndex of the earlier widget with WidgetIdent 4641
+ * 00        Anonymous           -> property Anonymous = "0"
+ * 01        Visible             -> property Visible = "1"
+ * FFFFFFFF  PosX                -> property PosX = "-1"
+ * ...       remaining parameters, each read by ReadField
+ * 594F5500  LabelString         -> property LabelString = "YOU"
+ * \endverbatim
+ *
+ *  or an extension of the widget before it (Table 4.5.3.3.2):
+ *
+ * \verbatim
+ * CA05      A661_CMD_EXTEND
+ * 0008      CommandSize
+ * 8004      ExtensionType       -> extension entry A661_LEGEND_ALIGN_EXTENSION
+ * 15        LegendAlignment     -> property LegendAlignment = "21"
+ * 00        UnusedPad           -> skipped
+ * \endverbatim
+ *
  *  A create command adds a WidgetIdent property first; an extend command adds an
  *  entry flagged isExtension whose parent is the most recent widget of the layer
  *  block, as section 8.1 requires. Names stay empty because the binary form does
@@ -5927,8 +5966,19 @@ static bool_t MeasurePictureBlock(const byte_t* buffer, uint64_t byteCount, uint
 /**
  * \par Details:
  *  Symbol and animation law blocks (Tables 4.5.3.2-5 and 9.2-1) carry a Block
- *  Size after a padded code and end with their end code; picture blocks are
- *  measured structurally. The block is appended unchanged to the caller's block
+ *  Size after a padded code and end with their end code, for example:
+ *
+ * \verbatim
+ * F0        A661_BEGIN_SYMBOL_BLOCK (CA for A661_BEGIN_ANIMATION_LAW_BLOCK)
+ * 000000    UnusedPad
+ * 00000014  Block Size, including this header and the end code
+ * ...       symbol definitions, kept byte for byte
+ * F8        A661_END_SYMBOL_BLOCK (CB for A661_END_ANIMATION_LAW_BLOCK)
+ * 000000    UnusedPad
+ * \endverbatim
+ *
+ *  Picture blocks have no Block Size and are measured by MeasurePictureBlock
+ *  instead. The block is appended unchanged to the caller's block
  *  storage, so Arinc661_Definition_WriteBinary can emit it again. The storage
  *  pointer may be NULL only while its capacity is zero.
  */
@@ -6006,6 +6056,234 @@ void Arinc661_Definition_Initialize(Arinc661_Definition_t* definition, Arinc661_
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  Counts the supported widget types or the supported extension types.
+ */
+uint32_t Arinc661_Definition_GetTypeCount(bool_t isExtension)
+{
+    uint32_t type_count;
+
+    type_count = (uint32_t)COUNT_OF(c_binaryWidgets);
+    if (isExtension)
+    {
+        type_count = (uint32_t)COUNT_OF(c_binaryExtensions);
+    }
+
+    return type_count;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Widget types are in name order; extension types follow Table 4.6-12 order.
+ */
+const char_t* Arinc661_Definition_GetTypeName(bool_t isExtension, uint32_t typeIndex)
+{
+    const char_t* name;
+
+    LOGASSERT(typeIndex < Arinc661_Definition_GetTypeCount(isExtension));
+    name = c_binaryWidgets[typeIndex].name;
+    if (isExtension)
+    {
+        name = c_binaryExtensions[typeIndex].name;
+    }
+
+    return name;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Counts the named parameters of the type, leaving out unused pads and alignment.
+ */
+bool_t Arinc661_Definition_FindType(const char_t* typeName, bool_t isExtension, uint32_t* parameterCount)
+{
+    const BinaryWidget_t* type;
+    uint32_t              field_index;
+    uint32_t              count;
+    bool_t                is_found;
+
+    LOGASSERT(NULL != typeName);
+    LOGASSERT(NULL != parameterCount);
+    type     = FindTypeByName(typeName, isExtension);
+    is_found = (NULL != type);
+    if (is_found)
+    {
+        count = 0;
+        for (field_index = 0; field_index < type->fieldCount; ++field_index)
+        {
+            if (NULL != type->fields[field_index].name)
+            {
+                count += 1;
+            }
+        }
+        (*parameterCount) = count;
+    }
+
+    return is_found;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Describes the parameter at parameterIndex among the named parameters of the type, in
+ *  Creation Structure order. An array names the parameter holding its entry count.
+ */
+bool_t Arinc661_Definition_GetParameter(const char_t* typeName, bool_t isExtension, uint32_t parameterIndex, Arinc661_Parameter_t* parameter)
+{
+    const BinaryWidget_t* type;
+    const BinaryField_t*  field;
+    uint32_t              field_index;
+    uint32_t              named_index;
+    bool_t                is_found;
+
+    LOGASSERT(NULL != typeName);
+    LOGASSERT(NULL != parameter);
+    type     = FindTypeByName(typeName, isExtension);
+    is_found = FALSE;
+    if (NULL != type)
+    {
+        named_index = 0;
+        for (field_index = 0; field_index < type->fieldCount; ++field_index)
+        {
+            field = &type->fields[field_index];
+            if (NULL == field->name)
+            {
+                continue;
+            }
+            if (named_index == parameterIndex)
+            {
+                is_found                    = TRUE;
+                parameter->name             = field->name;
+                parameter->byteCount        = field->byteCount;
+                parameter->elementsPerEntry = field->repeat;
+                parameter->countName        = NULL;
+                parameter->values           = field->values;
+                parameter->valueCount       = field->valueCount;
+                if (0 != field->repeat)
+                {
+                    parameter->countName = type->fields[field->countField].name;
+                }
+                switch (field->type)
+                {
+                    case BINARY_FIELD_UCHAR:       parameter->kind = ARINC661_PARAMETER_UCHAR; break;
+                    case BINARY_FIELD_USHORT:      parameter->kind = ARINC661_PARAMETER_USHORT; break;
+                    case BINARY_FIELD_LONG:        parameter->kind = ARINC661_PARAMETER_LONG; break;
+                    case BINARY_FIELD_ULONG:       parameter->kind = ARINC661_PARAMETER_ULONG; break;
+                    case BINARY_FIELD_FLOAT:       parameter->kind = ARINC661_PARAMETER_FLOAT; break;
+                    case BINARY_FIELD_FR180:       parameter->kind = ARINC661_PARAMETER_FR180; break;
+                    case BINARY_FIELD_FR32768:     parameter->kind = ARINC661_PARAMETER_FR32768; break;
+                    case BINARY_FIELD_STRING:      parameter->kind = ARINC661_PARAMETER_STRING; break;
+                    case BINARY_FIELD_BYTES:       parameter->kind = ARINC661_PARAMETER_BYTES; break;
+                    case BINARY_FIELD_SIZED_BYTES: parameter->kind = ARINC661_PARAMETER_SIZED_BYTES; break;
+                    case BINARY_FIELD_REGION:      parameter->kind = ARINC661_PARAMETER_REGION; break;
+                    case BINARY_FIELD_LAYER_REQUEST: parameter->kind = ARINC661_PARAMETER_LAYER_REQUEST; break;
+                    case BINARY_FIELD_PAD:
+                    case BINARY_FIELD_ALIGN:
+                    default:                       LOGFATAL("Named parameter with a pad type!");
+                }
+                break;
+            }
+            named_index += 1;
+        }
+    }
+
+    return is_found;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Counts the constant names of section 4.6 that property values may use.
+ */
+uint32_t Arinc661_Definition_GetConstantCount(void)
+{
+    return (uint32_t)COUNT_OF(c_binaryConstants);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Constants are in name order.
+ */
+const char_t* Arinc661_Definition_GetConstantName(uint32_t constantIndex)
+{
+    LOGASSERT(constantIndex < Arinc661_Definition_GetConstantCount());
+
+    return c_binaryConstants[constantIndex].name;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Returns the numeric value the binary form stores for the constant.
+ */
+uint32_t Arinc661_Definition_GetConstantValue(uint32_t constantIndex)
+{
+    LOGASSERT(constantIndex < Arinc661_Definition_GetConstantCount());
+
+    return c_binaryConstants[constantIndex].value;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  An extension type the table does not list applies nowhere.
+ */
+bool_t Arinc661_Definition_ExtensionApplies(const char_t* extensionType, const char_t* widgetType)
+{
+    uint32_t extension_index;
+    uint32_t widget_index;
+    bool_t   applies;
+
+    LOGASSERT(NULL != extensionType);
+    LOGASSERT(NULL != widgetType);
+    applies = FALSE;
+    for (extension_index = 0; extension_index < EXTENSION_TARGET_COUNT; ++extension_index)
+    {
+        if (0 == strcmp(extensionType, c_extensionTargets[extension_index].extension))
+        {
+            for (widget_index = 0; widget_index < c_extensionTargets[extension_index].widgetCount; ++widget_index)
+            {
+                if (0 == strcmp(widgetType, c_extensionTargets[extension_index].widgets[widget_index]))
+                {
+                    applies = TRUE;
+                    break;
+                }
+            }
+            break;
+        }
+    }
+
+    return applies;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Lists the widget types in table order.
+ */
+const char_t* Arinc661_Definition_GetExtensionTarget(const char_t* extensionType, uint32_t index)
+{
+    uint32_t      extension_index;
+    const char_t* widget;
+
+    LOGASSERT(NULL != extensionType);
+    widget = NULL;
+    for (extension_index = 0; extension_index < EXTENSION_TARGET_COUNT; ++extension_index)
+    {
+        if ((0 == strcmp(extensionType, c_extensionTargets[extension_index].extension)) && (index < c_extensionTargets[extension_index].widgetCount))
+        {
+            widget = c_extensionTargets[extension_index].widgets[index];
+            break;
+        }
+    }
+
+    return widget;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Reads a Definition File into flat layer, widget, and property arrays. This
  *  supported example contains a nested widget:
  *
@@ -6048,12 +6326,12 @@ void Arinc661_Definition_Initialize(Arinc661_Definition_t* definition, Arinc661_
 bool_t Arinc661_Definition_Read(Arinc661_Definition_t* definition, byte_t* bufferToReadXmlFrom, uint64_t sizeOfXmlBuffer, void* workspace, uint64_t workspaceSize)
 {
     XmlWorkspace_t         xml;
-    FACEOE_Utl_Xml_Node_t*        root;
-    FACEOE_Utl_Xml_Node_t*        layer_node;
-    FACEOE_Utl_Xml_Node_t*        current_node;
-    FACEOE_Utl_Xml_Node_t*        model_node;
-    Arinc661_Layer_t*  layer;
-    Arinc661_Widget_t* widget;
+    FACEOE_Utl_Xml_Node_t* root;
+    FACEOE_Utl_Xml_Node_t* layer_node;
+    FACEOE_Utl_Xml_Node_t* current_node;
+    FACEOE_Utl_Xml_Node_t* model_node;
+    Arinc661_Layer_t*      layer;
+    Arinc661_Widget_t*     widget;
     char_t                 charset_name[ARINC661_MAX_NAME_BYTES];
     int64_t                version;
     uint32_t               layer_index;
@@ -6320,22 +6598,22 @@ bool_t Arinc661_Definition_Read(Arinc661_Definition_t* definition, byte_t* buffe
  */
 uint64_t Arinc661_Definition_Write(const Arinc661_Definition_t* definition, byte_t* bufferToWriteXmlTo, uint64_t capacityOfXmlBuffer, void* workspace, uint64_t workspaceSize)
 {
-    XmlWorkspace_t               xml;
-    FACEOE_Utl_Xml_Node_t*              root;
-    FACEOE_Utl_Xml_Node_t*              layer_node;
-    FACEOE_Utl_Xml_Node_t*              widget_node;
-    FACEOE_Utl_Xml_Node_t*              parent_node;
-    FACEOE_Utl_Xml_Node_t*              charset_node;
+    XmlWorkspace_t           xml;
+    FACEOE_Utl_Xml_Node_t*   root;
+    FACEOE_Utl_Xml_Node_t*   layer_node;
+    FACEOE_Utl_Xml_Node_t*   widget_node;
+    FACEOE_Utl_Xml_Node_t*   parent_node;
+    FACEOE_Utl_Xml_Node_t*   charset_node;
     const Arinc661_Layer_t*  layer;
     const Arinc661_Widget_t* widget;
-    const char_t*                element_name;
-    uint64_t                     byte_count;
-    uint32_t                     layer_index;
-    uint32_t                     widget_index;
-    uint32_t                     charset_index;
-    bool_t                       has_workspace;
-    bool_t                       has_parent;
-    bool_t                       is_valid;
+    const char_t*            element_name;
+    uint64_t                 byte_count;
+    uint32_t                 layer_index;
+    uint32_t                 widget_index;
+    uint32_t                 charset_index;
+    bool_t                   has_workspace;
+    bool_t                   has_parent;
+    bool_t                   is_valid;
 
     LOGASSERT(NULL != definition);
     LOGASSERT(NULL != bufferToWriteXmlTo);
@@ -6726,232 +7004,4 @@ uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition
     }
 
     return byte_count;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Counts the supported widget types or the supported extension types.
- */
-uint32_t Arinc661_Definition_GetTypeCount(bool_t isExtension)
-{
-    uint32_t type_count;
-
-    type_count = (uint32_t)COUNT_OF(c_binaryWidgets);
-    if (isExtension)
-    {
-        type_count = (uint32_t)COUNT_OF(c_binaryExtensions);
-    }
-
-    return type_count;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Widget types are in name order; extension types follow Table 4.6-12 order.
- */
-const char_t* Arinc661_Definition_GetTypeName(bool_t isExtension, uint32_t typeIndex)
-{
-    const char_t* name;
-
-    LOGASSERT(typeIndex < Arinc661_Definition_GetTypeCount(isExtension));
-    name = c_binaryWidgets[typeIndex].name;
-    if (isExtension)
-    {
-        name = c_binaryExtensions[typeIndex].name;
-    }
-
-    return name;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Counts the named parameters of the type, leaving out unused pads and alignment.
- */
-bool_t Arinc661_Definition_FindType(const char_t* typeName, bool_t isExtension, uint32_t* parameterCount)
-{
-    const BinaryWidget_t* type;
-    uint32_t              field_index;
-    uint32_t              count;
-    bool_t                is_found;
-
-    LOGASSERT(NULL != typeName);
-    LOGASSERT(NULL != parameterCount);
-    type     = FindTypeByName(typeName, isExtension);
-    is_found = (NULL != type);
-    if (is_found)
-    {
-        count = 0;
-        for (field_index = 0; field_index < type->fieldCount; ++field_index)
-        {
-            if (NULL != type->fields[field_index].name)
-            {
-                count += 1;
-            }
-        }
-        (*parameterCount) = count;
-    }
-
-    return is_found;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Describes the parameter at parameterIndex among the named parameters of the type, in
- *  Creation Structure order. An array names the parameter holding its entry count.
- */
-bool_t Arinc661_Definition_GetParameter(const char_t* typeName, bool_t isExtension, uint32_t parameterIndex, Arinc661_Parameter_t* parameter)
-{
-    const BinaryWidget_t* type;
-    const BinaryField_t*  field;
-    uint32_t              field_index;
-    uint32_t              named_index;
-    bool_t                is_found;
-
-    LOGASSERT(NULL != typeName);
-    LOGASSERT(NULL != parameter);
-    type     = FindTypeByName(typeName, isExtension);
-    is_found = FALSE;
-    if (NULL != type)
-    {
-        named_index = 0;
-        for (field_index = 0; field_index < type->fieldCount; ++field_index)
-        {
-            field = &type->fields[field_index];
-            if (NULL == field->name)
-            {
-                continue;
-            }
-            if (named_index == parameterIndex)
-            {
-                is_found                    = TRUE;
-                parameter->name             = field->name;
-                parameter->byteCount        = field->byteCount;
-                parameter->elementsPerEntry = field->repeat;
-                parameter->countName        = NULL;
-                parameter->values           = field->values;
-                parameter->valueCount       = field->valueCount;
-                if (0 != field->repeat)
-                {
-                    parameter->countName = type->fields[field->countField].name;
-                }
-                switch (field->type)
-                {
-                    case BINARY_FIELD_UCHAR:       parameter->kind = ARINC661_PARAMETER_UCHAR; break;
-                    case BINARY_FIELD_USHORT:      parameter->kind = ARINC661_PARAMETER_USHORT; break;
-                    case BINARY_FIELD_LONG:        parameter->kind = ARINC661_PARAMETER_LONG; break;
-                    case BINARY_FIELD_ULONG:       parameter->kind = ARINC661_PARAMETER_ULONG; break;
-                    case BINARY_FIELD_FLOAT:       parameter->kind = ARINC661_PARAMETER_FLOAT; break;
-                    case BINARY_FIELD_FR180:       parameter->kind = ARINC661_PARAMETER_FR180; break;
-                    case BINARY_FIELD_FR32768:     parameter->kind = ARINC661_PARAMETER_FR32768; break;
-                    case BINARY_FIELD_STRING:      parameter->kind = ARINC661_PARAMETER_STRING; break;
-                    case BINARY_FIELD_BYTES:       parameter->kind = ARINC661_PARAMETER_BYTES; break;
-                    case BINARY_FIELD_SIZED_BYTES: parameter->kind = ARINC661_PARAMETER_SIZED_BYTES; break;
-                    case BINARY_FIELD_REGION:      parameter->kind = ARINC661_PARAMETER_REGION; break;
-                    case BINARY_FIELD_LAYER_REQUEST: parameter->kind = ARINC661_PARAMETER_LAYER_REQUEST; break;
-                    case BINARY_FIELD_PAD:
-                    case BINARY_FIELD_ALIGN:
-                    default:                       LOGFATAL("Named parameter with a pad type!");
-                }
-                break;
-            }
-            named_index += 1;
-        }
-    }
-
-    return is_found;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Counts the constant names of section 4.6 that property values may use.
- */
-uint32_t Arinc661_Definition_GetConstantCount(void)
-{
-    return (uint32_t)COUNT_OF(c_binaryConstants);
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Constants are in name order.
- */
-const char_t* Arinc661_Definition_GetConstantName(uint32_t constantIndex)
-{
-    LOGASSERT(constantIndex < Arinc661_Definition_GetConstantCount());
-
-    return c_binaryConstants[constantIndex].name;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Returns the numeric value the binary form stores for the constant.
- */
-uint32_t Arinc661_Definition_GetConstantValue(uint32_t constantIndex)
-{
-    LOGASSERT(constantIndex < Arinc661_Definition_GetConstantCount());
-
-    return c_binaryConstants[constantIndex].value;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  An extension type the table does not list applies nowhere.
- */
-bool_t Arinc661_Definition_ExtensionApplies(const char_t* extensionType, const char_t* widgetType)
-{
-    uint32_t extension_index;
-    uint32_t widget_index;
-    bool_t   applies;
-
-    LOGASSERT(NULL != extensionType);
-    LOGASSERT(NULL != widgetType);
-    applies = FALSE;
-    for (extension_index = 0; extension_index < EXTENSION_TARGET_COUNT; ++extension_index)
-    {
-        if (0 == strcmp(extensionType, c_extensionTargets[extension_index].extension))
-        {
-            for (widget_index = 0; widget_index < c_extensionTargets[extension_index].widgetCount; ++widget_index)
-            {
-                if (0 == strcmp(widgetType, c_extensionTargets[extension_index].widgets[widget_index]))
-                {
-                    applies = TRUE;
-                    break;
-                }
-            }
-            break;
-        }
-    }
-
-    return applies;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Lists the widget types in table order.
- */
-const char_t* Arinc661_Definition_GetExtensionTarget(const char_t* extensionType, uint32_t index)
-{
-    uint32_t      extension_index;
-    const char_t* widget;
-
-    LOGASSERT(NULL != extensionType);
-    widget = NULL;
-    for (extension_index = 0; extension_index < EXTENSION_TARGET_COUNT; ++extension_index)
-    {
-        if ((0 == strcmp(extensionType, c_extensionTargets[extension_index].extension)) && (index < c_extensionTargets[extension_index].widgetCount))
-        {
-            widget = c_extensionTargets[extension_index].widgets[index];
-            break;
-        }
-    }
-
-    return widget;
 }

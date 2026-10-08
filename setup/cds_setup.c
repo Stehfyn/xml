@@ -655,10 +655,10 @@ static uint32_t ReadBuildNumber(void)
  */
 static bool_t ReadsDarkTheme(void)
 {
-    HKEY  key;
-    DWORD value;
-    DWORD size;
-    DWORD type;
+    HKEY   key;
+    DWORD  value;
+    DWORD  size;
+    DWORD  type;
     bool_t is_dark;
 
     is_dark = FALSE;
@@ -1108,14 +1108,14 @@ static INT_PTR CALLBACK PageProcedure(HWND window, UINT message, WPARAM wordPara
     HDC          paint_context;
     LONG_PTR     style;
     TVITEMW      tree_item;
-    HRSRC   resource;
-    HGLOBAL loaded;
-    char*   bytes;
-    DWORD   byte_count;
-    wchar_t text[MAX_TEXT];
-    wchar_t* wide;
-    int     wide_count;
-    int     page_id;
+    HRSRC        resource;
+    HGLOBAL      loaded;
+    char*        bytes;
+    DWORD        byte_count;
+    wchar_t      text[MAX_TEXT];
+    wchar_t*     wide;
+    int          wide_count;
+    int          page_id;
 
     switch (message)
     {
@@ -2294,10 +2294,10 @@ static void FillSummary(HWND page)
  */
 static void BrowseFolder(HWND page)
 {
-    IFileOpenDialog* dialog;
-    IShellItem*      item;
-    IShellItem*      start;
-    wchar_t*         chosen;
+    IFileOpenDialog*      dialog;
+    IShellItem*           item;
+    IShellItem*           start;
+    wchar_t*              chosen;
     FILEOPENDIALOGOPTIONS options;
 
     dialog = NULL;

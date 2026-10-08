@@ -29,7 +29,7 @@
  */
 uint64_t Os_Time_GetNanoseconds(void)
 {
-    BOOL query_succeeded;
+    BOOL          query_succeeded;
     LARGE_INTEGER counter;
     LARGE_INTEGER frequency;
     uint64_t      seconds;

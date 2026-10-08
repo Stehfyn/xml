@@ -661,7 +661,7 @@ static FACEOE_Utl_Xml_Node_t* FindChild(FACEOE_Utl_Xml_Node_t* parent, const cha
 {
     FACEOE_Utl_Xml_Node_t* node;
     FACEOE_Utl_Xml_Node_t* found_node;
-    uint32_t        node_index;
+    uint32_t               node_index;
 
     node       = parent->firstChild;
     found_node = NULL;
@@ -707,10 +707,10 @@ static const FACEOE_Utl_Xml_Attribute_t* FindAttribute(const FACEOE_Utl_Xml_Node
 {
     const FACEOE_Utl_Xml_Attribute_t* attribute;
     const FACEOE_Utl_Xml_Attribute_t* found_attribute;
-    uint32_t                   byte_count;
-    uint32_t                   attribute_index;
-    bool_t                     has_length;
-    bool_t                     has_name;
+    uint32_t                          byte_count;
+    uint32_t                          attribute_index;
+    bool_t                            has_length;
+    bool_t                            has_name;
 
     attribute       = node->firstAttribute;
     found_attribute = NULL;
@@ -797,7 +797,7 @@ static bool_t HasAttributeValue(const FACEOE_Utl_Xml_Attribute_t* attribute, con
 static bool_t CopyAttribute(const FACEOE_Utl_Xml_Node_t* node, const char_t* name, char_t* destination, uint32_t capacity)
 {
     const FACEOE_Utl_Xml_Attribute_t* attribute;
-    bool_t                     fits;
+    bool_t                            fits;
 
     attribute      = FindAttribute(node, name);
     // Missing or oversized attributes leave an empty destination
@@ -836,7 +836,7 @@ static bool_t ReadConfigurationSchema(const FACEOE_Utl_Xml_Node_t* root, FACEOE_
 {
     const FACEOE_Utl_Xml_Attribute_t* location;
     const FACEOE_Utl_Xml_Attribute_t* namespace_attribute;
-    bool_t                    is_valid;
+    bool_t                            is_valid;
 
     configuration->schemaLocation[0] = '\0';
     location = FindAttribute(root, XML_ATTRIBUTE_SCHEMA_LOCATION);
@@ -877,9 +877,9 @@ static bool_t ReadConfigurationSchema(const FACEOE_Utl_Xml_Node_t* root, FACEOE_
 static bool_t ReadInteger(const FACEOE_Utl_Xml_Node_t* node, const char_t* name, int64_t* value)
 {
     const FACEOE_Utl_Xml_Attribute_t* attribute;
-    int64_t                    parsed_value;
-    int32_t                    consumed;
-    bool_t                     is_valid;
+    int64_t                           parsed_value;
+    int32_t                           consumed;
+    bool_t                            is_valid;
 
     attribute = FindAttribute(node, name);
     // The numeric attribute is required
@@ -915,9 +915,9 @@ static bool_t ReadInteger(const FACEOE_Utl_Xml_Node_t* node, const char_t* name,
 static bool_t ReadDecimal(const FACEOE_Utl_Xml_Node_t* node, const char_t* name, float32_t* value)
 {
     const FACEOE_Utl_Xml_Attribute_t* attribute;
-    float64_t                  parsed_value;
-    int32_t                    consumed;
-    bool_t                     is_valid;
+    float64_t                         parsed_value;
+    int32_t                           consumed;
+    bool_t                            is_valid;
 
     attribute = FindAttribute(node, name);
     is_valid  = (NULL != attribute);
@@ -956,7 +956,7 @@ static bool_t ReadDecimal(const FACEOE_Utl_Xml_Node_t* node, const char_t* name,
 static bool_t ReadUnit(const FACEOE_Utl_Xml_Node_t* node, const char_t* name, FACEOE_DisplayManagement_Unit_t defaultUnit, FACEOE_DisplayManagement_Unit_t* unit)
 {
     const FACEOE_Utl_Xml_Attribute_t* attribute;
-    bool_t                     is_valid;
+    bool_t                            is_valid;
 
     attribute = FindAttribute(node, name);
     // Set the caller's default before looking for an explicit supported spelling
@@ -1010,11 +1010,11 @@ static bool_t ReadUnit(const FACEOE_Utl_Xml_Node_t* node, const char_t* name, FA
 static bool_t ReadBoolean(const FACEOE_Utl_Xml_Node_t* node, const char_t* name, bool_t* value)
 {
     const FACEOE_Utl_Xml_Attribute_t* attribute;
-    bool_t                     is_true;
-    bool_t                     is_one;
-    bool_t                     is_false;
-    bool_t                     is_zero;
-    bool_t                     is_valid;
+    bool_t                            is_true;
+    bool_t                            is_one;
+    bool_t                            is_false;
+    bool_t                            is_zero;
+    bool_t                            is_valid;
 
     // An absent boolean attribute uses FALSE
     (*value) = FALSE;
@@ -1092,10 +1092,10 @@ static FACEOE_Utl_Xml_Node_t* AppendElement(XmlWorkspace_t* xml, const char_t* n
 static bool_t AppendAttribute(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* node, const char_t* name, const char_t* value)
 {
     FACEOE_Utl_Xml_Attribute_t* attribute;
-    uint32_t             byte_count;
-    bool_t               has_storage;
-    bool_t               has_value;
-    bool_t               is_valid;
+    uint32_t                    byte_count;
+    bool_t                      has_storage;
+    bool_t                      has_value;
+    bool_t                      is_valid;
 
     // A formatter may return NULL, and the shared attribute array may be full
     has_storage = (xml->attributeCount < FACEOE_DISPLAYMANAGEMENT_XML_ATTRIBUTE_CAPACITY);
@@ -1326,7 +1326,7 @@ static FACEOE_Utl_Xml_Node_t* FindDocumentElement(const FACEOE_Utl_Xml_Document_
 {
     FACEOE_Utl_Xml_Node_t* node;
     FACEOE_Utl_Xml_Node_t* element;
-    uint32_t        node_index;
+    uint32_t               node_index;
 
     node    = document->firstNode;
     element = NULL;
@@ -1511,20 +1511,20 @@ static bool_t ReadScreenHierarchy(FACEOE_DisplayManagement_Configuration_t* conf
     FACEOE_DisplayManagement_Screen_t* screen;
     FACEOE_DisplayManagement_Layout_t* layout;
     FACEOE_DisplayManagement_Window_t* window;
-    FACEOE_Utl_Xml_Node_t*        layout_node;
-    FACEOE_Utl_Xml_Node_t*        window_node;
-    FACEOE_Utl_Xml_Node_t*        detail_node;
-    uint32_t               screen_index;
-    uint32_t               layout_index;
-    uint32_t               detail_index;
-    uint32_t               screen_array_index;
-    uint32_t               layout_array_index;
-    bool_t                 is_pixel_size;
-    bool_t                 is_physical_dimensions;
-    bool_t                 is_description;
-    bool_t                 is_pixel_area;
-    bool_t                 is_scaling_factor;
-    bool_t                 is_valid;
+    FACEOE_Utl_Xml_Node_t*             layout_node;
+    FACEOE_Utl_Xml_Node_t*             window_node;
+    FACEOE_Utl_Xml_Node_t*             detail_node;
+    uint32_t                           screen_index;
+    uint32_t                           layout_index;
+    uint32_t                           detail_index;
+    uint32_t                           screen_array_index;
+    uint32_t                           layout_array_index;
+    bool_t                             is_pixel_size;
+    bool_t                             is_physical_dimensions;
+    bool_t                             is_description;
+    bool_t                             is_pixel_area;
+    bool_t                             is_scaling_factor;
+    bool_t                             is_valid;
 
     // Reserve the screen's array index before reading any dependent layouts
     is_valid = (configuration->screenCount < configuration->screenCapacity);
@@ -1693,8 +1693,8 @@ static bool_t ReadScreenHierarchy(FACEOE_DisplayManagement_Configuration_t* conf
 static bool_t ReadUserApplication(FACEOE_DisplayManagement_Configuration_t* configuration, const FACEOE_Utl_Xml_Node_t* node)
 {
     FACEOE_DisplayManagement_UserApplication_t* application;
-    const FACEOE_Utl_Xml_Attribute_t*      df_path;
-    bool_t                          is_valid;
+    const FACEOE_Utl_Xml_Attribute_t*           df_path;
+    bool_t                                      is_valid;
 
     // Check caller-provided storage before initializing the next application
     is_valid = (configuration->userApplicationCount < configuration->userApplicationCapacity);
@@ -1756,8 +1756,8 @@ static bool_t ReadUserApplication(FACEOE_DisplayManagement_Configuration_t* conf
 static bool_t ReadExternalSource(FACEOE_DisplayManagement_Configuration_t* configuration, const FACEOE_Utl_Xml_Node_t* node)
 {
     FACEOE_DisplayManagement_ExternalSource_t* source;
-    int64_t                        id;
-    bool_t                         is_valid;
+    int64_t                                    id;
+    bool_t                                     is_valid;
 
     // Check storage before initializing the source entry
     is_valid = (configuration->externalSourceCount < configuration->externalSourceCapacity);
@@ -1858,8 +1858,8 @@ static const char_t* UnitName(FACEOE_DisplayManagement_Unit_t unit)
 static bool_t WriteSize(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent, const char_t* name, const FACEOE_DisplayManagement_Size_t* size)
 {
     FACEOE_Utl_Xml_Node_t* node;
-    const char_t*   unit_name;
-    bool_t          is_valid;
+    const char_t*          unit_name;
+    bool_t                 is_valid;
 
     // The caller selects pixelSize or physicalDimensions
     node     = AppendElement(xml, name);
@@ -1903,7 +1903,7 @@ static bool_t WriteSize(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent, cons
 static bool_t WriteRectangle(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent, const FACEOE_DisplayManagement_Rectangle_t* rectangle)
 {
     FACEOE_Utl_Xml_Node_t* node;
-    bool_t          is_valid;
+    bool_t                 is_valid;
 
     // Create the pixelArea node before formatting its four integer attributes
     node     = AppendElement(xml, DMC_ELEMENT_PIXEL_AREA);
@@ -1950,9 +1950,9 @@ static bool_t WriteRectangle(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent,
 static bool_t WriteScale(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent, const FACEOE_DisplayManagement_Scale_t* scale)
 {
     FACEOE_Utl_Xml_Node_t* node;
-    const char_t*   base_unit_name;
-    const char_t*   per_unit_name;
-    bool_t          is_valid;
+    const char_t*          base_unit_name;
+    const char_t*          per_unit_name;
+    bool_t                 is_valid;
 
     // Build both decimal factors and both unit attributes before linking
     node     = AppendElement(xml, DMC_ELEMENT_SCALING_FACTOR);
@@ -2002,9 +2002,9 @@ static bool_t WriteScale(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent, con
 static bool_t WriteUserApplication(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent, const FACEOE_DisplayManagement_UserApplication_t* application)
 {
     FACEOE_Utl_Xml_Node_t* node;
-    const char_t*   map_source_layer_text;
-    const char_t*   visible_text;
-    bool_t          is_valid;
+    const char_t*          map_source_layer_text;
+    const char_t*          visible_text;
+    bool_t                 is_valid;
 
     // Write boolean settings using their word forms
     map_source_layer_text = XML_BOOLEAN_FALSE;
@@ -2077,7 +2077,7 @@ static bool_t WriteUserApplication(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* p
 static bool_t WriteExternalSource(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent, const FACEOE_DisplayManagement_ExternalSource_t* source)
 {
     FACEOE_Utl_Xml_Node_t* node;
-    bool_t          is_valid;
+    bool_t                 is_valid;
 
     // Reject an out-of-range identifier before allocating an XML node
     is_valid = (UINT16_MAX >= source->id);
@@ -2158,13 +2158,13 @@ static bool_t WriteExternalSource(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* pa
  */
 bool_t FACEOE_DisplayManagement_ReadConfiguration(FACEOE_DisplayManagement_Configuration_t* configuration, byte_t* buffer, uint64_t byteCount, void* workspace, uint64_t workspaceSize)
 {
-    XmlWorkspace_t  xml;
+    XmlWorkspace_t         xml;
     FACEOE_Utl_Xml_Node_t* root;
     FACEOE_Utl_Xml_Node_t* child_node;
-    uint32_t        node_index;
-    bool_t          has_workspace;
-    bool_t          is_configuration;
-    bool_t          is_valid;
+    uint32_t               node_index;
+    bool_t                 has_workspace;
+    bool_t                 is_configuration;
+    bool_t                 is_valid;
 
     LOGASSERT(NULL != configuration);
     LOGASSERT(NULL != buffer);
@@ -2299,25 +2299,25 @@ bool_t FACEOE_DisplayManagement_ReadConfiguration(FACEOE_DisplayManagement_Confi
  */
 uint64_t FACEOE_DisplayManagement_WriteConfiguration(const FACEOE_DisplayManagement_Configuration_t* configuration, byte_t* buffer, uint64_t capacity, void* workspace, uint64_t workspaceSize)
 {
-    XmlWorkspace_t               xml;
-    FACEOE_Utl_Xml_Node_t*              declaration;
-    FACEOE_Utl_Xml_Node_t*              root;
-    FACEOE_Utl_Xml_Node_t*              screen_node;
-    FACEOE_Utl_Xml_Node_t*              layout_node;
-    FACEOE_Utl_Xml_Node_t*              window_node;
-    FACEOE_Utl_Xml_Node_t*              description_node;
-    FACEOE_Utl_Xml_Node_t*              metadata_node;
+    XmlWorkspace_t                           xml;
+    FACEOE_Utl_Xml_Node_t*                   declaration;
+    FACEOE_Utl_Xml_Node_t*                   root;
+    FACEOE_Utl_Xml_Node_t*                   screen_node;
+    FACEOE_Utl_Xml_Node_t*                   layout_node;
+    FACEOE_Utl_Xml_Node_t*                   window_node;
+    FACEOE_Utl_Xml_Node_t*                   description_node;
+    FACEOE_Utl_Xml_Node_t*                   metadata_node;
     const FACEOE_DisplayManagement_Screen_t* screen;
     const FACEOE_DisplayManagement_Layout_t* layout;
     const FACEOE_DisplayManagement_Window_t* window;
-    uint64_t                     byte_count;
-    uint32_t                     screen_index;
-    uint32_t                     layout_index;
-    uint32_t                     window_index;
-    uint32_t                     application_index;
-    uint32_t                     source_index;
-    bool_t                       has_workspace;
-    bool_t                       is_valid;
+    uint64_t                                 byte_count;
+    uint32_t                                 screen_index;
+    uint32_t                                 layout_index;
+    uint32_t                                 window_index;
+    uint32_t                                 application_index;
+    uint32_t                                 source_index;
+    bool_t                                   has_workspace;
+    bool_t                                   is_valid;
 
     LOGASSERT(NULL != configuration);
     LOGASSERT(NULL != buffer);

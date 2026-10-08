@@ -17,16 +17,16 @@ static uint64_t c_workspace[FACEOE_DISPLAYMANAGEMENT_WORKSPACE_BYTES / sizeof(ui
 static void TestConfiguration(void)
 {
     byte_t input[] = "<?xml version=\"1.0\"?><configuration><metaData/><screen id=\"0\"><pixelSize width=\"640\" height=\"480\" units=\"pixel\"/><physicalDimensions width=\"5\" height=\"4\" units=\"inch\"/><layout id=\"0\"><window id=\"0\" name=\"window0\"><description/><pixelArea x=\"0\" y=\"0\" width=\"640\" height=\"480\"/><scalingFactor xScale=\"20.0\" yScale=\"20.0\" baseUnit=\"screen\" perUnit=\"pixel\"/></window></layout></screen><ua applicationId=\"3\" dFPath=\"display.df\" window=\"0\" visible=\"true\"/><externalSource id=\"7\" name=\"Camera\" type=\"video\"/></configuration>";
-    byte_t output[4096];
-    FACEOE_DisplayManagement_Screen_t screens[2];
-    FACEOE_DisplayManagement_Layout_t layouts[2];
-    FACEOE_DisplayManagement_Window_t windows[2];
+    byte_t                                     output[4096];
+    FACEOE_DisplayManagement_Screen_t          screens[2];
+    FACEOE_DisplayManagement_Layout_t          layouts[2];
+    FACEOE_DisplayManagement_Window_t          windows[2];
     FACEOE_DisplayManagement_UserApplication_t applications[2];
-    FACEOE_DisplayManagement_ExternalSource_t sources[2];
-    FACEOE_DisplayManagement_Configuration_t configuration;
-    uint64_t output_byte_count;
-    char_t* scale_text;
-    bool_t is_valid;
+    FACEOE_DisplayManagement_ExternalSource_t  sources[2];
+    FACEOE_DisplayManagement_Configuration_t   configuration;
+    uint64_t                                   output_byte_count;
+    char_t*                                    scale_text;
+    bool_t                                     is_valid;
 
     memset(&configuration, 0, sizeof(configuration));
     configuration.screens = screens;
@@ -101,9 +101,9 @@ static void TestIntegerBounds(void)
     byte_t minimum_input[] = "<configuration><screen id=\"-9223372036854775808\"><pixelSize width=\"9223372036854775807\" height=\"1\"/><physicalDimensions width=\"1\" height=\"1\"/></screen></configuration>";
     byte_t overflow_input[] = "<configuration><screen id=\"9223372036854775808\"><pixelSize width=\"1\" height=\"1\"/><physicalDimensions width=\"1\" height=\"1\"/></screen></configuration>";
     byte_t trailing_input[] = "<configuration><screen id=\"12x\"><pixelSize width=\"1\" height=\"1\"/><physicalDimensions width=\"1\" height=\"1\"/></screen></configuration>";
-    FACEOE_DisplayManagement_Screen_t screen[1];
+    FACEOE_DisplayManagement_Screen_t        screen[1];
     FACEOE_DisplayManagement_Configuration_t configuration;
-    bool_t is_valid;
+    bool_t                                   is_valid;
 
     memset(&configuration, 0, sizeof(configuration));
     configuration.screens = screen;
@@ -140,12 +140,12 @@ static void TestConfigurationSchema(void)
         "<configuration xmlns:xsi=\"urn:wrong\" xsi:noNamespaceSchemaLocation=\"H3.xsd\"/>"
     };
     FACEOE_DisplayManagement_Configuration_t configuration;
-    FACEOE_DisplayManagement_Screen_t screen[1];
-    byte_t input[2048];
-    byte_t output[2048];
-    uint64_t byte_count;
-    uint32_t index;
-    bool_t is_valid;
+    FACEOE_DisplayManagement_Screen_t        screen[1];
+    byte_t                                   input[2048];
+    byte_t                                   output[2048];
+    uint64_t                                 byte_count;
+    uint32_t                                 index;
+    bool_t                                   is_valid;
 
     memset(&configuration, 0, sizeof(configuration));
     configuration.screens = screen;
