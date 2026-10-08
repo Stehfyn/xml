@@ -11,7 +11,8 @@
 ** 2. INCLUDE FILES
 **===============================================================================================*/
 
-#include "arinc661/arinc661_definition.h"
+#include "arinc661_help.h"
+
 #include "faceoe_utl/faceoe_utl_defines.h"
 
 #include "os/os_assert.h"
@@ -1677,7 +1678,7 @@ static const HelpWidget_t* FindHelp(const char_t* type)
  * \par Details:
  *  Empty strings stand for sections the specification does not give.
  */
-bool_t Arinc661_Definition_GetTypeHelp(const char_t* type, const char_t** description, const char_t** categories, const char_t** restriction)
+bool_t Arinc661_Help_GetType(const char_t* type, const char_t** description, const char_t** categories, const char_t** restriction)
 {
     const HelpWidget_t* help;
 
@@ -1705,7 +1706,7 @@ bool_t Arinc661_Definition_GetTypeHelp(const char_t* type, const char_t** descri
  *  Looks the parameter up in the widget's own table first, then in any table, since the
  *  common parameters of section 3.1.3 are described once per widget.
  */
-const char_t* Arinc661_Definition_GetParameterHelp(const char_t* type, const char_t* parameterName, const char_t** change)
+const char_t* Arinc661_Help_GetParameter(const char_t* type, const char_t* parameterName, const char_t** change)
 {
     const HelpWidget_t* help;
     const char_t*       description;

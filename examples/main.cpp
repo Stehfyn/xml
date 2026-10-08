@@ -13,6 +13,7 @@
 #include "arinc661_context.h"
 #include "arinc661_icons.h"
 #include "arinc661_definition_editor.h"
+#include "arinc661_help.h"
 #include "arinc661_update.h"
 #include "arinc661_version.h"
 #include "imgui.h"
@@ -1951,7 +1952,7 @@ static void DrawHelpWindow(WindowThreadState_t* window)
                             is_match = TRUE;
                         }
                     }
-                    if ((FALSE == is_match) && Arinc661_Definition_GetTypeHelp(window->helpTopic, &description, &categories, &restriction))
+                    if ((FALSE == is_match) && Arinc661_Help_GetType(window->helpTopic, &description, &categories, &restriction))
                     {
                         ImGui::SeparatorText(window->helpTopic);
                         ImGui::TextUnformatted(description);
@@ -1976,7 +1977,7 @@ static void DrawHelpWindow(WindowThreadState_t* window)
                                 for (index = 0; index < parameter_count; ++index)
                                 {
                                     (void)Arinc661_Definition_GetParameter(window->helpTopic, is_extension, index, &parameter);
-                                    parameter_description = Arinc661_Definition_GetParameterHelp(window->helpTopic, parameter.name, &change);
+                                    parameter_description = Arinc661_Help_GetParameter(window->helpTopic, parameter.name, &change);
                                     ImGui::TableNextRow();
                                     ImGui::TableSetColumnIndex(0);
                                     ImGui::TextUnformatted(parameter.name);
@@ -3139,7 +3140,7 @@ static void DrawPalette(WindowThreadState_t* window)
         for (type_index = 0; type_index < Arinc661_Definition_GetTypeCount(is_extension); ++type_index)
         {
             type_name = Arinc661_Definition_GetTypeName(is_extension, type_index);
-            (void)Arinc661_Definition_GetTypeHelp(type_name, &description, &categories, &restriction);
+            (void)Arinc661_Help_GetType(type_name, &description, &categories, &restriction);
             if (is_extension)
             {
                 is_in_category = TRUE;

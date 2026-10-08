@@ -29,6 +29,7 @@
 #include <float.h>
 #include <inttypes.h>
 #include <limits.h>
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -101,7 +102,59 @@
 #define BINARY_COMMAND_BYTES        (10U) ///< Command code, CommandSize, WidgetType, WidgetIdent, and ParentIdent
 #define BINARY_EXTEND_BYTES         (6U)  ///< Command code, CommandSize, and ExtensionType
 #define BINARY_WORD_BYTES           (4U)  ///< Blocks and commands are aligned to 32 bits
+#define BINARY_ALIGN(byteCount)     ((((uint64_t)(byteCount)) + (BINARY_WORD_BYTES - 1U)) & ~((uint64_t)BINARY_WORD_BYTES - 1U)) ///< Byte count rounded up to the 32-bit alignment
+#define ARRAY_AND_COUNT(array)      (array), ((uint32_t)COUNT_OF(array)) ///< Pointer and element count of a true array object, for table initializers
 #define BINARY_MAX_FIELDS           (40U) ///< Largest Creation Structure parameter count in the tables
+
+/* ARINC 661 Part 1-7, section 3.3 data types: big-endian field widths. */
+#define BINARY_UCHAR_BYTES  (1U) ///< uchar
+#define BINARY_USHORT_BYTES (2U) ///< ushort
+#define BINARY_ULONG_BYTES  (4U) ///< ulong, long, float, and fr()
+
+/* ARINC 661 Part 1-7, Table 4.5.3.2-2: Definition File header field offsets. */
+#define BINARY_HEADER_MAGIC_OFFSET              (0U) ///< A661_DF_MAGIC_NUMBER, ushort
+#define BINARY_HEADER_LIBRARY_VERSION_OFFSET    (2U) ///< LibraryVersion, uchar
+#define BINARY_HEADER_SUPPLEMENT_VERSION_OFFSET (3U) ///< SuppVersion, uchar
+#define BINARY_HEADER_APPLI_IDENT_OFFSET        (4U) ///< AppliIdent, ushort
+#define BINARY_HEADER_OEM_DATA_SIZE_OFFSET      (6U) ///< Size of the OEM data after the header, ushort
+
+/* ARINC 661 Part 1-7, Tables 4.5.3.2-4 through 4.5.3.2-6 and 9.2-1: block field offsets. */
+#define BINARY_BLOCK_CODE_SHIFT        (24U) ///< A block code is the most significant byte of its 32-bit word
+#define BINARY_LAYER_IDENT_OFFSET      (1U)  ///< LayerIdent, uchar
+#define BINARY_CONTEXT_NUMBER_OFFSET   (2U)  ///< ContextNumber, ushort
+#define BINARY_BLOCK_SIZE_OFFSET       (4U)  ///< Block Size of layer, symbol, and animation law blocks, ulong
+#define BINARY_CHARSET_ENCODING_OFFSET (2U)  ///< Charset encoding of the charset block, ushort
+#define BINARY_CHARSET_END_OFFSET      (4U)  ///< A661_END_CHARSET_ENCODING_BLOCK of the charset block
+
+/* ARINC 661 Part 1-7, Tables 4.5.3.3.1 and 4.5.3.3.2: command field offsets. */
+#define BINARY_COMMAND_SIZE_OFFSET (2U) ///< CommandSize, ushort
+#define BINARY_COMMAND_TYPE_OFFSET (4U) ///< WidgetType or ExtensionType, ushort
+#define BINARY_WIDGET_IDENT_OFFSET (6U) ///< WidgetIdent, ushort
+#define BINARY_PARENT_IDENT_OFFSET (8U) ///< ParentIdent, ushort
+
+/* ARINC 661 Part 1-7, Tables 7-1 and 7-2: picture block and picture field offsets. */
+#define BINARY_PIXEL_FORMAT_OFFSET   (1U) ///< Pixel format of the block's pictures, uchar
+#define BINARY_PICTURE_COUNT_OFFSET  (2U) ///< Number of pictures, uchar
+#define BINARY_COLOR_COUNT_OFFSET    (3U) ///< Number of color table entries, uchar
+#define BINARY_COLOR_FORMAT_OFFSET   (4U) ///< Pixel format of the color table entries, uchar
+#define BINARY_PICTURE_WIDTH_OFFSET  (4U) ///< Picture width in pixels, ushort
+#define BINARY_PICTURE_HEIGHT_OFFSET (6U) ///< Picture height in pixels, ushort
+
+/* ARINC 661 Part 1-7, Tables 8.6.5-3, 3.9.17-6, and 8.6.7-3: offsets inside variable-size parameters. */
+#define BINARY_SIZED_PAD_OFFSET    (2U) ///< UnusedPad after the ParamBufferSize of a StaticParamBuffer, ushort
+#define BINARY_REQUEST_SIZE_OFFSET (2U) ///< CommandSize of a LayerReqResult entry, ushort
+#define BINARY_REGION_TYPE_OFFSET  (1U) ///< ExcludedRegionType of an excluded region structure, uchar
+
+/* ARINC 661 Part 1-7, Table 8.6.7-3: ExcludedRegionType values. */
+#define BINARY_REGION_NOT_USED  (0U) ///< A661_NOT_USED
+#define BINARY_REGION_RECTANGLE (1U) ///< A661_EXCLUDED_RECTANGLE
+#define BINARY_REGION_TRIANGLE  (2U) ///< A661_EXCLUDED_TRIANGLE
+#define BINARY_REGION_CIRCLE    (3U) ///< A661_EXCLUDED_CIRCLE
+
+/* Hexadecimal property text of byte parameters. */
+#define HEX_DIGITS_PER_BYTE (2U)    ///< Two digits per byte, high digit first
+#define HEX_DIGIT_BITS      (4U)    ///< Bits per digit
+#define HEX_DIGIT_MASK      (0x0FU) ///< Low digit of a byte
 
 /* ARINC 661 Part 1-7, Tables 8.6.7-4 through 8.6.7-7: excluded region structure sizes by ExcludedRegionType. */
 #define BINARY_REGION_HEADER_BYTES    (4U)  ///< ExcludedItemIndex, ExcludedRegionType, and unused pad
@@ -119,6 +172,8 @@
 
 #define BINARY_INTEGER_TEXT_BYTES (32U)           ///< Integer formatting buffer bytes, including the zero terminator
 #define BINARY_FR_FULL_SCALE      (2147483648.0)  ///< Two raised to the number of fr() bits minus one
+#define BINARY_FR180_RANGE        (180.0)         ///< fr(180): degrees from -180 to 180
+#define BINARY_FR32768_RANGE      (32768.0)       ///< fr(32768): -32768 to 32768
 #define BINARY_FR_PRECISION       (10)            ///< Most fractional digits tried when formatting a fr() value; one fr(180) LSB is 8.4e-8
 #define BINARY_FLOAT_PRECISION    (60)            ///< Most fractional digits tried when formatting a float; the smallest subnormal needs 45
 
@@ -196,10 +251,10 @@ typedef struct BinaryField_s
  */
 typedef struct BinaryWidget_s
 {
-    const char_t* name;       ///< Type name, for example A661_PANEL or A661_LEGEND_ALIGN_EXTENSION
-    uint16_t      code;       ///< WidgetType value in Table 4.6-7, or ExtensionType value in Table 4.6-12
-    uint16_t      firstField; ///< Index of the first parameter in c_binaryFields
-    uint16_t      fieldCount; ///< Number of parameters, including unused pads
+    const char_t*        name;       ///< Type name, for example A661_PANEL or A661_LEGEND_ALIGN_EXTENSION
+    uint16_t             code;       ///< WidgetType value in Table 4.6-7, or ExtensionType value in Table 4.6-12
+    const BinaryField_t* fields;     ///< Creation Structure parameters, including unused pads
+    uint32_t             fieldCount; ///< Number of parameters
 } BinaryWidget_t;
 
 /*************************************************************************************************/
@@ -247,7 +302,56 @@ static const char_t c_binaryHexDigits[] = "0123456789ABCDEF";
 
 /*************************************************************************************************/
 /**
- * \brief Creation Structure parameters, grouped by widget type and then by extension type.
+ * \brief Bytes per pixel or color table entry of each Table 7-3 format, from A661_PIX_FMT_RGBA_8 on.
+ */
+static const uint32_t c_pixelFormatBytes[] = {4U, 2U, 1U};
+
+/*************************************************************************************************/
+/**
+ * \brief Constant names each Creation Structure table lists for a parameter, shared where equal.
+ */
+static const char_t* const c_enableValues[] = {"A661_FALSE", "A661_TRUE", "A661_TRUE_WITH_VALIDATION"};
+static const char_t* const c_booleanValues[] = {"A661_FALSE", "A661_TRUE"};
+static const char_t* const c_rotationDirectionValues[] = {"A661_CLOCKWISE", "A661_COUNTER_CLOCKWISE"};
+static const char_t* const c_checkButtonStateValues[] = {"A661_SELECTED", "A661_UNSELECTED"};
+static const char_t* const c_buttonAlignmentValues[] = {"A661_LEFT", "A661_CENTER", "A661_RIGHT"};
+static const char_t* const c_checkButtonPicturePositionValues[] = {"A661_LEFT", "A661_RIGHT"};
+static const char_t* const c_comboBoxOpeningModeValues[] = {"A661_OPEN_UP", "A661_OPEN_CENTERED", "A661_OPEN_DOWN"};
+static const char_t* const c_editBoxReportAllChangesValues[] = {"A661_EDB_CHANGE_CONFIRMED", "A661_EDB_ALL_CHANGE", "A661_EDB_OPEN_CLOSE"};
+static const char_t* const c_editBoxAlignmentValues[] = {"A661_CENTER", "A661_LEFT", "A661_RIGHT"};
+static const char_t* const c_positionReportModeValues[] = {"A661_REPORT_ON_TRANSITION", "A661_REPORT_ALL"};
+static const char_t* const c_clampingValues[] = {"A661_NOT_CLAMPED", "A661_BOTH_CLAMPED"};
+static const char_t* const c_scrollBarPositionValues[] = {"A661_TOP", "A661_BOTTOM", "A661_LEFT", "A661_RIGHT", "A661_ABSENT"};
+static const char_t* const c_legendPositionValues[] = {"A661_LEFT", "A661_RIGHT", "A661_TOP", "A661_BOTTOM"};
+static const char_t* const c_editBoxNumericReportAllChangesValues[] = {"A661_EDB_CHANGE_CONFIRMED", "A661_EDB_OPEN_CLOSE", "A661_EDB_ALL_CHANGE"};
+static const char_t* const c_haloValues[] = {"A661_FALSE", "A661_TRUE", "A661_SAME_LEVEL"};
+static const char_t* const c_labelAlignmentValues[] = {"A661_BOTTOM_CENTER", "A661_BOTTOM_LEFT", "A661_BOTTOM_RIGHT", "A661_CENTER", "A661_LEFT", "A661_RIGHT", "A661_TOP_CENTER", "A661_TOP_LEFT", "A661_TOP_RIGHT"};
+static const char_t* const c_mapDataFormatValues[] = {"A661_MDF_BRG_DIST_ACHDG", "A661_MDF_DIST_DIST", "A661_MDF_LAT_LONG", "A661_MDF_DIST_DIST_FIX", "A661_MDF_LEGACY"};
+static const char_t* const c_eventFlagValues[] = {"A661_EVENT_NONE", "A661_VALIDATION", "A661_VALIDATION_AND_WHEEL", "A661_WHEEL"};
+static const char_t* const c_mapDataFormatXValues[] = {"A661_MDF_ABSOLUTE", "A661_MDF_RELATIVE", "A661_MDF_X_DIST"};
+static const char_t* const c_mapDataFormatYValues[] = {"A661_MDF_ABSOLUTE", "A661_MDF_RELATIVE", "A661_MDF_Y_ALT"};
+static const char_t* const c_mapBoundaryAlgorithmValues[] = {"A661_ARC", "A661_HORZ_LINE", "A661_VERT_LINE"};
+static const char_t* const c_pushButtonAlignmentValues[] = {"A661_LEFT", "A661_RIGHT", "A661_CENTER"};
+static const char_t* const c_wrappingTypeValues[] = {"A661_WRAP_NONE", "A661_WRAP_BOTH", "A661_WRAP_FIRST_TO_LAST", "A661_WRAP_LAST_TO_FIRST"};
+static const char_t* const c_pagingControlPositionValues[] = {"A661_ABSENT", "A661_BOTTOM_CENTER", "A661_BOTTOM_LEFT", "A661_BOTTOM_RIGHT", "A661_CENTER", "A661_LEFT", "A661_RIGHT", "A661_TOP_CENTER", "A661_TOP_LEFT", "A661_TOP_RIGHT"};
+static const char_t* const c_picturePositionValues[] = {"A661_LEFT", "A661_CENTER", "A661_RIGHT", "A661_TOP", "A661_BOTTOM"};
+static const char_t* const c_toggleStateValues[] = {"A661_UNSELECTED", "A661_SELECTED"};
+static const char_t* const c_popUpMenuOpeningModeValues[] = {"A661_OPEN_UP", "A661_OPEN_DOWN", "A661_CDS_DEPENDENT"};
+static const char_t* const c_popUpButtonPicturePositionValues[] = {"A661_CENTER", "A661_LEFT", "A661_RIGHT", "A661_TOP", "A661_BOTTOM"};
+static const char_t* const c_popUpMenuButtonOpeningModeValues[] = {"A661_OPEN_UP", "A661_OPEN_DOWN"};
+static const char_t* const c_shuffleToFitModeValues[] = {"A661_SHUFFLE_UP", "A661_SHUFFLE_DOWN", "A661_SHUFFLE_LEFT", "A661_SHUFFLE_RIGHT", "A661_NO_SHUFFLE"};
+static const char_t* const c_trueFalseValues[] = {"A661_TRUE", "A661_FALSE"};
+static const char_t* const c_sliderOrientationValues[] = {"A661_BOTTOM_TO_TOP", "A661_TOP_TO_BOTTOM", "A661_LEFT_TO_RIGHT", "A661_RIGHT_TO_LEFT"};
+static const char_t* const c_sliderAlignmentValues[] = {"A661_LEFT", "A661_RIGHT", "A661_CENTER", "A661_TOP", "A661_BOTTOM"};
+static const char_t* const c_loopTypeValues[] = {"A661_LOOP_FORWARD", "A661_LOOP_FORWARD_AND_RESET", "A661_LOOP_FORWARD_AND_BLANK", "A661_LOOP_FORWARD_AND_BACKWARD_AND_BLANK"};
+static const char_t* const c_animationTypeValues[] = {"A661_DONT_RUN", "A661_RUN", "A661_RUN_ONCE"};
+static const char_t* const c_tabPositionValues[] = {"A661_ABSENT", "A661_TOP", "A661_BOTTOM", "A661_LEFT", "A661_RIGHT"};
+static const char_t* const c_boundaryCheckModeValues[] = {"A661_OUT_OF_BOUNDS"};
+static const char_t* const c_coordSystemReportModeValues[] = {"A661_REPORT_ON_CDS", "A661_REPORT_ALL"};
+
+/*************************************************************************************************/
+/**
+ * \brief Creation Structure parameters, one array per widget type and then per extension type.
  *
  * \par Details:
  *  Transcribed from the Part 1-7 Creation Structure tables named in each group.
@@ -256,1308 +360,2101 @@ static const char_t c_binaryHexDigits[] = "0123456789ABCDEF";
  *  parameter at countField; arrays of pairs, such as Vertices and
  *  BufferStructure, alternate the two members. Arrays are padded to 32 bits
  *  only where the table says so, which is recorded as an alignment entry.
- *  A661_SELECTOR is not listed because Table 4.6-7 gives it no WidgetType code.
+ *  A661_SELECTOR has no array because Table 4.6-7 gives it no WidgetType code.
  */
 /*************************************************************************************************/
 /**
- * \brief Constant names each Creation Structure table lists for a parameter, shared where equal.
+ * \brief A661_ACTIVE_AREA parameters: Table 3.3.1-2, ActiveArea Creation Structure.
  */
-static const char_t* const c_values0[] = {"A661_FALSE", "A661_TRUE", "A661_TRUE_WITH_VALIDATION"};
-static const char_t* const c_values1[] = {"A661_FALSE", "A661_TRUE"};
-static const char_t* const c_values2[] = {"A661_CLOCKWISE", "A661_COUNTER_CLOCKWISE"};
-static const char_t* const c_values3[] = {"A661_SELECTED", "A661_UNSELECTED"};
-static const char_t* const c_values4[] = {"A661_LEFT", "A661_CENTER", "A661_RIGHT"};
-static const char_t* const c_values5[] = {"A661_LEFT", "A661_RIGHT"};
-static const char_t* const c_values6[] = {"A661_OPEN_UP", "A661_OPEN_CENTERED", "A661_OPEN_DOWN"};
-static const char_t* const c_values7[] = {"A661_EDB_CHANGE_CONFIRMED", "A661_EDB_ALL_CHANGE", "A661_EDB_OPEN_CLOSE"};
-static const char_t* const c_values8[] = {"A661_CENTER", "A661_LEFT", "A661_RIGHT"};
-static const char_t* const c_values9[] = {"A661_REPORT_ON_TRANSITION", "A661_REPORT_ALL"};
-static const char_t* const c_values10[] = {"A661_NOT_CLAMPED", "A661_BOTH_CLAMPED"};
-static const char_t* const c_values11[] = {"A661_TOP", "A661_BOTTOM", "A661_LEFT", "A661_RIGHT", "A661_ABSENT"};
-static const char_t* const c_values12[] = {"A661_LEFT", "A661_RIGHT", "A661_TOP", "A661_BOTTOM"};
-static const char_t* const c_values13[] = {"A661_EDB_CHANGE_CONFIRMED", "A661_EDB_OPEN_CLOSE", "A661_EDB_ALL_CHANGE"};
-static const char_t* const c_values14[] = {"A661_FALSE", "A661_TRUE", "A661_SAME_LEVEL"};
-static const char_t* const c_values15[] = {"A661_BOTTOM_CENTER", "A661_BOTTOM_LEFT", "A661_BOTTOM_RIGHT", "A661_CENTER", "A661_LEFT", "A661_RIGHT", "A661_TOP_CENTER", "A661_TOP_LEFT", "A661_TOP_RIGHT"};
-static const char_t* const c_values16[] = {"A661_MDF_BRG_DIST_ACHDG", "A661_MDF_DIST_DIST", "A661_MDF_LAT_LONG", "A661_MDF_DIST_DIST_FIX", "A661_MDF_LEGACY"};
-static const char_t* const c_values17[] = {"A661_EVENT_NONE", "A661_VALIDATION", "A661_VALIDATION_AND_WHEEL", "A661_WHEEL"};
-static const char_t* const c_values18[] = {"A661_MDF_ABSOLUTE", "A661_MDF_RELATIVE", "A661_MDF_X_DIST"};
-static const char_t* const c_values19[] = {"A661_MDF_ABSOLUTE", "A661_MDF_RELATIVE", "A661_MDF_Y_ALT"};
-static const char_t* const c_values20[] = {"A661_ARC", "A661_HORZ_LINE", "A661_VERT_LINE"};
-static const char_t* const c_values21[] = {"A661_LEFT", "A661_RIGHT", "A661_CENTER"};
-static const char_t* const c_values22[] = {"A661_WRAP_NONE", "A661_WRAP_BOTH", "A661_WRAP_FIRST_TO_LAST", "A661_WRAP_LAST_TO_FIRST"};
-static const char_t* const c_values23[] = {"A661_ABSENT", "A661_BOTTOM_CENTER", "A661_BOTTOM_LEFT", "A661_BOTTOM_RIGHT", "A661_CENTER", "A661_LEFT", "A661_RIGHT", "A661_TOP_CENTER", "A661_TOP_LEFT", "A661_TOP_RIGHT"};
-static const char_t* const c_values24[] = {"A661_LEFT", "A661_CENTER", "A661_RIGHT", "A661_TOP", "A661_BOTTOM"};
-static const char_t* const c_values25[] = {"A661_UNSELECTED", "A661_SELECTED"};
-static const char_t* const c_values26[] = {"A661_OPEN_UP", "A661_OPEN_DOWN", "A661_CDS_DEPENDENT"};
-static const char_t* const c_values27[] = {"A661_CENTER", "A661_LEFT", "A661_RIGHT", "A661_TOP", "A661_BOTTOM"};
-static const char_t* const c_values28[] = {"A661_OPEN_UP", "A661_OPEN_DOWN"};
-static const char_t* const c_values29[] = {"A661_SHUFFLE_UP", "A661_SHUFFLE_DOWN", "A661_SHUFFLE_LEFT", "A661_SHUFFLE_RIGHT", "A661_NO_SHUFFLE"};
-static const char_t* const c_values30[] = {"A661_TRUE", "A661_FALSE"};
-static const char_t* const c_values31[] = {"A661_BOTTOM_TO_TOP", "A661_TOP_TO_BOTTOM", "A661_LEFT_TO_RIGHT", "A661_RIGHT_TO_LEFT"};
-static const char_t* const c_values32[] = {"A661_LEFT", "A661_RIGHT", "A661_CENTER", "A661_TOP", "A661_BOTTOM"};
-static const char_t* const c_values33[] = {"A661_LOOP_FORWARD", "A661_LOOP_FORWARD_AND_RESET", "A661_LOOP_FORWARD_AND_BLANK", "A661_LOOP_FORWARD_AND_BACKWARD_AND_BLANK"};
-static const char_t* const c_values34[] = {"A661_DONT_RUN", "A661_RUN", "A661_RUN_ONCE"};
-static const char_t* const c_values35[] = {"A661_ABSENT", "A661_TOP", "A661_BOTTOM", "A661_LEFT", "A661_RIGHT"};
-static const char_t* const c_values36[] = {"A661_OUT_OF_BOUNDS"};
-static const char_t* const c_values37[] = {"A661_REPORT_ON_CDS", "A661_REPORT_ALL"};
-
-static const BinaryField_t c_binaryFields[] =
+static const BinaryField_t c_activeAreaFields[] =
 {
-    /* A661_ACTIVE_AREA: Table 3.3.1-2, ActiveArea Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL,       0U},
-    /* A661_ANIMATION_GROUP: Table 3.9.12-2, AnimationGroup Creation Structure */
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Type"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("Delay"),                         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("AnimationRepetition"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    /* A661_ANIMATION_ONPARAM: Table 3.9.8-2, AnimationOnParam Creation Structure */
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("TargetWidgetID"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("TargetParamID"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    {("FromValue"),                     BINARY_FIELD_BYTES,        4U,  0U, 0U, NULL,       0U},
-    {("ToValue"),                       BINARY_FIELD_BYTES,        4U,  0U, 0U, NULL,       0U},
-    {("AnimationLawRef"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("Duration"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("Delay"),                         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("AnimationRepetition"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    /* A661_ANIMATION_ROTATION: Table 3.9.9-2, AnimationRotation Creation Structure */
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("TargetWidgetID"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("CenterX"),                       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("CenterY"),                       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("FromAngle"),                     BINARY_FIELD_FR180,        4U,  0U, 0U, NULL,       0U},
-    {("ToAngle"),                       BINARY_FIELD_FR180,        4U,  0U, 0U, NULL,       0U},
-    {("AnimationLawRef"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("Duration"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("Delay"),                         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("Direction"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values2,  2U},
-    {("NumberOfTurns"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("AnimationRepetition"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    /* A661_ANIMATION_SCALE: Table 3.9.10-2, AnimationScale Creation Structure */
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("TargetWidgetID"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("FromScaleX"),                    BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL,       0U},
-    {("FromScaleY"),                    BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL,       0U},
-    {("ToScaleX"),                      BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL,       0U},
-    {("ToScaleY"),                      BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL,       0U},
-    {("AnimationLawRef"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("Duration"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("Delay"),                         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("AnimationRepetition"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    /* A661_ANIMATION_TRANSLATION: Table 3.9.11-2, AnimationTranslation Creation Structure */
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("TargetWidgetID"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("FromValueX"),                    BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("FromValueY"),                    BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("ToValueX"),                      BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("ToValueY"),                      BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("AnimationLawRef"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("Duration"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("Delay"),                         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("AnimationRepetition"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    /* A661_BASIC_CONTAINER: Table 3.3.2-2, BasicContainer Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    /* A661_BLINKING_CONTAINER: Table 3.3.3-2, BlinkingContainer Creation Structure */
-    {("BlinkingType"),                  BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    /* A661_BROADCAST_RECEIVER: Table 3.8.9-2, BroadcastReceiver Creation Structure */
-    {("NumberOfFields"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("ParameterIdent"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("WidgetStructure"),               BINARY_FIELD_USHORT,       2U,  0U, 1U, NULL,       0U},
-    /* A661_BUFFER_FORMAT: Table 3.3.4-2, BufferFormat Creation Structure */
-    {("NumberOfFields"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("BufferStructure"),               BINARY_FIELD_USHORT,       2U,  0U, 2U, NULL,       0U},
-    /* A661_CHECK_BUTTON: Table 3.3.5-2, CheckButton Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("CheckButtonState"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values3,  2U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values4,  3U},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PicturePosition"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values5,  2U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
-    /* A661_COMBO_BOX: Table 3.3.6-2, ComboBox Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SelectingAreaWidth"),            BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SelectingAreaHeight"),           BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MaxNumberOfEntries"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NumberOfEntries"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("SelectedEntry"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("OpeningEntry"),                  BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values4,  3U},
-    {("OpeningMode"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values6,  3U},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL,       0U},
-    {("EntryList"),                     BINARY_FIELD_STRING,       0U, 11U, 1U, NULL,       0U},
-    /* A661_COMBO_BOX_EDIT: Table 3.4.7-2, ComboBoxEdit Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SelectingAreaWidth"),            BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SelectingAreaHeight"),           BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MaxNumberOfEntries"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NumberOfEntries"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("SelectedEntry"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("OpeningEntry"),                  BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("OpeningMode"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values6,  3U},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("StartCursorPos"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("ReportAllChanges"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values7,  3U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values8,  3U},
-    {("EntryList"),                     BINARY_FIELD_STRING,       0U, 11U, 1U, NULL,       0U},
-    /* A661_CONNECTOR: Table 3.3.7-2, Connector Creation Structure */
-    {("ConnectorReference"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    /* A661_CURSOR_OVER: Table 3.6.3-2, CursorOver Creation Structure */
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    {("PositionReportMode"),            BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values9,  2U},
-    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL,       0U},
-    /* A661_CURSOR_POS_OVERLAY: Table 3.3.8-2, CursorPosOverlay Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    /* A661_CURSOR_REF: Table 3.6.2-2, CursorRef Creation Structure */
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    /* A661_DATA_CONNECTOR: Table 3.9.16-2, DataConnector Creation Structure */
-    {("ConnectorReference"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("DataLength"),                    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("Data"),                          BINARY_FIELD_ULONG,        4U,  3U, 1U, NULL,       0U},
-    /* A661_DATA_SCALING_FR180: Table 3.8.8-2, DataScalingFR180 Creation Structure */
-    {("TargetWidgetID"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("TargetParameterID"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("Clamping"),                      BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values10, 2U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("StartValue"),                    BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL,       0U},
-    {("EndValue"),                      BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL,       0U},
-    {("StartScaledValue"),              BINARY_FIELD_FR180,        4U,  0U, 0U, NULL,       0U},
-    {("EndScaledValue"),                BINARY_FIELD_FR180,        4U,  0U, 0U, NULL,       0U},
-    /* A661_DATA_SCALING_LONG: Table 3.8.6-2, DataScalingLong Creation Structure */
-    {("TargetWidgetID"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("TargetParameterID"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("Clamping"),                      BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values10, 2U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("StartValue"),                    BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL,       0U},
-    {("EndValue"),                      BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL,       0U},
-    {("StartScaledValue"),              BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("EndScaledValue"),                BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    /* A661_DATA_SCALING_ULONG: Table 3.8.7-2, DataScalingULong Creation Structure */
-    {("TargetWidgetID"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("TargetParameterID"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("Clamping"),                      BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values10, 2U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("StartValue"),                    BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL,       0U},
-    {("EndValue"),                      BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL,       0U},
-    {("StartScaledValue"),              BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("EndScaledValue"),                BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    /* A661_EDIT_BOX_MASKED: Table 3.3.9-2, EditBoxMasked Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("AlphaMask"),                     BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("NumericMask"),                   BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StartCursorPos"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("ReportAllChanges"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values7,  3U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values4,  3U},
-    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL,       0U},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
-    /* A661_EDIT_BOX_MULTI_LINE: Table 3.4.6-2, EditBoxMultiLine Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("StartCursorPos"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("ReportAllChanges"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values7,  3U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values8,  3U},
-    {("VerticalScroll"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values11, 5U},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
-    /* A661_EDIT_BOX_NUMERIC: Table 3.3.10-2, EditBoxNumeric Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("Value"),                         BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL,       0U},
-    {("TicsCoarse"),                    BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL,       0U},
-    {("TicsFine"),                      BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL,       0U},
-    {("MinValue"),                      BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL,       0U},
-    {("MaxValue"),                      BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL,       0U},
-    {("LegendAreaSizeX"),               BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StartCursorPosByte"),            BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("MaxFormatStringLength"),         BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("MaxLegendStringLength"),         BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("LegendPosition"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values12, 4U},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("ReportAllChanges"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values13, 3U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values8,  3U},
-    {("LegendRemoved"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("NumericKeyFlag"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("CyclicFlag"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    {("FormatString"),                  BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
-    {("LegendString"),                  BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
-    /* A661_EDIT_BOX_NUMERIC_BCD: Table 3.6.1-5, EditBoxNumericBCD Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("LegendAreaSizeX"),               BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("Value"),                         BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL,       0U},
-    {("MinValue"),                      BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL,       0U},
-    {("MaxValue"),                      BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL,       0U},
-    {("MinFieldsValues"),               BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL,       0U},
-    {("MaxFieldsValues"),               BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL,       0U},
-    {("TicsCoarse"),                    BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL,       0U},
-    {("TicsFine"),                      BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL,       0U},
-    {("NumberOfFields"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("LegendPosition"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("LegendRemoved"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("MaxFormatStringLength"),         BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("MaxLegendStringLength"),         BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("PositiveStringLength"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("NegativeStringLength"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("ReportAllChanges"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("NumericKeyFlag"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("CyclicFlag"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("SizeOfFields"),                  BINARY_FIELD_UCHAR,        1U, 16U, 1U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_ALIGN,        0U,  0U, 0U, NULL,       0U},
-    {("FormatString"),                  BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
-    {("LegendString"),                  BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
-    {("PositiveString"),                BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
-    {("NegativeString"),                BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
-    /* A661_EDIT_BOX_TEXT: Table 3.3.11-2, EditBoxText Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("StartCursorPos"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("ReportAllChanges"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values7,  3U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values8,  3U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
-    /* A661_EVENT_HANDLER: Table 3.9.17-3, EventHandler Creation Structure */
-    {("EnableHandler"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("TriggerLayerIdent"),             BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("TriggerWidgetIdent"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("TriggerEvent"),                  BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    {("NumWidgetParamResults"),         BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("NumLayerReqResults"),            BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("WidgetParamResultArray"),        BINARY_FIELD_BYTES,       20U,  5U, 1U, NULL,       0U},
-    {("LayerReqResultArray"),           BINARY_FIELD_LAYER_REQUEST,  0U,  6U, 1U, NULL,       0U},
-    /* A661_EXTERNAL_SOURCE: Table 3.4.2-2, ExternalSource Creation Structure */
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("MotionAllowed"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SourceReference"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    {("SourceX"),                       BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SourceY"),                       BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SourceDX"),                      BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SourceDY"),                      BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    /* A661_FOCUS_IN: Table 3.6.4.2-2, FocusIn Creation Structure */
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    /* A661_FOCUS_LINK: Table 3.6.4.1-2, FocusLink Creation Structure */
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_PAD,          4U,  0U, 0U, NULL,       0U},
-    {("NextLayerConnectorRef"),         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    /* A661_FOCUS_OUT: Table 3.6.4.3-2, FocusOut Creation Structure */
-    {("NextFocusInAppId"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NextFocusInLayerId"),            BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("NextFocusInId"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    /* A661_FRAMING_REFRESH_CONTAINER: Table 3.9.18-2, FramingRefreshContainer Creation Structure */
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("CachingEnabled"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL,       0U},
-    /* A661_GESTURE_AREA: Table 3.9.6-4, GestureArea Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("ReportMode"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("AllowOutside"),                  BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("NumberOfEvents"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("EventIdArray"),                  BINARY_FIELD_UCHAR,        1U, 10U, 1U, NULL,       0U},
-    /* A661_GP_ARC_CIRCLE: Table 3.3.13-2, GpArcCircle Creation Structure */
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("StartAngle"),                    BINARY_FIELD_FR180,        4U,  0U, 0U, NULL,       0U},
-    {("EndAngle"),                      BINARY_FIELD_FR180,        4U,  0U, 0U, NULL,       0U},
-    {("Radius"),                        BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("Filled"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("FillIndex"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("Halo"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values14, 3U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    /* A661_GP_ARC_ELLIPSE: Table 3.3.12-2, GpArcEllipse Creation Structure */
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StartAngle"),                    BINARY_FIELD_FR180,        4U,  0U, 0U, NULL,       0U},
-    {("EndAngle"),                      BINARY_FIELD_FR180,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("Filled"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("FillIndex"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("Halo"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values14, 3U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    /* A661_GP_CROWN: Table 3.3.14-2, GpCrown Creation Structure */
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("StartAngle"),                    BINARY_FIELD_FR180,        4U,  0U, 0U, NULL,       0U},
-    {("EndAngle"),                      BINARY_FIELD_FR180,        4U,  0U, 0U, NULL,       0U},
-    {("InnerRadius"),                   BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("OuterRadius"),                   BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("Filled"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("FillIndex"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("Halo"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values14, 3U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    /* A661_GP_LINE: Table 3.3.15-2, GpLine Creation Structure */
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosXStart"),                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosYStart"),                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosXEnd"),                       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosYEnd"),                       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("Halo"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values14, 3U},
-    /* A661_GP_LINE_POLAR: Table 3.3.16-2, GpLinePolar Creation Structure */
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosXStart"),                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosYStart"),                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("RotationAngle"),                 BINARY_FIELD_FR180,        4U,  0U, 0U, NULL,       0U},
-    {("LineLength"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("Halo"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values14, 3U},
-    /* A661_GP_POLYLINE: Table 3.8.1-2, GpPolyline Creation Structure */
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("Halo"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values14, 3U},
-    {("Closed"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL,       0U},
-    {("MaxNumberOfVertices"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NumberOfVertices"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("Vertices"),                      BINARY_FIELD_LONG,         4U,  8U, 2U, NULL,       0U},
-    /* A661_GP_RECTANGLE: Table 3.3.17-2, GpRectangle Creation Structure */
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("Filled"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("FillIndex"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("Halo"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values14, 3U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    /* A661_GP_TRIANGLE: Table 3.3.18-2, GpTriangle Creation Structure */
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosX2"),                         BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY2"),                         BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosX3"),                         BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY3"),                         BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("Filled"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("FillIndex"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("Halo"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values14, 3U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    /* A661_GP_TRIANGLE_FAN: Table 3.10.5-2, GpTriangleFan Creation Structure */
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("Filled"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("FillIndex"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("Halo"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values14, 3U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    {("MaxNumberOfVertices"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NumberOfVertices"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("Vertices"),                      BINARY_FIELD_LONG,         4U,  9U, 2U, NULL,       0U},
-    /* A661_GP_TRIANGLE_STRIP: Table 3.10.6-2, GpTriangleStrip Creation Structure */
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("Filled"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("FillIndex"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("Halo"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values14, 3U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    {("MaxNumberOfVertices"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NumberOfVertices"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("Vertices"),                      BINARY_FIELD_LONG,         4U,  9U, 2U, NULL,       0U},
-    /* A661_INK_AREA: Table 3.9.7-2, InkArea Creation Structure */
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("Filled"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("FillIndex"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("MaxBufferSize"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    /* A661_KEYBOARD_AREA: Table 3.9.2-2, KeyboardArea Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("NumberOfKeys"),                  BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("MaxNumberOfKeys"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL,       0U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("KeyArray"),                      BINARY_FIELD_USHORT,       2U,  1U, 1U, NULL,       0U},
-    /* A661_LABEL: Table 3.3.20-2, Label Creation Structure */
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("RotationAngle"),                 BINARY_FIELD_FR180,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MotionAllowed"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Font"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values15, 9U},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
-    /* A661_LABEL_COMPLEX: Table 3.3.21-2, LabelComplex Creation Structure */
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values15, 9U},
-    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL,       0U},
-    {("DefaultStyleText"),              BINARY_FIELD_BYTES,       12U,  0U, 0U, NULL,       0U},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
-    /* A661_MAPHORZ: Table 3.3.25-2a, MapHorz Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("ScreenReferencePointX"),         BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("ScreenReferencePointY"),         BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("Range"),                         BINARY_FIELD_FR32768,      4U,  0U, 0U, NULL,       0U},
-    {("ScreenRange"),                   BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("ProjectionType"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL,       0U},
-    /* A661_MAPHORZ_CONTAINER: Table 3.8.4-2, MapHorz_Container Creation Structure */
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    /* A661_MAPHORZ_ITEMLIST: Table 3.3.22-2, MapHorz_ItemList Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("MaxNumberOfItem"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MaxItemSize"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    /* A661_MAPHORZ_PANEL: Table 3.8.5-2, MapHorz_Panel Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    /* A661_MAPHORZ_SOURCE: Table 3.3.24-2a, MapHorz_Source Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("MapDataFormat"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values16, 5U},
-    {("EventFlag"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values17, 4U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    /* A661_MAPHORZ_VERTEXBUFFER: Table 3.9.4-2, MapHorz_VertexBuffer Creation Structure */
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("MaxNumberOfVertices"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NumberOfVertices"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("Vertices"),                      BINARY_FIELD_LONG,         4U,  3U, 2U, NULL,       0U},
-    /* A661_MAPVERT: Table 3.4.3-2a, MapVert Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("RangeX"),                        BINARY_FIELD_FR32768,      4U,  0U, 0U, NULL,       0U},
-    {("RangeY"),                        BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("RefPosX"),                       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("RefPosY"),                       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("RefGeoPosX"),                    BINARY_FIELD_FR32768,      4U,  0U, 0U, NULL,       0U},
-    {("RefGeoPosY"),                    BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    /* A661_MAPVERT_CONTAINER: Table 3.9.13-2, MapVert_Container Creation Structure */
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    /* A661_MAPVERT_ITEMLIST: Table 3.4.5-2a, MapVert_ItemList Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("MaxNumberOfItem"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MaxItemSize"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    /* A661_MAPVERT_PANEL: Table 3.9.14-2, MapVert_Panel Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    /* A661_MAPVERT_SOURCE: Table 3.4.4-2a, MapVert_Source Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("MapDataFormatX"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values18, 3U},
-    {("MapDataFormatY"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values19, 3U},
-    {("EventFlag"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    /* A661_MAP_BOUNDARY: Table 3.9.15-2, MapBoundary Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("MaxNumberOfEntries"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NumberOfEntries"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("BeginAngleArray"),               BINARY_FIELD_FR180,        4U,  3U, 1U, NULL,       0U},
-    {("DistanceArray"),                 BINARY_FIELD_ULONG,        4U,  3U, 1U, NULL,       0U},
-    {("AlgorithmArray"),                BINARY_FIELD_ULONG,        4U,  3U, 1U, c_values20, 3U},
-    /* A661_MAP_EXTERNAL_SOURCE: Table 3.10.4-2, MapExternalSource Creation Structure */
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SourceReference"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    /* A661_MAP_GRID: Table 3.4.1-2, MapGrid Creation Structure */
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("OffsetX"),                       BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL,       0U},
-    {("OffsetY"),                       BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL,       0U},
-    {("IncrementX"),                    BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL,       0U},
-    {("IncrementY"),                    BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL,       0U},
-    {("CountX"),                        BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("CountY"),                        BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    /* A661_MASK_CONTAINER: Table 3.3.26-2, MaskContainer Creation Structure */
-    {("MaskEnabled"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("MaskReference"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MotionAllowed"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    /* A661_MENU_BAR: Table 3.4.8-2, MenuBar Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Horizontal"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL,       0U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("ButtonPos"),                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("ButtonSize"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    /* A661_MULTI_STATE_BUTTON: Table 3.9.1-2, MultiStateButton Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("ButtonState"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values21, 3U},
-    {("MaxNumberOfStates"),             BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("NumberOfStates"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("LabelStringArray"),              BINARY_FIELD_STRING,       0U, 13U, 1U, NULL,       0U},
-    /* A661_MUTUALLY_EXCLUSIVE_CONTAINER: Table 3.5.1-2, MutuallyExclusiveContainer Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("VisibleChild"),                  BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    /* A661_NO_SERVICE_MONITOR: Table 3.8.10-2, NoServiceMonitor Creation Structure */
-    {("ShowNoServiceIdent"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_PAD,          4U,  0U, 0U, NULL,       0U},
-    /* A661_NUMERIC_READOUT: Table 3.8.3-2, NumericReadout Creation Structure */
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("MotionAllowed"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("RotationAngle"),                 BINARY_FIELD_FR180,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values15, 9U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("Value"),                         BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL,       0U},
-    {("LegendAreaSizeX"),               BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("MaxFormatStringLength"),         BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("MaxLegendStringLength"),         BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("LegendPosition"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values12, 4U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("FormatString"),                  BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
-    {("LegendString"),                  BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
-    /* A661_PAGING_CONTAINER: Table 3.8.2-2, PagingContainer Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("WrappingType"),                  BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values22, 4U},
-    {("PagingControlPosition"),         BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values23, 10U},
-    {("FinePageDelta"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("CoarsePageDelta"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("VisibleChild"),                  BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("ReportVisibleChild"),            BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    /* A661_PANEL: Table 3.3.27-2, Panel Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MotionAllowed"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    /* A661_PICTURE: Table 3.3.19-2, Picture Creation Structure */
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("PictureReference"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    /* A661_PICTURE_ANIMATED: Table 3.5.5-2, PictureAnimated Creation Structure */
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NumberOfPictures"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("IndexOfFrequency"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("LoopFlag"),                      BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("AnimationFlag"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("PictureArray"),                  BINARY_FIELD_USHORT,       2U,  7U, 1U, NULL,       0U},
-    /* A661_PICTURE_PUSH_BUTTON: Table 3.3.28-2, Picture PushButton Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("PictureReference"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("PicturePosition"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values24, 5U},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values4,  3U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
-    /* A661_PICTURE_TOGGLE_BUTTON: Table 3.3.29-2, PictureToggleButton Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("AlternateFlag"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PictureReference"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("AlternatePictureReference"),     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("PicturePosition"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values24, 5U},
-    {("ToggleState"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values25, 2U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values4,  3U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
-    {("AlternateLabelString"),          BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
-    /* A661_POP_UP_MENU: Table 3.3.31-2, PopUpMenu Creation Structure */
-    {("OpeningMode"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values26, 3U},
-    {("NumberOfEntries"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("PopUpIdentArray"),               BINARY_FIELD_USHORT,       2U,  1U, 1U, NULL,       0U},
-    {("PictureArray"),                  BINARY_FIELD_USHORT,       2U,  1U, 1U, NULL,       0U},
-    {("EnableArray"),                   BINARY_FIELD_UCHAR,        1U,  1U, 1U, NULL,       0U},
-    {("StringArray"),                   BINARY_FIELD_STRING,       0U,  1U, 1U, NULL,       0U},
-    /* A661_POP_UP_MENU_BUTTON: Table 3.3.32-2, PopUpMenuButton Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("PopupPosX"),                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PopupPosY"),                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PopupSizeX"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("PopupSizeY"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MaxStringLengthPopUp"),          BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("PictureReference"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NumberOfEntries"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("PicturePosition"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values27, 5U},
-    {("OpeningMode"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values28, 2U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values4,  3U},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_ALIGN,        0U,  0U, 0U, NULL,       0U},
-    {("PopUpIdentArray"),               BINARY_FIELD_USHORT,       2U, 15U, 1U, NULL,       0U},
-    {("PictureArray"),                  BINARY_FIELD_USHORT,       2U, 15U, 1U, NULL,       0U},
-    {("EnableArray"),                   BINARY_FIELD_UCHAR,        1U, 15U, 1U, NULL,       0U},
-    {("StringArray"),                   BINARY_FIELD_STRING,       0U, 15U, 1U, NULL,       0U},
-    /* A661_POP_UP_PANEL: Table 3.3.30-2, PopUpPanel Creation Structure */
-    {("UAPositionFlag"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("AutomaticClosure"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    /* A661_POP_UP_PANEL_BUTTON: Table 3.7.3-2, PopUpPanelButton Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("PopupPosX"),                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PopupPosY"),                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PopupSizeX"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("PopupSizeY"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("PictureReference"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("PicturePosition"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values27, 5U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values4,  3U},
-    {("UAPositionFlag"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("AutomaticClosure"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
-    /* A661_PROXY_BUTTON: Table 3.5.2-2, ProxyButton Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("DedicatedKeyIdent"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("TargetWidgetIdent"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    /* A661_PUSH_BUTTON: Table 3.3.33-2, PushButton Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values21, 3U},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
-    /* A661_RADIO_BOX: Table 3.3.34-2, RadioBox Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    /* A661_ROTATION_CONTAINER: Table 3.3.35-2, RotationContainer Creation Structure */
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("CenterX"),                       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("CenterY"),                       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("RotationAngle"),                 BINARY_FIELD_FR180,        4U,  0U, 0U, NULL,       0U},
-    /* A661_SCALE_CONTAINER: Table 3.10.1-2, ScaleContainer Creation Structure */
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("CenterX"),                       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("CenterY"),                       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("ScaleX"),                        BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL,       0U},
-    {("ScaleY"),                        BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL,       0U},
-    /* A661_SCROLL_LIST: Table 3.3.37-2, ScrollList Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MaxNumberOfEntries"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NumberOfEntries"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("SelectedEntry"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("FirstAccessibleEntry"),          BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("FirstVisibleEntry"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("VerticalScroll"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values11, 5U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values21, 3U},
-    {("FlagReportVisibleEntry"),        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("DefaultStyleText"),              BINARY_FIELD_BYTES,       12U,  0U, 0U, NULL,       0U},
-    {("EnableArray"),                   BINARY_FIELD_UCHAR,        1U,  9U, 1U, NULL,       0U},
-    {("LabelStringArray"),              BINARY_FIELD_STRING,       0U,  9U, 1U, NULL,       0U},
-    /* A661_SCROLL_PANEL: Table 3.3.36-2, ScrollPanel Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("LineDeltaX"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("LineDeltaY"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("PageDeltaX"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("PageDeltaY"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("HomeX"),                         BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("HomeY"),                         BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("FrameX"),                        BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("FrameY"),                        BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeXsheet"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeYsheet"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("BoundX"),                        BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("BoundY"),                        BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeXbound"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeYbound"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    {("HorizontalScroll"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values11, 5U},
-    {("VerticalScroll"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values11, 5U},
-    {("FlagReportFramePos"),            BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    /* A661_SCROLL_WHEEL_AREA: Table 3.9.3-2, ScrollWheelArea Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    /* A661_SELECTION_LIST_BUTTON: Table 3.5.7-2, SelectionListButton Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SelectingAreaWidth"),            BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SelectingAreaHeight"),           BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MaxNumberOfEntries"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NumberOfEntries"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("SelectedEntry"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("OpeningEntry"),                  BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values4,  3U},
-    {("OpeningMode"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values6,  3U},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL,       0U},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_ALIGN,        0U,  0U, 0U, NULL,       0U},
-    {("EntryList"),                     BINARY_FIELD_STRING,       0U, 11U, 1U, NULL,       0U},
-    /* A661_SHUFFLE_TO_FIT_CONTAINER: Table 3.6.6-2, ShuffleToFitContainer Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("NumberOfVisibleChildren"),       BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("ShuffleToFitMode"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values29, 5U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("ItemSpacing"),                   BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    /* A661_SIZE_TO_FIT_CONTAINER: Table 3.6.5-2, SizeToFitContainer Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("NumberOfVisibleChildren"),       BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("SizeToFitMode"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("ItemSpacing"),                   BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    /* A661_SLIDER: Table 3.5.4-2, Slider Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MinValue"),                      BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL,       0U},
-    {("MaxValue"),                      BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL,       0U},
-    {("Value"),                         BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL,       0U},
-    {("MajorTickInterval"),             BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL,       0U},
-    {("ShowMajorLabels"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values30, 2U},
-    {("Orientation"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values31, 4U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values32, 5U},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("LsbMultiple"),                   BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MinorTickMultiple"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MajorTickReference"),            BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL,       0U},
-    /* A661_SYMBOL: Table 3.3.38-2, Symbol Creation Structure */
-    {("MotionAllowed"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("RotationAngle"),                 BINARY_FIELD_FR180,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("SymbolReference"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL,       0U},
-    /* A661_SYMBOL_ANIMATED: Table 3.5.6-2, SymbolAnimated Creation Structure */
-    {("MotionAllowed"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("LoopType"),                      BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values33, 4U},
-    {("NumberOfSymbols"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("IndexOfFrequency"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("AnimationType"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values34, 3U},
-    {("SymbolArray"),                   BINARY_FIELD_USHORT,       2U,  7U, 1U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_ALIGN,        0U,  0U, 0U, NULL,       0U},
-    {("OrientationArray"),              BINARY_FIELD_FR180,        4U,  7U, 1U, NULL,       0U},
-    {("MovementXArray"),                BINARY_FIELD_LONG,         4U,  7U, 1U, NULL,       0U},
-    {("MovementYArray"),                BINARY_FIELD_LONG,         4U,  7U, 1U, NULL,       0U},
-    /* A661_SYMBOL_PUSH_BUTTON: Table 3.7.1-2, SymbolPushButton Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("SymbolReference"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("SymbolPosition"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values24, 5U},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values4,  3U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
-    /* A661_SYMBOL_TOGGLE_BUTTON: Table 3.7.2-2, SymbolToggleButton Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("AlternateFlag"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("SymbolReference"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("AlternateSymbolReference"),      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("SymbolPosition"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values24, 5U},
-    {("ToggleState"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values25, 2U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values4,  3U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
-    {("AlternateLabelString"),          BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
-    /* A661_TABBED_PANEL: Table 3.3.39-2, TabbedPanel Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("PictureReference"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("PicturePosition"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values27, 5U},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values21, 3U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("InsetSize"),                     BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
-    /* A661_TABBED_PANEL_GROUP: Table 3.3.40-2, TabbedPanelGroup Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("ActiveTabbedPanelID"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("TabPosition"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values35, 5U},
-    {("AutomaticInsetSizeFlag"),        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    /* A661_TOGGLE_BUTTON: Table 3.3.41-2, ToggleButton Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("ToggleState"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values25, 2U},
-    {("AlternateFlag"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values21, 3U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
-    {("AlternateLabelString"),          BINARY_FIELD_STRING,       0U,  0U, 0U, NULL,       0U},
-    /* A661_TOUCH_AREA: Table 3.9.5-2, TouchArea Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("ReportMode"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values9,  2U},
-    {("AllowOutside"),                  BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("MaxTouchPoints"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("NumberOfTouchPoints"),           BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    /* A661_TRANSLATION_CONTAINER: Table 3.3.42-2, TranslationContainer Creation Structure */
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("TranslationX"),                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("TranslationY"),                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    /* A661_TREE: Table 3.10.3-2, Tree Creation Structure */
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values0,  3U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL,       0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL,       0U},
-    {("FirstVisibleEntry"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("FlagReportVisibleEntry"),        BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MaxNumberOfEntries"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NumberOfEntries"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("SelectedEntry"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values8,  3U},
-    {("NodeStyleArray"),                BINARY_FIELD_USHORT,       2U, 12U, 1U, NULL,       0U},
-    {("ParentArray"),                   BINARY_FIELD_USHORT,       2U, 12U, 1U, NULL,       0U},
-    {("EnableArray"),                   BINARY_FIELD_UCHAR,        1U, 12U, 1U, NULL,       0U},
-    {("OpenArray"),                     BINARY_FIELD_UCHAR,        1U, 12U, 1U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_ALIGN,        0U,  0U, 0U, NULL,       0U},
-    {("LabelStringArray"),              BINARY_FIELD_STRING,       0U, 12U, 1U, NULL,       0U},
-    /* A661_WATCHDOG_CONTAINER: Table 3.5.3-2, WatchdogContainer Creation Structure */
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    {("TimePeriod"),                    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("ValidCountLimit"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("FailCountLimit"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("Refresh"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("ShowIfFailIdent"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("ShowFail"),                      BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values30, 2U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    /* A661_DIRECTIONAL_TABBING_EXTENSION: Table 8.5.1-2, DirectionalTabbingExtension Creation Structure */
-    {("NumDirections"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("TabDirectionWidgetIdArray"),     BINARY_FIELD_USHORT,       2U,  0U, 1U, NULL,       0U},
-    /* A661_CURSOR_EVENTS_EXTENSION: Table 8.5.2-2, CursorEventsExtension Creation Structure */
-    {("NumEvents"),                     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("EventIdArray"),                  BINARY_FIELD_USHORT,       2U,  0U, 1U, NULL,       0U},
-    /* A661_LEGEND_ALIGN_EXTENSION: Table 8.5.3-2, LegendStringAlignment Creation Structure */
-    {("LegendAlignment"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values8,  3U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    /* A661_CHILD_INDEX_EXTENSION: Table 8.5.4-2, VisibleChildIndexExtension Creation Structure */
-    {("VisibleChildIndex"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    /* A661_INITIAL_FOCUS_EXTENSION: Table 8.5.5-2, InitialFocusExtension Creation Structure */
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("InitialFocus"),                  BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    /* A661_FOCUS_STOP_EXTENSION: Table 8.5.6-2, FocusStopExtension Creation Structure */
-    {("StopForward"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("StopBackward"),                  BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    /* A661_CURSOR_SHAPE_EXTENSION: Table 8.5.7-2, CursorShapeExtension Creation Structure */
-    {("AllowChange"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values1,  2U},
-    {("CursorIndex"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    /* A661_PICTURE_EXTENSION: Table 8.6.1-2, PictureExtension Creation Structure */
-    {("MaxNumberOfPictures"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NumberOfPictures"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("PicturePosition"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values24, 5U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("PictureArray"),                  BINARY_FIELD_USHORT,       2U,  1U, 1U, NULL,       0U},
-    /* A661_SYMBOL_EXTENSION: Table 8.6.2-2, SymbolExtension Creation Structure */
-    {("MaxNumberOfSymbols"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NumberOfSymbols"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("SymbolPosition"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values24, 5U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("SymbolArray"),                   BINARY_FIELD_USHORT,       2U,  1U, 1U, NULL,       0U},
-    /* A661_TICS_ARRAY_EXTENSION: Table 8.6.3-2, TicsArrayExtension Creation Structure */
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    {("MaxNumberOfTicsCoarse"),         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NumberOfTicsCoarse"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("MaxNumberOfTicsFine"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("NumberOfTicsFine"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("TicsCoarseArray"),               BINARY_FIELD_FLOAT,        4U,  2U, 2U, NULL,       0U},
-    {("TicsFineArray"),                 BINARY_FIELD_FLOAT,        4U,  4U, 2U, NULL,       0U},
-    /* A661_STYLE_SET_EXTENSION: Table 8.6.4-2, StyleSetExtension Creation Structure */
-    {("MaxStyleSetArraySize"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("StyleSetArraySize"),             BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("StyleSetArray"),                 BINARY_FIELD_USHORT,       2U,  1U, 1U, NULL,       0U},
-    /* A661_STATIC_PARAM_BUFFER_EXTENSION: Table 8.6.5-2, StaticParamBufferExtension Creation Structure */
-    {("NumberOfBuffers"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("BufferArray"),                   BINARY_FIELD_SIZED_BYTES,  0U,  0U, 1U, NULL,       0U},
-    /* A661_MULTI_SELECTION_EXTENSION: Table 8.6.6-2, MultiSelectionExtension Creation Structure */
-    {("MaximumSelectableEntries"),      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    /* A661_EXCLUDED_REGIONS_EXTENSION: Table 8.6.7-2, ExcludedRegionsExtension Creation Structure */
-    {("MaxNumberOfRegions"),            BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    {("EffectivityArray"),              BINARY_FIELD_UCHAR,        1U,  0U, 1U, NULL,       0U},
-    {(NULL),                            BINARY_FIELD_ALIGN,        0U,  0U, 0U, NULL,       0U},
-    {("ExcludedRegionsList"),           BINARY_FIELD_REGION,       0U,  0U, 1U, NULL,       0U},
-    /* A661_BOUNDARY_CHECK_EXTENSION: Table 8.6.8-2, BoundaryCheckExtension Creation Structure */
-    {("BoundaryCheckMode"),             BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values36, 1U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL,       0U},
-    /* A661_REORDER_EXTENSION: Table 8.7.1-2, ReorderExtension Creation Structure */
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL,       0U},
-    /* A661_WORD_WRAP_EXTENSION: Table 8.7.2-2, WordWrapExtension Creation Structure */
-    {("WordWrap"),                      BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    {("WrapStyle"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL,       0U},
-    /* A661_CURSOR_ENTRY_EVENTS_EXTENSION: Table 8.7.3-2, CursorEntryEventsExtension Creation Structure */
-    {("NumEvents"),                     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("EventIdArray"),                  BINARY_FIELD_USHORT,       2U,  0U, 1U, NULL,       0U},
-    /* A661_MAPHORZ_COORD_SYSTEM_EVENT_EXTENSION: Table 8.7.4-2, MapHorzCoordSystemEventExtension Creation Structure */
-    {("NumEvents"),                     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("ReportMode"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values37, 2U},
-    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL,       0U},
-    {("EventIdArray"),                  BINARY_FIELD_USHORT,       2U,  0U, 1U, NULL,       0U},
-    /* A661_MAPVERT_COORD_SYSTEM_EVENT_EXTENSION: Table 8.7.5-2, MapVertCoordSystemEventExtension Creation Structure */
-    {("NumEvents"),                     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL,       0U},
-    {("ReportMode"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, c_values37, 2U},
-    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL,       0U},
-    {("EventIdArray"),                  BINARY_FIELD_USHORT,       2U,  0U, 1U, NULL,       0U}
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_ANIMATION_GROUP parameters: Table 3.9.12-2, AnimationGroup Creation Structure.
+ */
+static const BinaryField_t c_animationGroupFields[] =
+{
+    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Type"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("Delay"),                         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("AnimationRepetition"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_ANIMATION_ONPARAM parameters: Table 3.9.8-2, AnimationOnParam Creation Structure.
+ */
+static const BinaryField_t c_animationOnparamFields[] =
+{
+    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("TargetWidgetID"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("TargetParamID"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {("FromValue"),                     BINARY_FIELD_BYTES,        4U,  0U, 0U, NULL, 0U},
+    {("ToValue"),                       BINARY_FIELD_BYTES,        4U,  0U, 0U, NULL, 0U},
+    {("AnimationLawRef"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("Duration"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("Delay"),                         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("AnimationRepetition"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_ANIMATION_ROTATION parameters: Table 3.9.9-2, AnimationRotation Creation Structure.
+ */
+static const BinaryField_t c_animationRotationFields[] =
+{
+    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("TargetWidgetID"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("CenterX"),                       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("CenterY"),                       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("FromAngle"),                     BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
+    {("ToAngle"),                       BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
+    {("AnimationLawRef"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("Duration"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("Delay"),                         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("Direction"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_rotationDirectionValues)},
+    {("NumberOfTurns"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("AnimationRepetition"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_ANIMATION_SCALE parameters: Table 3.9.10-2, AnimationScale Creation Structure.
+ */
+static const BinaryField_t c_animationScaleFields[] =
+{
+    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("TargetWidgetID"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("FromScaleX"),                    BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("FromScaleY"),                    BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("ToScaleX"),                      BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("ToScaleY"),                      BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("AnimationLawRef"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("Duration"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("Delay"),                         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("AnimationRepetition"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_ANIMATION_TRANSLATION parameters: Table 3.9.11-2, AnimationTranslation Creation Structure.
+ */
+static const BinaryField_t c_animationTranslationFields[] =
+{
+    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("TargetWidgetID"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("FromValueX"),                    BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("FromValueY"),                    BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("ToValueX"),                      BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("ToValueY"),                      BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("AnimationLawRef"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("Duration"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("Delay"),                         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("AnimationRepetition"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_BASIC_CONTAINER parameters: Table 3.3.2-2, BasicContainer Creation Structure.
+ */
+static const BinaryField_t c_basicContainerFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_BLINKING_CONTAINER parameters: Table 3.3.3-2, BlinkingContainer Creation Structure.
+ */
+static const BinaryField_t c_blinkingContainerFields[] =
+{
+    {("BlinkingType"),                  BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_BROADCAST_RECEIVER parameters: Table 3.8.9-2, BroadcastReceiver Creation Structure.
+ */
+static const BinaryField_t c_broadcastReceiverFields[] =
+{
+    {("NumberOfFields"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("ParameterIdent"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("WidgetStructure"),               BINARY_FIELD_USHORT,       2U,  0U, 1U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_BUFFER_FORMAT parameters: Table 3.3.4-2, BufferFormat Creation Structure.
+ */
+static const BinaryField_t c_bufferFormatFields[] =
+{
+    {("NumberOfFields"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("BufferStructure"),               BINARY_FIELD_USHORT,       2U,  0U, 2U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_CHECK_BUTTON parameters: Table 3.3.5-2, CheckButton Creation Structure.
+ */
+static const BinaryField_t c_checkButtonFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("CheckButtonState"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_checkButtonStateValues)},
+    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_buttonAlignmentValues)},
+    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PicturePosition"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_checkButtonPicturePositionValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_COMBO_BOX parameters: Table 3.3.6-2, ComboBox Creation Structure.
+ */
+static const BinaryField_t c_comboBoxFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SelectingAreaWidth"),            BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SelectingAreaHeight"),           BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MaxNumberOfEntries"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NumberOfEntries"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("SelectedEntry"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("OpeningEntry"),                  BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_buttonAlignmentValues)},
+    {("OpeningMode"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_comboBoxOpeningModeValues)},
+    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U},
+    {("EntryList"),                     BINARY_FIELD_STRING,       0U, 11U, 1U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_COMBO_BOX_EDIT parameters: Table 3.4.7-2, ComboBoxEdit Creation Structure.
+ */
+static const BinaryField_t c_comboBoxEditFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SelectingAreaWidth"),            BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SelectingAreaHeight"),           BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MaxNumberOfEntries"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NumberOfEntries"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("SelectedEntry"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("OpeningEntry"),                  BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("OpeningMode"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_comboBoxOpeningModeValues)},
+    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("StartCursorPos"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("ReportAllChanges"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxReportAllChangesValues)},
+    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxAlignmentValues)},
+    {("EntryList"),                     BINARY_FIELD_STRING,       0U, 11U, 1U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_CONNECTOR parameters: Table 3.3.7-2, Connector Creation Structure.
+ */
+static const BinaryField_t c_connectorFields[] =
+{
+    {("ConnectorReference"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_CURSOR_OVER parameters: Table 3.6.3-2, CursorOver Creation Structure.
+ */
+static const BinaryField_t c_cursorOverFields[] =
+{
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {("PositionReportMode"),            BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_positionReportModeValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_CURSOR_POS_OVERLAY parameters: Table 3.3.8-2, CursorPosOverlay Creation Structure.
+ */
+static const BinaryField_t c_cursorPosOverlayFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_CURSOR_REF parameters: Table 3.6.2-2, CursorRef Creation Structure.
+ */
+static const BinaryField_t c_cursorRefFields[] =
+{
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_DATA_CONNECTOR parameters: Table 3.9.16-2, DataConnector Creation Structure.
+ */
+static const BinaryField_t c_dataConnectorFields[] =
+{
+    {("ConnectorReference"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("DataLength"),                    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("Data"),                          BINARY_FIELD_ULONG,        4U,  3U, 1U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_DATA_SCALING_FR180 parameters: Table 3.8.8-2, DataScalingFR180 Creation Structure.
+ */
+static const BinaryField_t c_dataScalingFr180Fields[] =
+{
+    {("TargetWidgetID"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("TargetParameterID"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("Clamping"),                      BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_clampingValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("StartValue"),                    BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("EndValue"),                      BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("StartScaledValue"),              BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
+    {("EndScaledValue"),                BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_DATA_SCALING_LONG parameters: Table 3.8.6-2, DataScalingLong Creation Structure.
+ */
+static const BinaryField_t c_dataScalingLongFields[] =
+{
+    {("TargetWidgetID"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("TargetParameterID"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("Clamping"),                      BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_clampingValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("StartValue"),                    BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("EndValue"),                      BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("StartScaledValue"),              BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("EndScaledValue"),                BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_DATA_SCALING_ULONG parameters: Table 3.8.7-2, DataScalingULong Creation Structure.
+ */
+static const BinaryField_t c_dataScalingUlongFields[] =
+{
+    {("TargetWidgetID"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("TargetParameterID"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("Clamping"),                      BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_clampingValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("StartValue"),                    BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("EndValue"),                      BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("StartScaledValue"),              BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("EndScaledValue"),                BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_EDIT_BOX_MASKED parameters: Table 3.3.9-2, EditBoxMasked Creation Structure.
+ */
+static const BinaryField_t c_editBoxMaskedFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("AlphaMask"),                     BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("NumericMask"),                   BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StartCursorPos"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("ReportAllChanges"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxReportAllChangesValues)},
+    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_buttonAlignmentValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U},
+    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_EDIT_BOX_MULTI_LINE parameters: Table 3.4.6-2, EditBoxMultiLine Creation Structure.
+ */
+static const BinaryField_t c_editBoxMultiLineFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("StartCursorPos"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("ReportAllChanges"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxReportAllChangesValues)},
+    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxAlignmentValues)},
+    {("VerticalScroll"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_scrollBarPositionValues)},
+    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_EDIT_BOX_NUMERIC parameters: Table 3.3.10-2, EditBoxNumeric Creation Structure.
+ */
+static const BinaryField_t c_editBoxNumericFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("Value"),                         BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("TicsCoarse"),                    BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("TicsFine"),                      BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("MinValue"),                      BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("MaxValue"),                      BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("LegendAreaSizeX"),               BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StartCursorPosByte"),            BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("MaxFormatStringLength"),         BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("MaxLegendStringLength"),         BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("LegendPosition"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_legendPositionValues)},
+    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("ReportAllChanges"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxNumericReportAllChangesValues)},
+    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxAlignmentValues)},
+    {("LegendRemoved"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("NumericKeyFlag"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("CyclicFlag"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {("FormatString"),                  BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U},
+    {("LegendString"),                  BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_EDIT_BOX_NUMERIC_BCD parameters: Table 3.6.1-5, EditBoxNumericBCD Creation Structure.
+ */
+static const BinaryField_t c_editBoxNumericBcdFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("LegendAreaSizeX"),               BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("Value"),                         BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL, 0U},
+    {("MinValue"),                      BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL, 0U},
+    {("MaxValue"),                      BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL, 0U},
+    {("MinFieldsValues"),               BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL, 0U},
+    {("MaxFieldsValues"),               BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL, 0U},
+    {("TicsCoarse"),                    BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL, 0U},
+    {("TicsFine"),                      BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL, 0U},
+    {("NumberOfFields"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("LegendPosition"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("LegendRemoved"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("MaxFormatStringLength"),         BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("MaxLegendStringLength"),         BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("PositiveStringLength"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("NegativeStringLength"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("ReportAllChanges"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("NumericKeyFlag"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("CyclicFlag"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("SizeOfFields"),                  BINARY_FIELD_UCHAR,        1U, 16U, 1U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_ALIGN,        0U,  0U, 0U, NULL, 0U},
+    {("FormatString"),                  BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U},
+    {("LegendString"),                  BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U},
+    {("PositiveString"),                BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U},
+    {("NegativeString"),                BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_EDIT_BOX_TEXT parameters: Table 3.3.11-2, EditBoxText Creation Structure.
+ */
+static const BinaryField_t c_editBoxTextFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("StartCursorPos"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("ReportAllChanges"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxReportAllChangesValues)},
+    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxAlignmentValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_EVENT_HANDLER parameters: Table 3.9.17-3, EventHandler Creation Structure.
+ */
+static const BinaryField_t c_eventHandlerFields[] =
+{
+    {("EnableHandler"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("TriggerLayerIdent"),             BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("TriggerWidgetIdent"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("TriggerEvent"),                  BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {("NumWidgetParamResults"),         BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("NumLayerReqResults"),            BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("WidgetParamResultArray"),        BINARY_FIELD_BYTES,       20U,  5U, 1U, NULL, 0U},
+    {("LayerReqResultArray"),           BINARY_FIELD_LAYER_REQUEST,  0U,  6U, 1U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_EXTERNAL_SOURCE parameters: Table 3.4.2-2, ExternalSource Creation Structure.
+ */
+static const BinaryField_t c_externalSourceFields[] =
+{
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("MotionAllowed"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SourceReference"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {("SourceX"),                       BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SourceY"),                       BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SourceDX"),                      BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SourceDY"),                      BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_FOCUS_IN parameters: Table 3.6.4.2-2, FocusIn Creation Structure.
+ */
+static const BinaryField_t c_focusInFields[] =
+{
+    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_FOCUS_LINK parameters: Table 3.6.4.1-2, FocusLink Creation Structure.
+ */
+static const BinaryField_t c_focusLinkFields[] =
+{
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_PAD,          4U,  0U, 0U, NULL, 0U},
+    {("NextLayerConnectorRef"),         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_FOCUS_OUT parameters: Table 3.6.4.3-2, FocusOut Creation Structure.
+ */
+static const BinaryField_t c_focusOutFields[] =
+{
+    {("NextFocusInAppId"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NextFocusInLayerId"),            BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("NextFocusInId"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_FRAMING_REFRESH_CONTAINER parameters: Table 3.9.18-2, FramingRefreshContainer Creation Structure.
+ */
+static const BinaryField_t c_framingRefreshContainerFields[] =
+{
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("CachingEnabled"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_GESTURE_AREA parameters: Table 3.9.6-4, GestureArea Creation Structure.
+ */
+static const BinaryField_t c_gestureAreaFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("ReportMode"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("AllowOutside"),                  BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("NumberOfEvents"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("EventIdArray"),                  BINARY_FIELD_UCHAR,        1U, 10U, 1U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_GP_ARC_CIRCLE parameters: Table 3.3.13-2, GpArcCircle Creation Structure.
+ */
+static const BinaryField_t c_gpArcCircleFields[] =
+{
+    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("StartAngle"),                    BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
+    {("EndAngle"),                      BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
+    {("Radius"),                        BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("Filled"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("FillIndex"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("Halo"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_haloValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_GP_ARC_ELLIPSE parameters: Table 3.3.12-2, GpArcEllipse Creation Structure.
+ */
+static const BinaryField_t c_gpArcEllipseFields[] =
+{
+    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StartAngle"),                    BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
+    {("EndAngle"),                      BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("Filled"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("FillIndex"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("Halo"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_haloValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_GP_CROWN parameters: Table 3.3.14-2, GpCrown Creation Structure.
+ */
+static const BinaryField_t c_gpCrownFields[] =
+{
+    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("StartAngle"),                    BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
+    {("EndAngle"),                      BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
+    {("InnerRadius"),                   BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("OuterRadius"),                   BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("Filled"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("FillIndex"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("Halo"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_haloValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_GP_LINE parameters: Table 3.3.15-2, GpLine Creation Structure.
+ */
+static const BinaryField_t c_gpLineFields[] =
+{
+    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosXStart"),                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosYStart"),                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosXEnd"),                       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosYEnd"),                       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("Halo"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_haloValues)}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_GP_LINE_POLAR parameters: Table 3.3.16-2, GpLinePolar Creation Structure.
+ */
+static const BinaryField_t c_gpLinePolarFields[] =
+{
+    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosXStart"),                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosYStart"),                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("RotationAngle"),                 BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
+    {("LineLength"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("Halo"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_haloValues)}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_GP_POLYLINE parameters: Table 3.8.1-2, GpPolyline Creation Structure.
+ */
+static const BinaryField_t c_gpPolylineFields[] =
+{
+    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("Halo"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_haloValues)},
+    {("Closed"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U},
+    {("MaxNumberOfVertices"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NumberOfVertices"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("Vertices"),                      BINARY_FIELD_LONG,         4U,  8U, 2U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_GP_RECTANGLE parameters: Table 3.3.17-2, GpRectangle Creation Structure.
+ */
+static const BinaryField_t c_gpRectangleFields[] =
+{
+    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("Filled"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("FillIndex"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("Halo"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_haloValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_GP_TRIANGLE parameters: Table 3.3.18-2, GpTriangle Creation Structure.
+ */
+static const BinaryField_t c_gpTriangleFields[] =
+{
+    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosX2"),                         BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY2"),                         BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosX3"),                         BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY3"),                         BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("Filled"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("FillIndex"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("Halo"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_haloValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_GP_TRIANGLE_FAN parameters: Table 3.10.5-2, GpTriangleFan Creation Structure.
+ */
+static const BinaryField_t c_gpTriangleFanFields[] =
+{
+    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("Filled"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("FillIndex"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("Halo"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_haloValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {("MaxNumberOfVertices"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NumberOfVertices"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("Vertices"),                      BINARY_FIELD_LONG,         4U,  9U, 2U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_GP_TRIANGLE_STRIP parameters: Table 3.10.6-2, GpTriangleStrip Creation Structure.
+ */
+static const BinaryField_t c_gpTriangleStripFields[] =
+{
+    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("Filled"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("FillIndex"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("Halo"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_haloValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {("MaxNumberOfVertices"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NumberOfVertices"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("Vertices"),                      BINARY_FIELD_LONG,         4U,  9U, 2U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_INK_AREA parameters: Table 3.9.7-2, InkArea Creation Structure.
+ */
+static const BinaryField_t c_inkAreaFields[] =
+{
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("Filled"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("FillIndex"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("MaxBufferSize"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_KEYBOARD_AREA parameters: Table 3.9.2-2, KeyboardArea Creation Structure.
+ */
+static const BinaryField_t c_keyboardAreaFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("NumberOfKeys"),                  BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("MaxNumberOfKeys"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("KeyArray"),                      BINARY_FIELD_USHORT,       2U,  1U, 1U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_LABEL parameters: Table 3.3.20-2, Label Creation Structure.
+ */
+static const BinaryField_t c_labelFields[] =
+{
+    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("RotationAngle"),                 BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MotionAllowed"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Font"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_labelAlignmentValues)},
+    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_LABEL_COMPLEX parameters: Table 3.3.21-2, LabelComplex Creation Structure.
+ */
+static const BinaryField_t c_labelComplexFields[] =
+{
+    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_labelAlignmentValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U},
+    {("DefaultStyleText"),              BINARY_FIELD_BYTES,       12U,  0U, 0U, NULL, 0U},
+    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_MAPHORZ parameters: Table 3.3.25-2a, MapHorz Creation Structure.
+ */
+static const BinaryField_t c_maphorzFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("ScreenReferencePointX"),         BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("ScreenReferencePointY"),         BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("Range"),                         BINARY_FIELD_FR32768,      4U,  0U, 0U, NULL, 0U},
+    {("ScreenRange"),                   BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("ProjectionType"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_MAPHORZ_CONTAINER parameters: Table 3.8.4-2, MapHorz_Container Creation Structure.
+ */
+static const BinaryField_t c_maphorzContainerFields[] =
+{
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_MAPHORZ_ITEMLIST parameters: Table 3.3.22-2, MapHorz_ItemList Creation Structure.
+ */
+static const BinaryField_t c_maphorzItemlistFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("MaxNumberOfItem"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MaxItemSize"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_MAPHORZ_PANEL parameters: Table 3.8.5-2, MapHorz_Panel Creation Structure.
+ */
+static const BinaryField_t c_maphorzPanelFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_MAPHORZ_SOURCE parameters: Table 3.3.24-2a, MapHorz_Source Creation Structure.
+ */
+static const BinaryField_t c_maphorzSourceFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("MapDataFormat"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_mapDataFormatValues)},
+    {("EventFlag"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_eventFlagValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_MAPHORZ_VERTEXBUFFER parameters: Table 3.9.4-2, MapHorz_VertexBuffer Creation Structure.
+ */
+static const BinaryField_t c_maphorzVertexbufferFields[] =
+{
+    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("MaxNumberOfVertices"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NumberOfVertices"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("Vertices"),                      BINARY_FIELD_LONG,         4U,  3U, 2U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_MAPVERT parameters: Table 3.4.3-2a, MapVert Creation Structure.
+ */
+static const BinaryField_t c_mapvertFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("RangeX"),                        BINARY_FIELD_FR32768,      4U,  0U, 0U, NULL, 0U},
+    {("RangeY"),                        BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("RefPosX"),                       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("RefPosY"),                       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("RefGeoPosX"),                    BINARY_FIELD_FR32768,      4U,  0U, 0U, NULL, 0U},
+    {("RefGeoPosY"),                    BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_MAPVERT_CONTAINER parameters: Table 3.9.13-2, MapVert_Container Creation Structure.
+ */
+static const BinaryField_t c_mapvertContainerFields[] =
+{
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_MAPVERT_ITEMLIST parameters: Table 3.4.5-2a, MapVert_ItemList Creation Structure.
+ */
+static const BinaryField_t c_mapvertItemlistFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("MaxNumberOfItem"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MaxItemSize"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_MAPVERT_PANEL parameters: Table 3.9.14-2, MapVert_Panel Creation Structure.
+ */
+static const BinaryField_t c_mapvertPanelFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_MAPVERT_SOURCE parameters: Table 3.4.4-2a, MapVert_Source Creation Structure.
+ */
+static const BinaryField_t c_mapvertSourceFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("MapDataFormatX"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_mapDataFormatXValues)},
+    {("MapDataFormatY"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_mapDataFormatYValues)},
+    {("EventFlag"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_MAP_BOUNDARY parameters: Table 3.9.15-2, MapBoundary Creation Structure.
+ */
+static const BinaryField_t c_mapBoundaryFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("MaxNumberOfEntries"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NumberOfEntries"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("BeginAngleArray"),               BINARY_FIELD_FR180,        4U,  3U, 1U, NULL, 0U},
+    {("DistanceArray"),                 BINARY_FIELD_ULONG,        4U,  3U, 1U, NULL, 0U},
+    {("AlgorithmArray"),                BINARY_FIELD_ULONG,        4U,  3U, 1U, ARRAY_AND_COUNT(c_mapBoundaryAlgorithmValues)}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_MAP_EXTERNAL_SOURCE parameters: Table 3.10.4-2, MapExternalSource Creation Structure.
+ */
+static const BinaryField_t c_mapExternalSourceFields[] =
+{
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SourceReference"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_MAP_GRID parameters: Table 3.4.1-2, MapGrid Creation Structure.
+ */
+static const BinaryField_t c_mapGridFields[] =
+{
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("OffsetX"),                       BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("OffsetY"),                       BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("IncrementX"),                    BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("IncrementY"),                    BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("CountX"),                        BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("CountY"),                        BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_MASK_CONTAINER parameters: Table 3.3.26-2, MaskContainer Creation Structure.
+ */
+static const BinaryField_t c_maskContainerFields[] =
+{
+    {("MaskEnabled"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("MaskReference"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MotionAllowed"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_MENU_BAR parameters: Table 3.4.8-2, MenuBar Creation Structure.
+ */
+static const BinaryField_t c_menuBarFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Horizontal"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("ButtonPos"),                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("ButtonSize"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_MULTI_STATE_BUTTON parameters: Table 3.9.1-2, MultiStateButton Creation Structure.
+ */
+static const BinaryField_t c_multiStateButtonFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("ButtonState"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_pushButtonAlignmentValues)},
+    {("MaxNumberOfStates"),             BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("NumberOfStates"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("LabelStringArray"),              BINARY_FIELD_STRING,       0U, 13U, 1U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_MUTUALLY_EXCLUSIVE_CONTAINER parameters: Table 3.5.1-2, MutuallyExclusiveContainer Creation Structure.
+ */
+static const BinaryField_t c_mutuallyExclusiveContainerFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("VisibleChild"),                  BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_NO_SERVICE_MONITOR parameters: Table 3.8.10-2, NoServiceMonitor Creation Structure.
+ */
+static const BinaryField_t c_noServiceMonitorFields[] =
+{
+    {("ShowNoServiceIdent"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_PAD,          4U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_NUMERIC_READOUT parameters: Table 3.8.3-2, NumericReadout Creation Structure.
+ */
+static const BinaryField_t c_numericReadoutFields[] =
+{
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("MotionAllowed"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("RotationAngle"),                 BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_labelAlignmentValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("Value"),                         BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("LegendAreaSizeX"),               BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("MaxFormatStringLength"),         BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("MaxLegendStringLength"),         BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("LegendPosition"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_legendPositionValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("FormatString"),                  BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U},
+    {("LegendString"),                  BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_PAGING_CONTAINER parameters: Table 3.8.2-2, PagingContainer Creation Structure.
+ */
+static const BinaryField_t c_pagingContainerFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("WrappingType"),                  BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_wrappingTypeValues)},
+    {("PagingControlPosition"),         BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_pagingControlPositionValues)},
+    {("FinePageDelta"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("CoarsePageDelta"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("VisibleChild"),                  BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("ReportVisibleChild"),            BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_PANEL parameters: Table 3.3.27-2, Panel Creation Structure.
+ */
+static const BinaryField_t c_panelFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MotionAllowed"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_PICTURE parameters: Table 3.3.19-2, Picture Creation Structure.
+ */
+static const BinaryField_t c_pictureFields[] =
+{
+    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("PictureReference"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_PICTURE_ANIMATED parameters: Table 3.5.5-2, PictureAnimated Creation Structure.
+ */
+static const BinaryField_t c_pictureAnimatedFields[] =
+{
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NumberOfPictures"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("IndexOfFrequency"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("LoopFlag"),                      BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("AnimationFlag"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("PictureArray"),                  BINARY_FIELD_USHORT,       2U,  7U, 1U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_PICTURE_PUSH_BUTTON parameters: Table 3.3.28-2, Picture PushButton Creation Structure.
+ */
+static const BinaryField_t c_picturePushButtonFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("PictureReference"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("PicturePosition"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_picturePositionValues)},
+    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_buttonAlignmentValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_PICTURE_TOGGLE_BUTTON parameters: Table 3.3.29-2, PictureToggleButton Creation Structure.
+ */
+static const BinaryField_t c_pictureToggleButtonFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("AlternateFlag"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PictureReference"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("AlternatePictureReference"),     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("PicturePosition"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_picturePositionValues)},
+    {("ToggleState"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_toggleStateValues)},
+    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_buttonAlignmentValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U},
+    {("AlternateLabelString"),          BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_POP_UP_MENU parameters: Table 3.3.31-2, PopUpMenu Creation Structure.
+ */
+static const BinaryField_t c_popUpMenuFields[] =
+{
+    {("OpeningMode"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_popUpMenuOpeningModeValues)},
+    {("NumberOfEntries"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("PopUpIdentArray"),               BINARY_FIELD_USHORT,       2U,  1U, 1U, NULL, 0U},
+    {("PictureArray"),                  BINARY_FIELD_USHORT,       2U,  1U, 1U, NULL, 0U},
+    {("EnableArray"),                   BINARY_FIELD_UCHAR,        1U,  1U, 1U, NULL, 0U},
+    {("StringArray"),                   BINARY_FIELD_STRING,       0U,  1U, 1U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_POP_UP_MENU_BUTTON parameters: Table 3.3.32-2, PopUpMenuButton Creation Structure.
+ */
+static const BinaryField_t c_popUpMenuButtonFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("PopupPosX"),                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PopupPosY"),                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PopupSizeX"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("PopupSizeY"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MaxStringLengthPopUp"),          BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("PictureReference"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NumberOfEntries"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("PicturePosition"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_popUpButtonPicturePositionValues)},
+    {("OpeningMode"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_popUpMenuButtonOpeningModeValues)},
+    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_buttonAlignmentValues)},
+    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_ALIGN,        0U,  0U, 0U, NULL, 0U},
+    {("PopUpIdentArray"),               BINARY_FIELD_USHORT,       2U, 15U, 1U, NULL, 0U},
+    {("PictureArray"),                  BINARY_FIELD_USHORT,       2U, 15U, 1U, NULL, 0U},
+    {("EnableArray"),                   BINARY_FIELD_UCHAR,        1U, 15U, 1U, NULL, 0U},
+    {("StringArray"),                   BINARY_FIELD_STRING,       0U, 15U, 1U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_POP_UP_PANEL parameters: Table 3.3.30-2, PopUpPanel Creation Structure.
+ */
+static const BinaryField_t c_popUpPanelFields[] =
+{
+    {("UAPositionFlag"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("AutomaticClosure"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_POP_UP_PANEL_BUTTON parameters: Table 3.7.3-2, PopUpPanelButton Creation Structure.
+ */
+static const BinaryField_t c_popUpPanelButtonFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("PopupPosX"),                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PopupPosY"),                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PopupSizeX"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("PopupSizeY"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("PictureReference"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("PicturePosition"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_popUpButtonPicturePositionValues)},
+    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_buttonAlignmentValues)},
+    {("UAPositionFlag"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("AutomaticClosure"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_PROXY_BUTTON parameters: Table 3.5.2-2, ProxyButton Creation Structure.
+ */
+static const BinaryField_t c_proxyButtonFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("DedicatedKeyIdent"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("TargetWidgetIdent"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_PUSH_BUTTON parameters: Table 3.3.33-2, PushButton Creation Structure.
+ */
+static const BinaryField_t c_pushButtonFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_pushButtonAlignmentValues)},
+    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_RADIO_BOX parameters: Table 3.3.34-2, RadioBox Creation Structure.
+ */
+static const BinaryField_t c_radioBoxFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_ROTATION_CONTAINER parameters: Table 3.3.35-2, RotationContainer Creation Structure.
+ */
+static const BinaryField_t c_rotationContainerFields[] =
+{
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("CenterX"),                       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("CenterY"),                       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("RotationAngle"),                 BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_SCALE_CONTAINER parameters: Table 3.10.1-2, ScaleContainer Creation Structure.
+ */
+static const BinaryField_t c_scaleContainerFields[] =
+{
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("CenterX"),                       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("CenterY"),                       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("ScaleX"),                        BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("ScaleY"),                        BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_SCROLL_LIST parameters: Table 3.3.37-2, ScrollList Creation Structure.
+ */
+static const BinaryField_t c_scrollListFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MaxNumberOfEntries"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NumberOfEntries"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("SelectedEntry"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("FirstAccessibleEntry"),          BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("FirstVisibleEntry"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("VerticalScroll"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_scrollBarPositionValues)},
+    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_pushButtonAlignmentValues)},
+    {("FlagReportVisibleEntry"),        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("DefaultStyleText"),              BINARY_FIELD_BYTES,       12U,  0U, 0U, NULL, 0U},
+    {("EnableArray"),                   BINARY_FIELD_UCHAR,        1U,  9U, 1U, NULL, 0U},
+    {("LabelStringArray"),              BINARY_FIELD_STRING,       0U,  9U, 1U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_SCROLL_PANEL parameters: Table 3.3.36-2, ScrollPanel Creation Structure.
+ */
+static const BinaryField_t c_scrollPanelFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("LineDeltaX"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("LineDeltaY"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("PageDeltaX"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("PageDeltaY"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("HomeX"),                         BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("HomeY"),                         BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("FrameX"),                        BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("FrameY"),                        BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeXsheet"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeYsheet"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("BoundX"),                        BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("BoundY"),                        BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeXbound"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeYbound"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {("HorizontalScroll"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_scrollBarPositionValues)},
+    {("VerticalScroll"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_scrollBarPositionValues)},
+    {("FlagReportFramePos"),            BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_SCROLL_WHEEL_AREA parameters: Table 3.9.3-2, ScrollWheelArea Creation Structure.
+ */
+static const BinaryField_t c_scrollWheelAreaFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_SELECTION_LIST_BUTTON parameters: Table 3.5.7-2, SelectionListButton Creation Structure.
+ */
+static const BinaryField_t c_selectionListButtonFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SelectingAreaWidth"),            BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SelectingAreaHeight"),           BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MaxNumberOfEntries"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NumberOfEntries"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("SelectedEntry"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("OpeningEntry"),                  BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_buttonAlignmentValues)},
+    {("OpeningMode"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_comboBoxOpeningModeValues)},
+    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U},
+    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_ALIGN,        0U,  0U, 0U, NULL, 0U},
+    {("EntryList"),                     BINARY_FIELD_STRING,       0U, 11U, 1U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_SHUFFLE_TO_FIT_CONTAINER parameters: Table 3.6.6-2, ShuffleToFitContainer Creation Structure.
+ */
+static const BinaryField_t c_shuffleToFitContainerFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("NumberOfVisibleChildren"),       BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("ShuffleToFitMode"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_shuffleToFitModeValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("ItemSpacing"),                   BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_SIZE_TO_FIT_CONTAINER parameters: Table 3.6.5-2, SizeToFitContainer Creation Structure.
+ */
+static const BinaryField_t c_sizeToFitContainerFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("NumberOfVisibleChildren"),       BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("SizeToFitMode"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("ItemSpacing"),                   BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_SLIDER parameters: Table 3.5.4-2, Slider Creation Structure.
+ */
+static const BinaryField_t c_sliderFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MinValue"),                      BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("MaxValue"),                      BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("Value"),                         BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("MajorTickInterval"),             BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("ShowMajorLabels"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_trueFalseValues)},
+    {("Orientation"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_sliderOrientationValues)},
+    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_sliderAlignmentValues)},
+    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("LsbMultiple"),                   BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MinorTickMultiple"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MajorTickReference"),            BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_SYMBOL parameters: Table 3.3.38-2, Symbol Creation Structure.
+ */
+static const BinaryField_t c_symbolFields[] =
+{
+    {("MotionAllowed"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("RotationAngle"),                 BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("SymbolReference"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_SYMBOL_ANIMATED parameters: Table 3.5.6-2, SymbolAnimated Creation Structure.
+ */
+static const BinaryField_t c_symbolAnimatedFields[] =
+{
+    {("MotionAllowed"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("LoopType"),                      BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_loopTypeValues)},
+    {("NumberOfSymbols"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("IndexOfFrequency"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("AnimationType"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_animationTypeValues)},
+    {("SymbolArray"),                   BINARY_FIELD_USHORT,       2U,  7U, 1U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_ALIGN,        0U,  0U, 0U, NULL, 0U},
+    {("OrientationArray"),              BINARY_FIELD_FR180,        4U,  7U, 1U, NULL, 0U},
+    {("MovementXArray"),                BINARY_FIELD_LONG,         4U,  7U, 1U, NULL, 0U},
+    {("MovementYArray"),                BINARY_FIELD_LONG,         4U,  7U, 1U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_SYMBOL_PUSH_BUTTON parameters: Table 3.7.1-2, SymbolPushButton Creation Structure.
+ */
+static const BinaryField_t c_symbolPushButtonFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("SymbolReference"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("SymbolPosition"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_picturePositionValues)},
+    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_buttonAlignmentValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_SYMBOL_TOGGLE_BUTTON parameters: Table 3.7.2-2, SymbolToggleButton Creation Structure.
+ */
+static const BinaryField_t c_symbolToggleButtonFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("AlternateFlag"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("SymbolReference"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("AlternateSymbolReference"),      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("SymbolPosition"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_picturePositionValues)},
+    {("ToggleState"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_toggleStateValues)},
+    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_buttonAlignmentValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U},
+    {("AlternateLabelString"),          BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_TABBED_PANEL parameters: Table 3.3.39-2, TabbedPanel Creation Structure.
+ */
+static const BinaryField_t c_tabbedPanelFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("PictureReference"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("PicturePosition"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_popUpButtonPicturePositionValues)},
+    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_pushButtonAlignmentValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("InsetSize"),                     BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_TABBED_PANEL_GROUP parameters: Table 3.3.40-2, TabbedPanelGroup Creation Structure.
+ */
+static const BinaryField_t c_tabbedPanelGroupFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("ActiveTabbedPanelID"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("TabPosition"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_tabPositionValues)},
+    {("AutomaticInsetSizeFlag"),        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_TOGGLE_BUTTON parameters: Table 3.3.41-2, ToggleButton Creation Structure.
+ */
+static const BinaryField_t c_toggleButtonFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("ToggleState"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_toggleStateValues)},
+    {("AlternateFlag"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_pushButtonAlignmentValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U},
+    {("AlternateLabelString"),          BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_TOUCH_AREA parameters: Table 3.9.5-2, TouchArea Creation Structure.
+ */
+static const BinaryField_t c_touchAreaFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("ReportMode"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_positionReportModeValues)},
+    {("AllowOutside"),                  BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("MaxTouchPoints"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("NumberOfTouchPoints"),           BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_TRANSLATION_CONTAINER parameters: Table 3.3.42-2, TranslationContainer Creation Structure.
+ */
+static const BinaryField_t c_translationContainerFields[] =
+{
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("TranslationX"),                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("TranslationY"),                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_TREE parameters: Table 3.10.3-2, Tree Creation Structure.
+ */
+static const BinaryField_t c_treeFields[] =
+{
+    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("FirstVisibleEntry"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("FlagReportVisibleEntry"),        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MaxNumberOfEntries"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NumberOfEntries"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("SelectedEntry"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxAlignmentValues)},
+    {("NodeStyleArray"),                BINARY_FIELD_USHORT,       2U, 12U, 1U, NULL, 0U},
+    {("ParentArray"),                   BINARY_FIELD_USHORT,       2U, 12U, 1U, NULL, 0U},
+    {("EnableArray"),                   BINARY_FIELD_UCHAR,        1U, 12U, 1U, NULL, 0U},
+    {("OpenArray"),                     BINARY_FIELD_UCHAR,        1U, 12U, 1U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_ALIGN,        0U,  0U, 0U, NULL, 0U},
+    {("LabelStringArray"),              BINARY_FIELD_STRING,       0U, 12U, 1U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_WATCHDOG_CONTAINER parameters: Table 3.5.3-2, WatchdogContainer Creation Structure.
+ */
+static const BinaryField_t c_watchdogContainerFields[] =
+{
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {("TimePeriod"),                    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("ValidCountLimit"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("FailCountLimit"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("Refresh"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("ShowIfFailIdent"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("ShowFail"),                      BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_trueFalseValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_DIRECTIONAL_TABBING_EXTENSION parameters: Table 8.5.1-2, DirectionalTabbingExtension Creation Structure.
+ */
+static const BinaryField_t c_directionalTabbingExtensionFields[] =
+{
+    {("NumDirections"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("TabDirectionWidgetIdArray"),     BINARY_FIELD_USHORT,       2U,  0U, 1U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_CURSOR_EVENTS_EXTENSION parameters: Table 8.5.2-2, CursorEventsExtension Creation Structure.
+ */
+static const BinaryField_t c_cursorEventsExtensionFields[] =
+{
+    {("NumEvents"),                     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("EventIdArray"),                  BINARY_FIELD_USHORT,       2U,  0U, 1U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_LEGEND_ALIGN_EXTENSION parameters: Table 8.5.3-2, LegendStringAlignment Creation Structure.
+ */
+static const BinaryField_t c_legendAlignExtensionFields[] =
+{
+    {("LegendAlignment"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxAlignmentValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_CHILD_INDEX_EXTENSION parameters: Table 8.5.4-2, VisibleChildIndexExtension Creation Structure.
+ */
+static const BinaryField_t c_childIndexExtensionFields[] =
+{
+    {("VisibleChildIndex"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_INITIAL_FOCUS_EXTENSION parameters: Table 8.5.5-2, InitialFocusExtension Creation Structure.
+ */
+static const BinaryField_t c_initialFocusExtensionFields[] =
+{
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("InitialFocus"),                  BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_FOCUS_STOP_EXTENSION parameters: Table 8.5.6-2, FocusStopExtension Creation Structure.
+ */
+static const BinaryField_t c_focusStopExtensionFields[] =
+{
+    {("StopForward"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("StopBackward"),                  BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_CURSOR_SHAPE_EXTENSION parameters: Table 8.5.7-2, CursorShapeExtension Creation Structure.
+ */
+static const BinaryField_t c_cursorShapeExtensionFields[] =
+{
+    {("AllowChange"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("CursorIndex"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_PICTURE_EXTENSION parameters: Table 8.6.1-2, PictureExtension Creation Structure.
+ */
+static const BinaryField_t c_pictureExtensionFields[] =
+{
+    {("MaxNumberOfPictures"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NumberOfPictures"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("PicturePosition"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_picturePositionValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("PictureArray"),                  BINARY_FIELD_USHORT,       2U,  1U, 1U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_SYMBOL_EXTENSION parameters: Table 8.6.2-2, SymbolExtension Creation Structure.
+ */
+static const BinaryField_t c_symbolExtensionFields[] =
+{
+    {("MaxNumberOfSymbols"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NumberOfSymbols"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("SymbolPosition"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_picturePositionValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("SymbolArray"),                   BINARY_FIELD_USHORT,       2U,  1U, 1U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_TICS_ARRAY_EXTENSION parameters: Table 8.6.3-2, TicsArrayExtension Creation Structure.
+ */
+static const BinaryField_t c_ticsArrayExtensionFields[] =
+{
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {("MaxNumberOfTicsCoarse"),         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NumberOfTicsCoarse"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MaxNumberOfTicsFine"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NumberOfTicsFine"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("TicsCoarseArray"),               BINARY_FIELD_FLOAT,        4U,  2U, 2U, NULL, 0U},
+    {("TicsFineArray"),                 BINARY_FIELD_FLOAT,        4U,  4U, 2U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_STYLE_SET_EXTENSION parameters: Table 8.6.4-2, StyleSetExtension Creation Structure.
+ */
+static const BinaryField_t c_styleSetExtensionFields[] =
+{
+    {("MaxStyleSetArraySize"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("StyleSetArraySize"),             BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("StyleSetArray"),                 BINARY_FIELD_USHORT,       2U,  1U, 1U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_STATIC_PARAM_BUFFER_EXTENSION parameters: Table 8.6.5-2, StaticParamBufferExtension Creation Structure.
+ */
+static const BinaryField_t c_staticParamBufferExtensionFields[] =
+{
+    {("NumberOfBuffers"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("BufferArray"),                   BINARY_FIELD_SIZED_BYTES,  0U,  0U, 1U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_MULTI_SELECTION_EXTENSION parameters: Table 8.6.6-2, MultiSelectionExtension Creation Structure.
+ */
+static const BinaryField_t c_multiSelectionExtensionFields[] =
+{
+    {("MaximumSelectableEntries"),      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_EXCLUDED_REGIONS_EXTENSION parameters: Table 8.6.7-2, ExcludedRegionsExtension Creation Structure.
+ */
+static const BinaryField_t c_excludedRegionsExtensionFields[] =
+{
+    {("MaxNumberOfRegions"),            BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("EffectivityArray"),              BINARY_FIELD_UCHAR,        1U,  0U, 1U, NULL, 0U},
+    {(NULL),                            BINARY_FIELD_ALIGN,        0U,  0U, 0U, NULL, 0U},
+    {("ExcludedRegionsList"),           BINARY_FIELD_REGION,       0U,  0U, 1U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_BOUNDARY_CHECK_EXTENSION parameters: Table 8.6.8-2, BoundaryCheckExtension Creation Structure.
+ */
+static const BinaryField_t c_boundaryCheckExtensionFields[] =
+{
+    {("BoundaryCheckMode"),             BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_boundaryCheckModeValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_REORDER_EXTENSION parameters: Table 8.7.1-2, ReorderExtension Creation Structure.
+ */
+static const BinaryField_t c_reorderExtensionFields[] =
+{
+    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_WORD_WRAP_EXTENSION parameters: Table 8.7.2-2, WordWrapExtension Creation Structure.
+ */
+static const BinaryField_t c_wordWrapExtensionFields[] =
+{
+    {("WordWrap"),                      BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("WrapStyle"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_CURSOR_ENTRY_EVENTS_EXTENSION parameters: Table 8.7.3-2, CursorEntryEventsExtension Creation Structure.
+ */
+static const BinaryField_t c_cursorEntryEventsExtensionFields[] =
+{
+    {("NumEvents"),                     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("EventIdArray"),                  BINARY_FIELD_USHORT,       2U,  0U, 1U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_MAPHORZ_COORD_SYSTEM_EVENT_EXTENSION parameters: Table 8.7.4-2, MapHorzCoordSystemEventExtension Creation Structure.
+ */
+static const BinaryField_t c_maphorzCoordSystemEventExtensionFields[] =
+{
+    {("NumEvents"),                     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("ReportMode"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_coordSystemReportModeValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U},
+    {("EventIdArray"),                  BINARY_FIELD_USHORT,       2U,  0U, 1U, NULL, 0U}
+};
+
+/*************************************************************************************************/
+/**
+ * \brief A661_MAPVERT_COORD_SYSTEM_EVENT_EXTENSION parameters: Table 8.7.5-2, MapVertCoordSystemEventExtension Creation Structure.
+ */
+static const BinaryField_t c_mapvertCoordSystemEventExtensionFields[] =
+{
+    {("NumEvents"),                     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("ReportMode"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_coordSystemReportModeValues)},
+    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U},
+    {("EventIdArray"),                  BINARY_FIELD_USHORT,       2U,  0U, 1U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1566,106 +2463,106 @@ static const BinaryField_t c_binaryFields[] =
  */
 static const BinaryWidget_t c_binaryWidgets[] =
 {
-    {("A661_ACTIVE_AREA"),                    0xA010U,    0U, 10U},
-    {("A661_ANIMATION_GROUP"),                0xA1E3U,   10U,  4U},
-    {("A661_ANIMATION_ONPARAM"),              0xA1E4U,   14U, 12U},
-    {("A661_ANIMATION_ROTATION"),             0xA1E5U,   26U, 15U},
-    {("A661_ANIMATION_SCALE"),                0xA1E6U,   41U, 12U},
-    {("A661_ANIMATION_TRANSLATION"),          0xA1E7U,   53U, 12U},
-    {("A661_BASIC_CONTAINER"),                0xA020U,   65U,  4U},
-    {("A661_BLINKING_CONTAINER"),             0xA030U,   69U,  2U},
-    {("A661_BROADCAST_RECEIVER"),             0xA032U,   71U,  3U},
-    {("A661_BUFFER_FORMAT"),                  0xA040U,   74U,  2U},
-    {("A661_CHECK_BUTTON"),                   0xA050U,   76U, 15U},
-    {("A661_COMBO_BOX"),                      0xA070U,   91U, 20U},
-    {("A661_COMBO_BOX_EDIT"),                 0xA0E0U,  111U, 21U},
-    {("A661_CONNECTOR"),                      0xA080U,  132U,  4U},
-    {("A661_CURSOR_OVER"),                    0xA480U,  136U, 10U},
-    {("A661_CURSOR_POS_OVERLAY"),             0xA090U,  146U,  6U},
-    {("A661_CURSOR_REF"),                     0xA470U,  152U,  3U},
-    {("A661_DATA_CONNECTOR"),                 0xA088U,  155U,  5U},
-    {("A661_DATA_SCALING_FR180"),             0xA2E0U,  160U,  8U},
-    {("A661_DATA_SCALING_LONG"),              0xA2D8U,  168U,  8U},
-    {("A661_DATA_SCALING_ULONG"),             0xA2D9U,  176U,  8U},
-    {("A661_EDIT_BOX_MASKED"),                0xA0A0U,  184U, 16U},
-    {("A661_EDIT_BOX_MULTI_LINE"),            0xA0B0U,  200U, 15U},
-    {("A661_EDIT_BOX_NUMERIC"),               0xA0C0U,  215U, 27U},
-    {("A661_EDIT_BOX_NUMERIC_BCD"),           0xA0C2U,  242U, 34U},
-    {("A661_EDIT_BOX_TEXT"),                  0xA0D0U,  276U, 15U},
-    {("A661_EVENT_HANDLER"),                  0xA600U,  291U,  9U},
-    {("A661_EXTERNAL_SOURCE"),                0xA188U,  300U, 14U},
-    {("A661_FOCUS_IN"),                       0xA498U,  314U,  1U},
-    {("A661_FOCUS_LINK"),                     0xA490U,  315U,  4U},
-    {("A661_FOCUS_OUT"),                      0xA499U,  319U,  4U},
-    {("A661_FRAMING_REFRESH_CONTAINER"),      0xA380U,  323U,  4U},
-    {("A661_GESTURE_AREA"),                   0xA501U,  327U, 13U},
-    {("A661_GP_ARC_CIRCLE"),                  0xA0F0U,  340U, 13U},
-    {("A661_GP_ARC_ELLIPSE"),                 0xA100U,  353U, 14U},
-    {("A661_GP_CROWN"),                       0xA110U,  367U, 14U},
-    {("A661_GP_LINE"),                        0xA120U,  381U,  9U},
-    {("A661_GP_LINE_POLAR"),                  0xA130U,  390U,  9U},
-    {("A661_GP_POLYLINE"),                    0xA138U,  399U, 10U},
-    {("A661_GP_RECTANGLE"),                   0xA140U,  409U, 12U},
-    {("A661_GP_TRIANGLE"),                    0xA150U,  421U, 14U},
-    {("A661_GP_TRIANGLE_FAN"),                0xA151U,  435U, 11U},
-    {("A661_GP_TRIANGLE_STRIP"),              0xA152U,  446U, 11U},
-    {("A661_INK_AREA"),                       0xA502U,  457U, 14U},
-    {("A661_KEYBOARD_AREA"),                  0xA1E1U,  471U,  9U},
-    {("A661_LABEL"),                          0xA160U,  480U, 14U},
-    {("A661_LABEL_COMPLEX"),                  0xA170U,  494U, 12U},
-    {("A661_MAPHORZ"),                        0xA1B0U,  506U, 12U},
-    {("A661_MAPHORZ_CONTAINER"),              0xA1B8U,  518U,  2U},
-    {("A661_MAPHORZ_ITEMLIST"),               0xA180U,  520U,  5U},
-    {("A661_MAPHORZ_PANEL"),                  0xA189U,  525U,  2U},
-    {("A661_MAPHORZ_SOURCE"),                 0xA1A0U,  527U,  5U},
-    {("A661_MAPHORZ_VERTEXBUFFER"),           0xA1A9U,  532U,  5U},
-    {("A661_MAPVERT"),                        0xA1B2U,  537U, 12U},
-    {("A661_MAPVERT_CONTAINER"),              0xA1B5U,  549U,  2U},
-    {("A661_MAPVERT_ITEMLIST"),               0xA1B3U,  551U,  5U},
-    {("A661_MAPVERT_PANEL"),                  0xA1B6U,  556U,  2U},
-    {("A661_MAPVERT_SOURCE"),                 0xA1B4U,  558U,  6U},
-    {("A661_MAP_BOUNDARY"),                   0xA1BAU,  564U,  7U},
-    {("A661_MAP_EXTERNAL_SOURCE"),            0xA224U,  571U,  8U},
-    {("A661_MAP_GRID"),                       0xA178U,  579U,  8U},
-    {("A661_MASK_CONTAINER"),                 0xA1C0U,  587U,  7U},
-    {("A661_MENU_BAR"),                       0xA1D0U,  594U,  8U},
-    {("A661_MULTI_STATE_BUTTON"),             0xA348U,  602U, 16U},
-    {("A661_MUTUALLY_EXCLUSIVE_CONTAINER"),   0xA400U,  618U,  6U},
-    {("A661_NO_SERVICE_MONITOR"),             0xA4F0U,  624U,  2U},
-    {("A661_NUMERIC_READOUT"),                0xA406U,  626U, 18U},
-    {("A661_PAGING_CONTAINER"),               0xA408U,  644U, 14U},
-    {("A661_PANEL"),                          0xA1F0U,  658U,  9U},
-    {("A661_PICTURE"),                        0xA200U,  667U,  8U},
-    {("A661_PICTURE_ANIMATED"),               0xA210U,  675U, 13U},
-    {("A661_PICTURE_PUSH_BUTTON"),            0xA240U,  688U, 15U},
-    {("A661_PICTURE_TOGGLE_BUTTON"),          0xA250U,  703U, 19U},
-    {("A661_POP_UP_MENU"),                    0xA270U,  722U, 12U},
-    {("A661_POP_UP_MENU_BUTTON"),             0xA280U,  734U, 27U},
-    {("A661_POP_UP_PANEL"),                   0xA290U,  761U,  8U},
-    {("A661_POP_UP_PANEL_BUTTON"),            0xA4E0U,  769U, 19U},
-    {("A661_PROXY_BUTTON"),                   0xA420U,  788U,  4U},
-    {("A661_PUSH_BUTTON"),                    0xA2A0U,  792U, 12U},
-    {("A661_RADIO_BOX"),                      0xA2B0U,  804U,  2U},
-    {("A661_ROTATION_CONTAINER"),             0xA2D0U,  806U,  5U},
-    {("A661_SCALE_CONTAINER"),                0xA2F2U,  811U,  6U},
-    {("A661_SCROLL_LIST"),                    0xA2F0U,  817U, 21U},
-    {("A661_SCROLL_PANEL"),                   0xA300U,  838U, 26U},
-    {("A661_SCROLL_WHEEL_AREA"),              0xA1E2U,  864U,  6U},
-    {("A661_SELECTION_LIST_BUTTON"),          0xA370U,  870U, 22U},
-    {("A661_SHUFFLE_TO_FIT_CONTAINER"),       0xA4B0U,  892U, 12U},
-    {("A661_SIZE_TO_FIT_CONTAINER"),          0xA4A0U,  904U, 10U},
-    {("A661_SLIDER"),                         0xA440U,  914U, 19U},
-    {("A661_SYMBOL"),                         0xA310U,  933U,  9U},
-    {("A661_SYMBOL_ANIMATED"),                0xA450U,  942U, 15U},
-    {("A661_SYMBOL_PUSH_BUTTON"),             0xA4C0U,  957U, 15U},
-    {("A661_SYMBOL_TOGGLE_BUTTON"),           0xA4D0U,  972U, 19U},
-    {("A661_TABBED_PANEL"),                   0xA320U,  991U, 12U},
-    {("A661_TABBED_PANEL_GROUP"),             0xA330U, 1003U, 11U},
-    {("A661_TOGGLE_BUTTON"),                  0xA340U, 1014U, 16U},
-    {("A661_TOUCH_AREA"),                     0xA500U, 1030U, 12U},
-    {("A661_TRANSLATION_CONTAINER"),          0xA360U, 1042U,  4U},
-    {("A661_TREE"),                           0xA222U, 1046U, 23U},
-    {("A661_WATCHDOG_CONTAINER"),             0xA460U, 1069U,  9U}
+    {("A661_ACTIVE_AREA"),                    0xA010U, ARRAY_AND_COUNT(c_activeAreaFields)},
+    {("A661_ANIMATION_GROUP"),                0xA1E3U, ARRAY_AND_COUNT(c_animationGroupFields)},
+    {("A661_ANIMATION_ONPARAM"),              0xA1E4U, ARRAY_AND_COUNT(c_animationOnparamFields)},
+    {("A661_ANIMATION_ROTATION"),             0xA1E5U, ARRAY_AND_COUNT(c_animationRotationFields)},
+    {("A661_ANIMATION_SCALE"),                0xA1E6U, ARRAY_AND_COUNT(c_animationScaleFields)},
+    {("A661_ANIMATION_TRANSLATION"),          0xA1E7U, ARRAY_AND_COUNT(c_animationTranslationFields)},
+    {("A661_BASIC_CONTAINER"),                0xA020U, ARRAY_AND_COUNT(c_basicContainerFields)},
+    {("A661_BLINKING_CONTAINER"),             0xA030U, ARRAY_AND_COUNT(c_blinkingContainerFields)},
+    {("A661_BROADCAST_RECEIVER"),             0xA032U, ARRAY_AND_COUNT(c_broadcastReceiverFields)},
+    {("A661_BUFFER_FORMAT"),                  0xA040U, ARRAY_AND_COUNT(c_bufferFormatFields)},
+    {("A661_CHECK_BUTTON"),                   0xA050U, ARRAY_AND_COUNT(c_checkButtonFields)},
+    {("A661_COMBO_BOX"),                      0xA070U, ARRAY_AND_COUNT(c_comboBoxFields)},
+    {("A661_COMBO_BOX_EDIT"),                 0xA0E0U, ARRAY_AND_COUNT(c_comboBoxEditFields)},
+    {("A661_CONNECTOR"),                      0xA080U, ARRAY_AND_COUNT(c_connectorFields)},
+    {("A661_CURSOR_OVER"),                    0xA480U, ARRAY_AND_COUNT(c_cursorOverFields)},
+    {("A661_CURSOR_POS_OVERLAY"),             0xA090U, ARRAY_AND_COUNT(c_cursorPosOverlayFields)},
+    {("A661_CURSOR_REF"),                     0xA470U, ARRAY_AND_COUNT(c_cursorRefFields)},
+    {("A661_DATA_CONNECTOR"),                 0xA088U, ARRAY_AND_COUNT(c_dataConnectorFields)},
+    {("A661_DATA_SCALING_FR180"),             0xA2E0U, ARRAY_AND_COUNT(c_dataScalingFr180Fields)},
+    {("A661_DATA_SCALING_LONG"),              0xA2D8U, ARRAY_AND_COUNT(c_dataScalingLongFields)},
+    {("A661_DATA_SCALING_ULONG"),             0xA2D9U, ARRAY_AND_COUNT(c_dataScalingUlongFields)},
+    {("A661_EDIT_BOX_MASKED"),                0xA0A0U, ARRAY_AND_COUNT(c_editBoxMaskedFields)},
+    {("A661_EDIT_BOX_MULTI_LINE"),            0xA0B0U, ARRAY_AND_COUNT(c_editBoxMultiLineFields)},
+    {("A661_EDIT_BOX_NUMERIC"),               0xA0C0U, ARRAY_AND_COUNT(c_editBoxNumericFields)},
+    {("A661_EDIT_BOX_NUMERIC_BCD"),           0xA0C2U, ARRAY_AND_COUNT(c_editBoxNumericBcdFields)},
+    {("A661_EDIT_BOX_TEXT"),                  0xA0D0U, ARRAY_AND_COUNT(c_editBoxTextFields)},
+    {("A661_EVENT_HANDLER"),                  0xA600U, ARRAY_AND_COUNT(c_eventHandlerFields)},
+    {("A661_EXTERNAL_SOURCE"),                0xA188U, ARRAY_AND_COUNT(c_externalSourceFields)},
+    {("A661_FOCUS_IN"),                       0xA498U, ARRAY_AND_COUNT(c_focusInFields)},
+    {("A661_FOCUS_LINK"),                     0xA490U, ARRAY_AND_COUNT(c_focusLinkFields)},
+    {("A661_FOCUS_OUT"),                      0xA499U, ARRAY_AND_COUNT(c_focusOutFields)},
+    {("A661_FRAMING_REFRESH_CONTAINER"),      0xA380U, ARRAY_AND_COUNT(c_framingRefreshContainerFields)},
+    {("A661_GESTURE_AREA"),                   0xA501U, ARRAY_AND_COUNT(c_gestureAreaFields)},
+    {("A661_GP_ARC_CIRCLE"),                  0xA0F0U, ARRAY_AND_COUNT(c_gpArcCircleFields)},
+    {("A661_GP_ARC_ELLIPSE"),                 0xA100U, ARRAY_AND_COUNT(c_gpArcEllipseFields)},
+    {("A661_GP_CROWN"),                       0xA110U, ARRAY_AND_COUNT(c_gpCrownFields)},
+    {("A661_GP_LINE"),                        0xA120U, ARRAY_AND_COUNT(c_gpLineFields)},
+    {("A661_GP_LINE_POLAR"),                  0xA130U, ARRAY_AND_COUNT(c_gpLinePolarFields)},
+    {("A661_GP_POLYLINE"),                    0xA138U, ARRAY_AND_COUNT(c_gpPolylineFields)},
+    {("A661_GP_RECTANGLE"),                   0xA140U, ARRAY_AND_COUNT(c_gpRectangleFields)},
+    {("A661_GP_TRIANGLE"),                    0xA150U, ARRAY_AND_COUNT(c_gpTriangleFields)},
+    {("A661_GP_TRIANGLE_FAN"),                0xA151U, ARRAY_AND_COUNT(c_gpTriangleFanFields)},
+    {("A661_GP_TRIANGLE_STRIP"),              0xA152U, ARRAY_AND_COUNT(c_gpTriangleStripFields)},
+    {("A661_INK_AREA"),                       0xA502U, ARRAY_AND_COUNT(c_inkAreaFields)},
+    {("A661_KEYBOARD_AREA"),                  0xA1E1U, ARRAY_AND_COUNT(c_keyboardAreaFields)},
+    {("A661_LABEL"),                          0xA160U, ARRAY_AND_COUNT(c_labelFields)},
+    {("A661_LABEL_COMPLEX"),                  0xA170U, ARRAY_AND_COUNT(c_labelComplexFields)},
+    {("A661_MAPHORZ"),                        0xA1B0U, ARRAY_AND_COUNT(c_maphorzFields)},
+    {("A661_MAPHORZ_CONTAINER"),              0xA1B8U, ARRAY_AND_COUNT(c_maphorzContainerFields)},
+    {("A661_MAPHORZ_ITEMLIST"),               0xA180U, ARRAY_AND_COUNT(c_maphorzItemlistFields)},
+    {("A661_MAPHORZ_PANEL"),                  0xA189U, ARRAY_AND_COUNT(c_maphorzPanelFields)},
+    {("A661_MAPHORZ_SOURCE"),                 0xA1A0U, ARRAY_AND_COUNT(c_maphorzSourceFields)},
+    {("A661_MAPHORZ_VERTEXBUFFER"),           0xA1A9U, ARRAY_AND_COUNT(c_maphorzVertexbufferFields)},
+    {("A661_MAPVERT"),                        0xA1B2U, ARRAY_AND_COUNT(c_mapvertFields)},
+    {("A661_MAPVERT_CONTAINER"),              0xA1B5U, ARRAY_AND_COUNT(c_mapvertContainerFields)},
+    {("A661_MAPVERT_ITEMLIST"),               0xA1B3U, ARRAY_AND_COUNT(c_mapvertItemlistFields)},
+    {("A661_MAPVERT_PANEL"),                  0xA1B6U, ARRAY_AND_COUNT(c_mapvertPanelFields)},
+    {("A661_MAPVERT_SOURCE"),                 0xA1B4U, ARRAY_AND_COUNT(c_mapvertSourceFields)},
+    {("A661_MAP_BOUNDARY"),                   0xA1BAU, ARRAY_AND_COUNT(c_mapBoundaryFields)},
+    {("A661_MAP_EXTERNAL_SOURCE"),            0xA224U, ARRAY_AND_COUNT(c_mapExternalSourceFields)},
+    {("A661_MAP_GRID"),                       0xA178U, ARRAY_AND_COUNT(c_mapGridFields)},
+    {("A661_MASK_CONTAINER"),                 0xA1C0U, ARRAY_AND_COUNT(c_maskContainerFields)},
+    {("A661_MENU_BAR"),                       0xA1D0U, ARRAY_AND_COUNT(c_menuBarFields)},
+    {("A661_MULTI_STATE_BUTTON"),             0xA348U, ARRAY_AND_COUNT(c_multiStateButtonFields)},
+    {("A661_MUTUALLY_EXCLUSIVE_CONTAINER"),   0xA400U, ARRAY_AND_COUNT(c_mutuallyExclusiveContainerFields)},
+    {("A661_NO_SERVICE_MONITOR"),             0xA4F0U, ARRAY_AND_COUNT(c_noServiceMonitorFields)},
+    {("A661_NUMERIC_READOUT"),                0xA406U, ARRAY_AND_COUNT(c_numericReadoutFields)},
+    {("A661_PAGING_CONTAINER"),               0xA408U, ARRAY_AND_COUNT(c_pagingContainerFields)},
+    {("A661_PANEL"),                          0xA1F0U, ARRAY_AND_COUNT(c_panelFields)},
+    {("A661_PICTURE"),                        0xA200U, ARRAY_AND_COUNT(c_pictureFields)},
+    {("A661_PICTURE_ANIMATED"),               0xA210U, ARRAY_AND_COUNT(c_pictureAnimatedFields)},
+    {("A661_PICTURE_PUSH_BUTTON"),            0xA240U, ARRAY_AND_COUNT(c_picturePushButtonFields)},
+    {("A661_PICTURE_TOGGLE_BUTTON"),          0xA250U, ARRAY_AND_COUNT(c_pictureToggleButtonFields)},
+    {("A661_POP_UP_MENU"),                    0xA270U, ARRAY_AND_COUNT(c_popUpMenuFields)},
+    {("A661_POP_UP_MENU_BUTTON"),             0xA280U, ARRAY_AND_COUNT(c_popUpMenuButtonFields)},
+    {("A661_POP_UP_PANEL"),                   0xA290U, ARRAY_AND_COUNT(c_popUpPanelFields)},
+    {("A661_POP_UP_PANEL_BUTTON"),            0xA4E0U, ARRAY_AND_COUNT(c_popUpPanelButtonFields)},
+    {("A661_PROXY_BUTTON"),                   0xA420U, ARRAY_AND_COUNT(c_proxyButtonFields)},
+    {("A661_PUSH_BUTTON"),                    0xA2A0U, ARRAY_AND_COUNT(c_pushButtonFields)},
+    {("A661_RADIO_BOX"),                      0xA2B0U, ARRAY_AND_COUNT(c_radioBoxFields)},
+    {("A661_ROTATION_CONTAINER"),             0xA2D0U, ARRAY_AND_COUNT(c_rotationContainerFields)},
+    {("A661_SCALE_CONTAINER"),                0xA2F2U, ARRAY_AND_COUNT(c_scaleContainerFields)},
+    {("A661_SCROLL_LIST"),                    0xA2F0U, ARRAY_AND_COUNT(c_scrollListFields)},
+    {("A661_SCROLL_PANEL"),                   0xA300U, ARRAY_AND_COUNT(c_scrollPanelFields)},
+    {("A661_SCROLL_WHEEL_AREA"),              0xA1E2U, ARRAY_AND_COUNT(c_scrollWheelAreaFields)},
+    {("A661_SELECTION_LIST_BUTTON"),          0xA370U, ARRAY_AND_COUNT(c_selectionListButtonFields)},
+    {("A661_SHUFFLE_TO_FIT_CONTAINER"),       0xA4B0U, ARRAY_AND_COUNT(c_shuffleToFitContainerFields)},
+    {("A661_SIZE_TO_FIT_CONTAINER"),          0xA4A0U, ARRAY_AND_COUNT(c_sizeToFitContainerFields)},
+    {("A661_SLIDER"),                         0xA440U, ARRAY_AND_COUNT(c_sliderFields)},
+    {("A661_SYMBOL"),                         0xA310U, ARRAY_AND_COUNT(c_symbolFields)},
+    {("A661_SYMBOL_ANIMATED"),                0xA450U, ARRAY_AND_COUNT(c_symbolAnimatedFields)},
+    {("A661_SYMBOL_PUSH_BUTTON"),             0xA4C0U, ARRAY_AND_COUNT(c_symbolPushButtonFields)},
+    {("A661_SYMBOL_TOGGLE_BUTTON"),           0xA4D0U, ARRAY_AND_COUNT(c_symbolToggleButtonFields)},
+    {("A661_TABBED_PANEL"),                   0xA320U, ARRAY_AND_COUNT(c_tabbedPanelFields)},
+    {("A661_TABBED_PANEL_GROUP"),             0xA330U, ARRAY_AND_COUNT(c_tabbedPanelGroupFields)},
+    {("A661_TOGGLE_BUTTON"),                  0xA340U, ARRAY_AND_COUNT(c_toggleButtonFields)},
+    {("A661_TOUCH_AREA"),                     0xA500U, ARRAY_AND_COUNT(c_touchAreaFields)},
+    {("A661_TRANSLATION_CONTAINER"),          0xA360U, ARRAY_AND_COUNT(c_translationContainerFields)},
+    {("A661_TREE"),                           0xA222U, ARRAY_AND_COUNT(c_treeFields)},
+    {("A661_WATCHDOG_CONTAINER"),             0xA460U, ARRAY_AND_COUNT(c_watchdogContainerFields)}
 };
 
 /*************************************************************************************************/
@@ -1674,26 +2571,26 @@ static const BinaryWidget_t c_binaryWidgets[] =
  */
 static const BinaryWidget_t c_binaryExtensions[] =
 {
-    {("A661_DIRECTIONAL_TABBING_EXTENSION"),        0x8003U, 1078U,  3U},
-    {("A661_CURSOR_EVENTS_EXTENSION"),              0x8002U, 1081U,  2U},
-    {("A661_LEGEND_ALIGN_EXTENSION"),               0x8004U, 1083U,  2U},
-    {("A661_CHILD_INDEX_EXTENSION"),                0x8001U, 1085U,  1U},
-    {("A661_INITIAL_FOCUS_EXTENSION"),              0x8006U, 1086U,  2U},
-    {("A661_FOCUS_STOP_EXTENSION"),                 0x8007U, 1088U,  2U},
-    {("A661_CURSOR_SHAPE_EXTENSION"),               0x8008U, 1090U,  2U},
-    {("A661_PICTURE_EXTENSION"),                    0x8009U, 1092U,  5U},
-    {("A661_SYMBOL_EXTENSION"),                     0x800AU, 1097U,  5U},
-    {("A661_TICS_ARRAY_EXTENSION"),                 0x800BU, 1102U,  7U},
-    {("A661_STYLE_SET_EXTENSION"),                  0x800CU, 1109U,  3U},
-    {("A661_STATIC_PARAM_BUFFER_EXTENSION"),        0x800DU, 1112U,  2U},
-    {("A661_MULTI_SELECTION_EXTENSION"),            0x800FU, 1114U,  1U},
-    {("A661_EXCLUDED_REGIONS_EXTENSION"),           0x800EU, 1115U,  5U},
-    {("A661_BOUNDARY_CHECK_EXTENSION"),             0x8010U, 1120U,  2U},
-    {("A661_REORDER_EXTENSION"),                    0x8011U, 1122U,  1U},
-    {("A661_WORD_WRAP_EXTENSION"),                  0x8012U, 1123U,  2U},
-    {("A661_CURSOR_ENTRY_EVENTS_EXTENSION"),        0x8013U, 1125U,  2U},
-    {("A661_MAPHORZ_COORD_SYSTEM_EVENT_EXTENSION"), 0x8014U, 1127U,  4U},
-    {("A661_MAPVERT_COORD_SYSTEM_EVENT_EXTENSION"), 0x8015U, 1131U,  4U}
+    {("A661_DIRECTIONAL_TABBING_EXTENSION"),        0x8003U, ARRAY_AND_COUNT(c_directionalTabbingExtensionFields)},
+    {("A661_CURSOR_EVENTS_EXTENSION"),              0x8002U, ARRAY_AND_COUNT(c_cursorEventsExtensionFields)},
+    {("A661_LEGEND_ALIGN_EXTENSION"),               0x8004U, ARRAY_AND_COUNT(c_legendAlignExtensionFields)},
+    {("A661_CHILD_INDEX_EXTENSION"),                0x8001U, ARRAY_AND_COUNT(c_childIndexExtensionFields)},
+    {("A661_INITIAL_FOCUS_EXTENSION"),              0x8006U, ARRAY_AND_COUNT(c_initialFocusExtensionFields)},
+    {("A661_FOCUS_STOP_EXTENSION"),                 0x8007U, ARRAY_AND_COUNT(c_focusStopExtensionFields)},
+    {("A661_CURSOR_SHAPE_EXTENSION"),               0x8008U, ARRAY_AND_COUNT(c_cursorShapeExtensionFields)},
+    {("A661_PICTURE_EXTENSION"),                    0x8009U, ARRAY_AND_COUNT(c_pictureExtensionFields)},
+    {("A661_SYMBOL_EXTENSION"),                     0x800AU, ARRAY_AND_COUNT(c_symbolExtensionFields)},
+    {("A661_TICS_ARRAY_EXTENSION"),                 0x800BU, ARRAY_AND_COUNT(c_ticsArrayExtensionFields)},
+    {("A661_STYLE_SET_EXTENSION"),                  0x800CU, ARRAY_AND_COUNT(c_styleSetExtensionFields)},
+    {("A661_STATIC_PARAM_BUFFER_EXTENSION"),        0x800DU, ARRAY_AND_COUNT(c_staticParamBufferExtensionFields)},
+    {("A661_MULTI_SELECTION_EXTENSION"),            0x800FU, ARRAY_AND_COUNT(c_multiSelectionExtensionFields)},
+    {("A661_EXCLUDED_REGIONS_EXTENSION"),           0x800EU, ARRAY_AND_COUNT(c_excludedRegionsExtensionFields)},
+    {("A661_BOUNDARY_CHECK_EXTENSION"),             0x8010U, ARRAY_AND_COUNT(c_boundaryCheckExtensionFields)},
+    {("A661_REORDER_EXTENSION"),                    0x8011U, ARRAY_AND_COUNT(c_reorderExtensionFields)},
+    {("A661_WORD_WRAP_EXTENSION"),                  0x8012U, ARRAY_AND_COUNT(c_wordWrapExtensionFields)},
+    {("A661_CURSOR_ENTRY_EVENTS_EXTENSION"),        0x8013U, ARRAY_AND_COUNT(c_cursorEntryEventsExtensionFields)},
+    {("A661_MAPHORZ_COORD_SYSTEM_EVENT_EXTENSION"), 0x8014U, ARRAY_AND_COUNT(c_maphorzCoordSystemEventExtensionFields)},
+    {("A661_MAPVERT_COORD_SYSTEM_EVENT_EXTENSION"), 0x8015U, ARRAY_AND_COUNT(c_mapvertCoordSystemEventExtensionFields)}
 };
 
 /*************************************************************************************************/
@@ -2200,49 +3097,49 @@ static const BinaryConstant_t c_binaryConstants[] =
     {("A661_WRAP_STYLE"),                                 0xB4A9U}
 };
 
-static const char_t* const c_targets0[] = {"A661_MAPHORZ_ITEMLIST"};
-static const char_t* const c_targets1[] = {"A661_MUTUALLY_EXCLUSIVE_CONTAINER", "A661_PAGING_CONTAINER", "A661_TABBED_PANEL_GROUP"};
-static const char_t* const c_targets2[] = {"A661_COMBO_BOX", "A661_SCROLL_LIST", "A661_SELECTOR", "A661_TREE"};
-static const char_t* const c_targets3[] = {"A661_ACTIVE_AREA", "A661_PICTURE_PUSH_BUTTON", "A661_PUSH_BUTTON", "A661_SYMBOL_PUSH_BUTTON"};
-static const char_t* const c_targets4[] = {"A661_ACTIVE_AREA", "A661_CHECK_BUTTON", "A661_COMBO_BOX", "A661_COMBO_BOX_EDIT", "A661_CURSOR_OVER", "A661_EDIT_BOX_MASKED", "A661_EDIT_BOX_MULTI_LINE", "A661_EDIT_BOX_NUMERIC", "A661_EDIT_BOX_NUMERIC_BCD", "A661_EDIT_BOX_TEXT", "A661_INK_AREA", "A661_KEYBOARD_AREA", "A661_MAPHORZ_ITEMLIST", "A661_MULTI_STATE_BUTTON", "A661_PICTURE_PUSH_BUTTON", "A661_PICTURE_TOGGLE_BUTTON", "A661_POP_UP_MENU_BUTTON", "A661_POP_UP_PANEL_BUTTON", "A661_PUSH_BUTTON", "A661_SCROLL_LIST", "A661_SCROLL_WHEEL_AREA", "A661_SELECTION_LIST_BUTTON", "A661_SELECTOR", "A661_SLIDER", "A661_SYMBOL_PUSH_BUTTON", "A661_SYMBOL_TOGGLE_BUTTON", "A661_TABBED_PANEL", "A661_TOGGLE_BUTTON", "A661_TREE"};
-static const char_t* const c_targets5[] = {"A661_ACTIVE_AREA", "A661_CHECK_BUTTON", "A661_COMBO_BOX", "A661_COMBO_BOX_EDIT", "A661_EDIT_BOX_MASKED", "A661_EDIT_BOX_MULTI_LINE", "A661_EDIT_BOX_NUMERIC", "A661_EDIT_BOX_NUMERIC_BCD", "A661_EDIT_BOX_TEXT", "A661_MULTI_STATE_BUTTON", "A661_PICTURE_PUSH_BUTTON", "A661_PICTURE_TOGGLE_BUTTON", "A661_POP_UP_MENU_BUTTON", "A661_POP_UP_PANEL_BUTTON", "A661_PUSH_BUTTON", "A661_SCROLL_LIST", "A661_SELECTION_LIST_BUTTON", "A661_SELECTOR", "A661_SLIDER", "A661_SYMBOL_PUSH_BUTTON", "A661_SYMBOL_TOGGLE_BUTTON", "A661_TABBED_PANEL", "A661_TOGGLE_BUTTON", "A661_TREE"};
-static const char_t* const c_targets6[] = {"A661_MAP_BOUNDARY"};
-static const char_t* const c_targets7[] = {"A661_ACTIVE_AREA", "A661_CHECK_BUTTON", "A661_COMBO_BOX", "A661_COMBO_BOX_EDIT", "A661_EDIT_BOX_MASKED", "A661_EDIT_BOX_MULTI_LINE", "A661_EDIT_BOX_NUMERIC", "A661_EDIT_BOX_NUMERIC_BCD", "A661_EDIT_BOX_TEXT", "A661_INK_AREA", "A661_MULTI_STATE_BUTTON", "A661_PICTURE_PUSH_BUTTON", "A661_PICTURE_TOGGLE_BUTTON", "A661_POP_UP_MENU_BUTTON", "A661_POP_UP_PANEL_BUTTON", "A661_PUSH_BUTTON", "A661_SCROLL_LIST", "A661_SELECTION_LIST_BUTTON", "A661_SELECTOR", "A661_SLIDER", "A661_SYMBOL_PUSH_BUTTON", "A661_SYMBOL_TOGGLE_BUTTON", "A661_TABBED_PANEL", "A661_TOGGLE_BUTTON", "A661_TREE"};
-static const char_t* const c_targets8[] = {"A661_ACTIVE_AREA", "A661_CHECK_BUTTON", "A661_COMBO_BOX", "A661_COMBO_BOX_EDIT", "A661_EDIT_BOX_MASKED", "A661_EDIT_BOX_MULTI_LINE", "A661_EDIT_BOX_NUMERIC", "A661_EDIT_BOX_NUMERIC_BCD", "A661_EDIT_BOX_TEXT", "A661_INK_AREA", "A661_MULTI_STATE_BUTTON", "A661_PICTURE_PUSH_BUTTON", "A661_PICTURE_TOGGLE_BUTTON", "A661_POP_UP_MENU_BUTTON", "A661_POP_UP_PANEL_BUTTON", "A661_PUSH_BUTTON", "A661_SCROLL_LIST", "A661_SELECTION_LIST_BUTTON", "A661_SELECTOR", "A661_SLIDER", "A661_SYMBOL_PUSH_BUTTON", "A661_SYMBOL_TOGGLE_BUTTON", "A661_TABBED_PANEL", "A661_TOGGLE_BUTTON", "A661_TREE"};
-static const char_t* const c_targets9[] = {"A661_EDIT_BOX_NUMERIC", "A661_EDIT_BOX_NUMERIC_BCD", "A661_NUMERIC_READOUT"};
-static const char_t* const c_targets10[] = {"A661_MAPHORZ", "A661_MAPHORZ_SOURCE", "A661_MAP_EXTERNAL_SOURCE"};
-static const char_t* const c_targets11[] = {"A661_MAPVERT", "A661_MAPVERT_SOURCE", "A661_MAP_EXTERNAL_SOURCE"};
-static const char_t* const c_targets12[] = {"A661_SCROLL_LIST", "A661_TREE"};
-static const char_t* const c_targets13[] = {"A661_CHECK_BUTTON", "A661_COMBO_BOX", "A661_COMBO_BOX_EDIT", "A661_MULTI_STATE_BUTTON", "A661_PUSH_BUTTON", "A661_SCROLL_LIST", "A661_SELECTION_LIST_BUTTON", "A661_SELECTOR", "A661_TOGGLE_BUTTON", "A661_TREE"};
-static const char_t* const c_targets14[] = {"A661_ACTIVE_AREA", "A661_BASIC_CONTAINER", "A661_BLINKING_CONTAINER", "A661_CHECK_BUTTON", "A661_COMBO_BOX", "A661_COMBO_BOX_EDIT", "A661_CONNECTOR", "A661_CURSOR_OVER", "A661_CURSOR_POS_OVERLAY", "A661_CURSOR_REF", "A661_DATA_CONNECTOR", "A661_EDIT_BOX_MASKED", "A661_EDIT_BOX_MULTI_LINE", "A661_EDIT_BOX_NUMERIC", "A661_EDIT_BOX_NUMERIC_BCD", "A661_EDIT_BOX_TEXT", "A661_EXTERNAL_SOURCE", "A661_GESTURE_AREA", "A661_GP_ARC_CIRCLE", "A661_GP_ARC_ELLIPSE", "A661_GP_CROWN", "A661_GP_LINE", "A661_GP_LINE_POLAR", "A661_GP_POLYLINE", "A661_GP_RECTANGLE", "A661_GP_TRIANGLE", "A661_INK_AREA", "A661_KEYBOARD_AREA", "A661_LABEL", "A661_LABEL_COMPLEX", "A661_MAPHORZ", "A661_MAPHORZ_CONTAINER", "A661_MAPHORZ_ITEMLIST", "A661_MAPHORZ_PANEL", "A661_MAPHORZ_SOURCE", "A661_MAPVERT", "A661_MAPVERT_CONTAINER", "A661_MAPVERT_ITEMLIST", "A661_MAPVERT_PANEL", "A661_MAPVERT_SOURCE", "A661_MAP_GRID", "A661_MASK_CONTAINER", "A661_MENU_BAR", "A661_MULTI_STATE_BUTTON", "A661_MUTUALLY_EXCLUSIVE_CONTAINER", "A661_NUMERIC_READOUT", "A661_PAGING_CONTAINER", "A661_PANEL", "A661_PICTURE", "A661_PICTURE_ANIMATED", "A661_PICTURE_PUSH_BUTTON", "A661_PICTURE_TOGGLE_BUTTON", "A661_POP_UP_MENU", "A661_POP_UP_MENU_BUTTON", "A661_POP_UP_PANEL", "A661_POP_UP_PANEL_BUTTON", "A661_PUSH_BUTTON", "A661_RADIO_BOX", "A661_ROTATION_CONTAINER", "A661_SCALE_CONTAINER", "A661_SCROLL_LIST", "A661_SCROLL_PANEL", "A661_SCROLL_WHEEL_AREA", "A661_SELECTION_LIST_BUTTON", "A661_SELECTOR", "A661_SHUFFLE_TO_FIT_CONTAINER", "A661_SIZE_TO_FIT_CONTAINER", "A661_SLIDER", "A661_SYMBOL", "A661_SYMBOL_ANIMATED", "A661_SYMBOL_PUSH_BUTTON", "A661_SYMBOL_TOGGLE_BUTTON", "A661_TABBED_PANEL", "A661_TABBED_PANEL_GROUP", "A661_TOGGLE_BUTTON", "A661_TOUCH_AREA", "A661_TRANSLATION_CONTAINER", "A661_TREE"};
-static const char_t* const c_targets15[] = {"A661_BUFFER_FORMAT"};
-static const char_t* const c_targets16[] = {"A661_ACTIVE_AREA", "A661_CHECK_BUTTON", "A661_COMBO_BOX", "A661_COMBO_BOX_EDIT", "A661_CURSOR_OVER", "A661_EDIT_BOX_MASKED", "A661_EDIT_BOX_MULTI_LINE", "A661_EDIT_BOX_NUMERIC", "A661_EDIT_BOX_NUMERIC_BCD", "A661_EDIT_BOX_TEXT", "A661_EXTERNAL_SOURCE", "A661_GESTURE_AREA", "A661_GP_ARC_CIRCLE", "A661_GP_ARC_ELLIPSE", "A661_GP_CROWN", "A661_GP_LINE", "A661_GP_LINE_POLAR", "A661_GP_POLYLINE", "A661_GP_RECTANGLE", "A661_GP_TRIANGLE", "A661_INK_AREA", "A661_LABEL", "A661_LABEL_COMPLEX", "A661_MAPHORZ_PANEL", "A661_MULTI_STATE_BUTTON", "A661_NUMERIC_READOUT", "A661_PAGING_CONTAINER", "A661_PANEL", "A661_PICTURE", "A661_PICTURE_ANIMATED", "A661_PICTURE_PUSH_BUTTON", "A661_PICTURE_TOGGLE_BUTTON", "A661_POP_UP_MENU", "A661_POP_UP_MENU_BUTTON", "A661_POP_UP_PANEL", "A661_POP_UP_PANEL_BUTTON", "A661_PUSH_BUTTON", "A661_SCROLL_LIST", "A661_SCROLL_PANEL", "A661_SELECTION_LIST_BUTTON", "A661_SELECTOR", "A661_SHUFFLE_TO_FIT_CONTAINER", "A661_SIZE_TO_FIT_CONTAINER", "A661_SLIDER", "A661_SYMBOL", "A661_SYMBOL_ANIMATED", "A661_SYMBOL_PUSH_BUTTON", "A661_SYMBOL_TOGGLE_BUTTON", "A661_TABBED_PANEL", "A661_TABBED_PANEL_GROUP", "A661_TOGGLE_BUTTON", "A661_TOUCH_AREA", "A661_TREE"};
-static const char_t* const c_targets17[] = {"A661_CHECK_BUTTON", "A661_COMBO_BOX", "A661_COMBO_BOX_EDIT", "A661_MULTI_STATE_BUTTON", "A661_POP_UP_MENU", "A661_POP_UP_MENU_BUTTON", "A661_POP_UP_PANEL_BUTTON", "A661_PUSH_BUTTON", "A661_SCROLL_LIST", "A661_SELECTION_LIST_BUTTON", "A661_SELECTOR", "A661_TABBED_PANEL", "A661_TOGGLE_BUTTON", "A661_TREE"};
-static const char_t* const c_targets18[] = {"A661_EDIT_BOX_NUMERIC"};
-static const char_t* const c_targets19[] = {"A661_CHECK_BUTTON", "A661_COMBO_BOX", "A661_COMBO_BOX_EDIT", "A661_LABEL", "A661_LABEL_COMPLEX", "A661_NUMERIC_READOUT", "A661_PICTURE_PUSH_BUTTON", "A661_PICTURE_TOGGLE_BUTTON", "A661_POP_UP_MENU_BUTTON", "A661_POP_UP_PANEL", "A661_POP_UP_PANEL_BUTTON", "A661_PUSH_BUTTON", "A661_SCROLL_LIST", "A661_SELECTION_LIST_BUTTON", "A661_TABBED_PANEL", "A661_TOGGLE_BUTTON", "A661_TREE"};
+static const char_t* const c_boundaryCheckTargets[] = {"A661_MAPHORZ_ITEMLIST"};
+static const char_t* const c_childIndexTargets[] = {"A661_MUTUALLY_EXCLUSIVE_CONTAINER", "A661_PAGING_CONTAINER", "A661_TABBED_PANEL_GROUP"};
+static const char_t* const c_cursorEntryEventsTargets[] = {"A661_COMBO_BOX", "A661_SCROLL_LIST", "A661_SELECTOR", "A661_TREE"};
+static const char_t* const c_cursorEventsTargets[] = {"A661_ACTIVE_AREA", "A661_PICTURE_PUSH_BUTTON", "A661_PUSH_BUTTON", "A661_SYMBOL_PUSH_BUTTON"};
+static const char_t* const c_cursorShapeTargets[] = {"A661_ACTIVE_AREA", "A661_CHECK_BUTTON", "A661_COMBO_BOX", "A661_COMBO_BOX_EDIT", "A661_CURSOR_OVER", "A661_EDIT_BOX_MASKED", "A661_EDIT_BOX_MULTI_LINE", "A661_EDIT_BOX_NUMERIC", "A661_EDIT_BOX_NUMERIC_BCD", "A661_EDIT_BOX_TEXT", "A661_INK_AREA", "A661_KEYBOARD_AREA", "A661_MAPHORZ_ITEMLIST", "A661_MULTI_STATE_BUTTON", "A661_PICTURE_PUSH_BUTTON", "A661_PICTURE_TOGGLE_BUTTON", "A661_POP_UP_MENU_BUTTON", "A661_POP_UP_PANEL_BUTTON", "A661_PUSH_BUTTON", "A661_SCROLL_LIST", "A661_SCROLL_WHEEL_AREA", "A661_SELECTION_LIST_BUTTON", "A661_SELECTOR", "A661_SLIDER", "A661_SYMBOL_PUSH_BUTTON", "A661_SYMBOL_TOGGLE_BUTTON", "A661_TABBED_PANEL", "A661_TOGGLE_BUTTON", "A661_TREE"};
+static const char_t* const c_directionalTabbingTargets[] = {"A661_ACTIVE_AREA", "A661_CHECK_BUTTON", "A661_COMBO_BOX", "A661_COMBO_BOX_EDIT", "A661_EDIT_BOX_MASKED", "A661_EDIT_BOX_MULTI_LINE", "A661_EDIT_BOX_NUMERIC", "A661_EDIT_BOX_NUMERIC_BCD", "A661_EDIT_BOX_TEXT", "A661_MULTI_STATE_BUTTON", "A661_PICTURE_PUSH_BUTTON", "A661_PICTURE_TOGGLE_BUTTON", "A661_POP_UP_MENU_BUTTON", "A661_POP_UP_PANEL_BUTTON", "A661_PUSH_BUTTON", "A661_SCROLL_LIST", "A661_SELECTION_LIST_BUTTON", "A661_SELECTOR", "A661_SLIDER", "A661_SYMBOL_PUSH_BUTTON", "A661_SYMBOL_TOGGLE_BUTTON", "A661_TABBED_PANEL", "A661_TOGGLE_BUTTON", "A661_TREE"};
+static const char_t* const c_excludedRegionsTargets[] = {"A661_MAP_BOUNDARY"};
+static const char_t* const c_focusStopTargets[] = {"A661_ACTIVE_AREA", "A661_CHECK_BUTTON", "A661_COMBO_BOX", "A661_COMBO_BOX_EDIT", "A661_EDIT_BOX_MASKED", "A661_EDIT_BOX_MULTI_LINE", "A661_EDIT_BOX_NUMERIC", "A661_EDIT_BOX_NUMERIC_BCD", "A661_EDIT_BOX_TEXT", "A661_INK_AREA", "A661_MULTI_STATE_BUTTON", "A661_PICTURE_PUSH_BUTTON", "A661_PICTURE_TOGGLE_BUTTON", "A661_POP_UP_MENU_BUTTON", "A661_POP_UP_PANEL_BUTTON", "A661_PUSH_BUTTON", "A661_SCROLL_LIST", "A661_SELECTION_LIST_BUTTON", "A661_SELECTOR", "A661_SLIDER", "A661_SYMBOL_PUSH_BUTTON", "A661_SYMBOL_TOGGLE_BUTTON", "A661_TABBED_PANEL", "A661_TOGGLE_BUTTON", "A661_TREE"};
+static const char_t* const c_initialFocusTargets[] = {"A661_ACTIVE_AREA", "A661_CHECK_BUTTON", "A661_COMBO_BOX", "A661_COMBO_BOX_EDIT", "A661_EDIT_BOX_MASKED", "A661_EDIT_BOX_MULTI_LINE", "A661_EDIT_BOX_NUMERIC", "A661_EDIT_BOX_NUMERIC_BCD", "A661_EDIT_BOX_TEXT", "A661_INK_AREA", "A661_MULTI_STATE_BUTTON", "A661_PICTURE_PUSH_BUTTON", "A661_PICTURE_TOGGLE_BUTTON", "A661_POP_UP_MENU_BUTTON", "A661_POP_UP_PANEL_BUTTON", "A661_PUSH_BUTTON", "A661_SCROLL_LIST", "A661_SELECTION_LIST_BUTTON", "A661_SELECTOR", "A661_SLIDER", "A661_SYMBOL_PUSH_BUTTON", "A661_SYMBOL_TOGGLE_BUTTON", "A661_TABBED_PANEL", "A661_TOGGLE_BUTTON", "A661_TREE"};
+static const char_t* const c_legendAlignTargets[] = {"A661_EDIT_BOX_NUMERIC", "A661_EDIT_BOX_NUMERIC_BCD", "A661_NUMERIC_READOUT"};
+static const char_t* const c_maphorzCoordSystemEventTargets[] = {"A661_MAPHORZ", "A661_MAPHORZ_SOURCE", "A661_MAP_EXTERNAL_SOURCE"};
+static const char_t* const c_mapvertCoordSystemEventTargets[] = {"A661_MAPVERT", "A661_MAPVERT_SOURCE", "A661_MAP_EXTERNAL_SOURCE"};
+static const char_t* const c_multiSelectionTargets[] = {"A661_SCROLL_LIST", "A661_TREE"};
+static const char_t* const c_pictureTargets[] = {"A661_CHECK_BUTTON", "A661_COMBO_BOX", "A661_COMBO_BOX_EDIT", "A661_MULTI_STATE_BUTTON", "A661_PUSH_BUTTON", "A661_SCROLL_LIST", "A661_SELECTION_LIST_BUTTON", "A661_SELECTOR", "A661_TOGGLE_BUTTON", "A661_TREE"};
+static const char_t* const c_reorderTargets[] = {"A661_ACTIVE_AREA", "A661_BASIC_CONTAINER", "A661_BLINKING_CONTAINER", "A661_CHECK_BUTTON", "A661_COMBO_BOX", "A661_COMBO_BOX_EDIT", "A661_CONNECTOR", "A661_CURSOR_OVER", "A661_CURSOR_POS_OVERLAY", "A661_CURSOR_REF", "A661_DATA_CONNECTOR", "A661_EDIT_BOX_MASKED", "A661_EDIT_BOX_MULTI_LINE", "A661_EDIT_BOX_NUMERIC", "A661_EDIT_BOX_NUMERIC_BCD", "A661_EDIT_BOX_TEXT", "A661_EXTERNAL_SOURCE", "A661_GESTURE_AREA", "A661_GP_ARC_CIRCLE", "A661_GP_ARC_ELLIPSE", "A661_GP_CROWN", "A661_GP_LINE", "A661_GP_LINE_POLAR", "A661_GP_POLYLINE", "A661_GP_RECTANGLE", "A661_GP_TRIANGLE", "A661_INK_AREA", "A661_KEYBOARD_AREA", "A661_LABEL", "A661_LABEL_COMPLEX", "A661_MAPHORZ", "A661_MAPHORZ_CONTAINER", "A661_MAPHORZ_ITEMLIST", "A661_MAPHORZ_PANEL", "A661_MAPHORZ_SOURCE", "A661_MAPVERT", "A661_MAPVERT_CONTAINER", "A661_MAPVERT_ITEMLIST", "A661_MAPVERT_PANEL", "A661_MAPVERT_SOURCE", "A661_MAP_GRID", "A661_MASK_CONTAINER", "A661_MENU_BAR", "A661_MULTI_STATE_BUTTON", "A661_MUTUALLY_EXCLUSIVE_CONTAINER", "A661_NUMERIC_READOUT", "A661_PAGING_CONTAINER", "A661_PANEL", "A661_PICTURE", "A661_PICTURE_ANIMATED", "A661_PICTURE_PUSH_BUTTON", "A661_PICTURE_TOGGLE_BUTTON", "A661_POP_UP_MENU", "A661_POP_UP_MENU_BUTTON", "A661_POP_UP_PANEL", "A661_POP_UP_PANEL_BUTTON", "A661_PUSH_BUTTON", "A661_RADIO_BOX", "A661_ROTATION_CONTAINER", "A661_SCALE_CONTAINER", "A661_SCROLL_LIST", "A661_SCROLL_PANEL", "A661_SCROLL_WHEEL_AREA", "A661_SELECTION_LIST_BUTTON", "A661_SELECTOR", "A661_SHUFFLE_TO_FIT_CONTAINER", "A661_SIZE_TO_FIT_CONTAINER", "A661_SLIDER", "A661_SYMBOL", "A661_SYMBOL_ANIMATED", "A661_SYMBOL_PUSH_BUTTON", "A661_SYMBOL_TOGGLE_BUTTON", "A661_TABBED_PANEL", "A661_TABBED_PANEL_GROUP", "A661_TOGGLE_BUTTON", "A661_TOUCH_AREA", "A661_TRANSLATION_CONTAINER", "A661_TREE"};
+static const char_t* const c_staticParamBufferTargets[] = {"A661_BUFFER_FORMAT"};
+static const char_t* const c_styleSetTargets[] = {"A661_ACTIVE_AREA", "A661_CHECK_BUTTON", "A661_COMBO_BOX", "A661_COMBO_BOX_EDIT", "A661_CURSOR_OVER", "A661_EDIT_BOX_MASKED", "A661_EDIT_BOX_MULTI_LINE", "A661_EDIT_BOX_NUMERIC", "A661_EDIT_BOX_NUMERIC_BCD", "A661_EDIT_BOX_TEXT", "A661_EXTERNAL_SOURCE", "A661_GESTURE_AREA", "A661_GP_ARC_CIRCLE", "A661_GP_ARC_ELLIPSE", "A661_GP_CROWN", "A661_GP_LINE", "A661_GP_LINE_POLAR", "A661_GP_POLYLINE", "A661_GP_RECTANGLE", "A661_GP_TRIANGLE", "A661_INK_AREA", "A661_LABEL", "A661_LABEL_COMPLEX", "A661_MAPHORZ_PANEL", "A661_MULTI_STATE_BUTTON", "A661_NUMERIC_READOUT", "A661_PAGING_CONTAINER", "A661_PANEL", "A661_PICTURE", "A661_PICTURE_ANIMATED", "A661_PICTURE_PUSH_BUTTON", "A661_PICTURE_TOGGLE_BUTTON", "A661_POP_UP_MENU", "A661_POP_UP_MENU_BUTTON", "A661_POP_UP_PANEL", "A661_POP_UP_PANEL_BUTTON", "A661_PUSH_BUTTON", "A661_SCROLL_LIST", "A661_SCROLL_PANEL", "A661_SELECTION_LIST_BUTTON", "A661_SELECTOR", "A661_SHUFFLE_TO_FIT_CONTAINER", "A661_SIZE_TO_FIT_CONTAINER", "A661_SLIDER", "A661_SYMBOL", "A661_SYMBOL_ANIMATED", "A661_SYMBOL_PUSH_BUTTON", "A661_SYMBOL_TOGGLE_BUTTON", "A661_TABBED_PANEL", "A661_TABBED_PANEL_GROUP", "A661_TOGGLE_BUTTON", "A661_TOUCH_AREA", "A661_TREE"};
+static const char_t* const c_symbolTargets[] = {"A661_CHECK_BUTTON", "A661_COMBO_BOX", "A661_COMBO_BOX_EDIT", "A661_MULTI_STATE_BUTTON", "A661_POP_UP_MENU", "A661_POP_UP_MENU_BUTTON", "A661_POP_UP_PANEL_BUTTON", "A661_PUSH_BUTTON", "A661_SCROLL_LIST", "A661_SELECTION_LIST_BUTTON", "A661_SELECTOR", "A661_TABBED_PANEL", "A661_TOGGLE_BUTTON", "A661_TREE"};
+static const char_t* const c_ticsArrayTargets[] = {"A661_EDIT_BOX_NUMERIC"};
+static const char_t* const c_wordWrapTargets[] = {"A661_CHECK_BUTTON", "A661_COMBO_BOX", "A661_COMBO_BOX_EDIT", "A661_LABEL", "A661_LABEL_COMPLEX", "A661_NUMERIC_READOUT", "A661_PICTURE_PUSH_BUTTON", "A661_PICTURE_TOGGLE_BUTTON", "A661_POP_UP_MENU_BUTTON", "A661_POP_UP_PANEL", "A661_POP_UP_PANEL_BUTTON", "A661_PUSH_BUTTON", "A661_SCROLL_LIST", "A661_SELECTION_LIST_BUTTON", "A661_TABBED_PANEL", "A661_TOGGLE_BUTTON", "A661_TREE"};
 
 static const ExtensionTargets_t c_extensionTargets[] =
 {
-    {"A661_BOUNDARY_CHECK_EXTENSION", c_targets0, 1U},
-    {"A661_CHILD_INDEX_EXTENSION", c_targets1, 3U},
-    {"A661_CURSOR_ENTRY_EVENTS_EXTENSION", c_targets2, 4U},
-    {"A661_CURSOR_EVENTS_EXTENSION", c_targets3, 4U},
-    {"A661_CURSOR_SHAPE_EXTENSION", c_targets4, 29U},
-    {"A661_DIRECTIONAL_TABBING_EXTENSION", c_targets5, 24U},
-    {"A661_EXCLUDED_REGIONS_EXTENSION", c_targets6, 1U},
-    {"A661_FOCUS_STOP_EXTENSION", c_targets7, 25U},
-    {"A661_INITIAL_FOCUS_EXTENSION", c_targets8, 25U},
-    {"A661_LEGEND_ALIGN_EXTENSION", c_targets9, 3U},
-    {"A661_MAPHORZ_COORD_SYSTEM_EVENT_EXTENSION", c_targets10, 3U},
-    {"A661_MAPVERT_COORD_SYSTEM_EVENT_EXTENSION", c_targets11, 3U},
-    {"A661_MULTI_SELECTION_EXTENSION", c_targets12, 2U},
-    {"A661_PICTURE_EXTENSION", c_targets13, 10U},
-    {"A661_REORDER_EXTENSION", c_targets14, 78U},
-    {"A661_STATIC_PARAM_BUFFER_EXTENSION", c_targets15, 1U},
-    {"A661_STYLE_SET_EXTENSION", c_targets16, 53U},
-    {"A661_SYMBOL_EXTENSION", c_targets17, 14U},
-    {"A661_TICS_ARRAY_EXTENSION", c_targets18, 1U},
-    {"A661_WORD_WRAP_EXTENSION", c_targets19, 17U},
+    {"A661_BOUNDARY_CHECK_EXTENSION", ARRAY_AND_COUNT(c_boundaryCheckTargets)},
+    {"A661_CHILD_INDEX_EXTENSION", ARRAY_AND_COUNT(c_childIndexTargets)},
+    {"A661_CURSOR_ENTRY_EVENTS_EXTENSION", ARRAY_AND_COUNT(c_cursorEntryEventsTargets)},
+    {"A661_CURSOR_EVENTS_EXTENSION", ARRAY_AND_COUNT(c_cursorEventsTargets)},
+    {"A661_CURSOR_SHAPE_EXTENSION", ARRAY_AND_COUNT(c_cursorShapeTargets)},
+    {"A661_DIRECTIONAL_TABBING_EXTENSION", ARRAY_AND_COUNT(c_directionalTabbingTargets)},
+    {"A661_EXCLUDED_REGIONS_EXTENSION", ARRAY_AND_COUNT(c_excludedRegionsTargets)},
+    {"A661_FOCUS_STOP_EXTENSION", ARRAY_AND_COUNT(c_focusStopTargets)},
+    {"A661_INITIAL_FOCUS_EXTENSION", ARRAY_AND_COUNT(c_initialFocusTargets)},
+    {"A661_LEGEND_ALIGN_EXTENSION", ARRAY_AND_COUNT(c_legendAlignTargets)},
+    {"A661_MAPHORZ_COORD_SYSTEM_EVENT_EXTENSION", ARRAY_AND_COUNT(c_maphorzCoordSystemEventTargets)},
+    {"A661_MAPVERT_COORD_SYSTEM_EVENT_EXTENSION", ARRAY_AND_COUNT(c_mapvertCoordSystemEventTargets)},
+    {"A661_MULTI_SELECTION_EXTENSION", ARRAY_AND_COUNT(c_multiSelectionTargets)},
+    {"A661_PICTURE_EXTENSION", ARRAY_AND_COUNT(c_pictureTargets)},
+    {"A661_REORDER_EXTENSION", ARRAY_AND_COUNT(c_reorderTargets)},
+    {"A661_STATIC_PARAM_BUFFER_EXTENSION", ARRAY_AND_COUNT(c_staticParamBufferTargets)},
+    {"A661_STYLE_SET_EXTENSION", ARRAY_AND_COUNT(c_styleSetTargets)},
+    {"A661_SYMBOL_EXTENSION", ARRAY_AND_COUNT(c_symbolTargets)},
+    {"A661_TICS_ARRAY_EXTENSION", ARRAY_AND_COUNT(c_ticsArrayTargets)},
+    {"A661_WORD_WRAP_EXTENSION", ARRAY_AND_COUNT(c_wordWrapTargets)},
 };
 
 #define EXTENSION_TARGET_COUNT ((uint32_t)COUNT_OF(c_extensionTargets))
@@ -3749,9 +4646,9 @@ static int64_t ToSigned32(uint32_t value)
     int64_t result;
 
     result = (int64_t)value;
-    if (0x80000000U <= value)
+    if ((uint32_t)INT32_MAX < value)
     {
-        result -= ((int64_t)1 << 32);
+        result -= ((int64_t)UINT32_MAX + 1);
     }
 
     return result;
@@ -3773,8 +4670,8 @@ static void PutAlignment(byte_t* buffer, uint64_t capacity, uint64_t* offset)
         {
             break;
         }
-        PutUnsigned(buffer, capacity, (*offset), 0, 1);
-        (*offset) += 1;
+        PutUnsigned(buffer, capacity, (*offset), 0, BINARY_UCHAR_BYTES);
+        (*offset) += BINARY_UCHAR_BYTES;
     }
 }
 
@@ -3792,15 +4689,15 @@ static bool_t PutHexBytes(const char_t* text, uint64_t byteCount, byte_t* buffer
     uint64_t      byte_index;
     bool_t        is_valid;
 
-    is_valid = (strlen(text) == (byteCount * 2U));
+    is_valid = (strlen(text) == (byteCount * HEX_DIGITS_PER_BYTE));
     for (byte_index = 0; is_valid && (byte_index < byteCount); ++byte_index)
     {
-        high_digit = strchr(c_binaryHexDigits, text[byte_index * 2U]);
-        low_digit  = strchr(c_binaryHexDigits, text[(byte_index * 2U) + 1U]);
+        high_digit = strchr(c_binaryHexDigits, text[byte_index * HEX_DIGITS_PER_BYTE]);
+        low_digit  = strchr(c_binaryHexDigits, text[(byte_index * HEX_DIGITS_PER_BYTE) + 1U]);
         is_valid   = (NULL != high_digit) && (NULL != low_digit);
         if (is_valid)
         {
-            PutUnsigned(buffer, capacity, offset + byte_index, (uint32_t)(((high_digit - c_binaryHexDigits) << 4) | (low_digit - c_binaryHexDigits)), 1);
+            PutUnsigned(buffer, capacity, offset + byte_index, (uint32_t)(((high_digit - c_binaryHexDigits) << HEX_DIGIT_BITS) | (low_digit - c_binaryHexDigits)), BINARY_UCHAR_BYTES);
         }
     }
 
@@ -3965,19 +4862,19 @@ static uint32_t RegionByteCount(uint32_t regionType)
     uint32_t byte_count;
 
     byte_count = 0;
-    if (0U == regionType)
+    if (BINARY_REGION_NOT_USED == regionType)
     {
         byte_count = BINARY_REGION_NOT_USED_BYTES;
     }
-    else if (1U == regionType)
+    else if (BINARY_REGION_RECTANGLE == regionType)
     {
         byte_count = BINARY_REGION_RECTANGLE_BYTES;
     }
-    else if (2U == regionType)
+    else if (BINARY_REGION_TRIANGLE == regionType)
     {
         byte_count = BINARY_REGION_TRIANGLE_BYTES;
     }
-    else if (3U == regionType)
+    else if (BINARY_REGION_CIRCLE == regionType)
     {
         byte_count = BINARY_REGION_CIRCLE_BYTES;
     }
@@ -4044,7 +4941,7 @@ static bool_t WriteField(const BinaryField_t* field, const Arinc661_Property_t* 
         {
             for (byte_index = 0; byte_index < field->byteCount; ++byte_index)
             {
-                PutUnsigned(buffer, capacity, (*offset) + byte_index, 0, 1);
+                PutUnsigned(buffer, capacity, (*offset) + byte_index, 0, BINARY_UCHAR_BYTES);
             }
         }
         (*offset) += field->byteCount;
@@ -4052,12 +4949,12 @@ static bool_t WriteField(const BinaryField_t* field, const Arinc661_Property_t* 
     else if (BINARY_FIELD_SIZED_BYTES == field->type)
     {
         // Write ParamBufferSize, the unused pad, the bytes, then 32-bit alignment (Table 8.6.5-3)
-        byte_count = strlen(text) / 2U;
+        byte_count = strlen(text) / HEX_DIGITS_PER_BYTE;
         is_valid   = (UINT16_MAX >= byte_count);
         if (is_valid)
         {
-            PutUnsigned(buffer, capacity, (*offset), (uint32_t)byte_count, 2);
-            PutUnsigned(buffer, capacity, (*offset) + 2U, 0, 2);
+            PutUnsigned(buffer, capacity, (*offset), (uint32_t)byte_count, BINARY_USHORT_BYTES);
+            PutUnsigned(buffer, capacity, (*offset) + BINARY_SIZED_PAD_OFFSET, 0, BINARY_USHORT_BYTES);
             is_valid = PutHexBytes(text, byte_count, buffer, capacity, (*offset) + BINARY_WORD_BYTES);
         }
         (*offset) += (BINARY_WORD_BYTES + byte_count);
@@ -4067,11 +4964,11 @@ static bool_t WriteField(const BinaryField_t* field, const Arinc661_Property_t* 
     {
         // Read the structure size from its second byte, requiring both digits of that byte to be valid
         byte_count = 0;
-        is_valid   = ((BINARY_REGION_HEADER_BYTES * 2U) <= strlen(text));
+        is_valid   = ((BINARY_REGION_HEADER_BYTES * HEX_DIGITS_PER_BYTE) <= strlen(text));
         if (is_valid)
         {
-            type_digit = strchr(c_binaryHexDigits, text[3]);
-            is_valid   = ('0' == text[2]) && (NULL != type_digit);
+            type_digit = strchr(c_binaryHexDigits, text[(BINARY_REGION_TYPE_OFFSET * HEX_DIGITS_PER_BYTE) + 1U]);
+            is_valid   = ('0' == text[BINARY_REGION_TYPE_OFFSET * HEX_DIGITS_PER_BYTE]) && (NULL != type_digit);
         }
         if (is_valid)
         {
@@ -4087,7 +4984,7 @@ static bool_t WriteField(const BinaryField_t* field, const Arinc661_Property_t* 
     else if (BINARY_FIELD_LAYER_REQUEST == field->type)
     {
         // Require the CommandSize in the third and fourth bytes to match the request that follows (Table 3.9.17-6)
-        byte_count = strlen(text) / 2U;
+        byte_count = strlen(text) / HEX_DIGITS_PER_BYTE;
         is_valid   = (BINARY_REQUEST_HEADER_BYTES <= byte_count);
         if (is_valid)
         {
@@ -4096,9 +4993,9 @@ static bool_t WriteField(const BinaryField_t* field, const Arinc661_Property_t* 
         if (is_valid)
         {
             request_size = 0;
-            for (byte_index = 4; byte_index < 8; ++byte_index)
+            for (byte_index = BINARY_REQUEST_SIZE_OFFSET * HEX_DIGITS_PER_BYTE; byte_index < ((BINARY_REQUEST_SIZE_OFFSET + BINARY_USHORT_BYTES) * HEX_DIGITS_PER_BYTE); ++byte_index)
             {
-                request_size = (request_size << 4) | (uint32_t)(strchr(c_binaryHexDigits, text[byte_index]) - c_binaryHexDigits);
+                request_size = (request_size << HEX_DIGIT_BITS) | (uint32_t)(strchr(c_binaryHexDigits, text[byte_index]) - c_binaryHexDigits);
             }
             is_valid = (byte_count == (BINARY_REQUEST_HEADER_BYTES + request_size)) && (0 == (request_size % BINARY_WORD_BYTES));
         }
@@ -4109,10 +5006,10 @@ static bool_t WriteField(const BinaryField_t* field, const Arinc661_Property_t* 
         byte_count = strlen(text);
         for (byte_index = 0; byte_index < byte_count; ++byte_index)
         {
-            PutUnsigned(buffer, capacity, (*offset) + byte_index, (byte_t)text[byte_index], 1);
+            PutUnsigned(buffer, capacity, (*offset) + byte_index, (byte_t)text[byte_index], BINARY_UCHAR_BYTES);
         }
         // Keep each string's terminator; pad the command after its last parameter
-        PutUnsigned(buffer, capacity, (*offset) + byte_count, 0, 1);
+        PutUnsigned(buffer, capacity, (*offset) + byte_count, 0, BINARY_UCHAR_BYTES);
         (*offset) += (byte_count + 1);
     }
     else
@@ -4136,10 +5033,10 @@ static bool_t WriteField(const BinaryField_t* field, const Arinc661_Property_t* 
             }
             else if (is_valid)
             {
-                range = 32768.0;
+                range = BINARY_FR32768_RANGE;
                 if (BINARY_FIELD_FR180 == field->type)
                 {
-                    range = 180.0;
+                    range = BINARY_FR180_RANGE;
                 }
                 is_valid = (real_value <= range) && (real_value >= -range);
                 if (is_valid)
@@ -4293,7 +5190,7 @@ static bool_t WriteCommand(const Arinc661_Definition_t* definition, uint32_t wid
     {
         for (field_index = 0; field_index < type->fieldCount; ++field_index)
         {
-            field = &c_binaryFields[type->firstField + field_index];
+            field = &type->fields[field_index];
             if (0 == field->repeat)
             {
                 property = NULL;
@@ -4358,13 +5255,13 @@ static bool_t WriteCommand(const Arinc661_Definition_t* definition, uint32_t wid
     }
     if (is_valid)
     {
-        PutUnsigned(buffer, capacity, (*offset), command, 2);
-        PutUnsigned(buffer, capacity, (*offset) + 2, (uint32_t)(cursor - (*offset)), 2);
-        PutUnsigned(buffer, capacity, (*offset) + 4, type->code, 2);
+        PutUnsigned(buffer, capacity, (*offset), command, BINARY_USHORT_BYTES);
+        PutUnsigned(buffer, capacity, (*offset) + BINARY_COMMAND_SIZE_OFFSET, (uint32_t)(cursor - (*offset)), BINARY_USHORT_BYTES);
+        PutUnsigned(buffer, capacity, (*offset) + BINARY_COMMAND_TYPE_OFFSET, type->code, BINARY_USHORT_BYTES);
         if (FALSE == widget->isExtension)
         {
-            PutUnsigned(buffer, capacity, (*offset) + 6, (uint32_t)widget_ident, 2);
-            PutUnsigned(buffer, capacity, (*offset) + 8, (uint32_t)parent_ident, 2);
+            PutUnsigned(buffer, capacity, (*offset) + BINARY_WIDGET_IDENT_OFFSET, (uint32_t)widget_ident, BINARY_USHORT_BYTES);
+            PutUnsigned(buffer, capacity, (*offset) + BINARY_PARENT_IDENT_OFFSET, (uint32_t)parent_ident, BINARY_USHORT_BYTES);
         }
         (*offset) = cursor;
     }
@@ -4417,14 +5314,7 @@ static int64_t EncodeFraction(float64_t value, float64_t range)
     float64_t scaled;
 
     scaled = (value * BINARY_FR_FULL_SCALE) / range;
-    if (0.0 <= scaled)
-    {
-        scaled += 0.5;
-    }
-    else
-    {
-        scaled -= 0.5;
-    }
+    scaled = round(scaled);
     if (scaled > (float64_t)INT32_MAX)
     {
         scaled = (float64_t)INT32_MAX;
@@ -4553,15 +5443,15 @@ static bool_t AddHexProperty(Arinc661_Definition_t* definition, const char_t* na
     uint64_t byte_index;
     bool_t   is_valid;
 
-    is_valid = ((byteCount * 2U) < sizeof(text));
+    is_valid = ((byteCount * HEX_DIGITS_PER_BYTE) < sizeof(text));
     if (is_valid)
     {
         for (byte_index = 0; byte_index < byteCount; ++byte_index)
         {
-            text[byte_index * 2U]        = c_binaryHexDigits[bytes[byte_index] >> 4];
-            text[(byte_index * 2U) + 1U] = c_binaryHexDigits[bytes[byte_index] & 0x0FU];
+            text[byte_index * HEX_DIGITS_PER_BYTE]        = c_binaryHexDigits[bytes[byte_index] >> HEX_DIGIT_BITS];
+            text[(byte_index * HEX_DIGITS_PER_BYTE) + 1U] = c_binaryHexDigits[bytes[byte_index] & HEX_DIGIT_MASK];
         }
-        is_valid = AddProperty(definition, ARINC661_PROPERTY_WIDGET, definition->widgetCount, name, text, byteCount * 2U);
+        is_valid = AddProperty(definition, ARINC661_PROPERTY_WIDGET, definition->widgetCount, name, text, byteCount * HEX_DIGITS_PER_BYTE);
     }
 
     return is_valid;
@@ -4597,7 +5487,7 @@ static bool_t ReadField(Arinc661_Definition_t* definition, const BinaryField_t* 
     remaining = endOffset - (*offset);
     if (BINARY_FIELD_ALIGN == field->type)
     {
-        (*offset) = ((*offset) + (BINARY_WORD_BYTES - 1U)) & ~(uint64_t)(BINARY_WORD_BYTES - 1U);
+        (*offset) = BINARY_ALIGN((*offset));
         is_valid  = ((*offset) <= endOffset);
     }
     else if (BINARY_FIELD_BYTES == field->type)
@@ -4614,7 +5504,7 @@ static bool_t ReadField(Arinc661_Definition_t* definition, const BinaryField_t* 
         is_valid = (BINARY_WORD_BYTES <= remaining);
         if (is_valid)
         {
-            byte_count = GetUnsigned(buffer, (*offset), 2);
+            byte_count = GetUnsigned(buffer, (*offset), BINARY_USHORT_BYTES);
             is_valid   = (byte_count <= (remaining - BINARY_WORD_BYTES));
         }
         if (is_valid)
@@ -4632,7 +5522,7 @@ static bool_t ReadField(Arinc661_Definition_t* definition, const BinaryField_t* 
         is_valid = (BINARY_REGION_HEADER_BYTES <= remaining);
         if (is_valid)
         {
-            byte_count = RegionByteCount(buffer[(*offset) + 1U]);
+            byte_count = RegionByteCount(buffer[(*offset) + BINARY_REGION_TYPE_OFFSET]);
             is_valid   = (0 != byte_count) && (byte_count <= remaining);
         }
         if (is_valid)
@@ -4646,7 +5536,7 @@ static bool_t ReadField(Arinc661_Definition_t* definition, const BinaryField_t* 
         is_valid = (BINARY_REQUEST_HEADER_BYTES <= remaining);
         if (is_valid)
         {
-            byte_count = BINARY_REQUEST_HEADER_BYTES + GetUnsigned(buffer, (*offset) + 2U, 2);
+            byte_count = BINARY_REQUEST_HEADER_BYTES + GetUnsigned(buffer, (*offset) + BINARY_REQUEST_SIZE_OFFSET, BINARY_USHORT_BYTES);
             is_valid   = (byte_count <= remaining) && (0 == (byte_count % BINARY_WORD_BYTES));
         }
         if (is_valid)
@@ -4691,10 +5581,10 @@ static bool_t ReadField(Arinc661_Definition_t* definition, const BinaryField_t* 
             }
             else if ((BINARY_FIELD_FR180 == field->type) || (BINARY_FIELD_FR32768 == field->type))
             {
-                range = 32768.0;
+                range = BINARY_FR32768_RANGE;
                 if (BINARY_FIELD_FR180 == field->type)
                 {
-                    range = 180.0;
+                    range = BINARY_FR180_RANGE;
                 }
                 byte_count = FormatFraction(text, sizeof(text), ToSigned32(encoded_value), range);
                 is_valid   = AddProperty(definition, ARINC661_PROPERTY_WIDGET, widget_index, field->name, text, byte_count);
@@ -4756,7 +5646,7 @@ static bool_t ReadCommand(Arinc661_Definition_t* definition, const byte_t* buffe
     bool_t                is_extension;
     bool_t                is_valid;
 
-    command      = GetUnsigned(buffer, commandOffset, 2);
+    command      = GetUnsigned(buffer, commandOffset, BINARY_USHORT_BYTES);
     is_extension = (BINARY_CMD_EXTEND == command);
     end_offset   = commandOffset + commandSize;
     cursor       = end_offset;
@@ -4765,7 +5655,7 @@ static bool_t ReadCommand(Arinc661_Definition_t* definition, const byte_t* buffe
     is_valid = is_extension || (BINARY_CMD_CREATE == command);
     if (is_valid)
     {
-        type     = FindTypeByCode(GetUnsigned(buffer, commandOffset + 4, 2), is_extension);
+        type     = FindTypeByCode(GetUnsigned(buffer, commandOffset + BINARY_COMMAND_TYPE_OFFSET, BINARY_USHORT_BYTES), is_extension);
         is_valid = (NULL != type);
     }
     if (is_valid)
@@ -4791,25 +5681,25 @@ static bool_t ReadCommand(Arinc661_Definition_t* definition, const byte_t* buffe
         else
         {
             cursor       = commandOffset + BINARY_COMMAND_BYTES;
-            parent_ident = GetUnsigned(buffer, commandOffset + 8, 2);
+            parent_ident = GetUnsigned(buffer, commandOffset + BINARY_PARENT_IDENT_OFFSET, BINARY_USHORT_BYTES);
             if (0 != parent_ident)
             {
                 cursor = firstCommandOffset;
                 for (widget_index = firstWidgetIndex; widget_index < definition->widgetCount; ++widget_index)
                 {
-                    if ((BINARY_CMD_CREATE == GetUnsigned(buffer, cursor, 2)) && (parent_ident == GetUnsigned(buffer, cursor + 6, 2)))
+                    if ((BINARY_CMD_CREATE == GetUnsigned(buffer, cursor, BINARY_USHORT_BYTES)) && (parent_ident == GetUnsigned(buffer, cursor + BINARY_WIDGET_IDENT_OFFSET, BINARY_USHORT_BYTES)))
                     {
                         widget->parentWidgetIndex = widget_index;
                         break;
                     }
-                    cursor += GetUnsigned(buffer, cursor + 2, 2);
+                    cursor += GetUnsigned(buffer, cursor + BINARY_COMMAND_SIZE_OFFSET, BINARY_USHORT_BYTES);
                 }
                 cursor   = commandOffset + BINARY_COMMAND_BYTES;
                 is_valid = (UINT32_MAX != widget->parentWidgetIndex);
             }
             if (is_valid)
             {
-                is_valid = AddIntegerProperty(definition, ARINC661_PROPERTY_WIDGET, definition->widgetCount, BINARY_PROPERTY_WIDGET_IDENT, GetUnsigned(buffer, commandOffset + 6, 2));
+                is_valid = AddIntegerProperty(definition, ARINC661_PROPERTY_WIDGET, definition->widgetCount, BINARY_PROPERTY_WIDGET_IDENT, GetUnsigned(buffer, commandOffset + BINARY_WIDGET_IDENT_OFFSET, BINARY_USHORT_BYTES));
             }
         }
     }
@@ -4817,7 +5707,7 @@ static bool_t ReadCommand(Arinc661_Definition_t* definition, const byte_t* buffe
     {
         for (field_index = 0; field_index < type->fieldCount; ++field_index)
         {
-            field         = &c_binaryFields[type->firstField + field_index];
+            field         = &type->fields[field_index];
             element_count = 1;
             if (0 != field->repeat)
             {
@@ -4899,7 +5789,7 @@ static bool_t ReadLayer(Arinc661_Definition_t* definition, const byte_t* buffer,
     is_valid           = ((BINARY_LAYER_HEADER_BYTES + BINARY_BLOCK_END_BYTES) <= (byteCount - (*offset)));
     if (is_valid)
     {
-        block_size = GetUnsigned(buffer, (*offset) + 4, 4);
+        block_size = GetUnsigned(buffer, (*offset) + BINARY_BLOCK_SIZE_OFFSET, BINARY_ULONG_BYTES);
         is_valid   = ((BINARY_LAYER_HEADER_BYTES + BINARY_BLOCK_END_BYTES) <= block_size) && (0 == (block_size % BINARY_WORD_BYTES)) && (block_size <= (byteCount - (*offset)));
     }
     if (is_valid)
@@ -4915,11 +5805,11 @@ static bool_t ReadLayer(Arinc661_Definition_t* definition, const byte_t* buffer,
     {
         layer = &definition->layers[layer_index];
         (void)memset(layer, 0, sizeof((*layer)));
-        is_valid = AddIntegerProperty(definition, ARINC661_PROPERTY_LAYER, layer_index, BINARY_PROPERTY_LAYER_ID, buffer[(*offset) + 1]);
+        is_valid = AddIntegerProperty(definition, ARINC661_PROPERTY_LAYER, layer_index, BINARY_PROPERTY_LAYER_ID, buffer[(*offset) + BINARY_LAYER_IDENT_OFFSET]);
     }
     if (is_valid)
     {
-        is_valid = AddIntegerProperty(definition, ARINC661_PROPERTY_LAYER, layer_index, BINARY_PROPERTY_CONTEXT_NUMBER, GetUnsigned(buffer, (*offset) + 2, 2));
+        is_valid = AddIntegerProperty(definition, ARINC661_PROPERTY_LAYER, layer_index, BINARY_PROPERTY_CONTEXT_NUMBER, GetUnsigned(buffer, (*offset) + BINARY_CONTEXT_NUMBER_OFFSET, BINARY_USHORT_BYTES));
     }
     if (is_valid)
     {
@@ -4933,15 +5823,15 @@ static bool_t ReadLayer(Arinc661_Definition_t* definition, const byte_t* buffer,
             {
                 break;
             }
-            is_valid = ((BINARY_EXTEND_BYTES + 2U) <= (end_offset - cursor));
+            is_valid = (BINARY_ALIGN(BINARY_EXTEND_BYTES) <= (end_offset - cursor));
             if (is_valid)
             {
-                command_size = GetUnsigned(buffer, cursor + 2, 2);
-                is_valid     = ((BINARY_EXTEND_BYTES + 2U) <= command_size) && (0 == (command_size % BINARY_WORD_BYTES)) && (command_size <= (end_offset - cursor));
+                command_size = GetUnsigned(buffer, cursor + BINARY_COMMAND_SIZE_OFFSET, BINARY_USHORT_BYTES);
+                is_valid     = (BINARY_ALIGN(BINARY_EXTEND_BYTES) <= command_size) && (0 == (command_size % BINARY_WORD_BYTES)) && (command_size <= (end_offset - cursor));
             }
-            if (is_valid && (BINARY_CMD_CREATE == GetUnsigned(buffer, cursor, 2)))
+            if (is_valid && (BINARY_CMD_CREATE == GetUnsigned(buffer, cursor, BINARY_USHORT_BYTES)))
             {
-                is_valid = ((BINARY_COMMAND_BYTES + 2U) <= command_size);
+                is_valid = (BINARY_ALIGN(BINARY_COMMAND_BYTES) <= command_size);
             }
             if (is_valid)
             {
@@ -4989,10 +5879,10 @@ static bool_t MeasurePictureBlock(const byte_t* buffer, uint64_t byteCount, uint
     is_valid      = (BINARY_PICTURE_HEADER_BYTES <= (byteCount - offset));
     if (is_valid)
     {
-        pixel_format  = buffer[offset + 1U];
-        picture_count = buffer[offset + 2U];
-        color_count   = buffer[offset + 3U];
-        color_format  = buffer[offset + 4U];
+        pixel_format  = buffer[offset + BINARY_PIXEL_FORMAT_OFFSET];
+        picture_count = buffer[offset + BINARY_PICTURE_COUNT_OFFSET];
+        color_count   = buffer[offset + BINARY_COLOR_COUNT_OFFSET];
+        color_format  = buffer[offset + BINARY_COLOR_FORMAT_OFFSET];
         is_valid      = (BINARY_PIX_FMT_RGBA_8 <= pixel_format) && (BINARY_PIX_FMT_COLOR_INDEXED_8 >= pixel_format);
         if (is_valid && (0 != color_count))
         {
@@ -5000,7 +5890,7 @@ static bool_t MeasurePictureBlock(const byte_t* buffer, uint64_t byteCount, uint
             if (is_valid)
             {
                 // Measure color table entries in their own format and pad them as a whole
-                cursor += ((uint64_t)color_count * (BINARY_WORD_BYTES >> (color_format - BINARY_PIX_FMT_RGBA_8)) + (BINARY_WORD_BYTES - 1U)) & ~(uint64_t)(BINARY_WORD_BYTES - 1U);
+                cursor += BINARY_ALIGN((uint64_t)color_count * c_pixelFormatBytes[color_format - BINARY_PIX_FMT_RGBA_8]);
             }
         }
     }
@@ -5009,8 +5899,8 @@ static bool_t MeasurePictureBlock(const byte_t* buffer, uint64_t byteCount, uint
         is_valid = (cursor <= byteCount) && (BINARY_PICTURE_BYTES <= (byteCount - cursor)) && (BINARY_BEGIN_PICTURE == buffer[cursor]);
         if (is_valid)
         {
-            pixel_bytes = (uint64_t)GetUnsigned(buffer, cursor + 4U, 2) * GetUnsigned(buffer, cursor + 6U, 2) * (BINARY_WORD_BYTES >> (pixel_format - BINARY_PIX_FMT_RGBA_8));
-            cursor     += BINARY_PICTURE_BYTES + ((pixel_bytes + (BINARY_WORD_BYTES - 1U)) & ~(uint64_t)(BINARY_WORD_BYTES - 1U));
+            pixel_bytes = (uint64_t)GetUnsigned(buffer, cursor + BINARY_PICTURE_WIDTH_OFFSET, BINARY_USHORT_BYTES) * GetUnsigned(buffer, cursor + BINARY_PICTURE_HEIGHT_OFFSET, BINARY_USHORT_BYTES) * c_pixelFormatBytes[pixel_format - BINARY_PIX_FMT_RGBA_8];
+            cursor     += BINARY_PICTURE_BYTES + BINARY_ALIGN(pixel_bytes);
             is_valid    = (cursor <= byteCount) && (BINARY_BLOCK_END_BYTES <= (byteCount - cursor)) && (BINARY_END_PICTURE == buffer[cursor]);
             cursor     += BINARY_BLOCK_END_BYTES;
         }
@@ -5063,7 +5953,7 @@ static bool_t ReadOpaqueBlock(Arinc661_Definition_t* definition, const byte_t* b
         is_valid = (BINARY_SIZED_HEADER_BYTES <= (byteCount - (*offset)));
         if (is_valid)
         {
-            block_size = GetUnsigned(buffer, (*offset) + 4U, 4);
+            block_size = GetUnsigned(buffer, (*offset) + BINARY_BLOCK_SIZE_OFFSET, BINARY_ULONG_BYTES);
             is_valid   = ((BINARY_SIZED_HEADER_BYTES + BINARY_BLOCK_END_BYTES) <= block_size) && (block_size <= (byteCount - (*offset)));
         }
         if (is_valid)
@@ -5634,16 +6524,16 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
     is_valid   = (BINARY_HEADER_BYTES <= byteCount);
     if (is_valid)
     {
-        is_valid = (BINARY_DF_MAGIC_NUMBER == GetUnsigned(buffer, 0, 2));
+        is_valid = (BINARY_DF_MAGIC_NUMBER == GetUnsigned(buffer, BINARY_HEADER_MAGIC_OFFSET, BINARY_USHORT_BYTES));
     }
     if (is_valid)
     {
         definition->name[0]           = '\0';
-        definition->libraryVersion    = buffer[2];
-        definition->supplementVersion = buffer[3];
-        is_valid                      = AddIntegerProperty(definition, ARINC661_PROPERTY_DEFINITION, 0, BINARY_PROPERTY_APPLICATION_ID, GetUnsigned(buffer, 4, 2));
+        definition->libraryVersion    = buffer[BINARY_HEADER_LIBRARY_VERSION_OFFSET];
+        definition->supplementVersion = buffer[BINARY_HEADER_SUPPLEMENT_VERSION_OFFSET];
+        is_valid                      = AddIntegerProperty(definition, ARINC661_PROPERTY_DEFINITION, 0, BINARY_PROPERTY_APPLICATION_ID, GetUnsigned(buffer, BINARY_HEADER_APPLI_IDENT_OFFSET, BINARY_USHORT_BYTES));
         // Skip the implementation-dependent OEM data, which occupies whole words
-        offset += ((uint64_t)GetUnsigned(buffer, 6, 2) + (BINARY_WORD_BYTES - 1U)) & ~(uint64_t)(BINARY_WORD_BYTES - 1U);
+        offset += BINARY_ALIGN(GetUnsigned(buffer, BINARY_HEADER_OEM_DATA_SIZE_OFFSET, BINARY_USHORT_BYTES));
     }
     if (is_valid)
     {
@@ -5668,10 +6558,10 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
             else if (BINARY_BEGIN_CHARSET_BLOCK == block_code)
             {
                 // Read the block as code, pad, encoding, end code, pad (Table 4.5.3.2-6) and allow one per file
-                is_valid = (BINARY_CHARSET_BLOCK_BYTES <= (byteCount - offset)) && (BINARY_END_CHARSET_BLOCK == buffer[offset + 4U]) && (0 == definition->charsetEncoding);
+                is_valid = (BINARY_CHARSET_BLOCK_BYTES <= (byteCount - offset)) && (BINARY_END_CHARSET_BLOCK == buffer[offset + BINARY_CHARSET_END_OFFSET]) && (0 == definition->charsetEncoding);
                 if (is_valid)
                 {
-                    definition->charsetEncoding = GetUnsigned(buffer, offset + 2U, 2);
+                    definition->charsetEncoding = GetUnsigned(buffer, offset + BINARY_CHARSET_ENCODING_OFFSET, BINARY_USHORT_BYTES);
                     is_valid                    = (0 != definition->charsetEncoding);
                     offset                     += BINARY_CHARSET_BLOCK_BYTES;
                 }
@@ -5757,22 +6647,22 @@ uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition
     }
     if (is_valid)
     {
-        PutUnsigned(buffer, capacity, 0, BINARY_DF_MAGIC_NUMBER, 2);
-        PutUnsigned(buffer, capacity, 2, definition->libraryVersion, 1);
-        PutUnsigned(buffer, capacity, 3, definition->supplementVersion, 1);
-        PutUnsigned(buffer, capacity, 4, (uint32_t)application_id, 2);
+        PutUnsigned(buffer, capacity, BINARY_HEADER_MAGIC_OFFSET, BINARY_DF_MAGIC_NUMBER, BINARY_USHORT_BYTES);
+        PutUnsigned(buffer, capacity, BINARY_HEADER_LIBRARY_VERSION_OFFSET, definition->libraryVersion, BINARY_UCHAR_BYTES);
+        PutUnsigned(buffer, capacity, BINARY_HEADER_SUPPLEMENT_VERSION_OFFSET, definition->supplementVersion, BINARY_UCHAR_BYTES);
+        PutUnsigned(buffer, capacity, BINARY_HEADER_APPLI_IDENT_OFFSET, (uint32_t)application_id, BINARY_USHORT_BYTES);
         // Write no OEM free data
-        PutUnsigned(buffer, capacity, 6, 0, 2);
+        PutUnsigned(buffer, capacity, BINARY_HEADER_OEM_DATA_SIZE_OFFSET, 0, BINARY_USHORT_BYTES);
         if (0 != definition->charsetEncoding)
         {
-            PutUnsigned(buffer, capacity, offset, (BINARY_BEGIN_CHARSET_BLOCK << 24) | definition->charsetEncoding, 4);
-            PutUnsigned(buffer, capacity, offset + 4U, BINARY_END_CHARSET_BLOCK << 24, 4);
+            PutUnsigned(buffer, capacity, offset, (BINARY_BEGIN_CHARSET_BLOCK << BINARY_BLOCK_CODE_SHIFT) | definition->charsetEncoding, BINARY_ULONG_BYTES);
+            PutUnsigned(buffer, capacity, offset + BINARY_CHARSET_END_OFFSET, BINARY_END_CHARSET_BLOCK << BINARY_BLOCK_CODE_SHIFT, BINARY_ULONG_BYTES);
             offset += BINARY_CHARSET_BLOCK_BYTES;
         }
         // Write symbol, picture, and animation law blocks before the layers (Table 4.5.3.2-1)
         for (byte_index = 0; byte_index < definition->blockByteCount; ++byte_index)
         {
-            PutUnsigned(buffer, capacity, offset + byte_index, definition->blocks[byte_index], 1);
+            PutUnsigned(buffer, capacity, offset + byte_index, definition->blocks[byte_index], BINARY_UCHAR_BYTES);
         }
         offset += definition->blockByteCount;
         for (layer_index = 0; layer_index < definition->layerCount; ++layer_index)
@@ -5790,9 +6680,9 @@ uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition
             {
                 break;
             }
-            PutUnsigned(buffer, capacity, layer_offset, BINARY_BEGIN_LAYER_BLOCK, 1);
-            PutUnsigned(buffer, capacity, layer_offset + 1, (uint32_t)layer_id, 1);
-            PutUnsigned(buffer, capacity, layer_offset + 2, (uint32_t)context_number, 2);
+            PutUnsigned(buffer, capacity, layer_offset, BINARY_BEGIN_LAYER_BLOCK, BINARY_UCHAR_BYTES);
+            PutUnsigned(buffer, capacity, layer_offset + BINARY_LAYER_IDENT_OFFSET, (uint32_t)layer_id, BINARY_UCHAR_BYTES);
+            PutUnsigned(buffer, capacity, layer_offset + BINARY_CONTEXT_NUMBER_OFFSET, (uint32_t)context_number, BINARY_USHORT_BYTES);
             offset += BINARY_LAYER_HEADER_BYTES;
             for (widget_index = 0; widget_index < definition->widgetCount; ++widget_index)
             {
@@ -5812,7 +6702,7 @@ uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition
             }
             if (is_valid)
             {
-                PutUnsigned(buffer, capacity, offset, (uint32_t)BINARY_END_LAYER_BLOCK << 24, BINARY_BLOCK_END_BYTES);
+                PutUnsigned(buffer, capacity, offset, (uint32_t)BINARY_END_LAYER_BLOCK << BINARY_BLOCK_CODE_SHIFT, BINARY_BLOCK_END_BYTES);
                 offset   += BINARY_BLOCK_END_BYTES;
                 // Count the block header and the end code in Block Size
                 is_valid  = ((offset - layer_offset) <= UINT32_MAX);
@@ -5821,12 +6711,12 @@ uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition
             {
                 break;
             }
-            PutUnsigned(buffer, capacity, layer_offset + 4, (uint32_t)(offset - layer_offset), 4);
+            PutUnsigned(buffer, capacity, layer_offset + BINARY_BLOCK_SIZE_OFFSET, (uint32_t)(offset - layer_offset), BINARY_ULONG_BYTES);
         }
     }
     if (is_valid)
     {
-        PutUnsigned(buffer, capacity, offset, (uint32_t)BINARY_DF_FOOTER << 24, BINARY_BLOCK_END_BYTES);
+        PutUnsigned(buffer, capacity, offset, (uint32_t)BINARY_DF_FOOTER << BINARY_BLOCK_CODE_SHIFT, BINARY_BLOCK_END_BYTES);
         offset   += BINARY_BLOCK_END_BYTES;
         is_valid  = (offset <= capacity);
     }
@@ -5896,7 +6786,7 @@ bool_t Arinc661_Definition_FindType(const char_t* typeName, bool_t isExtension, 
         count = 0;
         for (field_index = 0; field_index < type->fieldCount; ++field_index)
         {
-            if (NULL != c_binaryFields[type->firstField + field_index].name)
+            if (NULL != type->fields[field_index].name)
             {
                 count += 1;
             }
@@ -5930,7 +6820,7 @@ bool_t Arinc661_Definition_GetParameter(const char_t* typeName, bool_t isExtensi
         named_index = 0;
         for (field_index = 0; field_index < type->fieldCount; ++field_index)
         {
-            field = &c_binaryFields[type->firstField + field_index];
+            field = &type->fields[field_index];
             if (NULL == field->name)
             {
                 continue;
@@ -5946,7 +6836,7 @@ bool_t Arinc661_Definition_GetParameter(const char_t* typeName, bool_t isExtensi
                 parameter->valueCount       = field->valueCount;
                 if (0 != field->repeat)
                 {
-                    parameter->countName = c_binaryFields[type->firstField + field->countField].name;
+                    parameter->countName = type->fields[field->countField].name;
                 }
                 switch (field->type)
                 {

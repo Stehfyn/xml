@@ -16,6 +16,7 @@
 #include "arinc661_context.h"
 #include "arinc661_configuration.h"
 #include "arinc661_gfx_imgui.h"
+#include "arinc661_help.h"
 #include "arinc661_icons.h"
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -4054,7 +4055,7 @@ static void DrawTypeHelp(const char_t* type)
     const char_t* restriction;
     char_t        label[LABEL_FORMAT_BYTES + ARINC661_MAX_NAME_BYTES];
 
-    if (Arinc661_Definition_GetTypeHelp(type, &description, &categories, &restriction))
+    if (Arinc661_Help_GetType(type, &description, &categories, &restriction))
     {
         ImFormatString(label, sizeof(label), ABOUT_FORMAT, type);
         if (ImGui::CollapsingHeader(label, ImGuiTreeNodeFlags_DefaultOpen))
@@ -4093,7 +4094,7 @@ static void DrawParameterTooltip(const Arinc661_Definition_Document_t* document,
         {
             type = document->widgets[ownerIndex].type;
         }
-        description = Arinc661_Definition_GetParameterHelp(type, propertyName, &change);
+        description = Arinc661_Help_GetParameter(type, propertyName, &change);
         if ('\0' != description[0])
         {
             ImGui::BeginTooltip();
@@ -4253,7 +4254,7 @@ static void DrawAddPopup(Arinc661_Definition_Document_t* document)
                         }
                         ImGui::CloseCurrentPopup();
                     }
-                    if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) && Arinc661_Definition_GetTypeHelp(type_name, &description, &categories, &restriction))
+                    if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) && Arinc661_Help_GetType(type_name, &description, &categories, &restriction))
                     {
                         ImGui::BeginTooltip();
                         ImGui::PushTextWrapPos(HELP_WRAP_WIDTH);
@@ -6367,7 +6368,7 @@ static bool_t DrawTypeField(const char_t* label, char_t* type, uint32_t capacity
                 has_changed = TRUE;
             }
             ImGui::EndDisabled();
-            if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) && Arinc661_Definition_GetTypeHelp(Arinc661_Definition_GetTypeName(isExtension, type_index), &description, &categories, &restriction))
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) && Arinc661_Help_GetType(Arinc661_Definition_GetTypeName(isExtension, type_index), &description, &categories, &restriction))
             {
                 ImGui::BeginTooltip();
                 ImGui::PushTextWrapPos(HELP_WRAP_WIDTH);

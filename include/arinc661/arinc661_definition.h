@@ -438,32 +438,6 @@ uint32_t Arinc661_Definition_GetConstantValue(uint32_t constantIndex);
 
 /*************************************************************************************************/
 /**
- * \brief Arinc661_type help.
- *
- * \param type          Widget or extension type name
- * \param description   Description
- * \param categories    Categories
- * \param restriction   Restriction
- *
- * \retval TRUE   if the type has a section.
- * \retval FALSE  otherwise.
- */
-bool_t Arinc661_Definition_GetTypeHelp(const char_t* type, const char_t** description, const char_t** categories, const char_t** restriction);
-
-/*************************************************************************************************/
-/**
- * \brief Arinc661_parameter help.
- *
- * \param type            Widget or extension type name
- * \param parameterName   Parameter name
- * \param change          Change
- *
- * \retval const char_t*   Description, or an empty string.
- */
-const char_t* Arinc661_Definition_GetParameterHelp(const char_t* type, const char_t* parameterName, const char_t** change);
-
-/*************************************************************************************************/
-/**
  * \brief Tells whether an extension may be attached to a widget type.
  *
  * \par Details:

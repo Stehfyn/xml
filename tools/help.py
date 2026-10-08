@@ -1,4 +1,4 @@
-# Generates src/arinc661/arinc661_definition_help.c and help.json from the ARINC 661 Part 1-7 text.
+# Generates examples/arinc661_help.c and help.json from the ARINC 661 Part 1-7 text.
 # Usage: pdftotext -raw ARINC_SPECIFICATION_661P1-7.pdf raw.txt ; python tools/help.py   (run in the folder holding raw.txt)
 import re, json, sys
 raw = open('raw.txt', encoding='utf-8', errors='replace', newline='').read().replace(chr(13), '').split(chr(10))
@@ -111,7 +111,8 @@ out.append('''/*================================================================
 ** 2. INCLUDE FILES
 **===============================================================================================*/
 
-#include "arinc661/arinc661_definition.h"
+#include "arinc661_help.h"
+
 #include "faceoe_utl/faceoe_utl_defines.h"
 
 #include "os/os_assert.h"
@@ -216,7 +217,7 @@ static const HelpWidget_t* FindHelp(const char_t* type)
  * \\par Details:
  *  Empty strings stand for sections the specification does not give.
  */
-bool_t Arinc661_Definition_GetTypeHelp(const char_t* type, const char_t** description, const char_t** categories, const char_t** restriction)
+bool_t Arinc661_Help_GetType(const char_t* type, const char_t** description, const char_t** categories, const char_t** restriction)
 {
     const HelpWidget_t* help;
 
@@ -244,7 +245,7 @@ bool_t Arinc661_Definition_GetTypeHelp(const char_t* type, const char_t** descri
  *  Looks the parameter up in the widget's own table first, then in any table, since the
  *  common parameters of section 3.1.3 are described once per widget.
  */
-const char_t* Arinc661_Definition_GetParameterHelp(const char_t* type, const char_t* parameterName, const char_t** change)
+const char_t* Arinc661_Help_GetParameter(const char_t* type, const char_t* parameterName, const char_t** change)
 {
     const HelpWidget_t* help;
     const char_t*       description;
@@ -292,7 +293,7 @@ const char_t* Arinc661_Definition_GetParameterHelp(const char_t* type, const cha
     return description;
 }
 ''')
-open(r'C:\dev\xml\src\arinc661\arinc661_definition_help.c', 'w', encoding='utf-8', newline='\n').write('\n'.join(out))
+open(r'C:\dev\xml\examples\arinc661_help.c', 'w', encoding='utf-8', newline='\n').write('\n'.join(out))
 print('widgets', len(widgets), 'params', count, file=sys.stderr)
 missing = [c for c in widgets if not widgets[c]['description']]
 print('no description:', missing, file=sys.stderr)
