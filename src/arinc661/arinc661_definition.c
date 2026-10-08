@@ -6437,18 +6437,20 @@ static FACEOE_Utl_Xml_Node_t* NextSubtreeNode(FACEOE_Utl_Xml_Node_t* root, FACEO
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Accepts model, prop, arrayprop, entry, xyentry, structentry, and field, which
- *  are the elements the subtree walk of a layer may meet inside a model.
+ *  Accepts field, structentry, xyentry, entry, arrayprop, prop, and model, which
+ *  are the elements the subtree walk of a layer may meet inside a model. The
+ *  innermost elements come first: a model holds many of them, so most calls
+ *  stop at an early comparison.
  */
 static bool_t IsModelContent(const FACEOE_Utl_Xml_Node_t* node)
 {
-    return HasElementName(node, DF_ELEMENT_MODEL)          || 
-           HasElementName(node, DF_ELEMENT_PROPERTY)       ||
-           HasElementName(node, DF_ELEMENT_ARRAY_PROPERTY) ||
-           HasElementName(node, DF_ELEMENT_ENTRY)          ||
-           HasElementName(node, DF_ELEMENT_XY_ENTRY)       ||
+    return HasElementName(node, DF_ELEMENT_FIELD)          ||
            HasElementName(node, DF_ELEMENT_STRUCT_ENTRY)   ||
-           HasElementName(node, DF_ELEMENT_FIELD);
+           HasElementName(node, DF_ELEMENT_XY_ENTRY)       ||
+           HasElementName(node, DF_ELEMENT_ENTRY)          ||
+           HasElementName(node, DF_ELEMENT_ARRAY_PROPERTY) ||
+           HasElementName(node, DF_ELEMENT_PROPERTY)       ||
+           HasElementName(node, DF_ELEMENT_MODEL);
 }
 
 /*************************************************************************************************/
