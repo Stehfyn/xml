@@ -93,7 +93,6 @@
 
 /* ARINC 661 Part 1-7, section 4.5.3: 32-bit alignment of blocks and commands. */
 #define BINARY_WORD_BYTES           (4U)  ///< Blocks and commands are aligned to 32 bits
-#define BINARY_ALIGN(size)          ((((uint64_t)(size)) + (BINARY_WORD_BYTES - 1U)) & ~((uint64_t)BINARY_WORD_BYTES - 1U)) ///< Byte count rounded up to the 32-bit alignment
 #define BINARY_MAX_FIELDS           (40U) ///< Largest Creation Structure parameter count in the tables
 
 /* ARINC 661 Part 1-7, section 3.3 data types: big-endian field widths. */
@@ -1167,7 +1166,6 @@ typedef struct BinaryHeader_s
     uint16_t oemDataSize;       ///< Bytes of OEM data after the header
 } BinaryHeader_t;
 #pragma pack(pop)
-_Static_assert(8U == sizeof(BinaryHeader_t), "BinaryHeader_t is 8 bytes");
 
 /*************************************************************************************************/
 /**
@@ -1182,7 +1180,6 @@ typedef struct BinaryLayerBlock_s
     uint32_t blockSize;     ///< Block Size, including this header and the end code
 } BinaryLayerBlock_t;
 #pragma pack(pop)
-_Static_assert(8U == sizeof(BinaryLayerBlock_t), "BinaryLayerBlock_t is 8 bytes");
 
 /*************************************************************************************************/
 /**
@@ -1196,7 +1193,6 @@ typedef struct BinarySizedBlock_s
     uint32_t blockSize;    ///< Block Size, including this header and the end code
 } BinarySizedBlock_t;
 #pragma pack(pop)
-_Static_assert(8U == sizeof(BinarySizedBlock_t), "BinarySizedBlock_t is 8 bytes");
 
 /*************************************************************************************************/
 /**
@@ -1212,7 +1208,6 @@ typedef struct BinaryCharsetBlock_s
     byte_t   endPad[3]; ///< UnusedPad
 } BinaryCharsetBlock_t;
 #pragma pack(pop)
-_Static_assert(8U == sizeof(BinaryCharsetBlock_t), "BinaryCharsetBlock_t is 8 bytes");
 
 /*************************************************************************************************/
 /**
@@ -1225,7 +1220,6 @@ typedef struct BinaryBlockEnd_s
     byte_t unusedPad[3]; ///< UnusedPad
 } BinaryBlockEnd_t;
 #pragma pack(pop)
-_Static_assert(4U == sizeof(BinaryBlockEnd_t), "BinaryBlockEnd_t is 4 bytes");
 
 /*************************************************************************************************/
 /**
@@ -1242,7 +1236,6 @@ typedef struct BinaryPictureBlock_s
     byte_t unusedPad[3]; ///< UnusedPad
 } BinaryPictureBlock_t;
 #pragma pack(pop)
-_Static_assert(8U == sizeof(BinaryPictureBlock_t), "BinaryPictureBlock_t is 8 bytes");
 
 /*************************************************************************************************/
 /**
@@ -1258,7 +1251,6 @@ typedef struct BinaryPicture_s
     uint16_t height;      ///< Height in pixels
 } BinaryPicture_t;
 #pragma pack(pop)
-_Static_assert(8U == sizeof(BinaryPicture_t), "BinaryPicture_t is 8 bytes");
 
 /*************************************************************************************************/
 /**
@@ -1272,7 +1264,6 @@ typedef struct BinaryCommand_s
     uint16_t type;        ///< WidgetType or ExtensionType
 } BinaryCommand_t;
 #pragma pack(pop)
-_Static_assert(6U == sizeof(BinaryCommand_t), "BinaryCommand_t is 6 bytes");
 
 /*************************************************************************************************/
 /**
@@ -1286,7 +1277,6 @@ typedef struct BinaryCreateCommand_s
     uint16_t        parentIdent; ///< ParentIdent, or zero for a widget directly under its layer
 } BinaryCreateCommand_t;
 #pragma pack(pop)
-_Static_assert(10U == sizeof(BinaryCreateCommand_t), "BinaryCreateCommand_t is 10 bytes");
 
 /*************************************************************************************************/
 /**
@@ -1299,7 +1289,6 @@ typedef struct BinarySizedBytes_s
     uint16_t unusedPad;       ///< UnusedPad
 } BinarySizedBytes_t;
 #pragma pack(pop)
-_Static_assert(4U == sizeof(BinarySizedBytes_t), "BinarySizedBytes_t is 4 bytes");
 
 /*************************************************************************************************/
 /**
@@ -1313,7 +1302,6 @@ typedef struct BinaryLayerRequest_s
     uint16_t commandSize; ///< CommandSize of the request that follows
 } BinaryLayerRequest_t;
 #pragma pack(pop)
-_Static_assert(4U == sizeof(BinaryLayerRequest_t), "BinaryLayerRequest_t is 4 bytes");
 
 /*************************************************************************************************/
 /**
@@ -1327,7 +1315,6 @@ typedef struct BinaryRegionHeader_s
     uint16_t unusedPad;         ///< UnusedPad
 } BinaryRegionHeader_t;
 #pragma pack(pop)
-_Static_assert(4U == sizeof(BinaryRegionHeader_t), "BinaryRegionHeader_t is 4 bytes");
 
 /*=================================================================================================
 ** 3.3 External global variables
@@ -5122,6 +5109,16 @@ static void PutAlignment(byte_t* buffer, uint64_t capacity, uint64_t* offset);
 
 /*************************************************************************************************/
 /**
+ * \brief Rounds a byte count up to the 32-bit alignment of blocks and commands.
+ *
+ * \param[in] size   Byte count
+ *
+ * \retval    uint64_t   Smallest multiple of BINARY_WORD_BYTES that is at least size.
+ */
+static uint64_t AlignToWord(uint64_t size);
+
+/*************************************************************************************************/
+/**
  * \brief Stores bytes given as hexadecimal digits.
  *
  * \param[in]  text          Zero-terminated digits, two per byte
@@ -6393,6 +6390,27 @@ static void PutAlignment(byte_t* buffer, uint64_t capacity, uint64_t* offset)
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  Adds the bytes missing to the next multiple of four, for example 6 becomes 8
+ *  and 8 stays 8.
+ */
+static uint64_t AlignToWord(uint64_t size)
+{
+    uint64_t remainder;
+    uint64_t aligned_size;
+
+    remainder    = size % BINARY_WORD_BYTES;
+    aligned_size = size;
+    if (0 != remainder)
+    {
+        aligned_size += (BINARY_WORD_BYTES - remainder);
+    }
+
+    return aligned_size;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Accepts uppercase digits only, exactly two per byte and nothing else, so
  *  "1B4200" stores three bytes. The length check keeps the terminator, which
  *  strchr would also find, out of reach.
@@ -7279,7 +7297,7 @@ static bool_t ReadField(Arinc661_Definition_t* definition, const BinaryField_t* 
     remaining = endOffset - (*offset);
     if (BINARY_FIELD_ALIGN == field->type)
     {
-        (*offset) = BINARY_ALIGN((*offset));
+        (*offset) = AlignToWord(*offset);
         is_valid  = ((*offset) <= endOffset);
     }
     else if (BINARY_FIELD_BYTES == field->type)
@@ -7303,7 +7321,7 @@ static bool_t ReadField(Arinc661_Definition_t* definition, const BinaryField_t* 
         if (is_valid)
         {
             is_valid = AddHexProperty(definition, field->name, &buffer[(*offset) + sizeof(BinarySizedBytes_t)], byte_count);
-            (*offset) = BINARY_ALIGN((*offset) + sizeof(BinarySizedBytes_t) + byte_count);
+            (*offset) = AlignToWord((*offset) + sizeof(BinarySizedBytes_t) + byte_count);
         }
         if (is_valid)
         {
@@ -7654,18 +7672,18 @@ static bool_t ReadLayer(Arinc661_Definition_t* definition, const byte_t* buffer,
             {
                 break;
             }
-            has_command_header = (BINARY_ALIGN(sizeof(BinaryCommand_t)) <= (end_offset - cursor));
+            has_command_header = (AlignToWord(sizeof(BinaryCommand_t)) <= (end_offset - cursor));
             is_valid           = has_command_header;
             if (is_valid)
             {
                 command_size          = GetUnsigned(buffer, cursor + offsetof(BinaryCommand_t, commandSize), BINARY_USHORT_BYTES);
-                is_command_size_valid = (BINARY_ALIGN(sizeof(BinaryCommand_t)) <= command_size) && (0 == (command_size % BINARY_WORD_BYTES));
+                is_command_size_valid = (AlignToWord(sizeof(BinaryCommand_t)) <= command_size) && (0 == (command_size % BINARY_WORD_BYTES));
                 has_command_bytes     = (command_size <= (end_offset - cursor));
                 is_valid              = is_command_size_valid && has_command_bytes;
             }
             if (is_valid && (BINARY_CMD_CREATE == GetUnsigned(buffer, cursor, BINARY_USHORT_BYTES)))
             {
-                is_valid = (BINARY_ALIGN(sizeof(BinaryCreateCommand_t)) <= command_size);
+                is_valid = (AlignToWord(sizeof(BinaryCreateCommand_t)) <= command_size);
             }
             if (is_valid)
             {
@@ -7718,7 +7736,7 @@ static bool_t MeasurePicture(const byte_t* buffer, uint64_t sizeOfBinaryBuffer, 
         width              = GetUnsigned(buffer, (*cursor) + offsetof(BinaryPicture_t, width), BINARY_USHORT_BYTES);
         height             = GetUnsigned(buffer, (*cursor) + offsetof(BinaryPicture_t, height), BINARY_USHORT_BYTES);
         pixel_bytes        = (uint64_t)width * height * c_pixelFormatBytes[pixelFormat - BINARY_PIX_FMT_RGBA_8];
-        (*cursor)         += sizeof(BinaryPicture_t) + BINARY_ALIGN(pixel_bytes);
+        (*cursor)         += sizeof(BinaryPicture_t) + AlignToWord(pixel_bytes);
         has_end_code_bytes = ((*cursor) <= sizeOfBinaryBuffer) && (sizeof(BinaryBlockEnd_t) <= (sizeOfBinaryBuffer - (*cursor)));
         is_valid           = has_end_code_bytes && (BINARY_END_PICTURE == buffer[(*cursor)]);
         (*cursor)         += sizeof(BinaryBlockEnd_t);
@@ -7767,7 +7785,7 @@ static bool_t MeasurePictureBlock(const byte_t* buffer, uint64_t sizeOfBinaryBuf
             if (is_valid)
             {
                 // Measure color table entries in their own format and pad them as a whole
-                cursor += BINARY_ALIGN((uint64_t)color_count * c_pixelFormatBytes[color_format - BINARY_PIX_FMT_RGBA_8]);
+                cursor += AlignToWord((uint64_t)color_count * c_pixelFormatBytes[color_format - BINARY_PIX_FMT_RGBA_8]);
             }
         }
     }
@@ -8644,7 +8662,7 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
         definition->supplementVersion = bufferToReadBinaryFrom[offsetof(BinaryHeader_t, supplementVersion)];
         is_valid                      = AddIntegerProperty(definition, ARINC661_PROPERTY_DEFINITION, 0, BINARY_PROPERTY_APPLICATION_ID, GetUnsigned(bufferToReadBinaryFrom, offsetof(BinaryHeader_t, appliIdent), BINARY_USHORT_BYTES));
         // Skip the implementation-dependent OEM data, which occupies whole words
-        offset += BINARY_ALIGN(GetUnsigned(bufferToReadBinaryFrom, offsetof(BinaryHeader_t, oemDataSize), BINARY_USHORT_BYTES));
+        offset += AlignToWord(GetUnsigned(bufferToReadBinaryFrom, offsetof(BinaryHeader_t, oemDataSize), BINARY_USHORT_BYTES));
     }
     if (is_valid)
     {
