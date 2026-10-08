@@ -1,6 +1,7 @@
 #include "faceoe_utl/faceoe_utl_defines.h"
 #include "faceoe_utl/faceoe_utl_print.h"
 #include "faceoe_utl/faceoe_utl_scan.h"
+#include "faceoe_utl/faceoe_utl_tree.h"
 #include "faceoe_utl/faceoe_utl_xml.h"
 
 #include "os/os_diagnostics.h"
@@ -44,6 +45,14 @@ void RunFACEOEGfxTests(void);
  * \retval None
  */
 void RunArinc661SceneTests(void);
+
+/*************************************************************************************************/
+/**
+ * \brief Runs the ARINC 661 renderer tests.
+ *
+ * \retval None
+ */
+void RunArinc661RendererTests(void);
 
 /*************************************************************************************************/
 /**
@@ -567,6 +576,47 @@ static void TestNumberScanning(void)
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  Takes nodes in storage order until the storage is full, then links a root with two children
+ *  and a grandchild and checks every link.
+ */
+static void TestTree(void)
+{
+    FACEOE_Utl_Node_t  nodes[4];
+    FACEOE_Utl_Tree_t  tree;
+    FACEOE_Utl_Node_t* first;
+    FACEOE_Utl_Node_t* second;
+    FACEOE_Utl_Node_t* grandchild;
+    int32_t            items[3];
+
+    FACEOE_Utl_Tree_Initialize(&tree, nodes, COUNT_OF(nodes), NULL);
+    assert(&nodes[0] == tree.root);
+    first      = FACEOE_Utl_Tree_AddNode(&tree, &items[0]);
+    second     = FACEOE_Utl_Tree_AddNode(&tree, &items[1]);
+    grandchild = FACEOE_Utl_Tree_AddNode(&tree, &items[2]);
+    assert(&nodes[1] == first);
+    assert(&nodes[2] == second);
+    assert(&nodes[3] == grandchild);
+    assert(NULL == FACEOE_Utl_Tree_AddNode(&tree, NULL));
+    assert(COUNT_OF(nodes) == tree.nodeCount);
+
+    FACEOE_Utl_Node_AppendChild(tree.root, first);
+    FACEOE_Utl_Node_AppendChild(tree.root, second);
+    FACEOE_Utl_Node_AppendChild(first, grandchild);
+    assert(NULL == tree.root->parent);
+    assert(first == tree.root->firstChild);
+    assert(second == tree.root->lastChild);
+    assert(second == first->nextSibling);
+    assert(NULL == second->nextSibling);
+    assert(tree.root == second->parent);
+    assert(grandchild == first->firstChild);
+    assert(grandchild == first->lastChild);
+    assert(first == grandchild->parent);
+    assert(&items[2] == grandchild->item);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Checks decimal printing of integers and fractions, and text that does not fit.
  */
 static void TestPrint(void)
@@ -609,6 +659,7 @@ int main(void)
     Os_Diagnostics_Initialize();
     TestNumberScanning();
     TestPrint();
+    TestTree();
     TestXmlByteSpans();
     TestXmlNodeInitialization();
     TestDeferredNodeContentValidation();
@@ -622,6 +673,7 @@ int main(void)
     RunFACEOEDisplayManagementTests();
     RunFACEOEGfxTests();
     RunArinc661SceneTests();
+    RunArinc661RendererTests();
     RunArinc661UpdateTests();
     return 0;
 }

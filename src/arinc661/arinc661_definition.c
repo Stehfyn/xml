@@ -9766,26 +9766,29 @@ uint64_t Arinc661_Definition_Write(const Arinc661_Definition_t* definition, byte
     {
         is_valid = AppendIntegerAttribute(&xml, root, XML_ATTRIBUTE_SUPPLEMENT_VERSION, definition->supplementVersion);
     }
-    if (is_valid && (ARINC661_CHARSET_ENCODING_NONE != definition->charsetEncoding))
+    if (is_valid)
     {
-        // Place the charset-encoding element before the model and layers (section 6.2.1)
-        charset_node = AppendElement(&xml, DF_ELEMENT_CHARSET_ENCODING);
-        is_valid     = (NULL != charset_node);
-        if (is_valid)
+        if (ARINC661_CHARSET_ENCODING_NONE != definition->charsetEncoding)
         {
-            is_valid = FALSE;
-            for (charset_index = 0; charset_index < COUNT_OF(c_charsetEncodings); ++charset_index)
+            // Place the charset-encoding element before the model and layers (section 6.2.1)
+            charset_node = AppendElement(&xml, DF_ELEMENT_CHARSET_ENCODING);
+            is_valid     = (NULL != charset_node);
+            if (is_valid)
             {
-                if (definition->charsetEncoding == c_charsetEncodings[charset_index].value)
+                is_valid = FALSE;
+                for (charset_index = 0; charset_index < COUNT_OF(c_charsetEncodings); ++charset_index)
                 {
-                    is_valid = AppendAttribute(&xml, charset_node, XML_ATTRIBUTE_NAME, c_charsetEncodings[charset_index].name);
-                    break;
+                    if (definition->charsetEncoding == c_charsetEncodings[charset_index].value)
+                    {
+                        is_valid = AppendAttribute(&xml, charset_node, XML_ATTRIBUTE_NAME, c_charsetEncodings[charset_index].name);
+                        break;
+                    }
                 }
             }
-        }
-        if (is_valid)
-        {
-            FACEOE_Utl_Xml_AppendChild(root, charset_node);
+            if (is_valid)
+            {
+                FACEOE_Utl_Xml_AppendChild(root, charset_node);
+            }
         }
     }
     if (is_valid)
@@ -9972,7 +9975,7 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
                 is_valid          = has_charset_bytes && (BINARY_END_CHARSET_BLOCK == bufferToReadBinaryFrom[offset + OFFSET_OF(BinaryCharsetBlock_t, endCode)]) && (ARINC661_CHARSET_ENCODING_NONE == definition->charsetEncoding);
                 if (is_valid)
                 {
-                    encoding          = ReadUnsigned(bufferToReadBinaryFrom, offset + OFFSET_OF(BinaryCharsetBlock_t, encoding), BINARY_USHORT_BYTES);
+                    encoding             = ReadUnsigned(bufferToReadBinaryFrom, offset + OFFSET_OF(BinaryCharsetBlock_t, encoding), BINARY_USHORT_BYTES);
                     is_standard_encoding = (ARINC661_CHARSET_ENCODING_ASCII_EXTENDED <= encoding) && (ARINC661_CHARSET_ENCODING_GBK >= encoding);
                     is_oem_encoding      = (ARINC661_CHARSET_ENCODING_OEM_FIRST <= encoding) && (ARINC661_CHARSET_ENCODING_OEM_LAST >= encoding);
                     is_valid             = is_standard_encoding || is_oem_encoding;
@@ -10074,6 +10077,7 @@ uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition
     {
         is_valid = WriteBinaryFooter(bufferToWriteBinaryTo, capacityOfBinaryBuffer, &offset);
     }
+
     if (is_valid)
     {
         byte_count = offset;

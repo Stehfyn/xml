@@ -13,8 +13,8 @@ extern "C"
 {
 #include "faceoe/faceoe_displaymanagement.h"
 #include "faceoe_gfx/faceoe_gfx_drawlist.h"
-#include "arinc661/arinc661_scene.h"
 }
+#include "arinc661_renderer.h"
 
 /*=================================================================================================
 ** 3. DECLARATIONS
@@ -101,7 +101,7 @@ typedef struct Arinc661_Configuration_Editor_s
     int64_t                           dragOriginHeight;                                                                                        ///< pixelArea.height at drag start.
     float32_t                         dragScale;                                                                                               ///< Screen pixels per screen pixel during the drag.
     bool_t                            hasDragged;                                                                                              ///< TRUE once the drag moved the mouse.
-    Arinc661_Scene_Bounds_t           previewBounds[ARINC661_CONFIGURATION_MAX_PREVIEW_BOUNDS];                                                ///< Widget bounds of the previews drawn this frame.
+    Arinc661_Renderer_Bounds_t        previewBounds[ARINC661_CONFIGURATION_MAX_PREVIEW_BOUNDS];                                                ///< Widget bounds of the previews drawn this frame.
     uint32_t                          previewBoundsCount;                                                                                      ///< Bounds recorded this frame.
     uint32_t                          previewDocuments[ARINC661_CONFIGURATION_MAX_PREVIEW_BOUNDS];                                             ///< Definition File document slot of each bound.
     int32_t                           status;                                                                                                  ///< File browser status message.

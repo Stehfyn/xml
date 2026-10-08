@@ -37,39 +37,47 @@
 
 /*************************************************************************************************/
 /**
- * \brief Owner of an ARINC 661 Definition File property.
+ * \brief What a property belongs to: the definition itself, one of its layers, or one of its widgets.
  *
  * \par Details:
- *  Supplement 6 a661Strict.xsd: dfType, layerType, and widgetType each contain a model.
+ *  Selects the array that Arinc661_Property_t.ownerIndex indexes. In the XML form,
+ *  each of the three carries its properties in a model element (a661Strict.xsd
+ *  dfType, layerType, and widgetType).
  */
 typedef enum Arinc661_PropertyOwner_e
 {
-    ARINC661_PROPERTY_DEFINITION,
-    ARINC661_PROPERTY_LAYER,
-    ARINC661_PROPERTY_WIDGET
+    ARINC661_PROPERTY_DEFINITION, ///< The definition itself, such as ApplicationId; ownerIndex is zero
+    ARINC661_PROPERTY_LAYER,      ///< layers[ownerIndex], such as LayerId and ContextNumber
+    ARINC661_PROPERTY_WIDGET      ///< widgets[ownerIndex], such as WidgetIdent and Creation Structure parameter values
 } Arinc661_PropertyOwner_t;
 
 /*************************************************************************************************/
 /**
- * \brief Property in a Definition File model.
+ * \brief One named value owned by the definition, a layer, or a widget.
  *
  * \par Details:
- *  Supplement 6 a661Strict.xsd: modelType/propType, with name and value attributes.
+ *  owner and ownerIndex say which. A widget's properties are its WidgetIdent and
+ *  the values of its Creation Structure parameters, each named after the
+ *  parameter that Arinc661_Parameter_t describes; an array parameter has one
+ *  property per element, all with the array's name, in element order. XML form:
+ *  a661Strict.xsd modelType/propType, with name and value attributes.
  */
 typedef struct Arinc661_Property_s
 {
-    Arinc661_PropertyOwner_t owner;                              ///< Owning model kind
-    uint32_t                 ownerIndex;                         ///< Layer or widget array index; zero for the Definition File
+    Arinc661_PropertyOwner_t owner;                              ///< What the property belongs to
+    uint32_t                 ownerIndex;                         ///< Index into the layers or widgets of the definition; zero for ARINC661_PROPERTY_DEFINITION
     char_t                   name[ARINC661_MAX_NAME_BYTES];      ///< Zero-terminated property name
     char_t                   value[ARINC661_MAX_PROPERTY_BYTES]; ///< Zero-terminated property value
 } Arinc661_Property_t;
 
 /*************************************************************************************************/
 /**
- * \brief Layer in an ARINC 661 Definition File.
+ * \brief One layer of a definition; its widgets point to it through layerIndex.
  *
  * \par Details:
- *  Supplement 6 a661Strict.xsd: dfType/a661_layer (layerType).
+ *  Holds only the name. LayerId and ContextNumber are properties the layer owns.
+ *  Binary form: one layer block (Table 4.5.3.2-4). XML form: a661Strict.xsd
+ *  dfType/a661_layer (layerType).
  */
 typedef struct Arinc661_Layer_s
 {
@@ -78,10 +86,18 @@ typedef struct Arinc661_Layer_s
 
 /*************************************************************************************************/
 /**
- * \brief Widget in an ARINC 661 Definition File.
+ * \brief One widget, or one extension of a widget, in a definition.
  *
  * \par Details:
- *  Supplement 6 a661Strict.xsd: layerType/a661_widget and nested widgetType/a661_widget.
+ *  layerIndex names the layer the widget is in. parentWidgetIndex names the widget
+ *  it is nested in, or is UINT32_MAX for a widget placed directly in its layer. An
+ *  extension (section 8) is an entry with isExtension set whose parentWidgetIndex
+ *  names the widget it extends, and whose type names the extension. A widget's
+ *  values, including its WidgetIdent, and an extension's values are properties
+ *  they own; an extension has no WidgetIdent of its own. Binary
+ *  form: one A661_CMD_CREATE or A661_CMD_EXTEND command (Tables 4.5.3.3.1 and
+ *  4.5.3.3.2). XML form: a661Strict.xsd layerType/a661_widget, the nested
+ *  widgetType/a661_widget, and a661_extension.
  */
 typedef struct Arinc661_Widget_s
 {
@@ -89,17 +105,19 @@ typedef struct Arinc661_Widget_s
     char_t   type[ARINC661_MAX_NAME_BYTES]; ///< Zero-terminated required widget type
     uint32_t layerIndex;                    ///< Array index of the owning layer
     uint32_t parentWidgetIndex;             ///< Earlier parent widget array index, or UINT32_MAX for a direct layer child
-    bool_t   isExtension;                   ///< TRUE for an a661_extension of parentWidgetIndex (Part 1-7, section 8); type names the extension
+    bool_t   isExtension;                   ///< TRUE for an extension of widgets[parentWidgetIndex]; type then names the extension
 } Arinc661_Widget_t;
 
 /*************************************************************************************************/
 /**
- * \brief Charset encoding of a Definition File (Part 1-7, Table 4.6-13).
+ * \brief Character set encoding of a definition's strings (Part 1-7, Table 4.6-13).
  *
  * \par Details:
- *  Section 3.2.5.1: the encoding applies to all string parameters in the
- *  Definition File and to the run-time parameters of its widgets. A file
- *  without a charset encoding uses A661_ASCII_EXTENDED. Values from OEM_FIRST
+ *  A definition has one encoding, Arinc661_Definition_t.charsetEncoding. Per
+ *  section 3.2.5.1, it applies to every string parameter of the definition's
+ *  widgets, both in the file and at run time. Binary form: the charset encoding
+ *  block (Table 4.5.3.2-6). XML form: the charset-encoding element (section
+ *  6.2.1). Without either, strings use A661_ASCII_EXTENDED. Values from OEM_FIRST
  *  to OEM_LAST are implementation-dependent encodings the table reserves.
  */
 typedef enum Arinc661_CharsetEncoding_e
@@ -114,34 +132,7 @@ typedef enum Arinc661_CharsetEncoding_e
 
 /*************************************************************************************************/
 /**
- * \brief Caller-owned ARINC 661 Definition File data.
- *
- * \par Details:
- *  Supplement 6 a661Strict.xsd: a661_df root (dfType), with model and a661_layer children.
- */
-typedef struct Arinc661_Definition_s
-{
-    char_t                     name[ARINC661_MAX_NAME_BYTES]; ///< Zero-terminated optional Definition File name
-    uint32_t                   libraryVersion;                ///< Library version
-    uint32_t                   supplementVersion;             ///< Supplement version
-    Arinc661_Layer_t*          layers;                        ///< Pointer to the caller's layer array
-    Arinc661_Widget_t*         widgets;                       ///< Pointer to the caller's widget array
-    Arinc661_Property_t*       properties;                    ///< Pointer to the caller's property array
-    uint32_t                   layerCapacity;                 ///< Layer slots
-    uint32_t                   widgetCapacity;                ///< Widget slots
-    uint32_t                   propertyCapacity;              ///< Property slots
-    uint32_t                   layerCount;                    ///< Layers in use
-    uint32_t                   widgetCount;                   ///< Widgets in use
-    uint32_t                   propertyCount;                 ///< Properties in use
-    Arinc661_CharsetEncoding_t charsetEncoding;               ///< Charset encoding, or ARINC661_CHARSET_ENCODING_NONE when none is given
-    byte_t*                    blocks;                        ///< Pointer to the caller's storage for binary symbol, picture, and animation law blocks, kept byte for byte
-    uint64_t                   blockCapacity;                 ///< Block storage bytes
-    uint64_t                   blockByteCount;                ///< Block storage bytes in use
-} Arinc661_Definition_t;
-
-/*************************************************************************************************/
-/**
- * \brief Binary encoding of a Creation Structure parameter (Part 1-7, section 3.3 data types).
+ * \brief How a Creation Structure parameter is encoded in the binary form (Part 1-7, section 3.3 data types).
  */
 typedef enum Arinc661_ParameterKind_e
 {
@@ -161,11 +152,18 @@ typedef enum Arinc661_ParameterKind_e
 
 /*************************************************************************************************/
 /**
- * \brief One named parameter of a widget or extension Creation Structure.
+ * \brief Description of one parameter of a widget or extension type's Creation Structure.
+ *
+ * \par Details:
+ *  Describes a parameter, not a value: Arinc661_Definition_GetParameter returns one
+ *  per row of the type's Creation Structure table (sections 3 and 8). A widget's
+ *  value for the parameter is the property it owns with the same name. An array
+ *  parameter is counted by the parameter named countName, with elementsPerEntry
+ *  elements per entry.
  */
 typedef struct Arinc661_Parameter_s
 {
-    const char_t*            name;             ///< Property name
+    const char_t*            name;             ///< Parameter name, which is also the name of the property holding its value
     Arinc661_ParameterKind_t kind;             ///< Binary encoding
     uint32_t                 byteCount;        ///< Bytes of an ARINC661_PARAMETER_BYTES value
     uint32_t                 elementsPerEntry; ///< Array elements per counted entry; zero for a single value

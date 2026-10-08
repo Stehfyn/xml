@@ -4422,18 +4422,21 @@ static void DrawScenePane(Arinc661_Configuration_Editor_t* owner, Arinc661_Confi
                 // In play mode a click acts on the previewed widget as a CDS would
                 if (is_canvas_hovered && owner->context->definitionEditor->isPlaying && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && (NULL != owner->context))
                 {
-                    FACEOE_Gfx_Point_t play_point;
-                    uint32_t           play_index;
-                    uint32_t           play_slot;
+                    const Arinc661_Widget_t*     play_widget;
+                    const Arinc661_Definition_t* play_model;
+                    FACEOE_Gfx_Point_t           play_point;
+                    uint32_t                     play_slot;
 
                     play_point.x = mouse_position.x;
                     play_point.y = mouse_position.y;
-                    play_index   = Arinc661_Scene_Pick(owner->previewBounds, owner->previewBoundsCount, play_point);
-                    for (play_slot = 0; (ARINC661_SCENE_NO_WIDGET != play_index) && (play_slot < owner->previewBoundsCount); ++play_slot)
+                    play_widget  = Arinc661_Renderer_Pick(owner->previewBounds, owner->previewBoundsCount, play_point);
+                    for (play_slot = 0; (NULL != play_widget) && (play_slot < owner->previewBoundsCount); ++play_slot)
                     {
-                        if (owner->previewBounds[play_slot].widgetIndex == play_index)
+                        if (owner->previewBounds[play_slot].widget == play_widget)
                         {
-                            (void)Arinc661_DefinitionEditor_Interact(owner->context->definitionEditor, owner->previewDocuments[play_slot], play_index,
+                            // The bounds point into the widgets of the document they were drawn from
+                            play_model = Arinc661_DefinitionEditor_Document(owner->context->definitionEditor, owner->previewDocuments[play_slot]);
+                            (void)Arinc661_DefinitionEditor_Interact(owner->context->definitionEditor, owner->previewDocuments[play_slot], (uint32_t)(play_widget - play_model->widgets),
                                                                (mouse_position.x - owner->previewBounds[play_slot].minimum.x) / ImMax(1.0f, owner->previewBounds[play_slot].maximum.x - owner->previewBounds[play_slot].minimum.x),
                                                                (owner->previewBounds[play_slot].maximum.y - mouse_position.y) / ImMax(1.0f, owner->previewBounds[play_slot].maximum.y - owner->previewBounds[play_slot].minimum.y));
                             break;
@@ -4443,20 +4446,22 @@ static void DrawScenePane(Arinc661_Configuration_Editor_t* owner, Arinc661_Confi
                 // A double-click on a previewed widget opens it in the Definition File editor
                 if (is_canvas_hovered && (FALSE == owner->context->definitionEditor->isPlaying) && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && (NULL != owner->context))
                 {
-                    FACEOE_Gfx_Point_t pick_point;
-                    uint32_t           pick_index;
-                    uint32_t           pick_slot;
+                    const Arinc661_Widget_t*     pick_widget;
+                    const Arinc661_Definition_t* pick_model;
+                    FACEOE_Gfx_Point_t           pick_point;
+                    uint32_t                     pick_slot;
 
                     pick_point.x = mouse_position.x;
                     pick_point.y = mouse_position.y;
-                    pick_index   = Arinc661_Scene_Pick(owner->previewBounds, owner->previewBoundsCount, pick_point);
-                    if (ARINC661_SCENE_NO_WIDGET != pick_index)
+                    pick_widget  = Arinc661_Renderer_Pick(owner->previewBounds, owner->previewBoundsCount, pick_point);
+                    if (NULL != pick_widget)
                     {
                         for (pick_slot = 0; pick_slot < owner->previewBoundsCount; ++pick_slot)
                         {
-                            if (owner->previewBounds[pick_slot].widgetIndex == pick_index)
+                            if (owner->previewBounds[pick_slot].widget == pick_widget)
                             {
-                                Arinc661_DefinitionEditor_SelectWidget(owner->context->definitionEditor, owner->previewDocuments[pick_slot], pick_index);
+                                pick_model = Arinc661_DefinitionEditor_Document(owner->context->definitionEditor, owner->previewDocuments[pick_slot]);
+                                Arinc661_DefinitionEditor_SelectWidget(owner->context->definitionEditor, owner->previewDocuments[pick_slot], (uint32_t)(pick_widget - pick_model->widgets));
                                 owner->context->isDefinitionFocused = TRUE;
                                 owner->context->hasFocusRequest     = TRUE;
                                 break;
@@ -5222,6 +5227,7 @@ static float32_t PixelsPerLayerUnit(const FACEOE_DisplayManagement_Screen_t* scr
 static void DrawWindowPreview(Arinc661_Configuration_Editor_t* editor, Arinc661_Configuration_Document_t* document, const FACEOE_DisplayManagement_Screen_t* screen, const FACEOE_DisplayManagement_Window_t* window, ImVec2 areaMin, ImVec2 areaMax, float32_t scale, ImDrawList* drawList)
 {
     const FACEOE_DisplayManagement_UserApplication_t* application;
+    const Arinc661_Definition_t*                      model;
     FACEOE_Gfx_Transform_t                            transform;
     FACEOE_Gfx_Point_t                                minimum;
     FACEOE_Gfx_Point_t                                maximum;
@@ -5267,9 +5273,10 @@ static void DrawWindowPreview(Arinc661_Configuration_Editor_t* editor, Arinc661_
                     // Outline the widget selected in the Definition File editor so both views agree
                     if (Arinc661_DefinitionEditor_SelectedWidgetIndex(editor->context->definitionEditor, document_index, &selected_widget))
                     {
+                        model = Arinc661_DefinitionEditor_Document(editor->context->definitionEditor, document_index);
                         for (bounds_index = 0; bounds_index < bounds_count; ++bounds_index)
                         {
-                            if (editor->previewBounds[editor->previewBoundsCount - bounds_count + bounds_index].widgetIndex == selected_widget)
+                            if (editor->previewBounds[editor->previewBoundsCount - bounds_count + bounds_index].widget == &model->widgets[selected_widget])
                             {
                                 drawList->AddRect(ImVec2(editor->previewBounds[editor->previewBoundsCount - bounds_count + bounds_index].minimum.x, editor->previewBounds[editor->previewBoundsCount - bounds_count + bounds_index].minimum.y), ImVec2(editor->previewBounds[editor->previewBoundsCount - bounds_count + bounds_index].maximum.x, editor->previewBounds[editor->previewBoundsCount - bounds_count + bounds_index].maximum.y), SCENE_TEXT_COLOR, 0.0f, 0, 2.0f);
                             }

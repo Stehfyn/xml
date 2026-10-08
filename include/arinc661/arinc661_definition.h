@@ -37,6 +37,47 @@
 ** 3.2 Types
 **===============================================================================================*/
 
+/*************************************************************************************************/
+/**
+ * \brief One ARINC 661 definition: its layers, its widgets, and the properties of all three, in caller-owned arrays.
+ *
+ * \par Details:
+ *  Read from and written to a Definition File in the XML form (a661Strict.xsd
+ *  a661_df root, dfType) or the binary form (Table 4.5.3.2-1). The arrays are flat;
+ *  widgets point to their layer and parent widget by array index, and properties
+ *  to their owner, which together describe the tree:
+ *
+ * \verbatim
+ * definition         properties[] with owner DEFINITION              ApplicationId
+ *   layers[i]        properties[] with owner LAYER, ownerIndex i     LayerId, ContextNumber
+ *     widgets[j]     layerIndex i, parentWidgetIndex UINT32_MAX      properties[] with owner WIDGET, ownerIndex j
+ *       widgets[k]   layerIndex i, parentWidgetIndex j               a widget nested in widgets[j]
+ *       widgets[m]   layerIndex i, parentWidgetIndex j, isExtension  an extension of widgets[j]
+ * \endverbatim
+ *
+ *  The binary form's symbol, picture, and animation law blocks are kept byte for
+ *  byte in blocks.
+ */
+typedef struct Arinc661_Definition_s
+{
+    char_t                     name[ARINC661_MAX_NAME_BYTES]; ///< Zero-terminated optional name of the definition
+    uint32_t                   libraryVersion;                ///< Library version
+    uint32_t                   supplementVersion;             ///< Supplement version
+    Arinc661_Layer_t*          layers;                        ///< Pointer to the caller's layer array
+    Arinc661_Widget_t*         widgets;                       ///< Pointer to the caller's widget array
+    Arinc661_Property_t*       properties;                    ///< Pointer to the caller's property array
+    uint32_t                   layerCapacity;                 ///< Layer slots
+    uint32_t                   widgetCapacity;                ///< Widget slots
+    uint32_t                   propertyCapacity;              ///< Property slots
+    uint32_t                   layerCount;                    ///< Layers in use
+    uint32_t                   widgetCount;                   ///< Widgets in use
+    uint32_t                   propertyCount;                 ///< Properties in use
+    Arinc661_CharsetEncoding_t charsetEncoding;               ///< Charset encoding, or ARINC661_CHARSET_ENCODING_NONE when none is given
+    byte_t*                    blocks;                        ///< Pointer to the caller's storage for the binary form's symbol, picture, and animation law blocks
+    uint64_t                   blockCapacity;                 ///< Block storage bytes
+    uint64_t                   blockByteCount;                ///< Block storage bytes in use
+} Arinc661_Definition_t;
+
 /*=================================================================================================
 ** 3.3 Constants
 **===============================================================================================*/

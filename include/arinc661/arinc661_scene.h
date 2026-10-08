@@ -6,11 +6,11 @@
 **===============================================================================================*/
 
 /**
- * ARINC 661 Part 1-7, section 2.3.4: origins at the lower-left corner, X right, Y up, angles in
- * degrees counter-clockwise from +X, screen units of 0.01 mm. Section 3.2.3: a container's
- * children are positioned from its reference point and inherit its Visible and Enable states.
- * Section 3.2.6: formatted numeric values. Sections 3.3 to 3.10: the Creation Structure of
- * every widget drawn here.
+ * ARINC 661 Part 1-7, section 3.2.3: a layer holds widgets, a container widget holds child
+ * widgets, and section 8: an extension belongs to the widget it extends.
+ * J661-hosted Supplement 6 strict XML Definition File schema (a661Strict.xsd), whose
+ * dfType, layerType, and widgetType each hold a model element of properties:
+ * https://j661.sourceforge.net/articles/articles/resources/a661Strict.xsd
  */
 
 /*=================================================================================================
@@ -18,7 +18,7 @@
 **===============================================================================================*/
 
 #include "arinc661/arinc661.h"
-#include "faceoe_gfx/faceoe_gfx_drawlist.h"
+#include "faceoe_utl/faceoe_utl_tree.h"
 
 /*=================================================================================================
 ** 3. DECLARATIONS
@@ -26,7 +26,8 @@
 ** 3.1 Macros
 **===============================================================================================*/
 
-#define ARINC661_SCENE_NO_WIDGET (UINT32_MAX)
+/** Nodes a scene of the given layer, widget, and property counts needs: the root and its model node, a node and a model node per layer and per widget, and a node per property. */
+#define ARINC661_SCENE_NODE_COUNT(layerCount, widgetCount, propertyCount) (2UL + (2UL * (layerCount)) + (2UL * (widgetCount)) + (propertyCount))
 
 /*=================================================================================================
 ** 3.2 Types
@@ -34,32 +35,26 @@
 
 /*************************************************************************************************/
 /**
- * \brief Output-space bounds of one drawn widget.
+ * \brief The layer and widget hierarchy of one application, as a tree.
+ *
+ * \par Details:
+ *  The root stands for the application. Each layer, widget, and extension is a node whose item points to
+ *  its Arinc661_Layer_t or Arinc661_Widget_t, and whose first child is its model node. A model
+ *  node has a NULL item, and its children are property nodes whose items point to the
+ *  Arinc661_Property_t it owns, in array order:
+ *
+ * \verbatim
+ * root                        item NULL
+ *   model                     properties with owner ARINC661_PROPERTY_DEFINITION, such as ApplicationId
+ *   layer                     item Arinc661_Layer_t
+ *     model                   LayerId, ContextNumber, Width, Height
+ *     widget                  item Arinc661_Widget_t, placed directly in the layer
+ *       model                 WidgetIdent and the Creation Structure values
+ *       widget                a widget nested in the one above
+ *       widget                an extension of the one above; isExtension is set
+ * \endverbatim
  */
-typedef struct Arinc661_Scene_Bounds_s
-{
-    uint32_t           widgetIndex; ///< Widget array index
-    FACEOE_Gfx_Point_t minimum;     ///< Top-left in output units
-    FACEOE_Gfx_Point_t maximum;     ///< Bottom-right in output units
-} Arinc661_Scene_Bounds_t;
-
-/*************************************************************************************************/
-/**
- * \brief How a layer is drawn, and where its widget bounds are reported.
- */
-typedef struct Arinc661_Scene_Options_s
-{
-    bool_t                   showsHidden;       ///< TRUE to draw invisible subtrees, inactive pages, and closed pop-ups faded instead of skipping them
-    bool_t                   showsNames;        ///< TRUE to label every widget with its name
-    bool_t                   showsNonGraphical; ///< TRUE to draw widgets without geometry as chips along the layer's left edge
-    bool_t                   fillsLayerArea;    ///< TRUE to fill the layer's Width by Height area
-    float32_t                fontSize;          ///< Host font size in output units
-    Arinc661_Scene_Bounds_t* bounds;            ///< Caller's bounds storage, or NULL
-    uint32_t                 boundsCapacity;    ///< Bounds slots
-    uint32_t                 boundsCount;       ///< Result: bounds written, in drawing order
-    const byte_t*            skipFlags;         ///< Per-widget non-zero to leave the widget and its subtree out, or NULL
-    float32_t                animationTime;     ///< Seconds into the layer's animations, or negative to draw the rest state
-} Arinc661_Scene_Options_t;
+typedef FACEOE_Utl_Tree_t Arinc661_Scene_t;
 
 /*=================================================================================================
 ** 3.3 Constants
@@ -75,63 +70,34 @@ typedef struct Arinc661_Scene_Options_s
 
 /*************************************************************************************************/
 /**
- * \brief Records one layer of a Definition File, with every widget it holds, into a draw list.
+ * \brief Builds a scene from layers, widgets, and properties, in caller-owned nodes.
+ *
+ * \par Requirements:
+ *  - 001 This function shall place layers, widgets, and properties in array order.
+ *  - 002 This function shall leave out a widget whose layer, or whose parent widget, is not an earlier array entry in the same layer, and every widget below it.
+ *  - 003 This function shall leave out a widget whose omit flag is non-zero, and every widget below it.
+ *  - 004 This function shall leave out a property whose owner is not in the arrays.
+ *  - 005 This function shall return FALSE, with only the root in the scene, if nodeCapacity is less than ARINC661_SCENE_NODE_COUNT of the counts.
+ *  - 006 This function shall fail an assertion if scene or nodes is NULL, nodeCapacity is zero, or an array is NULL with a non-zero count.
  *
  * \par Details:
- *  The draw list's current transform maps layer units (0.01 mm, Y up) to output units; the
- *  caller sets it before the call. Widgets are recorded in array order, children after their
- *  container, so later widgets overdraw earlier ones as in section 3.1.4.
+ *  The scene points into the arrays and the nodes; the caller keeps them unchanged while the
+ *  scene is used, and builds the scene again after changing them.
  *
- * \param[in]     definition   Definition File values
- * \param[in]     layerIndex   Layer to draw
- * \param[in,out] drawList     Target draw list
- * \param[in,out] options      Drawing options and bounds output
+ * \param[out] scene           Scene to build
+ * \param[out] nodes           Caller-owned node storage for the scene's tree
+ * \param[in]  nodeCapacity    Number of nodes
+ * \param[in]  layers          Layers
+ * \param[in]  layerCount      Number of layers
+ * \param[in]  widgets         Widgets and extensions
+ * \param[in]  widgetCount     Number of widgets and extensions
+ * \param[in]  properties      Properties of the application, the layers, and the widgets
+ * \param[in]  propertyCount   Number of properties
+ * \param[in]  omitFlags       Per-widget non-zero to leave the widget and everything below it out, or NULL
  *
- * \retval        None
+ * \retval     TRUE            if the scene was built.
+ * \retval     FALSE           if the nodes are too few.
  */
-void Arinc661_Scene_DrawLayer(const Arinc661_Definition_t* definition, uint32_t layerIndex, FACEOE_Gfx_DrawList_t* drawList, Arinc661_Scene_Options_t* options);
-
-/*************************************************************************************************/
-/**
- * \brief Finds the smallest recorded bounds containing a point.
- *
- * \param[in] bounds   Bounds written by Arinc661_Scene_DrawLayer
- * \param[in] count    Number of bounds
- * \param[in] point    Output-space point
- *
- * \retval    uint32_t   Widget index, or ARINC661_SCENE_NO_WIDGET.
- */
-uint32_t Arinc661_Scene_Pick(const Arinc661_Scene_Bounds_t* bounds, uint32_t count, FACEOE_Gfx_Point_t point);
-
-/*************************************************************************************************/
-/**
- * \brief Formats a numeric value through an ARINC 661 format string.
- *
- * \par Details:
- *  Part 1-7, section 3.2.6: `#` always shows a digit, `_` shows only significant digits,
- *  `~` replaces insignificant digits with a figure space, `+` places the sign, `.` separates
- *  the parts, and any other character is a mask character.
- *
- * \param[in]  format     Format string
- * \param[in]  value      Value to format
- * \param[out] text       Formatted text
- * \param[in]  capacity   Bytes available in text
- *
- * \retval     None
- */
-void Arinc661_Scene_FormatNumber(const char_t* format, float64_t value, char_t* text, uint32_t capacity);
-
-/*************************************************************************************************/
-/**
- * \brief Reads a layer's Width and Height in 0.01 mm.
- *
- * \param[in]  definition   Definition File values
- * \param[in]  layerIndex   Layer
- * \param[out] width        Width, at least 1
- * \param[out] height       Height, at least 1
- *
- * \retval     None
- */
-void Arinc661_Scene_LayerSize(const Arinc661_Definition_t* definition, uint32_t layerIndex, float32_t* width, float32_t* height);
+bool_t Arinc661_Scene_Build(Arinc661_Scene_t* scene, FACEOE_Utl_Node_t* nodes, uint32_t nodeCapacity, const Arinc661_Layer_t* layers, uint32_t layerCount, const Arinc661_Widget_t* widgets, uint32_t widgetCount, const Arinc661_Property_t* properties, uint32_t propertyCount, const byte_t* omitFlags);
 
 #endif /* ARINC661_SCENE_H */

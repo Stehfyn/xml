@@ -14,10 +14,6 @@
 #include "arinc661_context.h"
 #include "arinc661_definition_editor.h"
 
-extern "C"
-{
-#include "arinc661/arinc661_scene.h"
-}
 #include "arinc661_configuration.h"
 #include "arinc661_definition_editor.h"
 
@@ -318,6 +314,8 @@ uint32_t Arinc661_Context_Check(Arinc661_Context_t* context)
     const Arinc661_Definition_t*       model;
     const char_t*                      document_name;
     const char_t*                      window_name;
+    const char_t*                      layer_id;
+    const char_t*                      layer_name;
     char_t                             text[ARINC661_CONTEXT_MAX_PROBLEM_BYTES];
     float32_t                          layer_width;
     float32_t                          layer_height;
@@ -388,7 +386,7 @@ uint32_t Arinc661_Context_Check(Arinc661_Context_t* context)
                 model = Arinc661_DefinitionEditor_Document(context->definitionEditor, definition.documentIndex);
                 for (layer_index = 0; (NULL != model) && (layer_index < model->layerCount); ++layer_index)
                 {
-                    Arinc661_Scene_LayerSize(model, layer_index, &layer_width, &layer_height);
+                    (void)Arinc661_DefinitionEditor_LayerAt(context->definitionEditor, definition.documentIndex, layer_index, &layer_id, &layer_name, &layer_width, &layer_height);
                     if ((layer_width > ((float32_t)pixel_width * units_per_pixel_x * 1.001f)) || (layer_height > ((float32_t)pixel_height * units_per_pixel_y * 1.001f)))
                     {
                         (void)snprintf(text, sizeof(text), "%s layer %u is %.0f x %.0f but window %lld of %s holds %.0f x %.0f (0.01 mm); the layer will be cut off.", application.dFPath, (unsigned)layer_index, (float64_t)layer_width, (float64_t)layer_height, (long long)application.windowId, application.documentName, (float64_t)((float32_t)pixel_width * units_per_pixel_x), (float64_t)((float32_t)pixel_height * units_per_pixel_y));

@@ -564,6 +564,12 @@ static const Arinc661_Parameter_t c_ucharParameter  = {NULL, ARINC661_PARAMETER_
 static const Arinc661_Parameter_t c_ushortParameter = {NULL, ARINC661_PARAMETER_USHORT, 0, 0, NULL, NULL, 0};
 static const Arinc661_Parameter_t c_ulongParameter  = {NULL, ARINC661_PARAMETER_ULONG,  0, 0, NULL, NULL, 0};
 
+/*************************************************************************************************/
+/**
+ * \brief Node storage for the scene of the document being drawn; each draw builds the scene again.
+ */
+static FACEOE_Utl_Node_t s_sceneNodes[ARINC661_SCENE_NODE_COUNT(ARINC661_DEFINITION_EDITOR_MAX_LAYERS, ARINC661_DEFINITION_EDITOR_MAX_WIDGETS, ARINC661_DEFINITION_EDITOR_MAX_PROPERTIES)];
+
 /*=================================================================================================
 ** 3.5 Static function prototypes
 **===============================================================================================*/
@@ -1413,6 +1419,40 @@ static void DrawRulers(ImDrawList* drawList, ImVec2 canvasMin, ImVec2 canvasMax,
  * \retval None
  */
 static void DrawSceneInteraction(Arinc661_DefinitionEditor_Document_t* document, uint32_t layerIndex, ImVec2 layerMin, ImVec2 layerMax, float32_t scale, ImDrawList* drawList, bool_t isCanvasHovered);
+
+/*************************************************************************************************/
+/**
+ * \brief Builds the scene of a document in the shared scene storage.
+ *
+ * \param[in]  document      Document
+ * \param[in]  omitsHidden   TRUE to leave out the widgets hidden in the editor
+ * \param[out] scene         Scene
+ *
+ * \retval     None
+ */
+static void BuildScene(const Arinc661_DefinitionEditor_Document_t* document, bool_t omitsHidden, Arinc661_Scene_t* scene);
+
+/*************************************************************************************************/
+/**
+ * \brief Returns the array index of the widget a bounds entry of the document's scene reports.
+ *
+ * \param[in] document   Document the bounds were drawn from
+ * \param[in] bounds     Bounds entry
+ *
+ * \retval    uint32_t   Widget array index.
+ */
+static uint32_t GetBoundsWidgetIndex(const Arinc661_DefinitionEditor_Document_t* document, const Arinc661_Renderer_Bounds_t* bounds);
+
+/*************************************************************************************************/
+/**
+ * \brief Picks the smallest widget under a point in the last scene drawn of the document.
+ *
+ * \param[in] document   Document
+ * \param[in] point      Screen point
+ *
+ * \retval    uint32_t   Widget array index, or INVALID_HIERARCHY_INDEX.
+ */
+static uint32_t PickWidget(const Arinc661_DefinitionEditor_Document_t* document, FACEOE_Gfx_Point_t point);
 
 /*************************************************************************************************/
 /**
@@ -5063,6 +5103,55 @@ static void DrawSceneToolbar(Arinc661_DefinitionEditor_Document_t* document, uin
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  Hidden widgets are omitted with everything below them, as the editor hides a subtree.
+ */
+static void BuildScene(const Arinc661_DefinitionEditor_Document_t* document, bool_t omitsHidden, Arinc661_Scene_t* scene)
+{
+    const byte_t* omit_flags;
+    bool_t        is_built;
+
+    omit_flags = NULL;
+    if (omitsHidden)
+    {
+        omit_flags = document->isHiddenInEditor;
+    }
+    is_built = Arinc661_Scene_Build(scene, s_sceneNodes, COUNT_OF(s_sceneNodes), document->layers, document->definition.layerCount, document->widgets, document->definition.widgetCount, document->properties, document->definition.propertyCount, omit_flags);
+    LOGASSERT(is_built);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The bounds point into the document's widget array, so the offset is the index.
+ */
+static uint32_t GetBoundsWidgetIndex(const Arinc661_DefinitionEditor_Document_t* document, const Arinc661_Renderer_Bounds_t* bounds)
+{
+    return (uint32_t)(bounds->widget - document->widgets);
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The owner's scene bounds are those of the document's scene pane.
+ */
+static uint32_t PickWidget(const Arinc661_DefinitionEditor_Document_t* document, FACEOE_Gfx_Point_t point)
+{
+    const Arinc661_Widget_t* widget;
+    uint32_t                 widget_index;
+
+    widget       = Arinc661_Renderer_Pick(document->owner->sceneBounds, document->owner->sceneBoundsCount, point);
+    widget_index = INVALID_HIERARCHY_INDEX;
+    if (NULL != widget)
+    {
+        widget_index = (uint32_t)(widget - document->widgets);
+    }
+
+    return widget_index;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Direct manipulation on the scene canvas. A press selects the smallest widget under the
  *  cursor and starts a move; a press on a corner handle of the selected widget starts a
  *  resize; the arrow keys nudge PosX and PosY; Delete removes the selection; a right-click
@@ -5070,31 +5159,32 @@ static void DrawSceneToolbar(Arinc661_DefinitionEditor_Document_t* document, uin
  */
 static void DrawSceneInteraction(Arinc661_DefinitionEditor_Document_t* document, uint32_t layerIndex, ImVec2 layerMin, ImVec2 layerMax, float32_t scale, ImDrawList* drawList, bool_t isCanvasHovered)
 {
-    Arinc661_DefinitionEditor_t*   owner;
-    const Arinc661_Scene_Bounds_t* bounds;
-    FACEOE_Gfx_Point_t             mouse_point;
-    ImVec2                         mouse;
-    ImVec2                         corners[4];
-    ImVec2                         marquee_min;
-    ImVec2                         marquee_max;
-    ImVec2                         selected_min;
-    ImVec2                         selected_max;
-    float32_t                      delta_x;
-    float32_t                      delta_y;
-    float32_t                      step;
-    float32_t                      value;
-    float32_t                      width;
-    float32_t                      height;
-    uint32_t                       hit_index;
-    uint32_t                       bounds_index;
-    uint32_t                       corner;
-    int32_t                        hover_mode;
-    bool_t                         has_selected_bounds;
-    bool_t                         has_position;
-    bool_t                         has_size;
-    bool_t                         has_angle;
-    ImVec2                         rotate_handle;
-    ImVec2                         center;
+    Arinc661_DefinitionEditor_t*      owner;
+    const Arinc661_Renderer_Bounds_t* bounds;
+    FACEOE_Gfx_Point_t                mouse_point;
+    ImVec2                            mouse;
+    ImVec2                            corners[4];
+    ImVec2                            marquee_min;
+    ImVec2                            marquee_max;
+    ImVec2                            selected_min;
+    ImVec2                            selected_max;
+    float32_t                         delta_x;
+    float32_t                         delta_y;
+    float32_t                         step;
+    float32_t                         value;
+    float32_t                         width;
+    float32_t                         height;
+    uint32_t                          hit_index;
+    uint32_t                          bounds_index;
+    uint32_t                          bounds_widget_index;
+    uint32_t                          corner;
+    int32_t                           hover_mode;
+    bool_t                            has_selected_bounds;
+    bool_t                            has_position;
+    bool_t                            has_size;
+    bool_t                            has_angle;
+    ImVec2                            rotate_handle;
+    ImVec2                            center;
 
     owner               = document->owner;
     mouse               = ImGui::GetMousePos();
@@ -5113,7 +5203,7 @@ static void DrawSceneInteraction(Arinc661_DefinitionEditor_Document_t* document,
         for (bounds_index = 0; bounds_index < owner->sceneBoundsCount; ++bounds_index)
         {
             bounds = &owner->sceneBounds[bounds_index];
-            if (document->selectedIndex == bounds->widgetIndex)
+            if (document->selectedIndex == GetBoundsWidgetIndex(document, bounds))
             {
                 selected_min        = ImVec2(bounds->minimum.x, bounds->minimum.y);
                 selected_max        = ImVec2(bounds->maximum.x, bounds->maximum.y);
@@ -5123,8 +5213,9 @@ static void DrawSceneInteraction(Arinc661_DefinitionEditor_Document_t* document,
     }
     for (bounds_index = 0; bounds_index < owner->sceneBoundsCount; ++bounds_index)
     {
-        bounds = &owner->sceneBounds[bounds_index];
-        if ((bounds->widgetIndex < document->definition.widgetCount) && document->isSelected[bounds->widgetIndex] && ((SELECTION_WIDGET != document->selectedKind) || (bounds->widgetIndex != document->selectedIndex)))
+        bounds              = &owner->sceneBounds[bounds_index];
+        bounds_widget_index = GetBoundsWidgetIndex(document, bounds);
+        if ((bounds_widget_index < document->definition.widgetCount) && document->isSelected[bounds_widget_index] && ((SELECTION_WIDGET != document->selectedKind) || (bounds_widget_index != document->selectedIndex)))
         {
             drawList->AddRect(ImVec2(bounds->minimum.x, bounds->minimum.y), ImVec2(bounds->maximum.x, bounds->maximum.y), SCENE_MARQUEE_BORDER);
         }
@@ -5185,12 +5276,12 @@ static void DrawSceneInteraction(Arinc661_DefinitionEditor_Document_t* document,
     // Outline the widget under the cursor so the pick target is visible before clicking
     if (isCanvasHovered && (DRAG_NONE == owner->dragMode) && (DRAG_NONE == hover_mode))
     {
-        hit_index = Arinc661_Scene_Pick(owner->sceneBounds, owner->sceneBoundsCount, mouse_point);
-        if ((ARINC661_SCENE_NO_WIDGET != hit_index) && ((SELECTION_WIDGET != document->selectedKind) || (hit_index != document->selectedIndex)))
+        hit_index = PickWidget(document, mouse_point);
+        if ((INVALID_HIERARCHY_INDEX != hit_index) && ((SELECTION_WIDGET != document->selectedKind) || (hit_index != document->selectedIndex)))
         {
             for (bounds_index = 0; bounds_index < owner->sceneBoundsCount; ++bounds_index)
             {
-                if (hit_index == owner->sceneBounds[bounds_index].widgetIndex)
+                if (hit_index == GetBoundsWidgetIndex(document, &owner->sceneBounds[bounds_index]))
                 {
                     drawList->AddRect(ImVec2(owner->sceneBounds[bounds_index].minimum.x, owner->sceneBounds[bounds_index].minimum.y), ImVec2(owner->sceneBounds[bounds_index].maximum.x, owner->sceneBounds[bounds_index].maximum.y), SCENE_HOVER_COLOR);
                 }
@@ -5218,13 +5309,13 @@ static void DrawSceneInteraction(Arinc661_DefinitionEditor_Document_t* document,
         }
         else
         {
-            hit_index = Arinc661_Scene_Pick(owner->sceneBounds, owner->sceneBoundsCount, mouse_point);
-            while ((ARINC661_SCENE_NO_WIDGET != hit_index) && document->isLocked[hit_index])
+            hit_index = PickWidget(document, mouse_point);
+            while ((INVALID_HIERARCHY_INDEX != hit_index) && document->isLocked[hit_index])
             {
                 // Locked widgets are not pickable; fall through to what lies under them
-                hit_index = ARINC661_SCENE_NO_WIDGET;
+                hit_index = INVALID_HIERARCHY_INDEX;
             }
-            if (ARINC661_SCENE_NO_WIDGET != hit_index)
+            if (INVALID_HIERARCHY_INDEX != hit_index)
             {
                 if (ImGui::GetIO().KeyCtrl)
                 {
@@ -5372,7 +5463,7 @@ static void DrawSceneInteraction(Arinc661_DefinitionEditor_Document_t* document,
             {
                 for (bounds_index = 0; bounds_index < owner->sceneBoundsCount; ++bounds_index)
                 {
-                    hit_index = owner->sceneBounds[bounds_index].widgetIndex;
+                    hit_index = GetBoundsWidgetIndex(document, &owner->sceneBounds[bounds_index]);
                     if ((hit_index < document->definition.widgetCount) && (FALSE == document->isLocked[hit_index]) && (marquee_min.x <= owner->sceneBounds[bounds_index].minimum.x) && (owner->sceneBounds[bounds_index].maximum.x <= marquee_max.x) && (marquee_min.y <= owner->sceneBounds[bounds_index].minimum.y) && (owner->sceneBounds[bounds_index].maximum.y <= marquee_max.y))
                     {
                         if ((SELECTION_WIDGET != document->selectedKind) || (FALSE == document->isSelected[document->selectedIndex]))
@@ -5434,11 +5525,7 @@ static void DrawSceneInteraction(Arinc661_DefinitionEditor_Document_t* document,
     {
         if (NULL != ImGui::AcceptDragDropPayload(PALETTE_PAYLOAD_ID))
         {
-            hit_index = Arinc661_Scene_Pick(owner->sceneBounds, owner->sceneBoundsCount, mouse_point);
-            if (ARINC661_SCENE_NO_WIDGET == hit_index)
-            {
-                hit_index = INVALID_HIERARCHY_INDEX;
-            }
+            hit_index = PickWidget(document, mouse_point);
             AddTypedWidget(document, layerIndex, hit_index, (const char_t*)ImGui::GetDragDropPayload()->Data, Snap(owner, (mouse.x - layerMin.x) / scale), Snap(owner, (layerMax.y - mouse.y) / scale), TRUE);
         }
         ImGui::EndDragDropTarget();
@@ -5449,9 +5536,9 @@ static void DrawSceneInteraction(Arinc661_DefinitionEditor_Document_t* document,
         owner->addLayer  = layerIndex;
         owner->addX      = Snap(owner, (mouse.x - layerMin.x) / scale);
         owner->addY      = Snap(owner, (layerMax.y - mouse.y) / scale);
-        owner->addHit    = Arinc661_Scene_Pick(owner->sceneBounds, owner->sceneBoundsCount, mouse_point);
+        owner->addHit    = PickWidget(document, mouse_point);
         owner->addParent = INVALID_HIERARCHY_INDEX;
-        if (ARINC661_SCENE_NO_WIDGET != owner->addHit)
+        if (INVALID_HIERARCHY_INDEX != owner->addHit)
         {
             owner->addParent = owner->addHit;
             if (FALSE == IsContainerType(document->widgets[owner->addHit].type))
@@ -7439,7 +7526,8 @@ static void DrawScenePane(Arinc661_DefinitionEditor_Document_t* editor)
 {
     const ImGuiStyle*            style;
     Arinc661_DefinitionEditor_t* owner;
-    Arinc661_Scene_Options_t     options;
+    Arinc661_Renderer_Options_t  options;
+    Arinc661_Scene_t             scene;
     FACEOE_Gfx_Transform_t       transform;
     ImDrawList*                  draw_list;
     ImVec2                       canvas_min;
@@ -7516,7 +7604,8 @@ static void DrawScenePane(Arinc661_DefinitionEditor_Document_t* editor)
         }
         else
         {
-            Arinc661_Scene_LayerSize(&editor->definition, layer_index, &layer_width, &layer_height);
+            BuildScene(editor, TRUE, &scene);
+            Arinc661_Renderer_GetLayerSize(&scene, layer_index, &layer_width, &layer_height);
             width_text  = "";
             height_text = "";
             property_index = FindOwnedProperty(editor, ARINC661_PROPERTY_LAYER, layer_index, PROPERTY_WIDTH);
@@ -7620,13 +7709,12 @@ static void DrawScenePane(Arinc661_DefinitionEditor_Document_t* editor)
             options.showsHidden       = TRUE;
             options.showsNames        = TRUE;
             options.showsNonGraphical = TRUE;
-            options.skipFlags         = editor->isHiddenInEditor;
             options.animationTime     = owner->animationTime;
             options.fillsLayerArea    = FALSE;
             options.fontSize          = ImGui::GetFontSize();
             options.bounds            = owner->sceneBounds;
             options.boundsCapacity    = ARINC661_DEFINITION_EDITOR_MAX_WIDGETS;
-            Arinc661_Scene_DrawLayer(&editor->definition, layer_index, &owner->drawList, &options);
+            Arinc661_Renderer_DrawLayer(&scene, layer_index, &owner->drawList, &options);
             owner->sceneBoundsCount = options.boundsCount;
             draw_list->PushClipRect(canvas_min, canvas_max, true);
             draw_list->AddRectFilled(layer_min, layer_min + layer_size, SCENE_LAYER_COLOR);
@@ -8283,7 +8371,8 @@ void Arinc661_DefinitionEditor_SelectDocument(Arinc661_DefinitionEditor_t* edito
 bool_t Arinc661_DefinitionEditor_RecordDocument(const Arinc661_DefinitionEditor_t* editor, uint32_t documentIndex, FACEOE_Gfx_DrawList_t* drawList, float32_t fontSize)
 {
     const Arinc661_DefinitionEditor_Document_t* document;
-    Arinc661_Scene_Options_t                    options;
+    Arinc661_Renderer_Options_t                 options;
+    Arinc661_Scene_t                            scene;
     uint32_t                                    layer_index;
     bool_t                                      has_layers;
 
@@ -8296,9 +8385,10 @@ bool_t Arinc661_DefinitionEditor_RecordDocument(const Arinc661_DefinitionEditor_
         memset(&options, 0, sizeof(options));
         options.fontSize      = fontSize;
         options.animationTime = editor->animationTime;
+        BuildScene(document, FALSE, &scene);
         for (layer_index = 0; layer_index < document->definition.layerCount; ++layer_index)
         {
-            Arinc661_Scene_DrawLayer(&document->definition, layer_index, drawList, &options);
+            Arinc661_Renderer_DrawLayer(&scene, layer_index, drawList, &options);
             has_layers = TRUE;
         }
     }
@@ -8693,10 +8783,11 @@ void Arinc661_DefinitionEditor_SelectWidget(Arinc661_DefinitionEditor_t* editor,
  *  Like Arinc661_DefinitionEditor_RecordDocument, with the bounds of every drawn widget appended
  *  across the layers so a host can pick through the preview.
  */
-bool_t Arinc661_DefinitionEditor_RecordDocumentBounds(const Arinc661_DefinitionEditor_t* editor, uint32_t documentIndex, FACEOE_Gfx_DrawList_t* drawList, float32_t fontSize, Arinc661_Scene_Bounds_t* bounds, uint32_t boundsCapacity, uint32_t* boundsCount)
+bool_t Arinc661_DefinitionEditor_RecordDocumentBounds(const Arinc661_DefinitionEditor_t* editor, uint32_t documentIndex, FACEOE_Gfx_DrawList_t* drawList, float32_t fontSize, Arinc661_Renderer_Bounds_t* bounds, uint32_t boundsCapacity, uint32_t* boundsCount)
 {
     const Arinc661_DefinitionEditor_Document_t* document;
-    Arinc661_Scene_Options_t                    options;
+    Arinc661_Renderer_Options_t                 options;
+    Arinc661_Scene_t                            scene;
     uint32_t                                    layer_index;
     uint32_t                                    total;
     bool_t                                      has_layers;
@@ -8708,6 +8799,7 @@ bool_t Arinc661_DefinitionEditor_RecordDocumentBounds(const Arinc661_DefinitionE
     if ((documentIndex < ARINC661_DEFINITION_EDITOR_MAX_OPEN_DOCUMENTS) && editor->documents[documentIndex].isLoaded)
     {
         document = &editor->documents[documentIndex];
+        BuildScene(document, FALSE, &scene);
         for (layer_index = 0; layer_index < document->definition.layerCount; ++layer_index)
         {
             memset(&options, 0, sizeof(options));
@@ -8718,7 +8810,7 @@ bool_t Arinc661_DefinitionEditor_RecordDocumentBounds(const Arinc661_DefinitionE
                 options.bounds         = &bounds[total];
                 options.boundsCapacity = (boundsCapacity - total);
             }
-            Arinc661_Scene_DrawLayer(&document->definition, layer_index, drawList, &options);
+            Arinc661_Renderer_DrawLayer(&scene, layer_index, drawList, &options);
             total += options.boundsCount;
             has_layers = TRUE;
         }
@@ -8825,6 +8917,7 @@ void Arinc661_DefinitionEditor_SelectionText(const Arinc661_DefinitionEditor_t* 
 bool_t Arinc661_DefinitionEditor_LayerAt(const Arinc661_DefinitionEditor_t* editor, uint32_t documentIndex, uint32_t layerIndex, const char_t** layerId, const char_t** name, float32_t* width, float32_t* height)
 {
     const Arinc661_DefinitionEditor_Document_t* document;
+    Arinc661_Scene_t                            scene;
     bool_t                                      is_found;
 
     LOGASSERT(NULL != editor);
@@ -8838,7 +8931,8 @@ bool_t Arinc661_DefinitionEditor_LayerAt(const Arinc661_DefinitionEditor_t* edit
         document   = &editor->documents[documentIndex];
         (*layerId) = LayerIdText(document, layerIndex);
         (*name)    = document->layers[layerIndex].name;
-        Arinc661_Scene_LayerSize(&document->definition, layerIndex, width, height);
+        BuildScene(document, FALSE, &scene);
+        Arinc661_Renderer_GetLayerSize(&scene, layerIndex, width, height);
         is_found = TRUE;
     }
 
