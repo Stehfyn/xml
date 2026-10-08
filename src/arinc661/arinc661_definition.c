@@ -97,9 +97,10 @@
 #define BINARY_MAX_FIELDS           (40U) ///< Largest Creation Structure parameter count in the tables
 
 /* ARINC 661 Part 1-7, section 3.3 data types: big-endian field widths. */
-#define BINARY_UCHAR_BYTES  (1U) ///< uchar
-#define BINARY_USHORT_BYTES (2U) ///< ushort
-#define BINARY_ULONG_BYTES  (4U) ///< ulong, long, float, and fr()
+#define BINARY_UCHAR_BYTES    (1U) ///< uchar
+#define BINARY_USHORT_BYTES   (2U) ///< ushort
+#define BINARY_ULONG_BYTES    (4U) ///< ulong, long, float, and fr()
+#define BINARY_VARIABLE_BYTES (0U) ///< Width of a field whose value sizes itself: string, alignment, sized bytes, region, or layer request
 
 /* ARINC 661 Part 1-7, Tables 4.5.3.2-1 through 4.5.3.2-6: block codes. */
 #define BINARY_BLOCK_CODE_SHIFT (24U) ///< A block code is the most significant byte of its 32-bit word
@@ -1671,16 +1672,16 @@ static const char_t* const c_coordSystemReportModeValues[] =
  */
 static const BinaryField_t c_activeAreaFields[] =
 {
-    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {NULL,                             BINARY_FIELD_PAD,          3,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_enableValues,  COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {NULL,                             BINARY_FIELD_PAD,    3,                   0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -1689,10 +1690,10 @@ static const BinaryField_t c_activeAreaFields[] =
  */
 static const BinaryField_t c_animationGroupFields[] =
 {
-    {PARAMETER_ANONYMOUS,            BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_TYPE,                 BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_DELAY,                BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_ANIMATION_REPETITION, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0}
+    {PARAMETER_ANONYMOUS,            BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_TYPE,                 BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_DELAY,                BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_ANIMATION_REPETITION, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -1701,18 +1702,18 @@ static const BinaryField_t c_animationGroupFields[] =
  */
 static const BinaryField_t c_animationOnparamFields[] =
 {
-    {PARAMETER_ANONYMOUS,            BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {NULL,                           BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,            BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_TARGET_WIDGET_ID,     BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_TARGET_PARAM_ID,      BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {NULL,                           BINARY_FIELD_PAD,          2,  0, 0, NULL, 0},
-    {PARAMETER_FROM_VALUE,           BINARY_FIELD_BYTES,        4,  0, 0, NULL, 0},
-    {PARAMETER_TO_VALUE,             BINARY_FIELD_BYTES,        4,  0, 0, NULL, 0},
-    {PARAMETER_ANIMATION_LAW_REF,    BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_DURATION,             BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_DELAY,                BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_ANIMATION_REPETITION, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0}
+    {PARAMETER_ANONYMOUS,            BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {NULL,                           BINARY_FIELD_PAD,    1,                   0, 0, NULL,            0},
+    {PARAMETER_STYLE_SET,            BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_TARGET_WIDGET_ID,     BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_TARGET_PARAM_ID,      BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {NULL,                           BINARY_FIELD_PAD,    2,                   0, 0, NULL,            0},
+    {PARAMETER_FROM_VALUE,           BINARY_FIELD_BYTES,  4,                   0, 0, NULL,            0},
+    {PARAMETER_TO_VALUE,             BINARY_FIELD_BYTES,  4,                   0, 0, NULL,            0},
+    {PARAMETER_ANIMATION_LAW_REF,    BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_DURATION,             BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_DELAY,                BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_ANIMATION_REPETITION, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -1721,21 +1722,21 @@ static const BinaryField_t c_animationOnparamFields[] =
  */
 static const BinaryField_t c_animationRotationFields[] =
 {
-    {PARAMETER_ANONYMOUS,            BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {NULL,                           BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_TARGET_WIDGET_ID,     BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,            BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_CENTER_X,             BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_CENTER_Y,             BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_FROM_ANGLE,           BINARY_FIELD_FR180,        4,  0, 0, NULL, 0},
-    {PARAMETER_TO_ANGLE,             BINARY_FIELD_FR180,        4,  0, 0, NULL, 0},
-    {PARAMETER_ANIMATION_LAW_REF,    BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_DURATION,             BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_DELAY,                BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_DIRECTION,            BINARY_FIELD_UCHAR,        1,  0, 0, c_rotationDirectionValues, COUNT_OF(c_rotationDirectionValues)},
-    {PARAMETER_NUMBER_OF_TURNS,      BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_ANIMATION_REPETITION, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {NULL,                           BINARY_FIELD_PAD,          2,  0, 0, NULL, 0}
+    {PARAMETER_ANONYMOUS,            BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues,           COUNT_OF(c_booleanValues)},
+    {NULL,                           BINARY_FIELD_PAD,    1,                   0, 0, NULL,                      0},
+    {PARAMETER_TARGET_WIDGET_ID,     BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,                      0},
+    {PARAMETER_STYLE_SET,            BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,                      0},
+    {PARAMETER_CENTER_X,             BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_CENTER_Y,             BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_FROM_ANGLE,           BINARY_FIELD_FR180,  BINARY_ULONG_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_TO_ANGLE,             BINARY_FIELD_FR180,  BINARY_ULONG_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_ANIMATION_LAW_REF,    BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,                      0},
+    {PARAMETER_DURATION,             BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,                      0},
+    {PARAMETER_DELAY,                BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,                      0},
+    {PARAMETER_DIRECTION,            BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_rotationDirectionValues, COUNT_OF(c_rotationDirectionValues)},
+    {PARAMETER_NUMBER_OF_TURNS,      BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_ANIMATION_REPETITION, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,                      0},
+    {NULL,                           BINARY_FIELD_PAD,    2,                   0, 0, NULL,                      0}
 };
 
 /*************************************************************************************************/
@@ -1744,18 +1745,18 @@ static const BinaryField_t c_animationRotationFields[] =
  */
 static const BinaryField_t c_animationScaleFields[] =
 {
-    {PARAMETER_ANONYMOUS,            BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {NULL,                           BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_TARGET_WIDGET_ID,     BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,            BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_FROM_SCALE_X,         BINARY_FIELD_FLOAT,        4,  0, 0, NULL, 0},
-    {PARAMETER_FROM_SCALE_Y,         BINARY_FIELD_FLOAT,        4,  0, 0, NULL, 0},
-    {PARAMETER_TO_SCALE_X,           BINARY_FIELD_FLOAT,        4,  0, 0, NULL, 0},
-    {PARAMETER_TO_SCALE_Y,           BINARY_FIELD_FLOAT,        4,  0, 0, NULL, 0},
-    {PARAMETER_ANIMATION_LAW_REF,    BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_DURATION,             BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_DELAY,                BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_ANIMATION_REPETITION, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0}
+    {PARAMETER_ANONYMOUS,            BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {NULL,                           BINARY_FIELD_PAD,    1,                   0, 0, NULL,            0},
+    {PARAMETER_TARGET_WIDGET_ID,     BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_STYLE_SET,            BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_FROM_SCALE_X,         BINARY_FIELD_FLOAT,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_FROM_SCALE_Y,         BINARY_FIELD_FLOAT,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_TO_SCALE_X,           BINARY_FIELD_FLOAT,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_TO_SCALE_Y,           BINARY_FIELD_FLOAT,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_ANIMATION_LAW_REF,    BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_DURATION,             BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_DELAY,                BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_ANIMATION_REPETITION, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -1764,18 +1765,18 @@ static const BinaryField_t c_animationScaleFields[] =
  */
 static const BinaryField_t c_animationTranslationFields[] =
 {
-    {PARAMETER_ANONYMOUS,            BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {NULL,                           BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_TARGET_WIDGET_ID,     BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,            BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_FROM_VALUE_X,         BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_FROM_VALUE_Y,         BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_TO_VALUE_X,           BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_TO_VALUE_Y,           BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_ANIMATION_LAW_REF,    BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_DURATION,             BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_DELAY,                BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_ANIMATION_REPETITION, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0}
+    {PARAMETER_ANONYMOUS,            BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {NULL,                           BINARY_FIELD_PAD,    1,                   0, 0, NULL,            0},
+    {PARAMETER_TARGET_WIDGET_ID,     BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_STYLE_SET,            BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_FROM_VALUE_X,         BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_FROM_VALUE_Y,         BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_TO_VALUE_X,           BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_TO_VALUE_Y,           BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_ANIMATION_LAW_REF,    BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_DURATION,             BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_DELAY,                BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_ANIMATION_REPETITION, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -1784,10 +1785,10 @@ static const BinaryField_t c_animationTranslationFields[] =
  */
 static const BinaryField_t c_basicContainerFields[] =
 {
-    {PARAMETER_ENABLE,  BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,   BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,   BINARY_FIELD_LONG,         4,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,  BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_enableValues,  COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE, BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,   BINARY_FIELD_LONG,  BINARY_ULONG_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_POS_Y,   BINARY_FIELD_LONG,  BINARY_ULONG_BYTES, 0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -1796,8 +1797,8 @@ static const BinaryField_t c_basicContainerFields[] =
  */
 static const BinaryField_t c_blinkingContainerFields[] =
 {
-    {PARAMETER_BLINKING_TYPE, BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_VISIBLE,       BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)}
+    {PARAMETER_BLINKING_TYPE, BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_VISIBLE,       BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_booleanValues, COUNT_OF(c_booleanValues)}
 };
 
 /*************************************************************************************************/
@@ -1806,9 +1807,9 @@ static const BinaryField_t c_blinkingContainerFields[] =
  */
 static const BinaryField_t c_broadcastReceiverFields[] =
 {
-    {PARAMETER_NUMBER_OF_FIELDS, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_PARAMETER_IDENT,  BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_WIDGET_STRUCTURE, BINARY_FIELD_USHORT,       2,  0, 1, NULL, 0}
+    {PARAMETER_NUMBER_OF_FIELDS, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL, 0},
+    {PARAMETER_PARAMETER_IDENT,  BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL, 0},
+    {PARAMETER_WIDGET_STRUCTURE, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 1, NULL, 0}
 };
 
 /*************************************************************************************************/
@@ -1817,8 +1818,8 @@ static const BinaryField_t c_broadcastReceiverFields[] =
  */
 static const BinaryField_t c_bufferFormatFields[] =
 {
-    {PARAMETER_NUMBER_OF_FIELDS, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_BUFFER_STRUCTURE, BINARY_FIELD_USHORT,       2,  0, 2, NULL, 0}
+    {PARAMETER_NUMBER_OF_FIELDS, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL, 0},
+    {PARAMETER_BUFFER_STRUCTURE, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 2, NULL, 0}
 };
 
 /*************************************************************************************************/
@@ -1827,21 +1828,21 @@ static const BinaryField_t c_bufferFormatFields[] =
  */
 static const BinaryField_t c_checkButtonFields[] =
 {
-    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_CHECK_BUTTON_STATE,     BINARY_FIELD_UCHAR,        1,  0, 0, c_checkButtonStateValues, COUNT_OF(c_checkButtonStateValues)},
-    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1,  0, 0, c_buttonAlignmentValues, COUNT_OF(c_buttonAlignmentValues)},
-    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_PICTURE_POSITION,       BINARY_FIELD_UCHAR,        1,  0, 0, c_checkButtonPicturePositionValues, COUNT_OF(c_checkButtonPicturePositionValues)},
-    {NULL,                             BINARY_FIELD_PAD,          2,  0, 0, NULL, 0},
-    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING,       0,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_enableValues,                     COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,                    COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                               0},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                               0},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                               0},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                               0},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                               0},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                               0},
+    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                               0},
+    {PARAMETER_CHECK_BUTTON_STATE,     BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_checkButtonStateValues,           COUNT_OF(c_checkButtonStateValues)},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_buttonAlignmentValues,            COUNT_OF(c_buttonAlignmentValues)},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,                    COUNT_OF(c_booleanValues)},
+    {PARAMETER_PICTURE_POSITION,       BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_checkButtonPicturePositionValues, COUNT_OF(c_checkButtonPicturePositionValues)},
+    {NULL,                             BINARY_FIELD_PAD,    2,                     0, 0, NULL,                               0},
+    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 0, 0, NULL,                               0}
 };
 
 /*************************************************************************************************/
@@ -1850,26 +1851,26 @@ static const BinaryField_t c_checkButtonFields[] =
  */
 static const BinaryField_t c_comboBoxFields[] =
 {
-    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SELECTING_AREA_WIDTH,   BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SELECTING_AREA_HEIGHT,  BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MAX_NUMBER_OF_ENTRIES,  BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NUMBER_OF_ENTRIES,      BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_SELECTED_ENTRY,         BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_OPENING_ENTRY,          BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1,  0, 0, c_buttonAlignmentValues, COUNT_OF(c_buttonAlignmentValues)},
-    {PARAMETER_OPENING_MODE,           BINARY_FIELD_UCHAR,        1,  0, 0, c_comboBoxOpeningModeValues, COUNT_OF(c_comboBoxOpeningModeValues)},
-    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {NULL,                             BINARY_FIELD_PAD,          3,  0, 0, NULL, 0},
-    {PARAMETER_ENTRY_LIST,             BINARY_FIELD_STRING,       0, 11, 1, NULL, 0}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_enableValues,              COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_booleanValues,             COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0,  0, NULL,                        0},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0,  0, NULL,                        0},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0,  0, NULL,                        0},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0,  0, NULL,                        0},
+    {PARAMETER_SELECTING_AREA_WIDTH,   BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0,  0, NULL,                        0},
+    {PARAMETER_SELECTING_AREA_HEIGHT,  BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0,  0, NULL,                        0},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                        0},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                        0},
+    {PARAMETER_MAX_NUMBER_OF_ENTRIES,  BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                        0},
+    {PARAMETER_NUMBER_OF_ENTRIES,      BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                        0},
+    {PARAMETER_SELECTED_ENTRY,         BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                        0},
+    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                        0},
+    {PARAMETER_OPENING_ENTRY,          BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                        0},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_buttonAlignmentValues,     COUNT_OF(c_buttonAlignmentValues)},
+    {PARAMETER_OPENING_MODE,           BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_comboBoxOpeningModeValues, COUNT_OF(c_comboBoxOpeningModeValues)},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_booleanValues,             COUNT_OF(c_booleanValues)},
+    {NULL,                             BINARY_FIELD_PAD,    3,                     0,  0, NULL,                        0},
+    {PARAMETER_ENTRY_LIST,             BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 11, 1, NULL,                        0}
 };
 
 /*************************************************************************************************/
@@ -1878,27 +1879,27 @@ static const BinaryField_t c_comboBoxFields[] =
  */
 static const BinaryField_t c_comboBoxEditFields[] =
 {
-    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SELECTING_AREA_WIDTH,   BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SELECTING_AREA_HEIGHT,  BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MAX_NUMBER_OF_ENTRIES,  BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NUMBER_OF_ENTRIES,      BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_SELECTED_ENTRY,         BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_OPENING_ENTRY,          BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_OPENING_MODE,           BINARY_FIELD_UCHAR,        1,  0, 0, c_comboBoxOpeningModeValues, COUNT_OF(c_comboBoxOpeningModeValues)},
-    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_START_CURSOR_POS,       BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_REPORT_ALL_CHANGES,     BINARY_FIELD_UCHAR,        1,  0, 0, c_editBoxReportAllChangesValues, COUNT_OF(c_editBoxReportAllChangesValues)},
-    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1,  0, 0, c_editBoxAlignmentValues, COUNT_OF(c_editBoxAlignmentValues)},
-    {PARAMETER_ENTRY_LIST,             BINARY_FIELD_STRING,       0, 11, 1, NULL, 0}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_enableValues,                  COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_booleanValues,                 COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0,  0, NULL,                            0},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0,  0, NULL,                            0},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0,  0, NULL,                            0},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0,  0, NULL,                            0},
+    {PARAMETER_SELECTING_AREA_WIDTH,   BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0,  0, NULL,                            0},
+    {PARAMETER_SELECTING_AREA_HEIGHT,  BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0,  0, NULL,                            0},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                            0},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                            0},
+    {PARAMETER_MAX_NUMBER_OF_ENTRIES,  BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                            0},
+    {PARAMETER_NUMBER_OF_ENTRIES,      BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                            0},
+    {PARAMETER_SELECTED_ENTRY,         BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                            0},
+    {PARAMETER_OPENING_ENTRY,          BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                            0},
+    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                            0},
+    {PARAMETER_OPENING_MODE,           BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_comboBoxOpeningModeValues,     COUNT_OF(c_comboBoxOpeningModeValues)},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_booleanValues,                 COUNT_OF(c_booleanValues)},
+    {PARAMETER_START_CURSOR_POS,       BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                            0},
+    {PARAMETER_REPORT_ALL_CHANGES,     BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_editBoxReportAllChangesValues, COUNT_OF(c_editBoxReportAllChangesValues)},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_editBoxAlignmentValues,        COUNT_OF(c_editBoxAlignmentValues)},
+    {PARAMETER_ENTRY_LIST,             BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 11, 1, NULL,                            0}
 };
 
 /*************************************************************************************************/
@@ -1907,10 +1908,10 @@ static const BinaryField_t c_comboBoxEditFields[] =
  */
 static const BinaryField_t c_connectorFields[] =
 {
-    {PARAMETER_CONNECTOR_REFERENCE, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_VISIBLE,             BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_ENABLE,              BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {NULL,                          BINARY_FIELD_PAD,          2,  0, 0, NULL, 0}
+    {PARAMETER_CONNECTOR_REFERENCE, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_VISIBLE,             BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_ENABLE,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_enableValues,  COUNT_OF(c_enableValues)},
+    {NULL,                          BINARY_FIELD_PAD,    2,                   0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -1919,16 +1920,16 @@ static const BinaryField_t c_connectorFields[] =
  */
 static const BinaryField_t c_cursorOverFields[] =
 {
-    {PARAMETER_VISIBLE,              BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_ENABLE,               BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_POS_X,                BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,                BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,               BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,               BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,            BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {NULL,                           BINARY_FIELD_PAD,          2,  0, 0, NULL, 0},
-    {PARAMETER_POSITION_REPORT_MODE, BINARY_FIELD_UCHAR,        1,  0, 0, c_positionReportModeValues, COUNT_OF(c_positionReportModeValues)},
-    {NULL,                           BINARY_FIELD_PAD,          3,  0, 0, NULL, 0}
+    {PARAMETER_VISIBLE,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues,            COUNT_OF(c_booleanValues)},
+    {PARAMETER_ENABLE,               BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_enableValues,             COUNT_OF(c_enableValues)},
+    {PARAMETER_POS_X,                BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,                       0},
+    {PARAMETER_POS_Y,                BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,                       0},
+    {PARAMETER_SIZE_X,               BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,                       0},
+    {PARAMETER_SIZE_Y,               BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,                       0},
+    {PARAMETER_STYLE_SET,            BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,                       0},
+    {NULL,                           BINARY_FIELD_PAD,    2,                   0, 0, NULL,                       0},
+    {PARAMETER_POSITION_REPORT_MODE, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_positionReportModeValues, COUNT_OF(c_positionReportModeValues)},
+    {NULL,                           BINARY_FIELD_PAD,    3,                   0, 0, NULL,                       0}
 };
 
 /*************************************************************************************************/
@@ -1937,12 +1938,12 @@ static const BinaryField_t c_cursorOverFields[] =
  */
 static const BinaryField_t c_cursorPosOverlayFields[] =
 {
-    {PARAMETER_ENABLE, BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {NULL,             BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_POS_X,  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X, BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y, BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE, BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_enableValues, COUNT_OF(c_enableValues)},
+    {NULL,             BINARY_FIELD_PAD,   1,                  0, 0, NULL,           0},
+    {PARAMETER_POS_X,  BINARY_FIELD_LONG,  BINARY_ULONG_BYTES, 0, 0, NULL,           0},
+    {PARAMETER_POS_Y,  BINARY_FIELD_LONG,  BINARY_ULONG_BYTES, 0, 0, NULL,           0},
+    {PARAMETER_SIZE_X, BINARY_FIELD_ULONG, BINARY_ULONG_BYTES, 0, 0, NULL,           0},
+    {PARAMETER_SIZE_Y, BINARY_FIELD_ULONG, BINARY_ULONG_BYTES, 0, 0, NULL,           0}
 };
 
 /*************************************************************************************************/
@@ -1951,9 +1952,9 @@ static const BinaryField_t c_cursorPosOverlayFields[] =
  */
 static const BinaryField_t c_cursorRefFields[] =
 {
-    {NULL,            BINARY_FIELD_PAD,          2,  0, 0, NULL, 0},
-    {PARAMETER_POS_X, BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y, BINARY_FIELD_LONG,         4,  0, 0, NULL, 0}
+    {NULL,            BINARY_FIELD_PAD,  2,                  0, 0, NULL, 0},
+    {PARAMETER_POS_X, BINARY_FIELD_LONG, BINARY_ULONG_BYTES, 0, 0, NULL, 0},
+    {PARAMETER_POS_Y, BINARY_FIELD_LONG, BINARY_ULONG_BYTES, 0, 0, NULL, 0}
 };
 
 /*************************************************************************************************/
@@ -1962,11 +1963,11 @@ static const BinaryField_t c_cursorRefFields[] =
  */
 static const BinaryField_t c_dataConnectorFields[] =
 {
-    {PARAMETER_CONNECTOR_REFERENCE, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_VISIBLE,             BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_ENABLE,              BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_DATA_LENGTH,         BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_DATA,                BINARY_FIELD_ULONG,        4,  3, 1, NULL, 0}
+    {PARAMETER_CONNECTOR_REFERENCE, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_VISIBLE,             BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_ENABLE,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_enableValues,  COUNT_OF(c_enableValues)},
+    {PARAMETER_DATA_LENGTH,         BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_DATA,                BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  3, 1, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -1975,14 +1976,14 @@ static const BinaryField_t c_dataConnectorFields[] =
  */
 static const BinaryField_t c_dataScalingFr180Fields[] =
 {
-    {PARAMETER_TARGET_WIDGET_ID,    BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_TARGET_PARAMETER_ID, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_CLAMPING,            BINARY_FIELD_UCHAR,        1,  0, 0, c_clampingValues, COUNT_OF(c_clampingValues)},
-    {NULL,                          BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_START_VALUE,         BINARY_FIELD_FLOAT,        4,  0, 0, NULL, 0},
-    {PARAMETER_END_VALUE,           BINARY_FIELD_FLOAT,        4,  0, 0, NULL, 0},
-    {PARAMETER_START_SCALED_VALUE,  BINARY_FIELD_FR180,        4,  0, 0, NULL, 0},
-    {PARAMETER_END_SCALED_VALUE,    BINARY_FIELD_FR180,        4,  0, 0, NULL, 0}
+    {PARAMETER_TARGET_WIDGET_ID,    BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,             0},
+    {PARAMETER_TARGET_PARAMETER_ID, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,             0},
+    {PARAMETER_CLAMPING,            BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_clampingValues, COUNT_OF(c_clampingValues)},
+    {NULL,                          BINARY_FIELD_PAD,    1,                   0, 0, NULL,             0},
+    {PARAMETER_START_VALUE,         BINARY_FIELD_FLOAT,  BINARY_ULONG_BYTES,  0, 0, NULL,             0},
+    {PARAMETER_END_VALUE,           BINARY_FIELD_FLOAT,  BINARY_ULONG_BYTES,  0, 0, NULL,             0},
+    {PARAMETER_START_SCALED_VALUE,  BINARY_FIELD_FR180,  BINARY_ULONG_BYTES,  0, 0, NULL,             0},
+    {PARAMETER_END_SCALED_VALUE,    BINARY_FIELD_FR180,  BINARY_ULONG_BYTES,  0, 0, NULL,             0}
 };
 
 /*************************************************************************************************/
@@ -1991,14 +1992,14 @@ static const BinaryField_t c_dataScalingFr180Fields[] =
  */
 static const BinaryField_t c_dataScalingLongFields[] =
 {
-    {PARAMETER_TARGET_WIDGET_ID,    BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_TARGET_PARAMETER_ID, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_CLAMPING,            BINARY_FIELD_UCHAR,        1,  0, 0, c_clampingValues, COUNT_OF(c_clampingValues)},
-    {NULL,                          BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_START_VALUE,         BINARY_FIELD_FLOAT,        4,  0, 0, NULL, 0},
-    {PARAMETER_END_VALUE,           BINARY_FIELD_FLOAT,        4,  0, 0, NULL, 0},
-    {PARAMETER_START_SCALED_VALUE,  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_END_SCALED_VALUE,    BINARY_FIELD_LONG,         4,  0, 0, NULL, 0}
+    {PARAMETER_TARGET_WIDGET_ID,    BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,             0},
+    {PARAMETER_TARGET_PARAMETER_ID, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,             0},
+    {PARAMETER_CLAMPING,            BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_clampingValues, COUNT_OF(c_clampingValues)},
+    {NULL,                          BINARY_FIELD_PAD,    1,                   0, 0, NULL,             0},
+    {PARAMETER_START_VALUE,         BINARY_FIELD_FLOAT,  BINARY_ULONG_BYTES,  0, 0, NULL,             0},
+    {PARAMETER_END_VALUE,           BINARY_FIELD_FLOAT,  BINARY_ULONG_BYTES,  0, 0, NULL,             0},
+    {PARAMETER_START_SCALED_VALUE,  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,             0},
+    {PARAMETER_END_SCALED_VALUE,    BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,             0}
 };
 
 /*************************************************************************************************/
@@ -2007,14 +2008,14 @@ static const BinaryField_t c_dataScalingLongFields[] =
  */
 static const BinaryField_t c_dataScalingUlongFields[] =
 {
-    {PARAMETER_TARGET_WIDGET_ID,    BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_TARGET_PARAMETER_ID, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_CLAMPING,            BINARY_FIELD_UCHAR,        1,  0, 0, c_clampingValues, COUNT_OF(c_clampingValues)},
-    {NULL,                          BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_START_VALUE,         BINARY_FIELD_FLOAT,        4,  0, 0, NULL, 0},
-    {PARAMETER_END_VALUE,           BINARY_FIELD_FLOAT,        4,  0, 0, NULL, 0},
-    {PARAMETER_START_SCALED_VALUE,  BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_END_SCALED_VALUE,    BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0}
+    {PARAMETER_TARGET_WIDGET_ID,    BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,             0},
+    {PARAMETER_TARGET_PARAMETER_ID, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,             0},
+    {PARAMETER_CLAMPING,            BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_clampingValues, COUNT_OF(c_clampingValues)},
+    {NULL,                          BINARY_FIELD_PAD,    1,                   0, 0, NULL,             0},
+    {PARAMETER_START_VALUE,         BINARY_FIELD_FLOAT,  BINARY_ULONG_BYTES,  0, 0, NULL,             0},
+    {PARAMETER_END_VALUE,           BINARY_FIELD_FLOAT,  BINARY_ULONG_BYTES,  0, 0, NULL,             0},
+    {PARAMETER_START_SCALED_VALUE,  BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,             0},
+    {PARAMETER_END_SCALED_VALUE,    BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,             0}
 };
 
 /*************************************************************************************************/
@@ -2023,22 +2024,22 @@ static const BinaryField_t c_dataScalingUlongFields[] =
  */
 static const BinaryField_t c_editBoxMaskedFields[] =
 {
-    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_ALPHA_MASK,             BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_NUMERIC_MASK,           BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_START_CURSOR_POS,       BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_REPORT_ALL_CHANGES,     BINARY_FIELD_UCHAR,        1,  0, 0, c_editBoxReportAllChangesValues, COUNT_OF(c_editBoxReportAllChangesValues)},
-    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1,  0, 0, c_buttonAlignmentValues, COUNT_OF(c_buttonAlignmentValues)},
-    {NULL,                             BINARY_FIELD_PAD,          3,  0, 0, NULL, 0},
-    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING,       0,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_enableValues,                  COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,                 COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                            0},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                            0},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                            0},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                            0},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                            0},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                            0},
+    {PARAMETER_ALPHA_MASK,             BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                            0},
+    {PARAMETER_NUMERIC_MASK,           BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                            0},
+    {PARAMETER_START_CURSOR_POS,       BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                            0},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,                 COUNT_OF(c_booleanValues)},
+    {PARAMETER_REPORT_ALL_CHANGES,     BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_editBoxReportAllChangesValues, COUNT_OF(c_editBoxReportAllChangesValues)},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_buttonAlignmentValues,         COUNT_OF(c_buttonAlignmentValues)},
+    {NULL,                             BINARY_FIELD_PAD,    3,                     0, 0, NULL,                            0},
+    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 0, 0, NULL,                            0}
 };
 
 /*************************************************************************************************/
@@ -2047,21 +2048,21 @@ static const BinaryField_t c_editBoxMaskedFields[] =
  */
 static const BinaryField_t c_editBoxMultiLineFields[] =
 {
-    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_START_CURSOR_POS,       BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_REPORT_ALL_CHANGES,     BINARY_FIELD_UCHAR,        1,  0, 0, c_editBoxReportAllChangesValues, COUNT_OF(c_editBoxReportAllChangesValues)},
-    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1,  0, 0, c_editBoxAlignmentValues, COUNT_OF(c_editBoxAlignmentValues)},
-    {PARAMETER_VERTICAL_SCROLL,        BINARY_FIELD_UCHAR,        1,  0, 0, c_scrollBarPositionValues, COUNT_OF(c_scrollBarPositionValues)},
-    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING,       0,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_enableValues,                  COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,                 COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                            0},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                            0},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                            0},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                            0},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                            0},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                            0},
+    {PARAMETER_START_CURSOR_POS,       BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                            0},
+    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                            0},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,                 COUNT_OF(c_booleanValues)},
+    {PARAMETER_REPORT_ALL_CHANGES,     BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_editBoxReportAllChangesValues, COUNT_OF(c_editBoxReportAllChangesValues)},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_editBoxAlignmentValues,        COUNT_OF(c_editBoxAlignmentValues)},
+    {PARAMETER_VERTICAL_SCROLL,        BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_scrollBarPositionValues,       COUNT_OF(c_scrollBarPositionValues)},
+    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 0, 0, NULL,                            0}
 };
 
 /*************************************************************************************************/
@@ -2070,33 +2071,33 @@ static const BinaryField_t c_editBoxMultiLineFields[] =
  */
 static const BinaryField_t c_editBoxNumericFields[] =
 {
-    {PARAMETER_ENABLE,                   BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,                  BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,                    BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,                    BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,                   BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,                   BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,                BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NEXT_FOCUSED_WIDGET,      BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_VALUE,                    BINARY_FIELD_FLOAT,        4,  0, 0, NULL, 0},
-    {PARAMETER_TICS_COARSE,              BINARY_FIELD_FLOAT,        4,  0, 0, NULL, 0},
-    {PARAMETER_TICS_FINE,                BINARY_FIELD_FLOAT,        4,  0, 0, NULL, 0},
-    {PARAMETER_MIN_VALUE,                BINARY_FIELD_FLOAT,        4,  0, 0, NULL, 0},
-    {PARAMETER_MAX_VALUE,                BINARY_FIELD_FLOAT,        4,  0, 0, NULL, 0},
-    {PARAMETER_LEGEND_AREA_SIZE_X,       BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_START_CURSOR_POS_BYTE,    BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_MAX_FORMAT_STRING_LENGTH, BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_MAX_LEGEND_STRING_LENGTH, BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_LEGEND_POSITION,          BINARY_FIELD_UCHAR,        1,  0, 0, c_legendPositionValues, COUNT_OF(c_legendPositionValues)},
-    {PARAMETER_AUTOMATIC_FOCUS_MOTION,   BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_REPORT_ALL_CHANGES,       BINARY_FIELD_UCHAR,        1,  0, 0, c_editBoxNumericReportAllChangesValues, COUNT_OF(c_editBoxNumericReportAllChangesValues)},
-    {PARAMETER_ALIGNMENT,                BINARY_FIELD_UCHAR,        1,  0, 0, c_editBoxAlignmentValues, COUNT_OF(c_editBoxAlignmentValues)},
-    {PARAMETER_LEGEND_REMOVED,           BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_NUMERIC_KEY_FLAG,         BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_CYCLIC_FLAG,              BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {NULL,                               BINARY_FIELD_PAD,          2,  0, 0, NULL, 0},
-    {PARAMETER_FORMAT_STRING,            BINARY_FIELD_STRING,       0,  0, 0, NULL, 0},
-    {PARAMETER_LEGEND_STRING,            BINARY_FIELD_STRING,       0,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,                   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_enableValues,                         COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,                  BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,                        COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,                    BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                                   0},
+    {PARAMETER_POS_Y,                    BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                                   0},
+    {PARAMETER_SIZE_X,                   BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                                   0},
+    {PARAMETER_SIZE_Y,                   BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                                   0},
+    {PARAMETER_STYLE_SET,                BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                                   0},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,      BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                                   0},
+    {PARAMETER_VALUE,                    BINARY_FIELD_FLOAT,  BINARY_ULONG_BYTES,    0, 0, NULL,                                   0},
+    {PARAMETER_TICS_COARSE,              BINARY_FIELD_FLOAT,  BINARY_ULONG_BYTES,    0, 0, NULL,                                   0},
+    {PARAMETER_TICS_FINE,                BINARY_FIELD_FLOAT,  BINARY_ULONG_BYTES,    0, 0, NULL,                                   0},
+    {PARAMETER_MIN_VALUE,                BINARY_FIELD_FLOAT,  BINARY_ULONG_BYTES,    0, 0, NULL,                                   0},
+    {PARAMETER_MAX_VALUE,                BINARY_FIELD_FLOAT,  BINARY_ULONG_BYTES,    0, 0, NULL,                                   0},
+    {PARAMETER_LEGEND_AREA_SIZE_X,       BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                                   0},
+    {PARAMETER_START_CURSOR_POS_BYTE,    BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, NULL,                                   0},
+    {PARAMETER_MAX_FORMAT_STRING_LENGTH, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, NULL,                                   0},
+    {PARAMETER_MAX_LEGEND_STRING_LENGTH, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, NULL,                                   0},
+    {PARAMETER_LEGEND_POSITION,          BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_legendPositionValues,                 COUNT_OF(c_legendPositionValues)},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION,   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,                        COUNT_OF(c_booleanValues)},
+    {PARAMETER_REPORT_ALL_CHANGES,       BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_editBoxNumericReportAllChangesValues, COUNT_OF(c_editBoxNumericReportAllChangesValues)},
+    {PARAMETER_ALIGNMENT,                BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_editBoxAlignmentValues,               COUNT_OF(c_editBoxAlignmentValues)},
+    {PARAMETER_LEGEND_REMOVED,           BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,                        COUNT_OF(c_booleanValues)},
+    {PARAMETER_NUMERIC_KEY_FLAG,         BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, NULL,                                   0},
+    {PARAMETER_CYCLIC_FLAG,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, NULL,                                   0},
+    {NULL,                               BINARY_FIELD_PAD,    2,                     0, 0, NULL,                                   0},
+    {PARAMETER_FORMAT_STRING,            BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 0, 0, NULL,                                   0},
+    {PARAMETER_LEGEND_STRING,            BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 0, 0, NULL,                                   0}
 };
 
 /*************************************************************************************************/
@@ -2105,40 +2106,40 @@ static const BinaryField_t c_editBoxNumericFields[] =
  */
 static const BinaryField_t c_editBoxNumericBcdFields[] =
 {
-    {PARAMETER_ENABLE,                   BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_VISIBLE,                  BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_POS_X,                    BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,                    BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,                   BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,                   BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_LEGEND_AREA_SIZE_X,       BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,                BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NEXT_FOCUSED_WIDGET,      BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_VALUE,                    BINARY_FIELD_BYTES,        8,  0, 0, NULL, 0},
-    {PARAMETER_MIN_VALUE,                BINARY_FIELD_BYTES,        8,  0, 0, NULL, 0},
-    {PARAMETER_MAX_VALUE,                BINARY_FIELD_BYTES,        8,  0, 0, NULL, 0},
-    {PARAMETER_MIN_FIELDS_VALUES,        BINARY_FIELD_BYTES,        8,  0, 0, NULL, 0},
-    {PARAMETER_MAX_FIELDS_VALUES,        BINARY_FIELD_BYTES,        8,  0, 0, NULL, 0},
-    {PARAMETER_TICS_COARSE,              BINARY_FIELD_BYTES,        8,  0, 0, NULL, 0},
-    {PARAMETER_TICS_FINE,                BINARY_FIELD_BYTES,        8,  0, 0, NULL, 0},
-    {PARAMETER_NUMBER_OF_FIELDS,         BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_ALIGNMENT,                BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_LEGEND_POSITION,          BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_LEGEND_REMOVED,           BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_MAX_FORMAT_STRING_LENGTH, BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_MAX_LEGEND_STRING_LENGTH, BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_POSITIVE_STRING_LENGTH,   BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_NEGATIVE_STRING_LENGTH,   BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_AUTOMATIC_FOCUS_MOTION,   BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_REPORT_ALL_CHANGES,       BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_NUMERIC_KEY_FLAG,         BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_CYCLIC_FLAG,              BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_OF_FIELDS,           BINARY_FIELD_UCHAR,        1, 16, 1, NULL, 0},
-    {NULL,                               BINARY_FIELD_ALIGN,        0,  0, 0, NULL, 0},
-    {PARAMETER_FORMAT_STRING,            BINARY_FIELD_STRING,       0,  0, 0, NULL, 0},
-    {PARAMETER_LEGEND_STRING,            BINARY_FIELD_STRING,       0,  0, 0, NULL, 0},
-    {PARAMETER_POSITIVE_STRING,          BINARY_FIELD_STRING,       0,  0, 0, NULL, 0},
-    {PARAMETER_NEGATIVE_STRING,          BINARY_FIELD_STRING,       0,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,                   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, NULL, 0},
+    {PARAMETER_VISIBLE,                  BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, NULL, 0},
+    {PARAMETER_POS_X,                    BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0,  0, NULL, 0},
+    {PARAMETER_POS_Y,                    BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0,  0, NULL, 0},
+    {PARAMETER_SIZE_X,                   BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0,  0, NULL, 0},
+    {PARAMETER_SIZE_Y,                   BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0,  0, NULL, 0},
+    {PARAMETER_LEGEND_AREA_SIZE_X,       BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0,  0, NULL, 0},
+    {PARAMETER_STYLE_SET,                BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL, 0},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,      BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL, 0},
+    {PARAMETER_VALUE,                    BINARY_FIELD_BYTES,  8,                     0,  0, NULL, 0},
+    {PARAMETER_MIN_VALUE,                BINARY_FIELD_BYTES,  8,                     0,  0, NULL, 0},
+    {PARAMETER_MAX_VALUE,                BINARY_FIELD_BYTES,  8,                     0,  0, NULL, 0},
+    {PARAMETER_MIN_FIELDS_VALUES,        BINARY_FIELD_BYTES,  8,                     0,  0, NULL, 0},
+    {PARAMETER_MAX_FIELDS_VALUES,        BINARY_FIELD_BYTES,  8,                     0,  0, NULL, 0},
+    {PARAMETER_TICS_COARSE,              BINARY_FIELD_BYTES,  8,                     0,  0, NULL, 0},
+    {PARAMETER_TICS_FINE,                BINARY_FIELD_BYTES,  8,                     0,  0, NULL, 0},
+    {PARAMETER_NUMBER_OF_FIELDS,         BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, NULL, 0},
+    {PARAMETER_ALIGNMENT,                BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, NULL, 0},
+    {PARAMETER_LEGEND_POSITION,          BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, NULL, 0},
+    {PARAMETER_LEGEND_REMOVED,           BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, NULL, 0},
+    {PARAMETER_MAX_FORMAT_STRING_LENGTH, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, NULL, 0},
+    {PARAMETER_MAX_LEGEND_STRING_LENGTH, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, NULL, 0},
+    {PARAMETER_POSITIVE_STRING_LENGTH,   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, NULL, 0},
+    {PARAMETER_NEGATIVE_STRING_LENGTH,   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, NULL, 0},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION,   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, NULL, 0},
+    {PARAMETER_REPORT_ALL_CHANGES,       BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, NULL, 0},
+    {PARAMETER_NUMERIC_KEY_FLAG,         BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, NULL, 0},
+    {PARAMETER_CYCLIC_FLAG,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, NULL, 0},
+    {PARAMETER_SIZE_OF_FIELDS,           BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    16, 1, NULL, 0},
+    {NULL,                               BINARY_FIELD_ALIGN,  BINARY_VARIABLE_BYTES, 0,  0, NULL, 0},
+    {PARAMETER_FORMAT_STRING,            BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 0,  0, NULL, 0},
+    {PARAMETER_LEGEND_STRING,            BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 0,  0, NULL, 0},
+    {PARAMETER_POSITIVE_STRING,          BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 0,  0, NULL, 0},
+    {PARAMETER_NEGATIVE_STRING,          BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 0,  0, NULL, 0}
 };
 
 /*************************************************************************************************/
@@ -2147,21 +2148,21 @@ static const BinaryField_t c_editBoxNumericBcdFields[] =
  */
 static const BinaryField_t c_editBoxTextFields[] =
 {
-    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_START_CURSOR_POS,       BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_REPORT_ALL_CHANGES,     BINARY_FIELD_UCHAR,        1,  0, 0, c_editBoxReportAllChangesValues, COUNT_OF(c_editBoxReportAllChangesValues)},
-    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1,  0, 0, c_editBoxAlignmentValues, COUNT_OF(c_editBoxAlignmentValues)},
-    {NULL,                             BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING,       0,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_enableValues,                  COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,                 COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                            0},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                            0},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                            0},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                            0},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                            0},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                            0},
+    {PARAMETER_START_CURSOR_POS,       BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                            0},
+    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                            0},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,                 COUNT_OF(c_booleanValues)},
+    {PARAMETER_REPORT_ALL_CHANGES,     BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_editBoxReportAllChangesValues, COUNT_OF(c_editBoxReportAllChangesValues)},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_editBoxAlignmentValues,        COUNT_OF(c_editBoxAlignmentValues)},
+    {NULL,                             BINARY_FIELD_PAD,    1,                     0, 0, NULL,                            0},
+    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 0, 0, NULL,                            0}
 };
 
 /*************************************************************************************************/
@@ -2170,15 +2171,15 @@ static const BinaryField_t c_editBoxTextFields[] =
  */
 static const BinaryField_t c_eventHandlerFields[] =
 {
-    {PARAMETER_ENABLE_HANDLER,            BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_TRIGGER_LAYER_IDENT,       BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_TRIGGER_WIDGET_IDENT,      BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_TRIGGER_EVENT,             BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {NULL,                                BINARY_FIELD_PAD,          2,  0, 0, NULL, 0},
-    {PARAMETER_NUM_WIDGET_PARAM_RESULTS,  BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_NUM_LAYER_REQ_RESULTS,     BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_WIDGET_PARAM_RESULT_ARRAY, BINARY_FIELD_BYTES,       20,  5, 1, NULL, 0},
-    {PARAMETER_LAYER_REQ_RESULT_ARRAY,    BINARY_FIELD_LAYER_REQUEST,  0,  6, 1, NULL, 0}
+    {PARAMETER_ENABLE_HANDLER,            BINARY_FIELD_UCHAR,         BINARY_UCHAR_BYTES,    0, 0, NULL, 0},
+    {PARAMETER_TRIGGER_LAYER_IDENT,       BINARY_FIELD_UCHAR,         BINARY_UCHAR_BYTES,    0, 0, NULL, 0},
+    {PARAMETER_TRIGGER_WIDGET_IDENT,      BINARY_FIELD_USHORT,        BINARY_USHORT_BYTES,   0, 0, NULL, 0},
+    {PARAMETER_TRIGGER_EVENT,             BINARY_FIELD_USHORT,        BINARY_USHORT_BYTES,   0, 0, NULL, 0},
+    {NULL,                                BINARY_FIELD_PAD,           2,                     0, 0, NULL, 0},
+    {PARAMETER_NUM_WIDGET_PARAM_RESULTS,  BINARY_FIELD_UCHAR,         BINARY_UCHAR_BYTES,    0, 0, NULL, 0},
+    {PARAMETER_NUM_LAYER_REQ_RESULTS,     BINARY_FIELD_UCHAR,         BINARY_UCHAR_BYTES,    0, 0, NULL, 0},
+    {PARAMETER_WIDGET_PARAM_RESULT_ARRAY, BINARY_FIELD_BYTES,         20,                    5, 1, NULL, 0},
+    {PARAMETER_LAYER_REQ_RESULT_ARRAY,    BINARY_FIELD_LAYER_REQUEST, BINARY_VARIABLE_BYTES, 6, 1, NULL, 0}
 };
 
 /*************************************************************************************************/
@@ -2187,20 +2188,20 @@ static const BinaryField_t c_eventHandlerFields[] =
  */
 static const BinaryField_t c_externalSourceFields[] =
 {
-    {PARAMETER_VISIBLE,          BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_MOTION_ALLOWED,   BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,            BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,            BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,           BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,           BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SOURCE_REFERENCE, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {NULL,                       BINARY_FIELD_PAD,          2,  0, 0, NULL, 0},
-    {PARAMETER_SOURCE_X,         BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SOURCE_Y,         BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SOURCE_DX,        BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SOURCE_DY,        BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,        BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {NULL,                       BINARY_FIELD_PAD,          2,  0, 0, NULL, 0}
+    {PARAMETER_VISIBLE,          BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_MOTION_ALLOWED,   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,            BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_POS_Y,            BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_SIZE_X,           BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_SIZE_Y,           BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_SOURCE_REFERENCE, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {NULL,                       BINARY_FIELD_PAD,    2,                   0, 0, NULL,            0},
+    {PARAMETER_SOURCE_X,         BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_SOURCE_Y,         BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_SOURCE_DX,        BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_SOURCE_DY,        BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_STYLE_SET,        BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {NULL,                       BINARY_FIELD_PAD,    2,                   0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -2209,7 +2210,7 @@ static const BinaryField_t c_externalSourceFields[] =
  */
 static const BinaryField_t c_focusInFields[] =
 {
-    {PARAMETER_NEXT_FOCUSED_WIDGET, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0}
+    {PARAMETER_NEXT_FOCUSED_WIDGET, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL, 0}
 };
 
 /*************************************************************************************************/
@@ -2218,10 +2219,10 @@ static const BinaryField_t c_focusInFields[] =
  */
 static const BinaryField_t c_focusLinkFields[] =
 {
-    {NULL,                               BINARY_FIELD_PAD,          2,  0, 0, NULL, 0},
-    {NULL,                               BINARY_FIELD_PAD,          4,  0, 0, NULL, 0},
-    {PARAMETER_NEXT_LAYER_CONNECTOR_REF, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NEXT_FOCUSED_WIDGET,      BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0}
+    {NULL,                               BINARY_FIELD_PAD,    2,                   0, 0, NULL, 0},
+    {NULL,                               BINARY_FIELD_PAD,    4,                   0, 0, NULL, 0},
+    {PARAMETER_NEXT_LAYER_CONNECTOR_REF, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL, 0},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,      BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL, 0}
 };
 
 /*************************************************************************************************/
@@ -2230,10 +2231,10 @@ static const BinaryField_t c_focusLinkFields[] =
  */
 static const BinaryField_t c_focusOutFields[] =
 {
-    {PARAMETER_NEXT_FOCUS_IN_APP_ID,   BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NEXT_FOCUS_IN_LAYER_ID, BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {NULL,                             BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_NEXT_FOCUS_IN_ID,       BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0}
+    {PARAMETER_NEXT_FOCUS_IN_APP_ID,   BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL, 0},
+    {PARAMETER_NEXT_FOCUS_IN_LAYER_ID, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL, 0},
+    {NULL,                             BINARY_FIELD_PAD,    1,                   0, 0, NULL, 0},
+    {PARAMETER_NEXT_FOCUS_IN_ID,       BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL, 0}
 };
 
 /*************************************************************************************************/
@@ -2242,10 +2243,10 @@ static const BinaryField_t c_focusOutFields[] =
  */
 static const BinaryField_t c_framingRefreshContainerFields[] =
 {
-    {PARAMETER_VISIBLE,         BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_ENABLE,          BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_CACHING_ENABLED, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {NULL,                      BINARY_FIELD_PAD,          3,  0, 0, NULL, 0}
+    {PARAMETER_VISIBLE,         BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_ENABLE,          BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_enableValues,  COUNT_OF(c_enableValues)},
+    {PARAMETER_CACHING_ENABLED, BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {NULL,                      BINARY_FIELD_PAD,   3,                  0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -2254,19 +2255,19 @@ static const BinaryField_t c_framingRefreshContainerFields[] =
  */
 static const BinaryField_t c_gestureAreaFields[] =
 {
-    {PARAMETER_ENABLE,           BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_VISIBLE,          BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,        BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {NULL,                       BINARY_FIELD_PAD,          2,  0, 0, NULL, 0},
-    {PARAMETER_POS_X,            BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,            BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,           BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,           BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_REPORT_MODE,      BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_ALLOW_OUTSIDE,    BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_NUMBER_OF_EVENTS, BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {NULL,                       BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_EVENT_ID_ARRAY,   BINARY_FIELD_UCHAR,        1, 10, 1, NULL, 0}
+    {PARAMETER_ENABLE,           BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0,  0, NULL, 0},
+    {PARAMETER_VISIBLE,          BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0,  0, NULL, 0},
+    {PARAMETER_STYLE_SET,        BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0,  0, NULL, 0},
+    {NULL,                       BINARY_FIELD_PAD,    2,                   0,  0, NULL, 0},
+    {PARAMETER_POS_X,            BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0,  0, NULL, 0},
+    {PARAMETER_POS_Y,            BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0,  0, NULL, 0},
+    {PARAMETER_SIZE_X,           BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0,  0, NULL, 0},
+    {PARAMETER_SIZE_Y,           BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0,  0, NULL, 0},
+    {PARAMETER_REPORT_MODE,      BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0,  0, NULL, 0},
+    {PARAMETER_ALLOW_OUTSIDE,    BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0,  0, NULL, 0},
+    {PARAMETER_NUMBER_OF_EVENTS, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0,  0, NULL, 0},
+    {NULL,                       BINARY_FIELD_PAD,    1,                   0,  0, NULL, 0},
+    {PARAMETER_EVENT_ID_ARRAY,   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  10, 1, NULL, 0}
 };
 
 /*************************************************************************************************/
@@ -2275,19 +2276,19 @@ static const BinaryField_t c_gestureAreaFields[] =
  */
 static const BinaryField_t c_gpArcCircleFields[] =
 {
-    {PARAMETER_ANONYMOUS,   BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_VISIBLE,     BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,       BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,       BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_START_ANGLE, BINARY_FIELD_FR180,        4,  0, 0, NULL, 0},
-    {PARAMETER_END_ANGLE,   BINARY_FIELD_FR180,        4,  0, 0, NULL, 0},
-    {PARAMETER_RADIUS,      BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,   BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_COLOR_INDEX, BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_FILLED,      BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_FILL_INDEX,  BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_HALO,        BINARY_FIELD_UCHAR,        1,  0, 0, c_haloValues, COUNT_OF(c_haloValues)},
-    {NULL,                  BINARY_FIELD_PAD,          2,  0, 0, NULL, 0}
+    {PARAMETER_ANONYMOUS,   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_VISIBLE,     BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,       BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_POS_Y,       BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_START_ANGLE, BINARY_FIELD_FR180,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_END_ANGLE,   BINARY_FIELD_FR180,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_RADIUS,      BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_STYLE_SET,   BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_COLOR_INDEX, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_FILLED,      BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_FILL_INDEX,  BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_HALO,        BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_haloValues,    COUNT_OF(c_haloValues)},
+    {NULL,                  BINARY_FIELD_PAD,    2,                   0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -2296,20 +2297,20 @@ static const BinaryField_t c_gpArcCircleFields[] =
  */
 static const BinaryField_t c_gpArcEllipseFields[] =
 {
-    {PARAMETER_ANONYMOUS,   BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_VISIBLE,     BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,       BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,       BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,      BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,      BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_START_ANGLE, BINARY_FIELD_FR180,        4,  0, 0, NULL, 0},
-    {PARAMETER_END_ANGLE,   BINARY_FIELD_FR180,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,   BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_COLOR_INDEX, BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_FILLED,      BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_FILL_INDEX,  BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_HALO,        BINARY_FIELD_UCHAR,        1,  0, 0, c_haloValues, COUNT_OF(c_haloValues)},
-    {NULL,                  BINARY_FIELD_PAD,          2,  0, 0, NULL, 0}
+    {PARAMETER_ANONYMOUS,   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_VISIBLE,     BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,       BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_POS_Y,       BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_SIZE_X,      BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_SIZE_Y,      BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_START_ANGLE, BINARY_FIELD_FR180,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_END_ANGLE,   BINARY_FIELD_FR180,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_STYLE_SET,   BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_COLOR_INDEX, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_FILLED,      BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_FILL_INDEX,  BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_HALO,        BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_haloValues,    COUNT_OF(c_haloValues)},
+    {NULL,                  BINARY_FIELD_PAD,    2,                   0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -2318,20 +2319,20 @@ static const BinaryField_t c_gpArcEllipseFields[] =
  */
 static const BinaryField_t c_gpCrownFields[] =
 {
-    {PARAMETER_ANONYMOUS,    BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_VISIBLE,      BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,        BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,        BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_START_ANGLE,  BINARY_FIELD_FR180,        4,  0, 0, NULL, 0},
-    {PARAMETER_END_ANGLE,    BINARY_FIELD_FR180,        4,  0, 0, NULL, 0},
-    {PARAMETER_INNER_RADIUS, BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_OUTER_RADIUS, BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,    BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_COLOR_INDEX,  BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_FILLED,       BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_FILL_INDEX,   BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_HALO,         BINARY_FIELD_UCHAR,        1,  0, 0, c_haloValues, COUNT_OF(c_haloValues)},
-    {NULL,                   BINARY_FIELD_PAD,          2,  0, 0, NULL, 0}
+    {PARAMETER_ANONYMOUS,    BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_VISIBLE,      BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,        BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_POS_Y,        BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_START_ANGLE,  BINARY_FIELD_FR180,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_END_ANGLE,    BINARY_FIELD_FR180,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_INNER_RADIUS, BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_OUTER_RADIUS, BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_STYLE_SET,    BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_COLOR_INDEX,  BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_FILLED,       BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_FILL_INDEX,   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_HALO,         BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_haloValues,    COUNT_OF(c_haloValues)},
+    {NULL,                   BINARY_FIELD_PAD,    2,                   0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -2340,15 +2341,15 @@ static const BinaryField_t c_gpCrownFields[] =
  */
 static const BinaryField_t c_gpLineFields[] =
 {
-    {PARAMETER_ANONYMOUS,   BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_VISIBLE,     BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X_START, BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y_START, BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_X_END,   BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y_END,   BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,   BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_COLOR_INDEX, BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_HALO,        BINARY_FIELD_UCHAR,        1,  0, 0, c_haloValues, COUNT_OF(c_haloValues)}
+    {PARAMETER_ANONYMOUS,   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_VISIBLE,     BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X_START, BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_POS_Y_START, BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_POS_X_END,   BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_POS_Y_END,   BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_STYLE_SET,   BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_COLOR_INDEX, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_HALO,        BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_haloValues,    COUNT_OF(c_haloValues)}
 };
 
 /*************************************************************************************************/
@@ -2357,15 +2358,15 @@ static const BinaryField_t c_gpLineFields[] =
  */
 static const BinaryField_t c_gpLinePolarFields[] =
 {
-    {PARAMETER_ANONYMOUS,      BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_VISIBLE,        BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X_START,    BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y_START,    BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_ROTATION_ANGLE, BINARY_FIELD_FR180,        4,  0, 0, NULL, 0},
-    {PARAMETER_LINE_LENGTH,    BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,      BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_COLOR_INDEX,    BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_HALO,           BINARY_FIELD_UCHAR,        1,  0, 0, c_haloValues, COUNT_OF(c_haloValues)}
+    {PARAMETER_ANONYMOUS,      BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_VISIBLE,        BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X_START,    BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_POS_Y_START,    BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_ROTATION_ANGLE, BINARY_FIELD_FR180,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_LINE_LENGTH,    BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_STYLE_SET,      BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_COLOR_INDEX,    BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_HALO,           BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_haloValues,    COUNT_OF(c_haloValues)}
 };
 
 /*************************************************************************************************/
@@ -2374,16 +2375,16 @@ static const BinaryField_t c_gpLinePolarFields[] =
  */
 static const BinaryField_t c_gpPolylineFields[] =
 {
-    {PARAMETER_ANONYMOUS,              BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_COLOR_INDEX,            BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_HALO,                   BINARY_FIELD_UCHAR,        1,  0, 0, c_haloValues, COUNT_OF(c_haloValues)},
-    {PARAMETER_CLOSED,                 BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {NULL,                             BINARY_FIELD_PAD,          3,  0, 0, NULL, 0},
-    {PARAMETER_MAX_NUMBER_OF_VERTICES, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NUMBER_OF_VERTICES,     BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_VERTICES,               BINARY_FIELD_LONG,         4,  8, 2, NULL, 0}
+    {PARAMETER_ANONYMOUS,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_COLOR_INDEX,            BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_HALO,                   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_haloValues,    COUNT_OF(c_haloValues)},
+    {PARAMETER_CLOSED,                 BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {NULL,                             BINARY_FIELD_PAD,    3,                   0, 0, NULL,            0},
+    {PARAMETER_MAX_NUMBER_OF_VERTICES, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_NUMBER_OF_VERTICES,     BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_VERTICES,               BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  8, 2, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -2392,18 +2393,18 @@ static const BinaryField_t c_gpPolylineFields[] =
  */
 static const BinaryField_t c_gpRectangleFields[] =
 {
-    {PARAMETER_ANONYMOUS,   BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_VISIBLE,     BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,       BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,       BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,      BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,      BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,   BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_COLOR_INDEX, BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_FILLED,      BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_FILL_INDEX,  BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_HALO,        BINARY_FIELD_UCHAR,        1,  0, 0, c_haloValues, COUNT_OF(c_haloValues)},
-    {NULL,                  BINARY_FIELD_PAD,          2,  0, 0, NULL, 0}
+    {PARAMETER_ANONYMOUS,   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_VISIBLE,     BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,       BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_POS_Y,       BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_SIZE_X,      BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_SIZE_Y,      BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_STYLE_SET,   BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_COLOR_INDEX, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_FILLED,      BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_FILL_INDEX,  BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_HALO,        BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_haloValues,    COUNT_OF(c_haloValues)},
+    {NULL,                  BINARY_FIELD_PAD,    2,                   0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -2412,20 +2413,20 @@ static const BinaryField_t c_gpRectangleFields[] =
  */
 static const BinaryField_t c_gpTriangleFields[] =
 {
-    {PARAMETER_ANONYMOUS,   BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_VISIBLE,     BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,       BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,       BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_X2,      BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y2,      BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_X3,      BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y3,      BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,   BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_COLOR_INDEX, BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_FILLED,      BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_FILL_INDEX,  BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_HALO,        BINARY_FIELD_UCHAR,        1,  0, 0, c_haloValues, COUNT_OF(c_haloValues)},
-    {NULL,                  BINARY_FIELD_PAD,          2,  0, 0, NULL, 0}
+    {PARAMETER_ANONYMOUS,   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_VISIBLE,     BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,       BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_POS_Y,       BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_POS_X2,      BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_POS_Y2,      BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_POS_X3,      BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_POS_Y3,      BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_STYLE_SET,   BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_COLOR_INDEX, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_FILLED,      BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_FILL_INDEX,  BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_HALO,        BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_haloValues,    COUNT_OF(c_haloValues)},
+    {NULL,                  BINARY_FIELD_PAD,    2,                   0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -2434,17 +2435,17 @@ static const BinaryField_t c_gpTriangleFields[] =
  */
 static const BinaryField_t c_gpTriangleFanFields[] =
 {
-    {PARAMETER_ANONYMOUS,              BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_COLOR_INDEX,            BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_FILLED,                 BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_FILL_INDEX,             BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_HALO,                   BINARY_FIELD_UCHAR,        1,  0, 0, c_haloValues, COUNT_OF(c_haloValues)},
-    {NULL,                             BINARY_FIELD_PAD,          2,  0, 0, NULL, 0},
-    {PARAMETER_MAX_NUMBER_OF_VERTICES, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NUMBER_OF_VERTICES,     BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_VERTICES,               BINARY_FIELD_LONG,         4,  9, 2, NULL, 0}
+    {PARAMETER_ANONYMOUS,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_COLOR_INDEX,            BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_FILLED,                 BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_FILL_INDEX,             BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_HALO,                   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_haloValues,    COUNT_OF(c_haloValues)},
+    {NULL,                             BINARY_FIELD_PAD,    2,                   0, 0, NULL,            0},
+    {PARAMETER_MAX_NUMBER_OF_VERTICES, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_NUMBER_OF_VERTICES,     BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_VERTICES,               BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  9, 2, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -2453,17 +2454,17 @@ static const BinaryField_t c_gpTriangleFanFields[] =
  */
 static const BinaryField_t c_gpTriangleStripFields[] =
 {
-    {PARAMETER_ANONYMOUS,              BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_COLOR_INDEX,            BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_FILLED,                 BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_FILL_INDEX,             BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_HALO,                   BINARY_FIELD_UCHAR,        1,  0, 0, c_haloValues, COUNT_OF(c_haloValues)},
-    {NULL,                             BINARY_FIELD_PAD,          2,  0, 0, NULL, 0},
-    {PARAMETER_MAX_NUMBER_OF_VERTICES, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NUMBER_OF_VERTICES,     BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_VERTICES,               BINARY_FIELD_LONG,         4,  9, 2, NULL, 0}
+    {PARAMETER_ANONYMOUS,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_COLOR_INDEX,            BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_FILLED,                 BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_FILL_INDEX,             BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_HALO,                   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_haloValues,    COUNT_OF(c_haloValues)},
+    {NULL,                             BINARY_FIELD_PAD,    2,                   0, 0, NULL,            0},
+    {PARAMETER_MAX_NUMBER_OF_VERTICES, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_NUMBER_OF_VERTICES,     BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_VERTICES,               BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  9, 2, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -2472,20 +2473,20 @@ static const BinaryField_t c_gpTriangleStripFields[] =
  */
 static const BinaryField_t c_inkAreaFields[] =
 {
-    {PARAMETER_VISIBLE,             BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_ENABLE,              BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_STYLE_SET,           BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {NULL,                          BINARY_FIELD_PAD,          2,  0, 0, NULL, 0},
-    {PARAMETER_POS_X,               BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,               BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,              BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,              BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_COLOR_INDEX,         BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_FILLED,              BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_FILL_INDEX,          BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {NULL,                          BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_MAX_BUFFER_SIZE,     BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NEXT_FOCUSED_WIDGET, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0}
+    {PARAMETER_VISIBLE,             BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_ENABLE,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_enableValues,  COUNT_OF(c_enableValues)},
+    {PARAMETER_STYLE_SET,           BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {NULL,                          BINARY_FIELD_PAD,    2,                   0, 0, NULL,            0},
+    {PARAMETER_POS_X,               BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_POS_Y,               BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_SIZE_X,              BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_SIZE_Y,              BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_COLOR_INDEX,         BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_FILLED,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_FILL_INDEX,          BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL,            0},
+    {NULL,                          BINARY_FIELD_PAD,    1,                   0, 0, NULL,            0},
+    {PARAMETER_MAX_BUFFER_SIZE,     BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_NEXT_FOCUSED_WIDGET, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -2494,15 +2495,15 @@ static const BinaryField_t c_inkAreaFields[] =
  */
 static const BinaryField_t c_keyboardAreaFields[] =
 {
-    {PARAMETER_ENABLE,             BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_NUMBER_OF_KEYS,     BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_MAX_NUMBER_OF_KEYS, BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {NULL,                         BINARY_FIELD_PAD,          3,  0, 0, NULL, 0},
-    {PARAMETER_POS_X,              BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,              BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,             BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,             BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_KEY_ARRAY,          BINARY_FIELD_USHORT,       2,  1, 1, NULL, 0}
+    {PARAMETER_ENABLE,             BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL, 0},
+    {PARAMETER_NUMBER_OF_KEYS,     BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL, 0},
+    {PARAMETER_MAX_NUMBER_OF_KEYS, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL, 0},
+    {NULL,                         BINARY_FIELD_PAD,    3,                   0, 0, NULL, 0},
+    {PARAMETER_POS_X,              BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL, 0},
+    {PARAMETER_POS_Y,              BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL, 0},
+    {PARAMETER_SIZE_X,             BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL, 0},
+    {PARAMETER_SIZE_Y,             BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL, 0},
+    {PARAMETER_KEY_ARRAY,          BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 1, 1, NULL, 0}
 };
 
 /*************************************************************************************************/
@@ -2511,20 +2512,20 @@ static const BinaryField_t c_keyboardAreaFields[] =
  */
 static const BinaryField_t c_labelFields[] =
 {
-    {PARAMETER_ANONYMOUS,         BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_VISIBLE,           BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,             BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,             BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,            BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,            BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_ROTATION_ANGLE,    BINARY_FIELD_FR180,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,         BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MAX_STRING_LENGTH, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MOTION_ALLOWED,    BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_FONT,              BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_COLOR_INDEX,       BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_ALIGNMENT,         BINARY_FIELD_UCHAR,        1,  0, 0, c_labelAlignmentValues, COUNT_OF(c_labelAlignmentValues)},
-    {PARAMETER_LABEL_STRING,      BINARY_FIELD_STRING,       0,  0, 0, NULL, 0}
+    {PARAMETER_ANONYMOUS,         BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,        COUNT_OF(c_booleanValues)},
+    {PARAMETER_VISIBLE,           BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,        COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,             BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                   0},
+    {PARAMETER_POS_Y,             BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                   0},
+    {PARAMETER_SIZE_X,            BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                   0},
+    {PARAMETER_SIZE_Y,            BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                   0},
+    {PARAMETER_ROTATION_ANGLE,    BINARY_FIELD_FR180,  BINARY_ULONG_BYTES,    0, 0, NULL,                   0},
+    {PARAMETER_STYLE_SET,         BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                   0},
+    {PARAMETER_MAX_STRING_LENGTH, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                   0},
+    {PARAMETER_MOTION_ALLOWED,    BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,        COUNT_OF(c_booleanValues)},
+    {PARAMETER_FONT,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, NULL,                   0},
+    {PARAMETER_COLOR_INDEX,       BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, NULL,                   0},
+    {PARAMETER_ALIGNMENT,         BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_labelAlignmentValues, COUNT_OF(c_labelAlignmentValues)},
+    {PARAMETER_LABEL_STRING,      BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 0, 0, NULL,                   0}
 };
 
 /*************************************************************************************************/
@@ -2533,18 +2534,18 @@ static const BinaryField_t c_labelFields[] =
  */
 static const BinaryField_t c_labelComplexFields[] =
 {
-    {PARAMETER_ANONYMOUS,          BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_VISIBLE,            BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,              BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,              BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,             BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,             BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,          BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MAX_STRING_LENGTH,  BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_ALIGNMENT,          BINARY_FIELD_UCHAR,        1,  0, 0, c_labelAlignmentValues, COUNT_OF(c_labelAlignmentValues)},
-    {NULL,                         BINARY_FIELD_PAD,          3,  0, 0, NULL, 0},
-    {PARAMETER_DEFAULT_STYLE_TEXT, BINARY_FIELD_BYTES,       12,  0, 0, NULL, 0},
-    {PARAMETER_LABEL_STRING,       BINARY_FIELD_STRING,       0,  0, 0, NULL, 0}
+    {PARAMETER_ANONYMOUS,          BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,        COUNT_OF(c_booleanValues)},
+    {PARAMETER_VISIBLE,            BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,        COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,              BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                   0},
+    {PARAMETER_POS_Y,              BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                   0},
+    {PARAMETER_SIZE_X,             BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                   0},
+    {PARAMETER_SIZE_Y,             BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                   0},
+    {PARAMETER_STYLE_SET,          BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                   0},
+    {PARAMETER_MAX_STRING_LENGTH,  BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                   0},
+    {PARAMETER_ALIGNMENT,          BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_labelAlignmentValues, COUNT_OF(c_labelAlignmentValues)},
+    {NULL,                         BINARY_FIELD_PAD,    3,                     0, 0, NULL,                   0},
+    {PARAMETER_DEFAULT_STYLE_TEXT, BINARY_FIELD_BYTES,  12,                    0, 0, NULL,                   0},
+    {PARAMETER_LABEL_STRING,       BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 0, 0, NULL,                   0}
 };
 
 /*************************************************************************************************/
@@ -2553,18 +2554,18 @@ static const BinaryField_t c_labelComplexFields[] =
  */
 static const BinaryField_t c_maphorzFields[] =
 {
-    {PARAMETER_ENABLE,                   BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,                  BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,                    BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,                    BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,                   BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,                   BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SCREEN_REFERENCE_POINT_X, BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SCREEN_REFERENCE_POINT_Y, BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_RANGE,                    BINARY_FIELD_FR32768,      4,  0, 0, NULL, 0},
-    {PARAMETER_SCREEN_RANGE,             BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_PROJECTION_TYPE,          BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {NULL,                               BINARY_FIELD_PAD,          3,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,                   BINARY_FIELD_UCHAR,   BINARY_UCHAR_BYTES, 0, 0, c_enableValues,  COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,                  BINARY_FIELD_UCHAR,   BINARY_UCHAR_BYTES, 0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,                    BINARY_FIELD_LONG,    BINARY_ULONG_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_POS_Y,                    BINARY_FIELD_LONG,    BINARY_ULONG_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_SIZE_X,                   BINARY_FIELD_ULONG,   BINARY_ULONG_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_SIZE_Y,                   BINARY_FIELD_ULONG,   BINARY_ULONG_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_SCREEN_REFERENCE_POINT_X, BINARY_FIELD_LONG,    BINARY_ULONG_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_SCREEN_REFERENCE_POINT_Y, BINARY_FIELD_LONG,    BINARY_ULONG_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_RANGE,                    BINARY_FIELD_FR32768, BINARY_ULONG_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_SCREEN_RANGE,             BINARY_FIELD_ULONG,   BINARY_ULONG_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_PROJECTION_TYPE,          BINARY_FIELD_UCHAR,   BINARY_UCHAR_BYTES, 0, 0, NULL,            0},
+    {NULL,                               BINARY_FIELD_PAD,     3,                  0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -2573,8 +2574,8 @@ static const BinaryField_t c_maphorzFields[] =
  */
 static const BinaryField_t c_maphorzContainerFields[] =
 {
-    {NULL,              BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_VISIBLE, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)}
+    {NULL,              BINARY_FIELD_PAD,   1,                  0, 0, NULL,            0},
+    {PARAMETER_VISIBLE, BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_booleanValues, COUNT_OF(c_booleanValues)}
 };
 
 /*************************************************************************************************/
@@ -2583,11 +2584,11 @@ static const BinaryField_t c_maphorzContainerFields[] =
  */
 static const BinaryField_t c_maphorzItemlistFields[] =
 {
-    {PARAMETER_ENABLE,             BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,            BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_MAX_NUMBER_OF_ITEM, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MAX_ITEM_SIZE,      BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {NULL,                         BINARY_FIELD_PAD,          1,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,             BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_enableValues,  COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,            BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_MAX_NUMBER_OF_ITEM, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_MAX_ITEM_SIZE,      BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL,            0},
+    {NULL,                         BINARY_FIELD_PAD,    1,                   0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -2596,8 +2597,8 @@ static const BinaryField_t c_maphorzItemlistFields[] =
  */
 static const BinaryField_t c_maphorzPanelFields[] =
 {
-    {PARAMETER_ENABLE,  BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)}
+    {PARAMETER_ENABLE,  BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_enableValues,  COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE, BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_booleanValues, COUNT_OF(c_booleanValues)}
 };
 
 /*************************************************************************************************/
@@ -2606,11 +2607,11 @@ static const BinaryField_t c_maphorzPanelFields[] =
  */
 static const BinaryField_t c_maphorzSourceFields[] =
 {
-    {PARAMETER_ENABLE,          BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,         BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_MAP_DATA_FORMAT, BINARY_FIELD_UCHAR,        1,  0, 0, c_mapDataFormatValues, COUNT_OF(c_mapDataFormatValues)},
-    {PARAMETER_EVENT_FLAG,      BINARY_FIELD_UCHAR,        1,  0, 0, c_eventFlagValues, COUNT_OF(c_eventFlagValues)},
-    {NULL,                      BINARY_FIELD_PAD,          2,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,          BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_enableValues,        COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,         BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_booleanValues,       COUNT_OF(c_booleanValues)},
+    {PARAMETER_MAP_DATA_FORMAT, BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_mapDataFormatValues, COUNT_OF(c_mapDataFormatValues)},
+    {PARAMETER_EVENT_FLAG,      BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_eventFlagValues,     COUNT_OF(c_eventFlagValues)},
+    {NULL,                      BINARY_FIELD_PAD,   2,                  0, 0, NULL,                  0}
 };
 
 /*************************************************************************************************/
@@ -2619,11 +2620,11 @@ static const BinaryField_t c_maphorzSourceFields[] =
  */
 static const BinaryField_t c_maphorzVertexbufferFields[] =
 {
-    {PARAMETER_ANONYMOUS,              BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {NULL,                             BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_MAX_NUMBER_OF_VERTICES, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NUMBER_OF_VERTICES,     BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_VERTICES,               BINARY_FIELD_LONG,         4,  3, 2, NULL, 0}
+    {PARAMETER_ANONYMOUS,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {NULL,                             BINARY_FIELD_PAD,    1,                   0, 0, NULL,            0},
+    {PARAMETER_MAX_NUMBER_OF_VERTICES, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_NUMBER_OF_VERTICES,     BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_VERTICES,               BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  3, 2, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -2632,18 +2633,18 @@ static const BinaryField_t c_maphorzVertexbufferFields[] =
  */
 static const BinaryField_t c_mapvertFields[] =
 {
-    {PARAMETER_ENABLE,        BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,       BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,         BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,         BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,        BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,        BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_RANGE_X,       BINARY_FIELD_FR32768,      4,  0, 0, NULL, 0},
-    {PARAMETER_RANGE_Y,       BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_REF_POS_X,     BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_REF_POS_Y,     BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_REF_GEO_POS_X, BINARY_FIELD_FR32768,      4,  0, 0, NULL, 0},
-    {PARAMETER_REF_GEO_POS_Y, BINARY_FIELD_LONG,         4,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,        BINARY_FIELD_UCHAR,   BINARY_UCHAR_BYTES, 0, 0, c_enableValues,  COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,       BINARY_FIELD_UCHAR,   BINARY_UCHAR_BYTES, 0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,         BINARY_FIELD_LONG,    BINARY_ULONG_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_POS_Y,         BINARY_FIELD_LONG,    BINARY_ULONG_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_SIZE_X,        BINARY_FIELD_ULONG,   BINARY_ULONG_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_SIZE_Y,        BINARY_FIELD_ULONG,   BINARY_ULONG_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_RANGE_X,       BINARY_FIELD_FR32768, BINARY_ULONG_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_RANGE_Y,       BINARY_FIELD_LONG,    BINARY_ULONG_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_REF_POS_X,     BINARY_FIELD_LONG,    BINARY_ULONG_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_REF_POS_Y,     BINARY_FIELD_LONG,    BINARY_ULONG_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_REF_GEO_POS_X, BINARY_FIELD_FR32768, BINARY_ULONG_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_REF_GEO_POS_Y, BINARY_FIELD_LONG,    BINARY_ULONG_BYTES, 0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -2652,8 +2653,8 @@ static const BinaryField_t c_mapvertFields[] =
  */
 static const BinaryField_t c_mapvertContainerFields[] =
 {
-    {NULL,              BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_VISIBLE, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)}
+    {NULL,              BINARY_FIELD_PAD,   1,                  0, 0, NULL,            0},
+    {PARAMETER_VISIBLE, BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_booleanValues, COUNT_OF(c_booleanValues)}
 };
 
 /*************************************************************************************************/
@@ -2662,11 +2663,11 @@ static const BinaryField_t c_mapvertContainerFields[] =
  */
 static const BinaryField_t c_mapvertItemlistFields[] =
 {
-    {PARAMETER_ENABLE,             BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,            BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_MAX_NUMBER_OF_ITEM, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MAX_ITEM_SIZE,      BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {NULL,                         BINARY_FIELD_PAD,          1,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,             BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_enableValues,  COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,            BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_MAX_NUMBER_OF_ITEM, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_MAX_ITEM_SIZE,      BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL,            0},
+    {NULL,                         BINARY_FIELD_PAD,    1,                   0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -2675,8 +2676,8 @@ static const BinaryField_t c_mapvertItemlistFields[] =
  */
 static const BinaryField_t c_mapvertPanelFields[] =
 {
-    {PARAMETER_ENABLE,  BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)}
+    {PARAMETER_ENABLE,  BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_enableValues,  COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE, BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_booleanValues, COUNT_OF(c_booleanValues)}
 };
 
 /*************************************************************************************************/
@@ -2685,12 +2686,12 @@ static const BinaryField_t c_mapvertPanelFields[] =
  */
 static const BinaryField_t c_mapvertSourceFields[] =
 {
-    {PARAMETER_ENABLE,            BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,           BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_MAP_DATA_FORMAT_X, BINARY_FIELD_UCHAR,        1,  0, 0, c_mapDataFormatXValues, COUNT_OF(c_mapDataFormatXValues)},
-    {PARAMETER_MAP_DATA_FORMAT_Y, BINARY_FIELD_UCHAR,        1,  0, 0, c_mapDataFormatYValues, COUNT_OF(c_mapDataFormatYValues)},
-    {PARAMETER_EVENT_FLAG,        BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {NULL,                        BINARY_FIELD_PAD,          1,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,            BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_enableValues,         COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,           BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_booleanValues,        COUNT_OF(c_booleanValues)},
+    {PARAMETER_MAP_DATA_FORMAT_X, BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_mapDataFormatXValues, COUNT_OF(c_mapDataFormatXValues)},
+    {PARAMETER_MAP_DATA_FORMAT_Y, BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_mapDataFormatYValues, COUNT_OF(c_mapDataFormatYValues)},
+    {PARAMETER_EVENT_FLAG,        BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_booleanValues,        COUNT_OF(c_booleanValues)},
+    {NULL,                        BINARY_FIELD_PAD,   1,                  0, 0, NULL,                   0}
 };
 
 /*************************************************************************************************/
@@ -2699,13 +2700,13 @@ static const BinaryField_t c_mapvertSourceFields[] =
  */
 static const BinaryField_t c_mapBoundaryFields[] =
 {
-    {PARAMETER_ENABLE,                BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,               BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_MAX_NUMBER_OF_ENTRIES, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NUMBER_OF_ENTRIES,     BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_BEGIN_ANGLE_ARRAY,     BINARY_FIELD_FR180,        4,  3, 1, NULL, 0},
-    {PARAMETER_DISTANCE_ARRAY,        BINARY_FIELD_ULONG,        4,  3, 1, NULL, 0},
-    {PARAMETER_ALGORITHM_ARRAY,       BINARY_FIELD_ULONG,        4,  3, 1, c_mapBoundaryAlgorithmValues, COUNT_OF(c_mapBoundaryAlgorithmValues)}
+    {PARAMETER_ENABLE,                BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_enableValues,               COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,               BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues,              COUNT_OF(c_booleanValues)},
+    {PARAMETER_MAX_NUMBER_OF_ENTRIES, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,                         0},
+    {PARAMETER_NUMBER_OF_ENTRIES,     BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,                         0},
+    {PARAMETER_BEGIN_ANGLE_ARRAY,     BINARY_FIELD_FR180,  BINARY_ULONG_BYTES,  3, 1, NULL,                         0},
+    {PARAMETER_DISTANCE_ARRAY,        BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  3, 1, NULL,                         0},
+    {PARAMETER_ALGORITHM_ARRAY,       BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  3, 1, c_mapBoundaryAlgorithmValues, COUNT_OF(c_mapBoundaryAlgorithmValues)}
 };
 
 /*************************************************************************************************/
@@ -2714,14 +2715,14 @@ static const BinaryField_t c_mapBoundaryFields[] =
  */
 static const BinaryField_t c_mapExternalSourceFields[] =
 {
-    {PARAMETER_VISIBLE,          BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {NULL,                       BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_POS_X,            BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,            BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,           BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,           BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SOURCE_REFERENCE, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,        BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0}
+    {PARAMETER_VISIBLE,          BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {NULL,                       BINARY_FIELD_PAD,    1,                   0, 0, NULL,            0},
+    {PARAMETER_POS_X,            BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_POS_Y,            BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_SIZE_X,           BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_SIZE_Y,           BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_SOURCE_REFERENCE, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_STYLE_SET,        BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -2730,14 +2731,14 @@ static const BinaryField_t c_mapExternalSourceFields[] =
  */
 static const BinaryField_t c_mapGridFields[] =
 {
-    {PARAMETER_VISIBLE,     BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {NULL,                  BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_OFFSET_X,    BINARY_FIELD_FLOAT,        4,  0, 0, NULL, 0},
-    {PARAMETER_OFFSET_Y,    BINARY_FIELD_FLOAT,        4,  0, 0, NULL, 0},
-    {PARAMETER_INCREMENT_X, BINARY_FIELD_FLOAT,        4,  0, 0, NULL, 0},
-    {PARAMETER_INCREMENT_Y, BINARY_FIELD_FLOAT,        4,  0, 0, NULL, 0},
-    {PARAMETER_COUNT_X,     BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_COUNT_Y,     BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0}
+    {PARAMETER_VISIBLE,     BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {NULL,                  BINARY_FIELD_PAD,    1,                   0, 0, NULL,            0},
+    {PARAMETER_OFFSET_X,    BINARY_FIELD_FLOAT,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_OFFSET_Y,    BINARY_FIELD_FLOAT,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_INCREMENT_X, BINARY_FIELD_FLOAT,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_INCREMENT_Y, BINARY_FIELD_FLOAT,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_COUNT_X,     BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_COUNT_Y,     BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -2746,13 +2747,13 @@ static const BinaryField_t c_mapGridFields[] =
  */
 static const BinaryField_t c_maskContainerFields[] =
 {
-    {PARAMETER_MASK_ENABLED,   BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_VISIBLE,        BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,          BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,          BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_MASK_REFERENCE, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MOTION_ALLOWED, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {NULL,                     BINARY_FIELD_PAD,          1,  0, 0, NULL, 0}
+    {PARAMETER_MASK_ENABLED,   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_VISIBLE,        BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,          BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_POS_Y,          BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_MASK_REFERENCE, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_MOTION_ALLOWED, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {NULL,                     BINARY_FIELD_PAD,    1,                   0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -2761,14 +2762,14 @@ static const BinaryField_t c_maskContainerFields[] =
  */
 static const BinaryField_t c_menuBarFields[] =
 {
-    {PARAMETER_ENABLE,      BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,     BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_HORIZONTAL,  BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {NULL,                  BINARY_FIELD_PAD,          3,  0, 0, NULL, 0},
-    {PARAMETER_POS_X,       BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,       BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_BUTTON_POS,  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_BUTTON_SIZE, BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,      BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_enableValues,  COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,     BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_HORIZONTAL,  BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {NULL,                  BINARY_FIELD_PAD,   3,                  0, 0, NULL,            0},
+    {PARAMETER_POS_X,       BINARY_FIELD_LONG,  BINARY_ULONG_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_POS_Y,       BINARY_FIELD_LONG,  BINARY_ULONG_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_BUTTON_POS,  BINARY_FIELD_LONG,  BINARY_ULONG_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_BUTTON_SIZE, BINARY_FIELD_ULONG, BINARY_ULONG_BYTES, 0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -2777,22 +2778,22 @@ static const BinaryField_t c_menuBarFields[] =
  */
 static const BinaryField_t c_multiStateButtonFields[] =
 {
-    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_BUTTON_STATE,           BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1,  0, 0, c_pushButtonAlignmentValues, COUNT_OF(c_pushButtonAlignmentValues)},
-    {PARAMETER_MAX_NUMBER_OF_STATES,   BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_NUMBER_OF_STATES,       BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {NULL,                             BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_LABEL_STRING_ARRAY,     BINARY_FIELD_STRING,       0, 13, 1, NULL, 0}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_enableValues,              COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_booleanValues,             COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0,  0, NULL,                        0},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0,  0, NULL,                        0},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0,  0, NULL,                        0},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0,  0, NULL,                        0},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                        0},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                        0},
+    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                        0},
+    {PARAMETER_BUTTON_STATE,           BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, NULL,                        0},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_booleanValues,             COUNT_OF(c_booleanValues)},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_pushButtonAlignmentValues, COUNT_OF(c_pushButtonAlignmentValues)},
+    {PARAMETER_MAX_NUMBER_OF_STATES,   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, NULL,                        0},
+    {PARAMETER_NUMBER_OF_STATES,       BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, NULL,                        0},
+    {NULL,                             BINARY_FIELD_PAD,    1,                     0,  0, NULL,                        0},
+    {PARAMETER_LABEL_STRING_ARRAY,     BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 13, 1, NULL,                        0}
 };
 
 /*************************************************************************************************/
@@ -2801,12 +2802,12 @@ static const BinaryField_t c_multiStateButtonFields[] =
  */
 static const BinaryField_t c_mutuallyExclusiveContainerFields[] =
 {
-    {PARAMETER_ENABLE,        BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_VISIBLE,       BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_POS_X,         BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,         BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_VISIBLE_CHILD, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {NULL,                    BINARY_FIELD_PAD,          2,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,        BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL, 0},
+    {PARAMETER_VISIBLE,       BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL, 0},
+    {PARAMETER_POS_X,         BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL, 0},
+    {PARAMETER_POS_Y,         BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL, 0},
+    {PARAMETER_VISIBLE_CHILD, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL, 0},
+    {NULL,                    BINARY_FIELD_PAD,    2,                   0, 0, NULL, 0}
 };
 
 /*************************************************************************************************/
@@ -2815,8 +2816,8 @@ static const BinaryField_t c_mutuallyExclusiveContainerFields[] =
  */
 static const BinaryField_t c_noServiceMonitorFields[] =
 {
-    {PARAMETER_SHOW_NO_SERVICE_IDENT, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {NULL,                            BINARY_FIELD_PAD,          4,  0, 0, NULL, 0}
+    {PARAMETER_SHOW_NO_SERVICE_IDENT, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL, 0},
+    {NULL,                            BINARY_FIELD_PAD,    4,                   0, 0, NULL, 0}
 };
 
 /*************************************************************************************************/
@@ -2825,24 +2826,24 @@ static const BinaryField_t c_noServiceMonitorFields[] =
  */
 static const BinaryField_t c_numericReadoutFields[] =
 {
-    {PARAMETER_VISIBLE,                  BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_MOTION_ALLOWED,           BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,                    BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,                    BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,                   BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,                   BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_ROTATION_ANGLE,           BINARY_FIELD_FR180,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,                BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_ALIGNMENT,                BINARY_FIELD_UCHAR,        1,  0, 0, c_labelAlignmentValues, COUNT_OF(c_labelAlignmentValues)},
-    {NULL,                               BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_VALUE,                    BINARY_FIELD_FLOAT,        4,  0, 0, NULL, 0},
-    {PARAMETER_LEGEND_AREA_SIZE_X,       BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_MAX_FORMAT_STRING_LENGTH, BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_MAX_LEGEND_STRING_LENGTH, BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_LEGEND_POSITION,          BINARY_FIELD_UCHAR,        1,  0, 0, c_legendPositionValues, COUNT_OF(c_legendPositionValues)},
-    {NULL,                               BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_FORMAT_STRING,            BINARY_FIELD_STRING,       0,  0, 0, NULL, 0},
-    {PARAMETER_LEGEND_STRING,            BINARY_FIELD_STRING,       0,  0, 0, NULL, 0}
+    {PARAMETER_VISIBLE,                  BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,        COUNT_OF(c_booleanValues)},
+    {PARAMETER_MOTION_ALLOWED,           BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,        COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,                    BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                   0},
+    {PARAMETER_POS_Y,                    BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                   0},
+    {PARAMETER_SIZE_X,                   BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                   0},
+    {PARAMETER_SIZE_Y,                   BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                   0},
+    {PARAMETER_ROTATION_ANGLE,           BINARY_FIELD_FR180,  BINARY_ULONG_BYTES,    0, 0, NULL,                   0},
+    {PARAMETER_STYLE_SET,                BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                   0},
+    {PARAMETER_ALIGNMENT,                BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_labelAlignmentValues, COUNT_OF(c_labelAlignmentValues)},
+    {NULL,                               BINARY_FIELD_PAD,    1,                     0, 0, NULL,                   0},
+    {PARAMETER_VALUE,                    BINARY_FIELD_FLOAT,  BINARY_ULONG_BYTES,    0, 0, NULL,                   0},
+    {PARAMETER_LEGEND_AREA_SIZE_X,       BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                   0},
+    {PARAMETER_MAX_FORMAT_STRING_LENGTH, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, NULL,                   0},
+    {PARAMETER_MAX_LEGEND_STRING_LENGTH, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, NULL,                   0},
+    {PARAMETER_LEGEND_POSITION,          BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_legendPositionValues, COUNT_OF(c_legendPositionValues)},
+    {NULL,                               BINARY_FIELD_PAD,    1,                     0, 0, NULL,                   0},
+    {PARAMETER_FORMAT_STRING,            BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 0, 0, NULL,                   0},
+    {PARAMETER_LEGEND_STRING,            BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 0, 0, NULL,                   0}
 };
 
 /*************************************************************************************************/
@@ -2851,20 +2852,20 @@ static const BinaryField_t c_numericReadoutFields[] =
  */
 static const BinaryField_t c_pagingContainerFields[] =
 {
-    {PARAMETER_ENABLE,                  BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,                 BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,                   BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,                   BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,                  BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,                  BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_WRAPPING_TYPE,           BINARY_FIELD_UCHAR,        1,  0, 0, c_wrappingTypeValues, COUNT_OF(c_wrappingTypeValues)},
-    {PARAMETER_PAGING_CONTROL_POSITION, BINARY_FIELD_UCHAR,        1,  0, 0, c_pagingControlPositionValues, COUNT_OF(c_pagingControlPositionValues)},
-    {PARAMETER_FINE_PAGE_DELTA,         BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_COARSE_PAGE_DELTA,       BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_VISIBLE_CHILD,           BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_REPORT_VISIBLE_CHILD,    BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_STYLE_SET,               BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_ANONYMOUS,               BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)}
+    {PARAMETER_ENABLE,                  BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_enableValues,                COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,                 BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues,               COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,                   BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,                          0},
+    {PARAMETER_POS_Y,                   BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,                          0},
+    {PARAMETER_SIZE_X,                  BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,                          0},
+    {PARAMETER_SIZE_Y,                  BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,                          0},
+    {PARAMETER_WRAPPING_TYPE,           BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_wrappingTypeValues,          COUNT_OF(c_wrappingTypeValues)},
+    {PARAMETER_PAGING_CONTROL_POSITION, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_pagingControlPositionValues, COUNT_OF(c_pagingControlPositionValues)},
+    {PARAMETER_FINE_PAGE_DELTA,         BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,                          0},
+    {PARAMETER_COARSE_PAGE_DELTA,       BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,                          0},
+    {PARAMETER_VISIBLE_CHILD,           BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,                          0},
+    {PARAMETER_REPORT_VISIBLE_CHILD,    BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues,               COUNT_OF(c_booleanValues)},
+    {PARAMETER_STYLE_SET,               BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,                          0},
+    {PARAMETER_ANONYMOUS,               BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues,               COUNT_OF(c_booleanValues)}
 };
 
 /*************************************************************************************************/
@@ -2873,15 +2874,15 @@ static const BinaryField_t c_pagingContainerFields[] =
  */
 static const BinaryField_t c_panelFields[] =
 {
-    {PARAMETER_ENABLE,         BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,        BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,          BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,          BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,         BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,         BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,      BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MOTION_ALLOWED, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {NULL,                     BINARY_FIELD_PAD,          1,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,         BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_enableValues,  COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,        BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,          BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_POS_Y,          BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_SIZE_X,         BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_SIZE_Y,         BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_STYLE_SET,      BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_MOTION_ALLOWED, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {NULL,                     BINARY_FIELD_PAD,    1,                   0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -2890,14 +2891,14 @@ static const BinaryField_t c_panelFields[] =
  */
 static const BinaryField_t c_pictureFields[] =
 {
-    {PARAMETER_ANONYMOUS,         BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_VISIBLE,           BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,             BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,             BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,            BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,            BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,         BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_PICTURE_REFERENCE, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0}
+    {PARAMETER_ANONYMOUS,         BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_VISIBLE,           BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,             BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_POS_Y,             BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_SIZE_X,            BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_SIZE_Y,            BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_STYLE_SET,         BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_PICTURE_REFERENCE, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -2906,19 +2907,19 @@ static const BinaryField_t c_pictureFields[] =
  */
 static const BinaryField_t c_pictureAnimatedFields[] =
 {
-    {PARAMETER_VISIBLE,            BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {NULL,                         BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_POS_X,              BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,              BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,             BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,             BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,          BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NUMBER_OF_PICTURES, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_INDEX_OF_FREQUENCY, BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_LOOP_FLAG,          BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_ANIMATION_FLAG,     BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {NULL,                         BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_PICTURE_ARRAY,      BINARY_FIELD_USHORT,       2,  7, 1, NULL, 0}
+    {PARAMETER_VISIBLE,            BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {NULL,                         BINARY_FIELD_PAD,    1,                   0, 0, NULL,            0},
+    {PARAMETER_POS_X,              BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_POS_Y,              BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_SIZE_X,             BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_SIZE_Y,             BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_STYLE_SET,          BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_NUMBER_OF_PICTURES, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_INDEX_OF_FREQUENCY, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_LOOP_FLAG,          BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_ANIMATION_FLAG,     BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {NULL,                         BINARY_FIELD_PAD,    1,                   0, 0, NULL,            0},
+    {PARAMETER_PICTURE_ARRAY,      BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 7, 1, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -2927,21 +2928,21 @@ static const BinaryField_t c_pictureAnimatedFields[] =
  */
 static const BinaryField_t c_picturePushButtonFields[] =
 {
-    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_PICTURE_REFERENCE,      BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_PICTURE_POSITION,       BINARY_FIELD_UCHAR,        1,  0, 0, c_picturePositionValues, COUNT_OF(c_picturePositionValues)},
-    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1,  0, 0, c_buttonAlignmentValues, COUNT_OF(c_buttonAlignmentValues)},
-    {NULL,                             BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING,       0,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_enableValues,          COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,         COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                    0},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                    0},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                    0},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                    0},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                    0},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                    0},
+    {PARAMETER_PICTURE_REFERENCE,      BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                    0},
+    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                    0},
+    {PARAMETER_PICTURE_POSITION,       BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_picturePositionValues, COUNT_OF(c_picturePositionValues)},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,         COUNT_OF(c_booleanValues)},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_buttonAlignmentValues, COUNT_OF(c_buttonAlignmentValues)},
+    {NULL,                             BINARY_FIELD_PAD,    1,                     0, 0, NULL,                    0},
+    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 0, 0, NULL,                    0}
 };
 
 /*************************************************************************************************/
@@ -2950,25 +2951,25 @@ static const BinaryField_t c_picturePushButtonFields[] =
  */
 static const BinaryField_t c_pictureToggleButtonFields[] =
 {
-    {PARAMETER_ENABLE,                      BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,                     BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,                       BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,                       BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,                      BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,                      BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,                   BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NEXT_FOCUSED_WIDGET,         BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MAX_STRING_LENGTH,           BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_ALTERNATE_FLAG,              BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_AUTOMATIC_FOCUS_MOTION,      BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_PICTURE_REFERENCE,           BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_ALTERNATE_PICTURE_REFERENCE, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_PICTURE_POSITION,            BINARY_FIELD_UCHAR,        1,  0, 0, c_picturePositionValues, COUNT_OF(c_picturePositionValues)},
-    {PARAMETER_TOGGLE_STATE,                BINARY_FIELD_UCHAR,        1,  0, 0, c_toggleStateValues, COUNT_OF(c_toggleStateValues)},
-    {PARAMETER_ALIGNMENT,                   BINARY_FIELD_UCHAR,        1,  0, 0, c_buttonAlignmentValues, COUNT_OF(c_buttonAlignmentValues)},
-    {NULL,                                  BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_LABEL_STRING,                BINARY_FIELD_STRING,       0,  0, 0, NULL, 0},
-    {PARAMETER_ALTERNATE_LABEL_STRING,      BINARY_FIELD_STRING,       0,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,                      BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_enableValues,          COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,                     BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,         COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,                       BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                    0},
+    {PARAMETER_POS_Y,                       BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                    0},
+    {PARAMETER_SIZE_X,                      BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                    0},
+    {PARAMETER_SIZE_Y,                      BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                    0},
+    {PARAMETER_STYLE_SET,                   BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                    0},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,         BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                    0},
+    {PARAMETER_MAX_STRING_LENGTH,           BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                    0},
+    {PARAMETER_ALTERNATE_FLAG,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,         COUNT_OF(c_booleanValues)},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION,      BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,         COUNT_OF(c_booleanValues)},
+    {PARAMETER_PICTURE_REFERENCE,           BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                    0},
+    {PARAMETER_ALTERNATE_PICTURE_REFERENCE, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                    0},
+    {PARAMETER_PICTURE_POSITION,            BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_picturePositionValues, COUNT_OF(c_picturePositionValues)},
+    {PARAMETER_TOGGLE_STATE,                BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_toggleStateValues,     COUNT_OF(c_toggleStateValues)},
+    {PARAMETER_ALIGNMENT,                   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_buttonAlignmentValues, COUNT_OF(c_buttonAlignmentValues)},
+    {NULL,                                  BINARY_FIELD_PAD,    1,                     0, 0, NULL,                    0},
+    {PARAMETER_LABEL_STRING,                BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 0, 0, NULL,                    0},
+    {PARAMETER_ALTERNATE_LABEL_STRING,      BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 0, 0, NULL,                    0}
 };
 
 /*************************************************************************************************/
@@ -2977,18 +2978,18 @@ static const BinaryField_t c_pictureToggleButtonFields[] =
  */
 static const BinaryField_t c_popUpMenuFields[] =
 {
-    {PARAMETER_OPENING_MODE,       BINARY_FIELD_UCHAR,        1,  0, 0, c_popUpMenuOpeningModeValues, COUNT_OF(c_popUpMenuOpeningModeValues)},
-    {PARAMETER_NUMBER_OF_ENTRIES,  BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_POS_X,              BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,              BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,             BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,             BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_MAX_STRING_LENGTH,  BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,          BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_POP_UP_IDENT_ARRAY, BINARY_FIELD_USHORT,       2,  1, 1, NULL, 0},
-    {PARAMETER_PICTURE_ARRAY,      BINARY_FIELD_USHORT,       2,  1, 1, NULL, 0},
-    {PARAMETER_ENABLE_ARRAY,       BINARY_FIELD_UCHAR,        1,  1, 1, NULL, 0},
-    {PARAMETER_STRING_ARRAY,       BINARY_FIELD_STRING,       0,  1, 1, NULL, 0}
+    {PARAMETER_OPENING_MODE,       BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_popUpMenuOpeningModeValues, COUNT_OF(c_popUpMenuOpeningModeValues)},
+    {PARAMETER_NUMBER_OF_ENTRIES,  BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, NULL,                         0},
+    {PARAMETER_POS_X,              BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                         0},
+    {PARAMETER_POS_Y,              BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                         0},
+    {PARAMETER_SIZE_X,             BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                         0},
+    {PARAMETER_SIZE_Y,             BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                         0},
+    {PARAMETER_MAX_STRING_LENGTH,  BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                         0},
+    {PARAMETER_STYLE_SET,          BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                         0},
+    {PARAMETER_POP_UP_IDENT_ARRAY, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   1, 1, NULL,                         0},
+    {PARAMETER_PICTURE_ARRAY,      BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   1, 1, NULL,                         0},
+    {PARAMETER_ENABLE_ARRAY,       BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    1, 1, NULL,                         0},
+    {PARAMETER_STRING_ARRAY,       BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 1, 1, NULL,                         0}
 };
 
 /*************************************************************************************************/
@@ -2997,33 +2998,33 @@ static const BinaryField_t c_popUpMenuFields[] =
  */
 static const BinaryField_t c_popUpMenuButtonFields[] =
 {
-    {PARAMETER_ENABLE,                   BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,                  BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,                    BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,                    BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,                   BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,                   BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,                BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NEXT_FOCUSED_WIDGET,      BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_POPUP_POS_X,              BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POPUP_POS_Y,              BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POPUP_SIZE_X,             BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_POPUP_SIZE_Y,             BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_MAX_STRING_LENGTH,        BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MAX_STRING_LENGTH_POP_UP, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_PICTURE_REFERENCE,        BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NUMBER_OF_ENTRIES,        BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_PICTURE_POSITION,         BINARY_FIELD_UCHAR,        1,  0, 0, c_popUpButtonPicturePositionValues, COUNT_OF(c_popUpButtonPicturePositionValues)},
-    {PARAMETER_OPENING_MODE,             BINARY_FIELD_UCHAR,        1,  0, 0, c_popUpMenuButtonOpeningModeValues, COUNT_OF(c_popUpMenuButtonOpeningModeValues)},
-    {PARAMETER_ALIGNMENT,                BINARY_FIELD_UCHAR,        1,  0, 0, c_buttonAlignmentValues, COUNT_OF(c_buttonAlignmentValues)},
-    {PARAMETER_AUTOMATIC_FOCUS_MOTION,   BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {NULL,                               BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_LABEL_STRING,             BINARY_FIELD_STRING,       0,  0, 0, NULL, 0},
-    {NULL,                               BINARY_FIELD_ALIGN,        0,  0, 0, NULL, 0},
-    {PARAMETER_POP_UP_IDENT_ARRAY,       BINARY_FIELD_USHORT,       2, 15, 1, NULL, 0},
-    {PARAMETER_PICTURE_ARRAY,            BINARY_FIELD_USHORT,       2, 15, 1, NULL, 0},
-    {PARAMETER_ENABLE_ARRAY,             BINARY_FIELD_UCHAR,        1, 15, 1, NULL, 0},
-    {PARAMETER_STRING_ARRAY,             BINARY_FIELD_STRING,       0, 15, 1, NULL, 0}
+    {PARAMETER_ENABLE,                   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_enableValues,                     COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,                  BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_booleanValues,                    COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,                    BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0,  0, NULL,                               0},
+    {PARAMETER_POS_Y,                    BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0,  0, NULL,                               0},
+    {PARAMETER_SIZE_X,                   BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0,  0, NULL,                               0},
+    {PARAMETER_SIZE_Y,                   BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0,  0, NULL,                               0},
+    {PARAMETER_STYLE_SET,                BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                               0},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,      BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                               0},
+    {PARAMETER_POPUP_POS_X,              BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0,  0, NULL,                               0},
+    {PARAMETER_POPUP_POS_Y,              BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0,  0, NULL,                               0},
+    {PARAMETER_POPUP_SIZE_X,             BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0,  0, NULL,                               0},
+    {PARAMETER_POPUP_SIZE_Y,             BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0,  0, NULL,                               0},
+    {PARAMETER_MAX_STRING_LENGTH,        BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                               0},
+    {PARAMETER_MAX_STRING_LENGTH_POP_UP, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                               0},
+    {PARAMETER_PICTURE_REFERENCE,        BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                               0},
+    {PARAMETER_NUMBER_OF_ENTRIES,        BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, NULL,                               0},
+    {PARAMETER_PICTURE_POSITION,         BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_popUpButtonPicturePositionValues, COUNT_OF(c_popUpButtonPicturePositionValues)},
+    {PARAMETER_OPENING_MODE,             BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_popUpMenuButtonOpeningModeValues, COUNT_OF(c_popUpMenuButtonOpeningModeValues)},
+    {PARAMETER_ALIGNMENT,                BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_buttonAlignmentValues,            COUNT_OF(c_buttonAlignmentValues)},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION,   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_booleanValues,                    COUNT_OF(c_booleanValues)},
+    {NULL,                               BINARY_FIELD_PAD,    1,                     0,  0, NULL,                               0},
+    {PARAMETER_LABEL_STRING,             BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 0,  0, NULL,                               0},
+    {NULL,                               BINARY_FIELD_ALIGN,  BINARY_VARIABLE_BYTES, 0,  0, NULL,                               0},
+    {PARAMETER_POP_UP_IDENT_ARRAY,       BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   15, 1, NULL,                               0},
+    {PARAMETER_PICTURE_ARRAY,            BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   15, 1, NULL,                               0},
+    {PARAMETER_ENABLE_ARRAY,             BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    15, 1, NULL,                               0},
+    {PARAMETER_STRING_ARRAY,             BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 15, 1, NULL,                               0}
 };
 
 /*************************************************************************************************/
@@ -3032,14 +3033,14 @@ static const BinaryField_t c_popUpMenuButtonFields[] =
  */
 static const BinaryField_t c_popUpPanelFields[] =
 {
-    {PARAMETER_UA_POSITION_FLAG,  BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_AUTOMATIC_CLOSURE, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,             BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,             BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,            BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,            BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,         BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {NULL,                        BINARY_FIELD_PAD,          2,  0, 0, NULL, 0}
+    {PARAMETER_UA_POSITION_FLAG,  BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_AUTOMATIC_CLOSURE, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,             BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_POS_Y,             BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_SIZE_X,            BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_SIZE_Y,            BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_STYLE_SET,         BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {NULL,                        BINARY_FIELD_PAD,    2,                   0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -3048,25 +3049,25 @@ static const BinaryField_t c_popUpPanelFields[] =
  */
 static const BinaryField_t c_popUpPanelButtonFields[] =
 {
-    {PARAMETER_ENABLE,              BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,             BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,               BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,               BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,              BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,              BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,           BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NEXT_FOCUSED_WIDGET, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_POPUP_POS_X,         BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POPUP_POS_Y,         BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POPUP_SIZE_X,        BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_POPUP_SIZE_Y,        BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_MAX_STRING_LENGTH,   BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_PICTURE_REFERENCE,   BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_PICTURE_POSITION,    BINARY_FIELD_UCHAR,        1,  0, 0, c_popUpButtonPicturePositionValues, COUNT_OF(c_popUpButtonPicturePositionValues)},
-    {PARAMETER_ALIGNMENT,           BINARY_FIELD_UCHAR,        1,  0, 0, c_buttonAlignmentValues, COUNT_OF(c_buttonAlignmentValues)},
-    {PARAMETER_UA_POSITION_FLAG,    BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_AUTOMATIC_CLOSURE,   BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_LABEL_STRING,        BINARY_FIELD_STRING,       0,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_enableValues,                     COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,             BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,                    COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,               BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                               0},
+    {PARAMETER_POS_Y,               BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                               0},
+    {PARAMETER_SIZE_X,              BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                               0},
+    {PARAMETER_SIZE_Y,              BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                               0},
+    {PARAMETER_STYLE_SET,           BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                               0},
+    {PARAMETER_NEXT_FOCUSED_WIDGET, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                               0},
+    {PARAMETER_POPUP_POS_X,         BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                               0},
+    {PARAMETER_POPUP_POS_Y,         BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                               0},
+    {PARAMETER_POPUP_SIZE_X,        BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                               0},
+    {PARAMETER_POPUP_SIZE_Y,        BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                               0},
+    {PARAMETER_MAX_STRING_LENGTH,   BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                               0},
+    {PARAMETER_PICTURE_REFERENCE,   BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                               0},
+    {PARAMETER_PICTURE_POSITION,    BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_popUpButtonPicturePositionValues, COUNT_OF(c_popUpButtonPicturePositionValues)},
+    {PARAMETER_ALIGNMENT,           BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_buttonAlignmentValues,            COUNT_OF(c_buttonAlignmentValues)},
+    {PARAMETER_UA_POSITION_FLAG,    BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,                    COUNT_OF(c_booleanValues)},
+    {PARAMETER_AUTOMATIC_CLOSURE,   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,                    COUNT_OF(c_booleanValues)},
+    {PARAMETER_LABEL_STRING,        BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 0, 0, NULL,                               0}
 };
 
 /*************************************************************************************************/
@@ -3075,10 +3076,10 @@ static const BinaryField_t c_popUpPanelButtonFields[] =
  */
 static const BinaryField_t c_proxyButtonFields[] =
 {
-    {PARAMETER_ENABLE,              BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {NULL,                          BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_DEDICATED_KEY_IDENT, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_TARGET_WIDGET_IDENT, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
+    {NULL,                          BINARY_FIELD_PAD,    1,                   0, 0, NULL,           0},
+    {PARAMETER_DEDICATED_KEY_IDENT, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,           0},
+    {PARAMETER_TARGET_WIDGET_IDENT, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,           0}
 };
 
 /*************************************************************************************************/
@@ -3087,18 +3088,18 @@ static const BinaryField_t c_proxyButtonFields[] =
  */
 static const BinaryField_t c_pushButtonFields[] =
 {
-    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1,  0, 0, c_pushButtonAlignmentValues, COUNT_OF(c_pushButtonAlignmentValues)},
-    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING,       0,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_enableValues,              COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,             COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                        0},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                        0},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                        0},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                        0},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                        0},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                        0},
+    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                        0},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,             COUNT_OF(c_booleanValues)},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_pushButtonAlignmentValues, COUNT_OF(c_pushButtonAlignmentValues)},
+    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 0, 0, NULL,                        0}
 };
 
 /*************************************************************************************************/
@@ -3107,8 +3108,8 @@ static const BinaryField_t c_pushButtonFields[] =
  */
 static const BinaryField_t c_radioBoxFields[] =
 {
-    {PARAMETER_ENABLE,  BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)}
+    {PARAMETER_ENABLE,  BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_enableValues,  COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE, BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_booleanValues, COUNT_OF(c_booleanValues)}
 };
 
 /*************************************************************************************************/
@@ -3117,11 +3118,11 @@ static const BinaryField_t c_radioBoxFields[] =
  */
 static const BinaryField_t c_rotationContainerFields[] =
 {
-    {PARAMETER_VISIBLE,        BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {NULL,                     BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_CENTER_X,       BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_CENTER_Y,       BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_ROTATION_ANGLE, BINARY_FIELD_FR180,        4,  0, 0, NULL, 0}
+    {PARAMETER_VISIBLE,        BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {NULL,                     BINARY_FIELD_PAD,   1,                  0, 0, NULL,            0},
+    {PARAMETER_CENTER_X,       BINARY_FIELD_LONG,  BINARY_ULONG_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_CENTER_Y,       BINARY_FIELD_LONG,  BINARY_ULONG_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_ROTATION_ANGLE, BINARY_FIELD_FR180, BINARY_ULONG_BYTES, 0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -3130,12 +3131,12 @@ static const BinaryField_t c_rotationContainerFields[] =
  */
 static const BinaryField_t c_scaleContainerFields[] =
 {
-    {PARAMETER_VISIBLE,  BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {NULL,               BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_CENTER_X, BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_CENTER_Y, BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SCALE_X,  BINARY_FIELD_FLOAT,        4,  0, 0, NULL, 0},
-    {PARAMETER_SCALE_Y,  BINARY_FIELD_FLOAT,        4,  0, 0, NULL, 0}
+    {PARAMETER_VISIBLE,  BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {NULL,               BINARY_FIELD_PAD,   1,                  0, 0, NULL,            0},
+    {PARAMETER_CENTER_X, BINARY_FIELD_LONG,  BINARY_ULONG_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_CENTER_Y, BINARY_FIELD_LONG,  BINARY_ULONG_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_SCALE_X,  BINARY_FIELD_FLOAT, BINARY_ULONG_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_SCALE_Y,  BINARY_FIELD_FLOAT, BINARY_ULONG_BYTES, 0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -3144,27 +3145,27 @@ static const BinaryField_t c_scaleContainerFields[] =
  */
 static const BinaryField_t c_scrollListFields[] =
 {
-    {PARAMETER_ENABLE,                    BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,                   BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,                     BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,                     BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,                    BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,                    BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,                 BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NEXT_FOCUSED_WIDGET,       BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MAX_NUMBER_OF_ENTRIES,     BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NUMBER_OF_ENTRIES,         BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_SELECTED_ENTRY,            BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MAX_STRING_LENGTH,         BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_FIRST_ACCESSIBLE_ENTRY,    BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_FIRST_VISIBLE_ENTRY,       BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_VERTICAL_SCROLL,           BINARY_FIELD_UCHAR,        1,  0, 0, c_scrollBarPositionValues, COUNT_OF(c_scrollBarPositionValues)},
-    {PARAMETER_ALIGNMENT,                 BINARY_FIELD_UCHAR,        1,  0, 0, c_pushButtonAlignmentValues, COUNT_OF(c_pushButtonAlignmentValues)},
-    {PARAMETER_FLAG_REPORT_VISIBLE_ENTRY, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_AUTOMATIC_FOCUS_MOTION,    BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_DEFAULT_STYLE_TEXT,        BINARY_FIELD_BYTES,       12,  0, 0, NULL, 0},
-    {PARAMETER_ENABLE_ARRAY,              BINARY_FIELD_UCHAR,        1,  9, 1, NULL, 0},
-    {PARAMETER_LABEL_STRING_ARRAY,        BINARY_FIELD_STRING,       0,  9, 1, NULL, 0}
+    {PARAMETER_ENABLE,                    BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_enableValues,              COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,                   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,             COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,                     BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                        0},
+    {PARAMETER_POS_Y,                     BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                        0},
+    {PARAMETER_SIZE_X,                    BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                        0},
+    {PARAMETER_SIZE_Y,                    BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                        0},
+    {PARAMETER_STYLE_SET,                 BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                        0},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,       BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                        0},
+    {PARAMETER_MAX_NUMBER_OF_ENTRIES,     BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                        0},
+    {PARAMETER_NUMBER_OF_ENTRIES,         BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                        0},
+    {PARAMETER_SELECTED_ENTRY,            BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                        0},
+    {PARAMETER_MAX_STRING_LENGTH,         BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                        0},
+    {PARAMETER_FIRST_ACCESSIBLE_ENTRY,    BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                        0},
+    {PARAMETER_FIRST_VISIBLE_ENTRY,       BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                        0},
+    {PARAMETER_VERTICAL_SCROLL,           BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_scrollBarPositionValues,   COUNT_OF(c_scrollBarPositionValues)},
+    {PARAMETER_ALIGNMENT,                 BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_pushButtonAlignmentValues, COUNT_OF(c_pushButtonAlignmentValues)},
+    {PARAMETER_FLAG_REPORT_VISIBLE_ENTRY, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,             COUNT_OF(c_booleanValues)},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION,    BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,             COUNT_OF(c_booleanValues)},
+    {PARAMETER_DEFAULT_STYLE_TEXT,        BINARY_FIELD_BYTES,  12,                    0, 0, NULL,                        0},
+    {PARAMETER_ENABLE_ARRAY,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    9, 1, NULL,                        0},
+    {PARAMETER_LABEL_STRING_ARRAY,        BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 9, 1, NULL,                        0}
 };
 
 /*************************************************************************************************/
@@ -3173,32 +3174,32 @@ static const BinaryField_t c_scrollListFields[] =
  */
 static const BinaryField_t c_scrollPanelFields[] =
 {
-    {PARAMETER_ENABLE,                BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,               BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,                 BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,                 BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,                BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,                BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_LINE_DELTA_X,          BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_LINE_DELTA_Y,          BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_PAGE_DELTA_X,          BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_PAGE_DELTA_Y,          BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_HOME_X,                BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_HOME_Y,                BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_FRAME_X,               BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_FRAME_Y,               BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_XSHEET,           BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_YSHEET,           BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_BOUND_X,               BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_BOUND_Y,               BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_XBOUND,           BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_YBOUND,           BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,             BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {NULL,                            BINARY_FIELD_PAD,          2,  0, 0, NULL, 0},
-    {PARAMETER_HORIZONTAL_SCROLL,     BINARY_FIELD_UCHAR,        1,  0, 0, c_scrollBarPositionValues, COUNT_OF(c_scrollBarPositionValues)},
-    {PARAMETER_VERTICAL_SCROLL,       BINARY_FIELD_UCHAR,        1,  0, 0, c_scrollBarPositionValues, COUNT_OF(c_scrollBarPositionValues)},
-    {PARAMETER_FLAG_REPORT_FRAME_POS, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {NULL,                            BINARY_FIELD_PAD,          1,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,                BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_enableValues,            COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,               BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues,           COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,                 BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_POS_Y,                 BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_SIZE_X,                BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_SIZE_Y,                BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_LINE_DELTA_X,          BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_LINE_DELTA_Y,          BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_PAGE_DELTA_X,          BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_PAGE_DELTA_Y,          BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_HOME_X,                BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_HOME_Y,                BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_FRAME_X,               BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_FRAME_Y,               BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_SIZE_XSHEET,           BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_SIZE_YSHEET,           BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_BOUND_X,               BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_BOUND_Y,               BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_SIZE_XBOUND,           BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_SIZE_YBOUND,           BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_STYLE_SET,             BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,                      0},
+    {NULL,                            BINARY_FIELD_PAD,    2,                   0, 0, NULL,                      0},
+    {PARAMETER_HORIZONTAL_SCROLL,     BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_scrollBarPositionValues, COUNT_OF(c_scrollBarPositionValues)},
+    {PARAMETER_VERTICAL_SCROLL,       BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_scrollBarPositionValues, COUNT_OF(c_scrollBarPositionValues)},
+    {PARAMETER_FLAG_REPORT_FRAME_POS, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues,           COUNT_OF(c_booleanValues)},
+    {NULL,                            BINARY_FIELD_PAD,    1,                   0, 0, NULL,                      0}
 };
 
 /*************************************************************************************************/
@@ -3207,12 +3208,12 @@ static const BinaryField_t c_scrollPanelFields[] =
  */
 static const BinaryField_t c_scrollWheelAreaFields[] =
 {
-    {PARAMETER_ENABLE, BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {NULL,             BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_POS_X,  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X, BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y, BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE, BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, NULL, 0},
+    {NULL,             BINARY_FIELD_PAD,   1,                  0, 0, NULL, 0},
+    {PARAMETER_POS_X,  BINARY_FIELD_LONG,  BINARY_ULONG_BYTES, 0, 0, NULL, 0},
+    {PARAMETER_POS_Y,  BINARY_FIELD_LONG,  BINARY_ULONG_BYTES, 0, 0, NULL, 0},
+    {PARAMETER_SIZE_X, BINARY_FIELD_ULONG, BINARY_ULONG_BYTES, 0, 0, NULL, 0},
+    {PARAMETER_SIZE_Y, BINARY_FIELD_ULONG, BINARY_ULONG_BYTES, 0, 0, NULL, 0}
 };
 
 /*************************************************************************************************/
@@ -3221,28 +3222,28 @@ static const BinaryField_t c_scrollWheelAreaFields[] =
  */
 static const BinaryField_t c_selectionListButtonFields[] =
 {
-    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SELECTING_AREA_WIDTH,   BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SELECTING_AREA_HEIGHT,  BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MAX_NUMBER_OF_ENTRIES,  BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NUMBER_OF_ENTRIES,      BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_SELECTED_ENTRY,         BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_OPENING_ENTRY,          BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1,  0, 0, c_buttonAlignmentValues, COUNT_OF(c_buttonAlignmentValues)},
-    {PARAMETER_OPENING_MODE,           BINARY_FIELD_UCHAR,        1,  0, 0, c_comboBoxOpeningModeValues, COUNT_OF(c_comboBoxOpeningModeValues)},
-    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {NULL,                             BINARY_FIELD_PAD,          3,  0, 0, NULL, 0},
-    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING,       0,  0, 0, NULL, 0},
-    {NULL,                             BINARY_FIELD_ALIGN,        0,  0, 0, NULL, 0},
-    {PARAMETER_ENTRY_LIST,             BINARY_FIELD_STRING,       0, 11, 1, NULL, 0}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_enableValues,              COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_booleanValues,             COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0,  0, NULL,                        0},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0,  0, NULL,                        0},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0,  0, NULL,                        0},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0,  0, NULL,                        0},
+    {PARAMETER_SELECTING_AREA_WIDTH,   BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0,  0, NULL,                        0},
+    {PARAMETER_SELECTING_AREA_HEIGHT,  BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0,  0, NULL,                        0},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                        0},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                        0},
+    {PARAMETER_MAX_NUMBER_OF_ENTRIES,  BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                        0},
+    {PARAMETER_NUMBER_OF_ENTRIES,      BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                        0},
+    {PARAMETER_SELECTED_ENTRY,         BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                        0},
+    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                        0},
+    {PARAMETER_OPENING_ENTRY,          BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                        0},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_buttonAlignmentValues,     COUNT_OF(c_buttonAlignmentValues)},
+    {PARAMETER_OPENING_MODE,           BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_comboBoxOpeningModeValues, COUNT_OF(c_comboBoxOpeningModeValues)},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_booleanValues,             COUNT_OF(c_booleanValues)},
+    {NULL,                             BINARY_FIELD_PAD,    3,                     0,  0, NULL,                        0},
+    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 0,  0, NULL,                        0},
+    {NULL,                             BINARY_FIELD_ALIGN,  BINARY_VARIABLE_BYTES, 0,  0, NULL,                        0},
+    {PARAMETER_ENTRY_LIST,             BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 11, 1, NULL,                        0}
 };
 
 /*************************************************************************************************/
@@ -3251,18 +3252,18 @@ static const BinaryField_t c_selectionListButtonFields[] =
  */
 static const BinaryField_t c_shuffleToFitContainerFields[] =
 {
-    {PARAMETER_ENABLE,                     BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,                    BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,                      BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,                      BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,                     BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,                     BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_NUMBER_OF_VISIBLE_CHILDREN, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_SHUFFLE_TO_FIT_MODE,        BINARY_FIELD_UCHAR,        1,  0, 0, c_shuffleToFitModeValues, COUNT_OF(c_shuffleToFitModeValues)},
-    {NULL,                                 BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_ITEM_SPACING,               BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,                  BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {NULL,                                 BINARY_FIELD_PAD,          2,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,                     BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_enableValues,           COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,                    BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues,          COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,                      BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,                     0},
+    {PARAMETER_POS_Y,                      BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,                     0},
+    {PARAMETER_SIZE_X,                     BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,                     0},
+    {PARAMETER_SIZE_Y,                     BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,                     0},
+    {PARAMETER_NUMBER_OF_VISIBLE_CHILDREN, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,                     0},
+    {PARAMETER_SHUFFLE_TO_FIT_MODE,        BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_shuffleToFitModeValues, COUNT_OF(c_shuffleToFitModeValues)},
+    {NULL,                                 BINARY_FIELD_PAD,    1,                   0, 0, NULL,                     0},
+    {PARAMETER_ITEM_SPACING,               BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,                     0},
+    {PARAMETER_STYLE_SET,                  BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,                     0},
+    {NULL,                                 BINARY_FIELD_PAD,    2,                   0, 0, NULL,                     0}
 };
 
 /*************************************************************************************************/
@@ -3271,16 +3272,16 @@ static const BinaryField_t c_shuffleToFitContainerFields[] =
  */
 static const BinaryField_t c_sizeToFitContainerFields[] =
 {
-    {PARAMETER_ENABLE,                     BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,                    BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,                      BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,                      BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,                     BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,                     BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_NUMBER_OF_VISIBLE_CHILDREN, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_TO_FIT_MODE,           BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {NULL,                                 BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_ITEM_SPACING,               BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,                     BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_enableValues,  COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,                    BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,                      BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_POS_Y,                      BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_SIZE_X,                     BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_SIZE_Y,                     BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_NUMBER_OF_VISIBLE_CHILDREN, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_SIZE_TO_FIT_MODE,           BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL,            0},
+    {NULL,                                 BINARY_FIELD_PAD,    1,                   0, 0, NULL,            0},
+    {PARAMETER_ITEM_SPACING,               BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -3289,25 +3290,25 @@ static const BinaryField_t c_sizeToFitContainerFields[] =
  */
 static const BinaryField_t c_sliderFields[] =
 {
-    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MIN_VALUE,              BINARY_FIELD_FLOAT,        4,  0, 0, NULL, 0},
-    {PARAMETER_MAX_VALUE,              BINARY_FIELD_FLOAT,        4,  0, 0, NULL, 0},
-    {PARAMETER_VALUE,                  BINARY_FIELD_FLOAT,        4,  0, 0, NULL, 0},
-    {PARAMETER_MAJOR_TICK_INTERVAL,    BINARY_FIELD_FLOAT,        4,  0, 0, NULL, 0},
-    {PARAMETER_SHOW_MAJOR_LABELS,      BINARY_FIELD_UCHAR,        1,  0, 0, c_trueFalseValues, COUNT_OF(c_trueFalseValues)},
-    {PARAMETER_ORIENTATION,            BINARY_FIELD_UCHAR,        1,  0, 0, c_sliderOrientationValues, COUNT_OF(c_sliderOrientationValues)},
-    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1,  0, 0, c_sliderAlignmentValues, COUNT_OF(c_sliderAlignmentValues)},
-    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_LSB_MULTIPLE,           BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MINOR_TICK_MULTIPLE,    BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MAJOR_TICK_REFERENCE,   BINARY_FIELD_FLOAT,        4,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_enableValues,            COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues,           COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,                      0},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,                      0},
+    {PARAMETER_MIN_VALUE,              BINARY_FIELD_FLOAT,  BINARY_ULONG_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_MAX_VALUE,              BINARY_FIELD_FLOAT,  BINARY_ULONG_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_VALUE,                  BINARY_FIELD_FLOAT,  BINARY_ULONG_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_MAJOR_TICK_INTERVAL,    BINARY_FIELD_FLOAT,  BINARY_ULONG_BYTES,  0, 0, NULL,                      0},
+    {PARAMETER_SHOW_MAJOR_LABELS,      BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_trueFalseValues,         COUNT_OF(c_trueFalseValues)},
+    {PARAMETER_ORIENTATION,            BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_sliderOrientationValues, COUNT_OF(c_sliderOrientationValues)},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_sliderAlignmentValues,   COUNT_OF(c_sliderAlignmentValues)},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues,           COUNT_OF(c_booleanValues)},
+    {PARAMETER_LSB_MULTIPLE,           BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,                      0},
+    {PARAMETER_MINOR_TICK_MULTIPLE,    BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,                      0},
+    {PARAMETER_MAJOR_TICK_REFERENCE,   BINARY_FIELD_FLOAT,  BINARY_ULONG_BYTES,  0, 0, NULL,                      0}
 };
 
 /*************************************************************************************************/
@@ -3316,15 +3317,15 @@ static const BinaryField_t c_sliderFields[] =
  */
 static const BinaryField_t c_symbolFields[] =
 {
-    {PARAMETER_MOTION_ALLOWED,   BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_VISIBLE,          BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,            BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,            BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_ROTATION_ANGLE,   BINARY_FIELD_FR180,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,        BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_SYMBOL_REFERENCE, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_COLOR_INDEX,      BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {NULL,                       BINARY_FIELD_PAD,          3,  0, 0, NULL, 0}
+    {PARAMETER_MOTION_ALLOWED,   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_VISIBLE,          BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,            BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_POS_Y,            BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_ROTATION_ANGLE,   BINARY_FIELD_FR180,  BINARY_ULONG_BYTES,  0, 0, NULL,            0},
+    {PARAMETER_STYLE_SET,        BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_SYMBOL_REFERENCE, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_COLOR_INDEX,      BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL,            0},
+    {NULL,                       BINARY_FIELD_PAD,    3,                   0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -3333,21 +3334,21 @@ static const BinaryField_t c_symbolFields[] =
  */
 static const BinaryField_t c_symbolAnimatedFields[] =
 {
-    {PARAMETER_MOTION_ALLOWED,     BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_VISIBLE,            BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,              BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,              BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,          BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_COLOR_INDEX,        BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_LOOP_TYPE,          BINARY_FIELD_UCHAR,        1,  0, 0, c_loopTypeValues, COUNT_OF(c_loopTypeValues)},
-    {PARAMETER_NUMBER_OF_SYMBOLS,  BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_INDEX_OF_FREQUENCY, BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_ANIMATION_TYPE,     BINARY_FIELD_UCHAR,        1,  0, 0, c_animationTypeValues, COUNT_OF(c_animationTypeValues)},
-    {PARAMETER_SYMBOL_ARRAY,       BINARY_FIELD_USHORT,       2,  7, 1, NULL, 0},
-    {NULL,                         BINARY_FIELD_ALIGN,        0,  0, 0, NULL, 0},
-    {PARAMETER_ORIENTATION_ARRAY,  BINARY_FIELD_FR180,        4,  7, 1, NULL, 0},
-    {PARAMETER_MOVEMENT_X_ARRAY,   BINARY_FIELD_LONG,         4,  7, 1, NULL, 0},
-    {PARAMETER_MOVEMENT_Y_ARRAY,   BINARY_FIELD_LONG,         4,  7, 1, NULL, 0}
+    {PARAMETER_MOTION_ALLOWED,     BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,       COUNT_OF(c_booleanValues)},
+    {PARAMETER_VISIBLE,            BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,       COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,              BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                  0},
+    {PARAMETER_POS_Y,              BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                  0},
+    {PARAMETER_STYLE_SET,          BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                  0},
+    {PARAMETER_COLOR_INDEX,        BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, NULL,                  0},
+    {PARAMETER_LOOP_TYPE,          BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_loopTypeValues,      COUNT_OF(c_loopTypeValues)},
+    {PARAMETER_NUMBER_OF_SYMBOLS,  BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                  0},
+    {PARAMETER_INDEX_OF_FREQUENCY, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, NULL,                  0},
+    {PARAMETER_ANIMATION_TYPE,     BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_animationTypeValues, COUNT_OF(c_animationTypeValues)},
+    {PARAMETER_SYMBOL_ARRAY,       BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   7, 1, NULL,                  0},
+    {NULL,                         BINARY_FIELD_ALIGN,  BINARY_VARIABLE_BYTES, 0, 0, NULL,                  0},
+    {PARAMETER_ORIENTATION_ARRAY,  BINARY_FIELD_FR180,  BINARY_ULONG_BYTES,    7, 1, NULL,                  0},
+    {PARAMETER_MOVEMENT_X_ARRAY,   BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    7, 1, NULL,                  0},
+    {PARAMETER_MOVEMENT_Y_ARRAY,   BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    7, 1, NULL,                  0}
 };
 
 /*************************************************************************************************/
@@ -3356,21 +3357,21 @@ static const BinaryField_t c_symbolAnimatedFields[] =
  */
 static const BinaryField_t c_symbolPushButtonFields[] =
 {
-    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_SYMBOL_REFERENCE,       BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_SYMBOL_POSITION,        BINARY_FIELD_UCHAR,        1,  0, 0, c_picturePositionValues, COUNT_OF(c_picturePositionValues)},
-    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1,  0, 0, c_buttonAlignmentValues, COUNT_OF(c_buttonAlignmentValues)},
-    {NULL,                             BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING,       0,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_enableValues,          COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,         COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                    0},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                    0},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                    0},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                    0},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                    0},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                    0},
+    {PARAMETER_SYMBOL_REFERENCE,       BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                    0},
+    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                    0},
+    {PARAMETER_SYMBOL_POSITION,        BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_picturePositionValues, COUNT_OF(c_picturePositionValues)},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,         COUNT_OF(c_booleanValues)},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_buttonAlignmentValues, COUNT_OF(c_buttonAlignmentValues)},
+    {NULL,                             BINARY_FIELD_PAD,    1,                     0, 0, NULL,                    0},
+    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 0, 0, NULL,                    0}
 };
 
 /*************************************************************************************************/
@@ -3379,25 +3380,25 @@ static const BinaryField_t c_symbolPushButtonFields[] =
  */
 static const BinaryField_t c_symbolToggleButtonFields[] =
 {
-    {PARAMETER_ENABLE,                     BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,                    BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,                      BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,                      BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,                     BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,                     BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,                  BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NEXT_FOCUSED_WIDGET,        BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MAX_STRING_LENGTH,          BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_ALTERNATE_FLAG,             BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_AUTOMATIC_FOCUS_MOTION,     BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_SYMBOL_REFERENCE,           BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_ALTERNATE_SYMBOL_REFERENCE, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_SYMBOL_POSITION,            BINARY_FIELD_UCHAR,        1,  0, 0, c_picturePositionValues, COUNT_OF(c_picturePositionValues)},
-    {PARAMETER_TOGGLE_STATE,               BINARY_FIELD_UCHAR,        1,  0, 0, c_toggleStateValues, COUNT_OF(c_toggleStateValues)},
-    {PARAMETER_ALIGNMENT,                  BINARY_FIELD_UCHAR,        1,  0, 0, c_buttonAlignmentValues, COUNT_OF(c_buttonAlignmentValues)},
-    {NULL,                                 BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_LABEL_STRING,               BINARY_FIELD_STRING,       0,  0, 0, NULL, 0},
-    {PARAMETER_ALTERNATE_LABEL_STRING,     BINARY_FIELD_STRING,       0,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,                     BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_enableValues,          COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,                    BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,         COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,                      BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                    0},
+    {PARAMETER_POS_Y,                      BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                    0},
+    {PARAMETER_SIZE_X,                     BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                    0},
+    {PARAMETER_SIZE_Y,                     BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                    0},
+    {PARAMETER_STYLE_SET,                  BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                    0},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,        BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                    0},
+    {PARAMETER_MAX_STRING_LENGTH,          BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                    0},
+    {PARAMETER_ALTERNATE_FLAG,             BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,         COUNT_OF(c_booleanValues)},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION,     BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,         COUNT_OF(c_booleanValues)},
+    {PARAMETER_SYMBOL_REFERENCE,           BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                    0},
+    {PARAMETER_ALTERNATE_SYMBOL_REFERENCE, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                    0},
+    {PARAMETER_SYMBOL_POSITION,            BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_picturePositionValues, COUNT_OF(c_picturePositionValues)},
+    {PARAMETER_TOGGLE_STATE,               BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_toggleStateValues,     COUNT_OF(c_toggleStateValues)},
+    {PARAMETER_ALIGNMENT,                  BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_buttonAlignmentValues, COUNT_OF(c_buttonAlignmentValues)},
+    {NULL,                                 BINARY_FIELD_PAD,    1,                     0, 0, NULL,                    0},
+    {PARAMETER_LABEL_STRING,               BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 0, 0, NULL,                    0},
+    {PARAMETER_ALTERNATE_LABEL_STRING,     BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 0, 0, NULL,                    0}
 };
 
 /*************************************************************************************************/
@@ -3406,18 +3407,18 @@ static const BinaryField_t c_symbolToggleButtonFields[] =
  */
 static const BinaryField_t c_tabbedPanelFields[] =
 {
-    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_PICTURE_REFERENCE,      BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_PICTURE_POSITION,       BINARY_FIELD_UCHAR,        1,  0, 0, c_popUpButtonPicturePositionValues, COUNT_OF(c_popUpButtonPicturePositionValues)},
-    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1,  0, 0, c_pushButtonAlignmentValues, COUNT_OF(c_pushButtonAlignmentValues)},
-    {NULL,                             BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_INSET_SIZE,             BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING,       0,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_enableValues,                     COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,                    COUNT_OF(c_booleanValues)},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                               0},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                               0},
+    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                               0},
+    {PARAMETER_PICTURE_REFERENCE,      BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                               0},
+    {PARAMETER_PICTURE_POSITION,       BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_popUpButtonPicturePositionValues, COUNT_OF(c_popUpButtonPicturePositionValues)},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,                    COUNT_OF(c_booleanValues)},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_pushButtonAlignmentValues,        COUNT_OF(c_pushButtonAlignmentValues)},
+    {NULL,                             BINARY_FIELD_PAD,    1,                     0, 0, NULL,                               0},
+    {PARAMETER_INSET_SIZE,             BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                               0},
+    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 0, 0, NULL,                               0}
 };
 
 /*************************************************************************************************/
@@ -3426,17 +3427,17 @@ static const BinaryField_t c_tabbedPanelFields[] =
  */
 static const BinaryField_t c_tabbedPanelGroupFields[] =
 {
-    {PARAMETER_ENABLE,                    BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,                   BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,                     BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,                     BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,                    BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,                    BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,                 BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_ACTIVE_TABBED_PANEL_ID,    BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_TAB_POSITION,              BINARY_FIELD_UCHAR,        1,  0, 0, c_tabPositionValues, COUNT_OF(c_tabPositionValues)},
-    {PARAMETER_AUTOMATIC_INSET_SIZE_FLAG, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {NULL,                                BINARY_FIELD_PAD,          2,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,                    BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_enableValues,      COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,                   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues,     COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,                     BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,                0},
+    {PARAMETER_POS_Y,                     BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,                0},
+    {PARAMETER_SIZE_X,                    BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,                0},
+    {PARAMETER_SIZE_Y,                    BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,                0},
+    {PARAMETER_STYLE_SET,                 BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,                0},
+    {PARAMETER_ACTIVE_TABBED_PANEL_ID,    BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,                0},
+    {PARAMETER_TAB_POSITION,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_tabPositionValues, COUNT_OF(c_tabPositionValues)},
+    {PARAMETER_AUTOMATIC_INSET_SIZE_FLAG, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues,     COUNT_OF(c_booleanValues)},
+    {NULL,                                BINARY_FIELD_PAD,    2,                   0, 0, NULL,                0}
 };
 
 /*************************************************************************************************/
@@ -3445,22 +3446,22 @@ static const BinaryField_t c_tabbedPanelGroupFields[] =
  */
 static const BinaryField_t c_toggleButtonFields[] =
 {
-    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_TOGGLE_STATE,           BINARY_FIELD_UCHAR,        1,  0, 0, c_toggleStateValues, COUNT_OF(c_toggleStateValues)},
-    {PARAMETER_ALTERNATE_FLAG,         BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1,  0, 0, c_pushButtonAlignmentValues, COUNT_OF(c_pushButtonAlignmentValues)},
-    {NULL,                             BINARY_FIELD_PAD,          2,  0, 0, NULL, 0},
-    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING,       0,  0, 0, NULL, 0},
-    {PARAMETER_ALTERNATE_LABEL_STRING, BINARY_FIELD_STRING,       0,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_enableValues,              COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,             COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                        0},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0, 0, NULL,                        0},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                        0},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0, 0, NULL,                        0},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                        0},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                        0},
+    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0, 0, NULL,                        0},
+    {PARAMETER_TOGGLE_STATE,           BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_toggleStateValues,         COUNT_OF(c_toggleStateValues)},
+    {PARAMETER_ALTERNATE_FLAG,         BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,             COUNT_OF(c_booleanValues)},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_booleanValues,             COUNT_OF(c_booleanValues)},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, c_pushButtonAlignmentValues, COUNT_OF(c_pushButtonAlignmentValues)},
+    {NULL,                             BINARY_FIELD_PAD,    2,                     0, 0, NULL,                        0},
+    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 0, 0, NULL,                        0},
+    {PARAMETER_ALTERNATE_LABEL_STRING, BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 0, 0, NULL,                        0}
 };
 
 /*************************************************************************************************/
@@ -3469,18 +3470,18 @@ static const BinaryField_t c_toggleButtonFields[] =
  */
 static const BinaryField_t c_touchAreaFields[] =
 {
-    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {NULL,                             BINARY_FIELD_PAD,          2,  0, 0, NULL, 0},
-    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_REPORT_MODE,            BINARY_FIELD_UCHAR,        1,  0, 0, c_positionReportModeValues, COUNT_OF(c_positionReportModeValues)},
-    {PARAMETER_ALLOW_OUTSIDE,          BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_MAX_TOUCH_POINTS,       BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_NUMBER_OF_TOUCH_POINTS, BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_enableValues,             COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues,            COUNT_OF(c_booleanValues)},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,                       0},
+    {NULL,                             BINARY_FIELD_PAD,    2,                   0, 0, NULL,                       0},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,                       0},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  0, 0, NULL,                       0},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,                       0},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  0, 0, NULL,                       0},
+    {PARAMETER_REPORT_MODE,            BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_positionReportModeValues, COUNT_OF(c_positionReportModeValues)},
+    {PARAMETER_ALLOW_OUTSIDE,          BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_booleanValues,            COUNT_OF(c_booleanValues)},
+    {PARAMETER_MAX_TOUCH_POINTS,       BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL,                       0},
+    {PARAMETER_NUMBER_OF_TOUCH_POINTS, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL,                       0}
 };
 
 /*************************************************************************************************/
@@ -3489,10 +3490,10 @@ static const BinaryField_t c_touchAreaFields[] =
  */
 static const BinaryField_t c_translationContainerFields[] =
 {
-    {PARAMETER_VISIBLE,       BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {NULL,                    BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_TRANSLATION_X, BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_TRANSLATION_Y, BINARY_FIELD_LONG,         4,  0, 0, NULL, 0}
+    {PARAMETER_VISIBLE,       BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {NULL,                    BINARY_FIELD_PAD,   1,                  0, 0, NULL,            0},
+    {PARAMETER_TRANSLATION_X, BINARY_FIELD_LONG,  BINARY_ULONG_BYTES, 0, 0, NULL,            0},
+    {PARAMETER_TRANSLATION_Y, BINARY_FIELD_LONG,  BINARY_ULONG_BYTES, 0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -3501,29 +3502,29 @@ static const BinaryField_t c_translationContainerFields[] =
  */
 static const BinaryField_t c_treeFields[] =
 {
-    {PARAMETER_ENABLE,                    BINARY_FIELD_UCHAR,        1,  0, 0, c_enableValues, COUNT_OF(c_enableValues)},
-    {PARAMETER_VISIBLE,                   BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_POS_X,                     BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_POS_Y,                     BINARY_FIELD_LONG,         4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_X,                    BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_SIZE_Y,                    BINARY_FIELD_ULONG,        4,  0, 0, NULL, 0},
-    {PARAMETER_FIRST_VISIBLE_ENTRY,       BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_FLAG_REPORT_VISIBLE_ENTRY, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {NULL,                                BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET,                 BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NEXT_FOCUSED_WIDGET,       BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MAX_NUMBER_OF_ENTRIES,     BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NUMBER_OF_ENTRIES,         BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_SELECTED_ENTRY,            BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MAX_STRING_LENGTH,         BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_AUTOMATIC_FOCUS_MOTION,    BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_ALIGNMENT,                 BINARY_FIELD_UCHAR,        1,  0, 0, c_editBoxAlignmentValues, COUNT_OF(c_editBoxAlignmentValues)},
-    {PARAMETER_NODE_STYLE_ARRAY,          BINARY_FIELD_USHORT,       2, 12, 1, NULL, 0},
-    {PARAMETER_PARENT_ARRAY,              BINARY_FIELD_USHORT,       2, 12, 1, NULL, 0},
-    {PARAMETER_ENABLE_ARRAY,              BINARY_FIELD_UCHAR,        1, 12, 1, NULL, 0},
-    {PARAMETER_OPEN_ARRAY,                BINARY_FIELD_UCHAR,        1, 12, 1, NULL, 0},
-    {NULL,                                BINARY_FIELD_ALIGN,        0,  0, 0, NULL, 0},
-    {PARAMETER_LABEL_STRING_ARRAY,        BINARY_FIELD_STRING,       0, 12, 1, NULL, 0}
+    {PARAMETER_ENABLE,                    BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_enableValues,           COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,                   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_booleanValues,          COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,                     BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0,  0, NULL,                     0},
+    {PARAMETER_POS_Y,                     BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,    0,  0, NULL,                     0},
+    {PARAMETER_SIZE_X,                    BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0,  0, NULL,                     0},
+    {PARAMETER_SIZE_Y,                    BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,    0,  0, NULL,                     0},
+    {PARAMETER_FIRST_VISIBLE_ENTRY,       BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                     0},
+    {PARAMETER_FLAG_REPORT_VISIBLE_ENTRY, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_booleanValues,          COUNT_OF(c_booleanValues)},
+    {NULL,                                BINARY_FIELD_PAD,    1,                     0,  0, NULL,                     0},
+    {PARAMETER_STYLE_SET,                 BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                     0},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,       BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                     0},
+    {PARAMETER_MAX_NUMBER_OF_ENTRIES,     BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                     0},
+    {PARAMETER_NUMBER_OF_ENTRIES,         BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                     0},
+    {PARAMETER_SELECTED_ENTRY,            BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                     0},
+    {PARAMETER_MAX_STRING_LENGTH,         BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   0,  0, NULL,                     0},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION,    BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_booleanValues,          COUNT_OF(c_booleanValues)},
+    {PARAMETER_ALIGNMENT,                 BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0,  0, c_editBoxAlignmentValues, COUNT_OF(c_editBoxAlignmentValues)},
+    {PARAMETER_NODE_STYLE_ARRAY,          BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   12, 1, NULL,                     0},
+    {PARAMETER_PARENT_ARRAY,              BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,   12, 1, NULL,                     0},
+    {PARAMETER_ENABLE_ARRAY,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    12, 1, NULL,                     0},
+    {PARAMETER_OPEN_ARRAY,                BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    12, 1, NULL,                     0},
+    {NULL,                                BINARY_FIELD_ALIGN,  BINARY_VARIABLE_BYTES, 0,  0, NULL,                     0},
+    {PARAMETER_LABEL_STRING_ARRAY,        BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES, 12, 1, NULL,                     0}
 };
 
 /*************************************************************************************************/
@@ -3532,15 +3533,15 @@ static const BinaryField_t c_treeFields[] =
  */
 static const BinaryField_t c_watchdogContainerFields[] =
 {
-    {NULL,                         BINARY_FIELD_PAD,          2,  0, 0, NULL, 0},
-    {PARAMETER_TIME_PERIOD,        BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_VALID_COUNT_LIMIT,  BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_FAIL_COUNT_LIMIT,   BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_REFRESH,            BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {NULL,                         BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_SHOW_IF_FAIL_IDENT, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_SHOW_FAIL,          BINARY_FIELD_UCHAR,        1,  0, 0, c_trueFalseValues, COUNT_OF(c_trueFalseValues)},
-    {NULL,                         BINARY_FIELD_PAD,          1,  0, 0, NULL, 0}
+    {NULL,                         BINARY_FIELD_PAD,    2,                   0, 0, NULL,              0},
+    {PARAMETER_TIME_PERIOD,        BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,              0},
+    {PARAMETER_VALID_COUNT_LIMIT,  BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,              0},
+    {PARAMETER_FAIL_COUNT_LIMIT,   BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,              0},
+    {PARAMETER_REFRESH,            BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL,              0},
+    {NULL,                         BINARY_FIELD_PAD,    1,                   0, 0, NULL,              0},
+    {PARAMETER_SHOW_IF_FAIL_IDENT, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,              0},
+    {PARAMETER_SHOW_FAIL,          BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_trueFalseValues, COUNT_OF(c_trueFalseValues)},
+    {NULL,                         BINARY_FIELD_PAD,    1,                   0, 0, NULL,              0}
 };
 
 /*************************************************************************************************/
@@ -3549,9 +3550,9 @@ static const BinaryField_t c_watchdogContainerFields[] =
  */
 static const BinaryField_t c_directionalTabbingExtensionFields[] =
 {
-    {PARAMETER_NUM_DIRECTIONS,                BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {NULL,                                    BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_TAB_DIRECTION_WIDGET_ID_ARRAY, BINARY_FIELD_USHORT,       2,  0, 1, NULL, 0}
+    {PARAMETER_NUM_DIRECTIONS,                BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL, 0},
+    {NULL,                                    BINARY_FIELD_PAD,    1,                   0, 0, NULL, 0},
+    {PARAMETER_TAB_DIRECTION_WIDGET_ID_ARRAY, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 1, NULL, 0}
 };
 
 /*************************************************************************************************/
@@ -3560,8 +3561,8 @@ static const BinaryField_t c_directionalTabbingExtensionFields[] =
  */
 static const BinaryField_t c_cursorEventsExtensionFields[] =
 {
-    {PARAMETER_NUM_EVENTS,     BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_EVENT_ID_ARRAY, BINARY_FIELD_USHORT,       2,  0, 1, NULL, 0}
+    {PARAMETER_NUM_EVENTS,     BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL, 0},
+    {PARAMETER_EVENT_ID_ARRAY, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 1, NULL, 0}
 };
 
 /*************************************************************************************************/
@@ -3570,8 +3571,8 @@ static const BinaryField_t c_cursorEventsExtensionFields[] =
  */
 static const BinaryField_t c_legendAlignExtensionFields[] =
 {
-    {PARAMETER_LEGEND_ALIGNMENT, BINARY_FIELD_UCHAR,        1,  0, 0, c_editBoxAlignmentValues, COUNT_OF(c_editBoxAlignmentValues)},
-    {NULL,                       BINARY_FIELD_PAD,          1,  0, 0, NULL, 0}
+    {PARAMETER_LEGEND_ALIGNMENT, BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_editBoxAlignmentValues, COUNT_OF(c_editBoxAlignmentValues)},
+    {NULL,                       BINARY_FIELD_PAD,   1,                  0, 0, NULL,                     0}
 };
 
 /*************************************************************************************************/
@@ -3580,7 +3581,7 @@ static const BinaryField_t c_legendAlignExtensionFields[] =
  */
 static const BinaryField_t c_childIndexExtensionFields[] =
 {
-    {PARAMETER_VISIBLE_CHILD_INDEX, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0}
+    {PARAMETER_VISIBLE_CHILD_INDEX, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL, 0}
 };
 
 /*************************************************************************************************/
@@ -3589,8 +3590,8 @@ static const BinaryField_t c_childIndexExtensionFields[] =
  */
 static const BinaryField_t c_initialFocusExtensionFields[] =
 {
-    {NULL,                    BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_INITIAL_FOCUS, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)}
+    {NULL,                    BINARY_FIELD_PAD,   1,                  0, 0, NULL,            0},
+    {PARAMETER_INITIAL_FOCUS, BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_booleanValues, COUNT_OF(c_booleanValues)}
 };
 
 /*************************************************************************************************/
@@ -3599,8 +3600,8 @@ static const BinaryField_t c_initialFocusExtensionFields[] =
  */
 static const BinaryField_t c_focusStopExtensionFields[] =
 {
-    {PARAMETER_STOP_FORWARD,  BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_STOP_BACKWARD, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)}
+    {PARAMETER_STOP_FORWARD,  BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_STOP_BACKWARD, BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_booleanValues, COUNT_OF(c_booleanValues)}
 };
 
 /*************************************************************************************************/
@@ -3609,8 +3610,8 @@ static const BinaryField_t c_focusStopExtensionFields[] =
  */
 static const BinaryField_t c_cursorShapeExtensionFields[] =
 {
-    {PARAMETER_ALLOW_CHANGE, BINARY_FIELD_UCHAR,        1,  0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
-    {PARAMETER_CURSOR_INDEX, BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0}
+    {PARAMETER_ALLOW_CHANGE, BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_CURSOR_INDEX, BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -3619,11 +3620,11 @@ static const BinaryField_t c_cursorShapeExtensionFields[] =
  */
 static const BinaryField_t c_pictureExtensionFields[] =
 {
-    {PARAMETER_MAX_NUMBER_OF_PICTURES, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NUMBER_OF_PICTURES,     BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_PICTURE_POSITION,       BINARY_FIELD_UCHAR,        1,  0, 0, c_picturePositionValues, COUNT_OF(c_picturePositionValues)},
-    {NULL,                             BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_PICTURE_ARRAY,          BINARY_FIELD_USHORT,       2,  1, 1, NULL, 0}
+    {PARAMETER_MAX_NUMBER_OF_PICTURES, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,                    0},
+    {PARAMETER_NUMBER_OF_PICTURES,     BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,                    0},
+    {PARAMETER_PICTURE_POSITION,       BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_picturePositionValues, COUNT_OF(c_picturePositionValues)},
+    {NULL,                             BINARY_FIELD_PAD,    1,                   0, 0, NULL,                    0},
+    {PARAMETER_PICTURE_ARRAY,          BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 1, 1, NULL,                    0}
 };
 
 /*************************************************************************************************/
@@ -3632,11 +3633,11 @@ static const BinaryField_t c_pictureExtensionFields[] =
  */
 static const BinaryField_t c_symbolExtensionFields[] =
 {
-    {PARAMETER_MAX_NUMBER_OF_SYMBOLS, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NUMBER_OF_SYMBOLS,     BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_SYMBOL_POSITION,       BINARY_FIELD_UCHAR,        1,  0, 0, c_picturePositionValues, COUNT_OF(c_picturePositionValues)},
-    {NULL,                            BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_SYMBOL_ARRAY,          BINARY_FIELD_USHORT,       2,  1, 1, NULL, 0}
+    {PARAMETER_MAX_NUMBER_OF_SYMBOLS, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,                    0},
+    {PARAMETER_NUMBER_OF_SYMBOLS,     BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,                    0},
+    {PARAMETER_SYMBOL_POSITION,       BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_picturePositionValues, COUNT_OF(c_picturePositionValues)},
+    {NULL,                            BINARY_FIELD_PAD,    1,                   0, 0, NULL,                    0},
+    {PARAMETER_SYMBOL_ARRAY,          BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 1, 1, NULL,                    0}
 };
 
 /*************************************************************************************************/
@@ -3645,13 +3646,13 @@ static const BinaryField_t c_symbolExtensionFields[] =
  */
 static const BinaryField_t c_ticsArrayExtensionFields[] =
 {
-    {NULL,                                BINARY_FIELD_PAD,          2,  0, 0, NULL, 0},
-    {PARAMETER_MAX_NUMBER_OF_TICS_COARSE, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NUMBER_OF_TICS_COARSE,     BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_MAX_NUMBER_OF_TICS_FINE,   BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_NUMBER_OF_TICS_FINE,       BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_TICS_COARSE_ARRAY,         BINARY_FIELD_FLOAT,        4,  2, 2, NULL, 0},
-    {PARAMETER_TICS_FINE_ARRAY,           BINARY_FIELD_FLOAT,        4,  4, 2, NULL, 0}
+    {NULL,                                BINARY_FIELD_PAD,    2,                   0, 0, NULL, 0},
+    {PARAMETER_MAX_NUMBER_OF_TICS_COARSE, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL, 0},
+    {PARAMETER_NUMBER_OF_TICS_COARSE,     BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL, 0},
+    {PARAMETER_MAX_NUMBER_OF_TICS_FINE,   BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL, 0},
+    {PARAMETER_NUMBER_OF_TICS_FINE,       BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL, 0},
+    {PARAMETER_TICS_COARSE_ARRAY,         BINARY_FIELD_FLOAT,  BINARY_ULONG_BYTES,  2, 2, NULL, 0},
+    {PARAMETER_TICS_FINE_ARRAY,           BINARY_FIELD_FLOAT,  BINARY_ULONG_BYTES,  4, 2, NULL, 0}
 };
 
 /*************************************************************************************************/
@@ -3660,9 +3661,9 @@ static const BinaryField_t c_ticsArrayExtensionFields[] =
  */
 static const BinaryField_t c_styleSetExtensionFields[] =
 {
-    {PARAMETER_MAX_STYLE_SET_ARRAY_SIZE, BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET_ARRAY_SIZE,     BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_STYLE_SET_ARRAY,          BINARY_FIELD_USHORT,       2,  1, 1, NULL, 0}
+    {PARAMETER_MAX_STYLE_SET_ARRAY_SIZE, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL, 0},
+    {PARAMETER_STYLE_SET_ARRAY_SIZE,     BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, NULL, 0},
+    {PARAMETER_STYLE_SET_ARRAY,          BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 1, 1, NULL, 0}
 };
 
 /*************************************************************************************************/
@@ -3671,8 +3672,8 @@ static const BinaryField_t c_styleSetExtensionFields[] =
  */
 static const BinaryField_t c_staticParamBufferExtensionFields[] =
 {
-    {PARAMETER_NUMBER_OF_BUFFERS, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_BUFFER_ARRAY,      BINARY_FIELD_SIZED_BYTES,  0,  0, 1, NULL, 0}
+    {PARAMETER_NUMBER_OF_BUFFERS, BINARY_FIELD_USHORT,      BINARY_USHORT_BYTES,   0, 0, NULL, 0},
+    {PARAMETER_BUFFER_ARRAY,      BINARY_FIELD_SIZED_BYTES, BINARY_VARIABLE_BYTES, 0, 1, NULL, 0}
 };
 
 /*************************************************************************************************/
@@ -3681,7 +3682,7 @@ static const BinaryField_t c_staticParamBufferExtensionFields[] =
  */
 static const BinaryField_t c_multiSelectionExtensionFields[] =
 {
-    {PARAMETER_MAXIMUM_SELECTABLE_ENTRIES, BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0}
+    {PARAMETER_MAXIMUM_SELECTABLE_ENTRIES, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL, 0}
 };
 
 /*************************************************************************************************/
@@ -3690,11 +3691,11 @@ static const BinaryField_t c_multiSelectionExtensionFields[] =
  */
 static const BinaryField_t c_excludedRegionsExtensionFields[] =
 {
-    {PARAMETER_MAX_NUMBER_OF_REGIONS, BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {NULL,                            BINARY_FIELD_PAD,          1,  0, 0, NULL, 0},
-    {PARAMETER_EFFECTIVITY_ARRAY,     BINARY_FIELD_UCHAR,        1,  0, 1, NULL, 0},
-    {NULL,                            BINARY_FIELD_ALIGN,        0,  0, 0, NULL, 0},
-    {PARAMETER_EXCLUDED_REGIONS_LIST, BINARY_FIELD_REGION,       0,  0, 1, NULL, 0}
+    {PARAMETER_MAX_NUMBER_OF_REGIONS, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 0, NULL, 0},
+    {NULL,                            BINARY_FIELD_PAD,    1,                     0, 0, NULL, 0},
+    {PARAMETER_EFFECTIVITY_ARRAY,     BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,    0, 1, NULL, 0},
+    {NULL,                            BINARY_FIELD_ALIGN,  BINARY_VARIABLE_BYTES, 0, 0, NULL, 0},
+    {PARAMETER_EXCLUDED_REGIONS_LIST, BINARY_FIELD_REGION, BINARY_VARIABLE_BYTES, 0, 1, NULL, 0}
 };
 
 /*************************************************************************************************/
@@ -3703,8 +3704,8 @@ static const BinaryField_t c_excludedRegionsExtensionFields[] =
  */
 static const BinaryField_t c_boundaryCheckExtensionFields[] =
 {
-    {PARAMETER_BOUNDARY_CHECK_MODE, BINARY_FIELD_UCHAR,        1,  0, 0, c_boundaryCheckModeValues, COUNT_OF(c_boundaryCheckModeValues)},
-    {NULL,                          BINARY_FIELD_PAD,          1,  0, 0, NULL, 0}
+    {PARAMETER_BOUNDARY_CHECK_MODE, BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, c_boundaryCheckModeValues, COUNT_OF(c_boundaryCheckModeValues)},
+    {NULL,                          BINARY_FIELD_PAD,   1,                  0, 0, NULL,                      0}
 };
 
 /*************************************************************************************************/
@@ -3713,7 +3714,7 @@ static const BinaryField_t c_boundaryCheckExtensionFields[] =
  */
 static const BinaryField_t c_reorderExtensionFields[] =
 {
-    {NULL,   BINARY_FIELD_PAD,          2,  0, 0, NULL, 0}
+    {NULL, BINARY_FIELD_PAD, 2, 0, 0, NULL, 0}
 };
 
 /*************************************************************************************************/
@@ -3722,8 +3723,8 @@ static const BinaryField_t c_reorderExtensionFields[] =
  */
 static const BinaryField_t c_wordWrapExtensionFields[] =
 {
-    {PARAMETER_WORD_WRAP,  BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0},
-    {PARAMETER_WRAP_STYLE, BINARY_FIELD_UCHAR,        1,  0, 0, NULL, 0}
+    {PARAMETER_WORD_WRAP,  BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, NULL, 0},
+    {PARAMETER_WRAP_STYLE, BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, 0, 0, NULL, 0}
 };
 
 /*************************************************************************************************/
@@ -3732,8 +3733,8 @@ static const BinaryField_t c_wordWrapExtensionFields[] =
  */
 static const BinaryField_t c_cursorEntryEventsExtensionFields[] =
 {
-    {PARAMETER_NUM_EVENTS,     BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_EVENT_ID_ARRAY, BINARY_FIELD_USHORT,       2,  0, 1, NULL, 0}
+    {PARAMETER_NUM_EVENTS,     BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL, 0},
+    {PARAMETER_EVENT_ID_ARRAY, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 1, NULL, 0}
 };
 
 /*************************************************************************************************/
@@ -3742,10 +3743,10 @@ static const BinaryField_t c_cursorEntryEventsExtensionFields[] =
  */
 static const BinaryField_t c_maphorzCoordSystemEventExtensionFields[] =
 {
-    {PARAMETER_NUM_EVENTS,     BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_REPORT_MODE,    BINARY_FIELD_UCHAR,        1,  0, 0, c_coordSystemReportModeValues, COUNT_OF(c_coordSystemReportModeValues)},
-    {NULL,                     BINARY_FIELD_PAD,          3,  0, 0, NULL, 0},
-    {PARAMETER_EVENT_ID_ARRAY, BINARY_FIELD_USHORT,       2,  0, 1, NULL, 0}
+    {PARAMETER_NUM_EVENTS,     BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,                          0},
+    {PARAMETER_REPORT_MODE,    BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_coordSystemReportModeValues, COUNT_OF(c_coordSystemReportModeValues)},
+    {NULL,                     BINARY_FIELD_PAD,    3,                   0, 0, NULL,                          0},
+    {PARAMETER_EVENT_ID_ARRAY, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 1, NULL,                          0}
 };
 
 /*************************************************************************************************/
@@ -3754,10 +3755,10 @@ static const BinaryField_t c_maphorzCoordSystemEventExtensionFields[] =
  */
 static const BinaryField_t c_mapvertCoordSystemEventExtensionFields[] =
 {
-    {PARAMETER_NUM_EVENTS,     BINARY_FIELD_USHORT,       2,  0, 0, NULL, 0},
-    {PARAMETER_REPORT_MODE,    BINARY_FIELD_UCHAR,        1,  0, 0, c_coordSystemReportModeValues, COUNT_OF(c_coordSystemReportModeValues)},
-    {NULL,                     BINARY_FIELD_PAD,          3,  0, 0, NULL, 0},
-    {PARAMETER_EVENT_ID_ARRAY, BINARY_FIELD_USHORT,       2,  0, 1, NULL, 0}
+    {PARAMETER_NUM_EVENTS,     BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 0, NULL,                          0},
+    {PARAMETER_REPORT_MODE,    BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  0, 0, c_coordSystemReportModeValues, COUNT_OF(c_coordSystemReportModeValues)},
+    {NULL,                     BINARY_FIELD_PAD,    3,                   0, 0, NULL,                          0},
+    {PARAMETER_EVENT_ID_ARRAY, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, 0, 1, NULL,                          0}
 };
 
 /*************************************************************************************************/
