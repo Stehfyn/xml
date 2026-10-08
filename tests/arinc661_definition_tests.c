@@ -692,11 +692,45 @@ static void TestExtensionApplicability(void)
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  Table 4.6-13 reserves 0xB800 to 0xBFFF for OEM encodings, which round-trip
+ *  through the binary form; a reserved value outside both ranges is rejected.
+ */
+static void TestDefinitionCharsetEncodings(void)
+{
+    /* Header, a charset block holding the first OEM encoding, and the footer */
+    static const byte_t oem_file[] =
+    {
+        0xA6, 0x61, 0x01, 0x04, 0x00, 0x00, 0x00, 0x00,
+        0xC8, 0x00, 0xB8, 0x00, 0xC9, 0x00, 0x00, 0x00,
+        0xE0, 0x00, 0x00, 0x00
+    };
+    byte_t                output[sizeof(oem_file)];
+    Arinc661_Layer_t      layers[1];
+    Arinc661_Widget_t     widgets[1];
+    Arinc661_Property_t   properties[4];
+    Arinc661_Definition_t definition;
+
+    Arinc661_Definition_Initialize(&definition, layers, 1, widgets, 1, properties, 4, NULL, 0);
+    assert(Arinc661_Definition_ReadBinary(&definition, oem_file, sizeof(oem_file)));
+    assert(ARINC661_CHARSET_ENCODING_OEM_FIRST == definition.charsetEncoding);
+    assert(sizeof(oem_file) == Arinc661_Definition_WriteBinary(&definition, output, sizeof(output)));
+    assert(0 == memcmp(oem_file, output, sizeof(oem_file)));
+
+    /* 0x0004 lies between the standard and the OEM values */
+    output[11] = 0x04;
+    output[10] = 0x00;
+    assert(FALSE == Arinc661_Definition_ReadBinary(&definition, output, sizeof(output)));
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Runs every ARINC 661 Definition File test in order.
  */
 void RunArinc661Tests(void)
 {
     TestExtensionApplicability();
+    TestDefinitionCharsetEncodings();
     TestDefinition();
     TestDefinitionWithoutDeclaration();
     TestDefinitionBinary();

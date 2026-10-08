@@ -5472,7 +5472,7 @@ static bool_t WriteBinaryHeader(const Arinc661_Definition_t* definition, byte_t*
  * \param[in,out] offset            Byte offset of the block, advanced past it
  * \param[in]     charsetEncoding   Charset encoding to write
  *
- * \retval        TRUE              if the encoding is one of Table 4.6-13 and the block fits the buffer.
+ * \retval        TRUE              if the encoding is a standard or OEM value of Table 4.6-13 and the block fits the buffer.
  * \retval        FALSE             otherwise.
  */
 static bool_t WriteBinaryCharsetBlock(byte_t* buffer, uint64_t capacity, uint64_t* offset, Arinc661_CharsetEncoding_t charsetEncoding);
@@ -7669,12 +7669,14 @@ static bool_t WriteBinaryHeader(const Arinc661_Definition_t* definition, byte_t*
  */
 static bool_t WriteBinaryCharsetBlock(byte_t* buffer, uint64_t capacity, uint64_t* offset, Arinc661_CharsetEncoding_t charsetEncoding)
 {
-    bool_t is_encoding_known;
+    bool_t is_standard_encoding;
+    bool_t is_oem_encoding;
     bool_t is_valid;
 
-    is_encoding_known = (ARINC661_CHARSET_ENCODING_ASCII_EXTENDED <= charsetEncoding) && (ARINC661_CHARSET_ENCODING_GBK >= charsetEncoding);
+    is_standard_encoding = (ARINC661_CHARSET_ENCODING_ASCII_EXTENDED <= charsetEncoding) && (ARINC661_CHARSET_ENCODING_GBK >= charsetEncoding);
+    is_oem_encoding      = (ARINC661_CHARSET_ENCODING_OEM_FIRST <= charsetEncoding) && (ARINC661_CHARSET_ENCODING_OEM_LAST >= charsetEncoding);
 
-    is_valid = is_encoding_known;
+    is_valid = is_standard_encoding || is_oem_encoding;
     if (is_valid)
     {
         is_valid = WriteUnsigned(buffer, capacity, (*offset), (BINARY_BEGIN_CHARSET_BLOCK << BINARY_BLOCK_CODE_SHIFT) | charsetEncoding, BINARY_ULONG_BYTES);
@@ -9917,7 +9919,8 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
     bool_t   has_footer;
     bool_t   has_block_word;
     bool_t   has_charset_bytes;
-    bool_t   is_encoding_known;
+    bool_t   is_standard_encoding;
+    bool_t   is_oem_encoding;
     bool_t   is_valid;
 
     LOGASSERT(NULL != definition);
@@ -9970,8 +9973,9 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
                 if (is_valid)
                 {
                     encoding          = ReadUnsigned(bufferToReadBinaryFrom, offset + OFFSET_OF(BinaryCharsetBlock_t, encoding), BINARY_USHORT_BYTES);
-                    is_encoding_known = (ARINC661_CHARSET_ENCODING_ASCII_EXTENDED <= encoding) && (ARINC661_CHARSET_ENCODING_GBK >= encoding);
-                    is_valid          = is_encoding_known;
+                    is_standard_encoding = (ARINC661_CHARSET_ENCODING_ASCII_EXTENDED <= encoding) && (ARINC661_CHARSET_ENCODING_GBK >= encoding);
+                    is_oem_encoding      = (ARINC661_CHARSET_ENCODING_OEM_FIRST <= encoding) && (ARINC661_CHARSET_ENCODING_OEM_LAST >= encoding);
+                    is_valid             = is_standard_encoding || is_oem_encoding;
                 }
                 if (is_valid)
                 {

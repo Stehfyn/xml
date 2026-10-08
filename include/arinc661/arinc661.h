@@ -95,13 +95,21 @@ typedef struct Arinc661_Widget_s
 /*************************************************************************************************/
 /**
  * \brief Charset encoding of a Definition File (Part 1-7, Table 4.6-13).
+ *
+ * \par Details:
+ *  Section 3.2.5.1: the encoding applies to all string parameters in the
+ *  Definition File and to the run-time parameters of its widgets. A file
+ *  without a charset encoding uses A661_ASCII_EXTENDED. Values from OEM_FIRST
+ *  to OEM_LAST are implementation-dependent encodings the table reserves.
  */
 typedef enum Arinc661_CharsetEncoding_e
 {
-    ARINC661_CHARSET_ENCODING_NONE           = 0, ///< No charset-encoding element or block
-    ARINC661_CHARSET_ENCODING_ASCII_EXTENDED = 1, ///< A661_ASCII_EXTENDED
-    ARINC661_CHARSET_ENCODING_UTF8           = 2, ///< A661_UTF8
-    ARINC661_CHARSET_ENCODING_GBK            = 3  ///< A661_GBK
+    ARINC661_CHARSET_ENCODING_NONE           = 0,      ///< No charset-encoding element or block; strings use A661_ASCII_EXTENDED
+    ARINC661_CHARSET_ENCODING_ASCII_EXTENDED = 1,      ///< A661_ASCII_EXTENDED
+    ARINC661_CHARSET_ENCODING_UTF8           = 2,      ///< A661_UTF8
+    ARINC661_CHARSET_ENCODING_GBK            = 3,      ///< A661_GBK
+    ARINC661_CHARSET_ENCODING_OEM_FIRST      = 0xB800, ///< First value reserved for OEM customization
+    ARINC661_CHARSET_ENCODING_OEM_LAST       = 0xBFFF  ///< Last value reserved for OEM customization
 } Arinc661_CharsetEncoding_t;
 
 /*************************************************************************************************/
