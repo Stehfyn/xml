@@ -4821,16 +4821,6 @@ static const ExtensionTargets_t c_extensionTargets[] =
 
 /*************************************************************************************************/
 /**
- * \brief Asserts that each array of a Definition File holds its count.
- *
- * \param[in] definition   Definition File about to be written
- *
- * \retval    None
- */
-static void AssertStorage(const Arinc661_Definition_t* definition);
-
-/*************************************************************************************************/
-/**
  * \brief Clears the published counts, block bytes, and charset of a Definition File.
  *
  * \param[in,out] definition   Definition File whose arrays and capacities are retained
@@ -5800,24 +5790,6 @@ static bool_t ReadOpaqueBlock(Arinc661_Definition_t* definition, const byte_t* b
 /*=================================================================================================
 ** 4. PRIVATE FUNCTIONS
 **===============================================================================================*/
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Each count must be within its capacity, and an array may be NULL only while
- *  its count is zero, since the writers index every array up to its count.
- */
-static void AssertStorage(const Arinc661_Definition_t* definition)
-{
-    LOGASSERT(definition->layerCount <= definition->layerCapacity);
-    LOGASSERT(definition->widgetCount <= definition->widgetCapacity);
-    LOGASSERT(definition->propertyCount <= definition->propertyCapacity);
-    LOGASSERT(definition->blockByteCount <= definition->blockCapacity);
-    LOGASSERT((NULL != definition->layers) || (0 == definition->layerCount));
-    LOGASSERT((NULL != definition->widgets) || (0 == definition->widgetCount));
-    LOGASSERT((NULL != definition->properties) || (0 == definition->propertyCount));
-    LOGASSERT((NULL != definition->blocks) || (0 == definition->blockByteCount));
-}
 
 /*************************************************************************************************/
 /**
@@ -9471,7 +9443,14 @@ uint64_t Arinc661_Definition_Write(const Arinc661_Definition_t* definition, byte
     LOGASSERT(NULL != bufferToWriteXmlTo);
     LOGASSERT(NULL != workspace);
 
-    AssertStorage(definition);
+    LOGASSERT(definition->layerCount <= definition->layerCapacity);
+    LOGASSERT(definition->widgetCount <= definition->widgetCapacity);
+    LOGASSERT(definition->propertyCount <= definition->propertyCapacity);
+    LOGASSERT(definition->blockByteCount <= definition->blockCapacity);
+    LOGASSERT((NULL != definition->layers) || (0 == definition->layerCount));
+    LOGASSERT((NULL != definition->widgets) || (0 == definition->widgetCount));
+    LOGASSERT((NULL != definition->properties) || (0 == definition->propertyCount));
+    LOGASSERT((NULL != definition->blocks) || (0 == definition->blockByteCount));
     // Keep zero as the failure result until the complete document is written
     byte_count    = 0;
     has_workspace = InitializeXmlWorkspace(&xml, workspace, workspaceSize);
@@ -9763,7 +9742,15 @@ uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition
 
     LOGASSERT(NULL != definition);
     LOGASSERT(NULL != bufferToWriteBinaryTo);
-    AssertStorage(definition);
+
+    LOGASSERT(definition->layerCount <= definition->layerCapacity);
+    LOGASSERT(definition->widgetCount <= definition->widgetCapacity);
+    LOGASSERT(definition->propertyCount <= definition->propertyCapacity);
+    LOGASSERT(definition->blockByteCount <= definition->blockCapacity);
+    LOGASSERT((NULL != definition->layers) || (0 == definition->layerCount));
+    LOGASSERT((NULL != definition->widgets) || (0 == definition->widgetCount));
+    LOGASSERT((NULL != definition->properties) || (0 == definition->propertyCount));
+    LOGASSERT((NULL != definition->blocks) || (0 == definition->blockByteCount));
     // Keep zero as the failure result until the complete file is written
     byte_count = 0;
     offset     = sizeof(BinaryHeader_t);
