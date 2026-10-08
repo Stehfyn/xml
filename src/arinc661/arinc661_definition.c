@@ -6506,7 +6506,7 @@ uint64_t Arinc661_Definition_Write(const Arinc661_Definition_t* definition, byte
  *  charsetEncoding; scalar fields and array entries may still contain partial
  *  data.
  */
-bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const byte_t* buffer, uint64_t byteCount)
+bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const byte_t* bufferToReadBinaryFrom, uint64_t sizeOfBinaryBuffer)
 {
     uint64_t offset;
     uint64_t block_index;
@@ -6515,37 +6515,37 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
     bool_t   is_valid;
 
     LOGASSERT(NULL != definition);
-    LOGASSERT(NULL != buffer);
+    LOGASSERT(NULL != bufferToReadBinaryFrom);
     LOGASSERT((NULL != definition->blocks) || (0 == definition->blockCapacity));
     // Reset result counts while retaining the supplied arrays and capacities
     ResetDefinition(definition);
     has_footer = FALSE;
     offset     = BINARY_HEADER_BYTES;
-    is_valid   = (BINARY_HEADER_BYTES <= byteCount);
+    is_valid   = (BINARY_HEADER_BYTES <= sizeOfBinaryBuffer);
     if (is_valid)
     {
-        is_valid = (BINARY_DF_MAGIC_NUMBER == GetUnsigned(buffer, BINARY_HEADER_MAGIC_OFFSET, BINARY_USHORT_BYTES));
+        is_valid = (BINARY_DF_MAGIC_NUMBER == GetUnsigned(bufferToReadBinaryFrom, BINARY_HEADER_MAGIC_OFFSET, BINARY_USHORT_BYTES));
     }
     if (is_valid)
     {
         definition->name[0]           = '\0';
-        definition->libraryVersion    = buffer[BINARY_HEADER_LIBRARY_VERSION_OFFSET];
-        definition->supplementVersion = buffer[BINARY_HEADER_SUPPLEMENT_VERSION_OFFSET];
-        is_valid                      = AddIntegerProperty(definition, ARINC661_PROPERTY_DEFINITION, 0, BINARY_PROPERTY_APPLICATION_ID, GetUnsigned(buffer, BINARY_HEADER_APPLI_IDENT_OFFSET, BINARY_USHORT_BYTES));
+        definition->libraryVersion    = bufferToReadBinaryFrom[BINARY_HEADER_LIBRARY_VERSION_OFFSET];
+        definition->supplementVersion = bufferToReadBinaryFrom[BINARY_HEADER_SUPPLEMENT_VERSION_OFFSET];
+        is_valid                      = AddIntegerProperty(definition, ARINC661_PROPERTY_DEFINITION, 0, BINARY_PROPERTY_APPLICATION_ID, GetUnsigned(bufferToReadBinaryFrom, BINARY_HEADER_APPLI_IDENT_OFFSET, BINARY_USHORT_BYTES));
         // Skip the implementation-dependent OEM data, which occupies whole words
-        offset += BINARY_ALIGN(GetUnsigned(buffer, BINARY_HEADER_OEM_DATA_SIZE_OFFSET, BINARY_USHORT_BYTES));
+        offset += BINARY_ALIGN(GetUnsigned(bufferToReadBinaryFrom, BINARY_HEADER_OEM_DATA_SIZE_OFFSET, BINARY_USHORT_BYTES));
     }
     if (is_valid)
     {
         // Bound the walk by the one-word minimum block size
-        for (block_index = 0; block_index < byteCount; ++block_index)
+        for (block_index = 0; block_index < sizeOfBinaryBuffer; ++block_index)
         {
-            is_valid = (offset <= byteCount) && (BINARY_BLOCK_END_BYTES <= (byteCount - offset));
+            is_valid = (offset <= sizeOfBinaryBuffer) && (BINARY_BLOCK_END_BYTES <= (sizeOfBinaryBuffer - offset));
             if (FALSE == is_valid)
             {
                 break;
             }
-            block_code = buffer[offset];
+            block_code = bufferToReadBinaryFrom[offset];
             if (BINARY_DF_FOOTER == block_code)
             {
                 has_footer = TRUE;
@@ -6553,22 +6553,22 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
             }
             if (BINARY_BEGIN_LAYER_BLOCK == block_code)
             {
-                is_valid = ReadLayer(definition, buffer, byteCount, &offset);
+                is_valid = ReadLayer(definition, bufferToReadBinaryFrom, sizeOfBinaryBuffer, &offset);
             }
             else if (BINARY_BEGIN_CHARSET_BLOCK == block_code)
             {
                 // Read the block as code, pad, encoding, end code, pad (Table 4.5.3.2-6) and allow one per file
-                is_valid = (BINARY_CHARSET_BLOCK_BYTES <= (byteCount - offset)) && (BINARY_END_CHARSET_BLOCK == buffer[offset + BINARY_CHARSET_END_OFFSET]) && (0 == definition->charsetEncoding);
+                is_valid = (BINARY_CHARSET_BLOCK_BYTES <= (sizeOfBinaryBuffer - offset)) && (BINARY_END_CHARSET_BLOCK == bufferToReadBinaryFrom[offset + BINARY_CHARSET_END_OFFSET]) && (0 == definition->charsetEncoding);
                 if (is_valid)
                 {
-                    definition->charsetEncoding = GetUnsigned(buffer, offset + BINARY_CHARSET_ENCODING_OFFSET, BINARY_USHORT_BYTES);
+                    definition->charsetEncoding = GetUnsigned(bufferToReadBinaryFrom, offset + BINARY_CHARSET_ENCODING_OFFSET, BINARY_USHORT_BYTES);
                     is_valid                    = (0 != definition->charsetEncoding);
                     offset                     += BINARY_CHARSET_BLOCK_BYTES;
                 }
             }
             else if ((BINARY_BEGIN_SYMBOL_BLOCK == block_code) || (BINARY_BEGIN_PICTURE_BLOCK == block_code) || (BINARY_BEGIN_ANIMATION_BLOCK == block_code))
             {
-                is_valid = ReadOpaqueBlock(definition, buffer, byteCount, &offset);
+                is_valid = ReadOpaqueBlock(definition, bufferToReadBinaryFrom, sizeOfBinaryBuffer, &offset);
             }
             else
             {

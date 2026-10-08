@@ -305,16 +305,16 @@ uint64_t Arinc661_Definition_Write(const Arinc661_Definition_t* definition, byte
  *  - 002 This function shall retain symbol, picture, and animation law blocks unchanged in caller-owned storage.
  *  - 003 This function shall clear all result counts when the input is malformed or a result array is too small.
  *  - 004 This function shall not read outside the supplied input bytes.
- *  - 005 This function shall fail an assertion if definition or buffer is NULL, or blocks is NULL with a nonzero blockCapacity.
+ *  - 005 This function shall fail an assertion if definition or bufferToReadBinaryFrom is NULL, or blocks is NULL with a nonzero blockCapacity.
  *
- * \param[in,out] definition   Definition File with storage pointers and capacities initialized
- * \param[in]     buffer       Input binary bytes
- * \param[in]     byteCount    Number of input bytes
+ * \param[in,out] definition               Definition File with storage pointers and capacities initialized
+ * \param[in]     bufferToReadBinaryFrom   Input binary bytes
+ * \param[in]     sizeOfBinaryBuffer       Number of input bytes
  *
- * \retval        TRUE        if the supported Definition File values were read.
- * \retval        FALSE       if the input is malformed or unsupported, or supplied storage is insufficient.
+ * \retval        TRUE                     if the supported Definition File values were read.
+ * \retval        FALSE                    if the input is malformed or unsupported, or supplied storage is insufficient.
  */
-bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const byte_t* buffer, uint64_t byteCount);
+bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const byte_t* bufferToReadBinaryFrom, uint64_t sizeOfBinaryBuffer);
 
 /*************************************************************************************************/
 /**
