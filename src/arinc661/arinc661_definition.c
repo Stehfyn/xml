@@ -116,12 +116,6 @@
 /* ARINC 661 Part 1-7, Tables 4.5.3.2-1 through 4.5.3.2-6: block codes. */
 #define BINARY_BLOCK_CODE_SHIFT (24U) ///< A block code is the most significant byte of its 32-bit word
 
-/* ARINC 661 Part 1-7, Table 8.6.7-3: ExcludedRegionType values. */
-#define BINARY_REGION_NOT_USED  (0U) ///< A661_NOT_USED
-#define BINARY_REGION_RECTANGLE (1U) ///< A661_EXCLUDED_RECTANGLE
-#define BINARY_REGION_TRIANGLE  (2U) ///< A661_EXCLUDED_TRIANGLE
-#define BINARY_REGION_CIRCLE    (3U) ///< A661_EXCLUDED_CIRCLE
-
 /* Hexadecimal property text of byte parameters. */
 #define HEX_DIGITS_PER_BYTE (2U)    ///< Two digits per byte, high digit first
 #define HEX_DIGIT_BITS      (4U)    ///< Bits per digit
@@ -1113,6 +1107,18 @@ typedef enum BinaryFieldType_e
     BINARY_FIELD_REGION,       ///< Tables 8.6.7-4 to 8.6.7-7 excluded region structure, sized by its type byte, given as hexadecimal digits
     BINARY_FIELD_LAYER_REQUEST ///< Table 3.9.17-6 LayerReqResult: LayerIdent, pad, CommandSize, and the request, given as hexadecimal digits
 } BinaryFieldType_t;
+
+/*************************************************************************************************/
+/**
+ * \brief ExcludedRegionType of an excluded region structure (Part 1-7, Table 8.6.7-3).
+ */
+typedef enum BinaryRegionType_e
+{
+    BINARY_REGION_NOT_USED  = 0, ///< A661_NOT_USED
+    BINARY_REGION_RECTANGLE = 1, ///< A661_EXCLUDED_RECTANGLE
+    BINARY_REGION_TRIANGLE  = 2, ///< A661_EXCLUDED_TRIANGLE
+    BINARY_REGION_CIRCLE    = 3  ///< A661_EXCLUDED_CIRCLE
+} BinaryRegionType_t;
 
 /*************************************************************************************************/
 /**
@@ -5251,11 +5257,11 @@ static bool_t ScanReal(const Arinc661_Property_t* property, float64_t limit, flo
 /**
  * \brief Returns the byte count of an excluded region structure from its type byte.
  *
- * \param[in] regionType   ExcludedRegionType value
+ * \param[in] regionType   ExcludedRegionType, read from the input and possibly unknown
  *
  * \retval    uint32_t     Structure bytes, or zero for an unknown type.
  */
-static uint32_t RegionByteCount(uint32_t regionType);
+static uint32_t GetRegionByteCount(BinaryRegionType_t regionType);
 
 /*************************************************************************************************/
 /**
@@ -7051,29 +7057,16 @@ static bool_t ScanReal(const Arinc661_Property_t* property, float64_t limit, flo
  *  Table 8.6.7-3: A661_NOT_USED (0) is 4 bytes, A661_EXCLUDED_RECTANGLE (1) is 20,
  *  A661_EXCLUDED_TRIANGLE (2) is 28, and A661_EXCLUDED_CIRCLE (3) is 24.
  */
-static uint32_t RegionByteCount(uint32_t regionType)
+static uint32_t GetRegionByteCount(BinaryRegionType_t regionType)
 {
-    uint32_t byte_count;
-
-    byte_count = 0;
-    if (BINARY_REGION_NOT_USED == regionType)
+    switch (regionType)
     {
-        byte_count = BINARY_REGION_NOT_USED_BYTES;
+        case BINARY_REGION_NOT_USED:  return BINARY_REGION_NOT_USED_BYTES;
+        case BINARY_REGION_RECTANGLE: return BINARY_REGION_RECTANGLE_BYTES;
+        case BINARY_REGION_TRIANGLE:  return BINARY_REGION_TRIANGLE_BYTES;
+        case BINARY_REGION_CIRCLE:    return BINARY_REGION_CIRCLE_BYTES;
+        default:                      return 0;
     }
-    else if (BINARY_REGION_RECTANGLE == regionType)
-    {
-        byte_count = BINARY_REGION_RECTANGLE_BYTES;
-    }
-    else if (BINARY_REGION_TRIANGLE == regionType)
-    {
-        byte_count = BINARY_REGION_TRIANGLE_BYTES;
-    }
-    else if (BINARY_REGION_CIRCLE == regionType)
-    {
-        byte_count = BINARY_REGION_CIRCLE_BYTES;
-    }
-
-    return byte_count;
 }
 
 /*************************************************************************************************/
@@ -7109,6 +7102,7 @@ static uint32_t GetEntryCount(const BinaryWidget_t* type, const BinaryField_t* f
             break;
         }
     }
+
     LOGASSERT(field_index < type->fieldCount);
 
     return values[field_index];
@@ -7308,7 +7302,7 @@ static bool_t WriteRegion(byte_t* buffer, uint64_t capacity, uint64_t* offset, c
     }
     if (is_valid)
     {
-        byte_count = RegionByteCount((uint32_t)(type_digit - c_binaryHexDigits));
+        byte_count = GetRegionByteCount((BinaryRegionType_t)(type_digit - c_binaryHexDigits));
         is_valid   = (0 != byte_count);
     }
     if (is_valid)
@@ -8205,7 +8199,7 @@ static bool_t ReadRegion(Arinc661_Definition_t* definition, const char_t* name, 
     is_valid         = has_header_bytes;
     if (is_valid)
     {
-        byte_count       = RegionByteCount(buffer[(*offset) + OFFSET_OF(BinaryRegionHeader_t, regionType)]);
+        byte_count       = GetRegionByteCount((BinaryRegionType_t)buffer[(*offset) + OFFSET_OF(BinaryRegionHeader_t, regionType)]);
         has_region_bytes = (byte_count <= remaining);
         is_valid         = (0 != byte_count) && has_region_bytes;
     }
