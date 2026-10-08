@@ -1,4 +1,5 @@
 #include "faceoe_utl/faceoe_utl_defines.h"
+#include "faceoe_utl/faceoe_utl_print.h"
 #include "faceoe_utl/faceoe_utl_scan.h"
 #include "faceoe_utl/faceoe_utl_xml.h"
 
@@ -566,6 +567,35 @@ static void TestNumberScanning(void)
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  Checks that formatted text is always terminated, cut off at capacity, and
+ *  counted as stored, so appending piece after piece never passes the end.
+ */
+static void TestPrint(void)
+{
+    char_t   text[8];
+    uint32_t used;
+
+    assert(5 == FACEOE_Utl_Print_Format(text, sizeof(text), "%s-%u", "ab", 12U));
+    assert(0 == strcmp("ab-12", text));
+
+    // Cut off at capacity - 1 characters, still terminated
+    assert(7 == FACEOE_Utl_Print_Format(text, sizeof(text), "%s", "abcdefghij"));
+    assert(0 == strcmp("abcdefg", text));
+
+    // Appending stops at the end of the buffer instead of passing it
+    used  = FACEOE_Utl_Print_Format(text, sizeof(text), "%s", "abcde");
+    used += FACEOE_Utl_Print_Format(&text[used], sizeof(text) - used, "%s", "fghij");
+    assert(7 == used);
+    assert(0 == strcmp("abcdefg", text));
+    assert(0 == FACEOE_Utl_Print_Format(&text[used], sizeof(text) - used, "%s", "k"));
+
+    // A zero capacity stores nothing
+    assert(0 == FACEOE_Utl_Print_Format(NULL, 0, "%s", "x"));
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Runs the XML, number scanning, and ARINC 661 utility checks.
  */
 int main(void)
@@ -573,6 +603,7 @@ int main(void)
     // Route assertion and runtime failures to stderr instead of dialog boxes
     Os_Diagnostics_Initialize();
     TestNumberScanning();
+    TestPrint();
     TestXmlByteSpans();
     TestXmlNodeInitialization();
     TestDeferredNodeContentValidation();

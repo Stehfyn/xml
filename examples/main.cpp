@@ -23,6 +23,7 @@
 
 extern "C"
 {
+#include "faceoe_utl/faceoe_utl_print.h"
 #include "os/os_assert.h"
 #include "os/os_diagnostics.h"
 #include "os/os_file.h"
@@ -1432,7 +1433,7 @@ static void ClassifyFolderFile(const char_t* fileName, void* context)
         }
         return;
     }
-    (void)snprintf(file_path, sizeof(file_path), "%s/%s", window->folderPath, fileName);
+    (void)FACEOE_Utl_Print_Format(file_path, sizeof(file_path), "%s/%s", window->folderPath, fileName);
     byte_count = OS_File_ReadFile(file_path, head, sizeof(head));
     if (0 >= byte_count)
     {
@@ -1762,7 +1763,7 @@ static void OpenWindowsHelp(WindowThreadState_t* window, uint32_t command)
     has_file = FALSE;
     for (;;)
     {
-        (void)snprintf(path, sizeof(path), "%s%s", folder, HELP_CHM_PATH);
+        (void)FACEOE_Utl_Print_Format(path, sizeof(path), "%s%s", folder, HELP_CHM_PATH);
         if (INVALID_FILE_ATTRIBUTES != GetFileAttributesA(path))
         {
             has_file = TRUE;
@@ -1792,18 +1793,18 @@ static void OpenWindowsHelp(WindowThreadState_t* window, uint32_t command)
     {
         if (HH_DISPLAY_TOPIC_COMMAND == command)
         {
-            (void)snprintf(path, sizeof(path), HELP_TOPIC_FORMAT, folder, HELP_CHM_PATH, topic);
+            (void)FACEOE_Utl_Print_Format(path, sizeof(path), HELP_TOPIC_FORMAT, folder, HELP_CHM_PATH, topic);
             (void)s_htmlHelp(NULL, path, HH_DISPLAY_TOPIC_COMMAND, 0);
         }
         else
         {
-            (void)snprintf(path, sizeof(path), "%s%s", folder, HELP_CHM_PATH);
+            (void)FACEOE_Utl_Print_Format(path, sizeof(path), "%s%s", folder, HELP_CHM_PATH);
             (void)s_htmlHelp(NULL, path, (UINT)command, 0);
         }
     }
     else
     {
-        (void)snprintf(path, sizeof(path), "file:///%s%s#%s", folder, HELP_PAGE_PATH, topic);
+        (void)FACEOE_Utl_Print_Format(path, sizeof(path), "file:///%s%s#%s", folder, HELP_PAGE_PATH, topic);
         (void)ShellExecuteA(NULL, "open", path, NULL, NULL, SW_SHOWNORMAL);
     }
 }
@@ -2542,15 +2543,15 @@ static void FormatSize(uint64_t bytes, char_t* text, uint32_t capacity)
 {
     if (bytes < 1024)
     {
-        (void)snprintf(text, capacity, SIZE_BYTES_FORMAT, (unsigned long long)bytes);
+        (void)FACEOE_Utl_Print_Format(text, capacity, SIZE_BYTES_FORMAT, (unsigned long long)bytes);
     }
     else if (bytes < (1024 * 1024))
     {
-        (void)snprintf(text, capacity, SIZE_KILOBYTES_FORMAT, (float64_t)bytes / 1024.0);
+        (void)FACEOE_Utl_Print_Format(text, capacity, SIZE_KILOBYTES_FORMAT, (float64_t)bytes / 1024.0);
     }
     else
     {
-        (void)snprintf(text, capacity, SIZE_MEGABYTES_FORMAT, (float64_t)bytes / (1024.0 * 1024.0));
+        (void)FACEOE_Utl_Print_Format(text, capacity, SIZE_MEGABYTES_FORMAT, (float64_t)bytes / (1024.0 * 1024.0));
     }
 }
 
@@ -2570,7 +2571,7 @@ static void FormatTime(uint64_t fileTime, char_t* text, uint32_t capacity)
     text[0] = '\0';
     if (::FileTimeToLocalFileTime(&file_time, &local_time) && ::FileTimeToSystemTime(&local_time, &system_time))
     {
-        (void)snprintf(text, capacity, TIME_FORMAT, (unsigned)system_time.wYear, (unsigned)system_time.wMonth, (unsigned)system_time.wDay, (unsigned)system_time.wHour, (unsigned)system_time.wMinute);
+        (void)FACEOE_Utl_Print_Format(text, capacity, TIME_FORMAT, (unsigned)system_time.wYear, (unsigned)system_time.wMonth, (unsigned)system_time.wDay, (unsigned)system_time.wHour, (unsigned)system_time.wMinute);
     }
 }
 
@@ -2632,7 +2633,7 @@ static void SaveActive(WindowThreadState_t* window)
         Arinc661_Definition_SaveActiveDocument(window->definitionEditor);
         if (0 < errors)
         {
-            (void)snprintf(note, sizeof(note), SAVED_WITH_ERRORS_FORMAT, (unsigned)errors);
+            (void)FACEOE_Utl_Print_Format(note, sizeof(note), SAVED_WITH_ERRORS_FORMAT, (unsigned)errors);
             Arinc661_Definition_SetStatusNote(window->definitionEditor, note);
         }
         else
@@ -2647,7 +2648,7 @@ static void SaveActive(WindowThreadState_t* window)
         window->saveNote[0] = '\0';
         if (0 < errors)
         {
-            (void)snprintf(window->saveNote, sizeof(window->saveNote), SAVED_WITH_ERRORS_FORMAT, (unsigned)errors);
+            (void)FACEOE_Utl_Print_Format(window->saveNote, sizeof(window->saveNote), SAVED_WITH_ERRORS_FORMAT, (unsigned)errors);
         }
     }
 }
@@ -2668,7 +2669,7 @@ static void DrawPageProblems(WindowThreadState_t* window)
     bool                              is_open;
 
     (void)Arinc661_Context_Check(window->context);
-    (void)snprintf(title, sizeof(title), PROBLEMS_SECTION_FORMAT, (unsigned)window->context->errorCount, (unsigned)(window->context->problemCount - window->context->errorCount));
+    (void)FACEOE_Utl_Print_Format(title, sizeof(title), PROBLEMS_SECTION_FORMAT, (unsigned)window->context->errorCount, (unsigned)(window->context->problemCount - window->context->errorCount));
     if (0 < window->context->errorCount)
     {
         ImGui::PushStyleColor(ImGuiCol_Text, PROBLEM_ERROR_COLOR);
@@ -2806,7 +2807,7 @@ static void DrawPageFiles(WindowThreadState_t* window)
                     }
                     if (ImGui::MenuItem(REVEAL_LABEL))
                     {
-                        (void)snprintf(label, sizeof(label), "/select,\"%s\\%s\"", window->folderPath, window->fileNames[file_index]);
+                        (void)FACEOE_Utl_Print_Format(label, sizeof(label), "/select,\"%s\\%s\"", window->folderPath, window->fileNames[file_index]);
                         (void)::ShellExecuteA(window->windowHandle, "open", "explorer.exe", label, NULL, SW_SHOWNORMAL);
                     }
                     ImGui::EndPopup();
@@ -3111,7 +3112,7 @@ static void DrawPalette(WindowThreadState_t* window)
         ImGui::SeparatorText(PREFAB_SECTION_LABEL);
         for (character = 0; character < window->prefabCount; ++character)
         {
-            (void)snprintf(upper_filter, sizeof(upper_filter), "%.*s", (int)(strlen(window->prefabNames[character]) - strlen(PREFAB_EXTENSION)), window->prefabNames[character]);
+            (void)FACEOE_Utl_Print_Format(upper_filter, sizeof(upper_filter), "%.*s", (int)(strlen(window->prefabNames[character]) - strlen(PREFAB_EXTENSION)), window->prefabNames[character]);
             ImGui::PushID((int)(50000 + character));
             if (ImGui::Selectable(upper_filter))
             {
@@ -3230,7 +3231,7 @@ static void AppendLog(WindowThreadState_t* window, const char_t* text)
         strncpy_s(window->lastStatus, sizeof(window->lastStatus), text, _TRUNCATE);
         GetLocalTime(&now);
         line = window->logLines[window->logCount % LOG_CAPACITY];
-        (void)snprintf(line, LOG_LINE_BYTES, LOG_TIME_FORMAT "%s", (int)now.wHour, (int)now.wMinute, (int)now.wSecond, text);
+        (void)FACEOE_Utl_Print_Format(line, LOG_LINE_BYTES, LOG_TIME_FORMAT "%s", (int)now.wHour, (int)now.wMinute, (int)now.wSecond, text);
         window->logCount += 1;
     }
 }
@@ -3327,7 +3328,7 @@ static void OpenFolderFile(WindowThreadState_t* window, const char_t* name, bool
         (void)Arinc661_Context_OpenReferencedDefinitions(window->context);
         window->isDefinitionActive = FALSE;
     }
-    (void)snprintf(full_path, sizeof(full_path), "%s\\%s", window->folderPath, name);
+    (void)FACEOE_Utl_Print_Format(full_path, sizeof(full_path), "%s\\%s", window->folderPath, name);
     ::SHAddToRecentDocs(SHARD_PATHA, full_path);
     found = window->recentCount;
     for (index = 0; index < window->recentCount; ++index)
@@ -3394,12 +3395,12 @@ static bool_t OpenPath(WindowThreadState_t* window, const char_t* path)
         if (0 == _stricmp(window->fileNames[index], name))
         {
             OpenFolderFile(window, window->fileNames[index], window->fileIsDefinition[index]);
-            (void)snprintf(note, sizeof(note), OPENED_PATH_FORMAT, path);
+            (void)FACEOE_Utl_Print_Format(note, sizeof(note), OPENED_PATH_FORMAT, path);
             AppendLog(window, note);
             return TRUE;
         }
     }
-    (void)snprintf(note, sizeof(note), NOT_A_DOCUMENT_FORMAT, path);
+    (void)FACEOE_Utl_Print_Format(note, sizeof(note), NOT_A_DOCUMENT_FORMAT, path);
     AppendLog(window, note);
     window->panelOpen[PANEL_INDEX_LOG] = true;
 
@@ -3554,7 +3555,7 @@ static void RevealInExplorer(WindowThreadState_t* window)
     }
     if ((NULL != name) && ('\0' != name[0]))
     {
-        (void)snprintf(arguments, sizeof(arguments), "/select,\"%s\\%s\"", window->folderPath, name);
+        (void)FACEOE_Utl_Print_Format(arguments, sizeof(arguments), "/select,\"%s\\%s\"", window->folderPath, name);
         (void)::ShellExecuteA(window->windowHandle, "open", "explorer.exe", arguments, NULL, SW_SHOWNORMAL);
     }
     else
@@ -3586,11 +3587,11 @@ static void DrawHistory(WindowThreadState_t* window)
     {
         if (index == current)
         {
-            (void)snprintf(label, sizeof(label), "%u  %s%s", (unsigned)index, Arinc661_Definition_HistoryLabel(window->definitionEditor, index), HISTORY_CURRENT_MARK);
+            (void)FACEOE_Utl_Print_Format(label, sizeof(label), "%u  %s%s", (unsigned)index, Arinc661_Definition_HistoryLabel(window->definitionEditor, index), HISTORY_CURRENT_MARK);
         }
         else
         {
-            (void)snprintf(label, sizeof(label), "%u  %s", (unsigned)index, Arinc661_Definition_HistoryLabel(window->definitionEditor, index));
+            (void)FACEOE_Utl_Print_Format(label, sizeof(label), "%u  %s", (unsigned)index, Arinc661_Definition_HistoryLabel(window->definitionEditor, index));
         }
         ImGui::PushID((int)index);
         if (index > current)
@@ -3740,11 +3741,11 @@ static void DrawUpdatePopup(WindowThreadState_t* window)
         }
         else if (ARINC661_UPDATE_RESULT_AVAILABLE == window->updateResult)
         {
-            (void)snprintf(line, sizeof(line), UPDATE_AVAILABLE_FORMAT, window->updateManifest.versionText, ARINC661_EDITOR_VERSION_TEXT);
+            (void)FACEOE_Utl_Print_Format(line, sizeof(line), UPDATE_AVAILABLE_FORMAT, window->updateManifest.versionText, ARINC661_EDITOR_VERSION_TEXT);
             ImGui::TextUnformatted(line);
             if ('\0' != window->updateManifest.notes[0])
             {
-                (void)snprintf(line, sizeof(line), UPDATE_NOTES_FORMAT, window->updateManifest.notes);
+                (void)FACEOE_Utl_Print_Format(line, sizeof(line), UPDATE_NOTES_FORMAT, window->updateManifest.notes);
                 ImGui::PushTextWrapPos(ImGui::GetFontSize() * 30.0f);
                 ImGui::TextUnformatted(line);
                 ImGui::PopTextWrapPos();
@@ -3847,14 +3848,14 @@ static void DrawAboutPopup(WindowThreadState_t* window)
         ImGui::TextDisabled("%s", ABOUT_DESCRIPTION_LABEL);
         ImGui::PopTextWrapPos();
         ImGui::Separator();
-        (void)snprintf(details, sizeof(details), ABOUT_DETAILS_FORMAT, ARINC661_EDITOR_VERSION_TEXT, __DATE__, __TIME__, IMGUI_VERSION, opengl, executable);
+        (void)FACEOE_Utl_Print_Format(details, sizeof(details), ABOUT_DETAILS_FORMAT, ARINC661_EDITOR_VERSION_TEXT, __DATE__, __TIME__, IMGUI_VERSION, opengl, executable);
         if ('\0' != window->updateUrl[0])
         {
-            (void)snprintf(&details[strlen(details)], sizeof(details) - strlen(details), ABOUT_UPDATE_URL_FORMAT, window->updateUrl);
+            (void)FACEOE_Utl_Print_Format(&details[strlen(details)], sizeof(details) - strlen(details), ABOUT_UPDATE_URL_FORMAT, window->updateUrl);
         }
         else
         {
-            (void)snprintf(&details[strlen(details)], sizeof(details) - strlen(details), "%s", ABOUT_NO_UPDATE_URL_LABEL);
+            (void)FACEOE_Utl_Print_Format(&details[strlen(details)], sizeof(details) - strlen(details), "%s", ABOUT_NO_UPDATE_URL_LABEL);
         }
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 32.0f);
         ImGui::TextUnformatted(details);
@@ -3954,7 +3955,7 @@ static void DrawSavePrefabPopup(WindowThreadState_t* window)
             (void)Arinc661_Definition_Copy(window->definitionEditor);
             if (Arinc661_Definition_SavePrefab(window->definitionEditor, window->prefabName, path, sizeof(path)))
             {
-                (void)snprintf(note, sizeof(note), SAVE_PREFAB_NOTE_FORMAT, path);
+                (void)FACEOE_Utl_Print_Format(note, sizeof(note), SAVE_PREFAB_NOTE_FORMAT, path);
                 AppendLog(window, note);
                 ScanFolder(window);
             }
@@ -4017,11 +4018,11 @@ static void DrawStartPage(WindowThreadState_t* window)
     {
         if (window->recentIsDefinition[index])
         {
-            (void)snprintf(label, sizeof(label), DEFINITION_FILE_FORMAT, window->recentNames[index]);
+            (void)FACEOE_Utl_Print_Format(label, sizeof(label), DEFINITION_FILE_FORMAT, window->recentNames[index]);
         }
         else
         {
-            (void)snprintf(label, sizeof(label), CONFIGURATION_FILE_FORMAT, window->recentNames[index]);
+            (void)FACEOE_Utl_Print_Format(label, sizeof(label), CONFIGURATION_FILE_FORMAT, window->recentNames[index]);
         }
         ImGui::PushID((int)index);
         if (ImGui::Selectable(label, false, 0, ImVec2(START_BUTTON_WIDTH * 3.0f, 0.0f)))
@@ -4129,7 +4130,7 @@ static void DrawTimeline(WindowThreadState_t* window)
     name_width = TIMELINE_NAME_WIDTH;
     for (index = 0; Arinc661_Definition_AnimationAt(window->definitionEditor, index, &name, &type, &delay, &duration); ++index)
     {
-        (void)snprintf(label, sizeof(label), "%s (%s)", name, type + 5);
+        (void)FACEOE_Utl_Print_Format(label, sizeof(label), "%s (%s)", name, type + 5);
         name_width = ImMax(name_width, ImGui::CalcTextSize(label).x + ImGui::GetStyle().ItemSpacing.x * 2.0f);
     }
     axis_width = ImMax(50.0f, ImGui::GetContentRegionAvail().x - name_width);
@@ -4258,7 +4259,7 @@ static void DrawCommandPalette(WindowThreadState_t* window)
                 is_match = !!(('\0' == upper_filter[0]) || (NULL != strstr(upper_item, upper_filter)));
                 if (is_match)
                 {
-                    (void)snprintf(label, sizeof(label), "> %s", c_commands[index]);
+                    (void)FACEOE_Utl_Print_Format(label, sizeof(label), "> %s", c_commands[index]);
                     if (ImGui::Selectable(label) || (runs_first && (0 == shown)))
                     {
                         if (0 == strcmp(c_commands[index], NEW_CONFIGURATION_LABEL)) { Arinc661_Configuration_CreateDocument(window->configurationEditor); window->isDefinitionActive = FALSE; }
@@ -4292,7 +4293,7 @@ static void DrawCommandPalette(WindowThreadState_t* window)
                 }
                 if (('\0' != upper_filter[0]) && (NULL != strstr(upper_item, upper_filter)))
                 {
-                    (void)snprintf(label, sizeof(label), "Open %s", window->fileNames[index]);
+                    (void)FACEOE_Utl_Print_Format(label, sizeof(label), "Open %s", window->fileNames[index]);
                     if (ImGui::Selectable(label) || (runs_first && (0 == shown)))
                     {
                         OpenFolderFile(window, window->fileNames[index], window->fileIsDefinition[index]);
@@ -4315,7 +4316,7 @@ static void DrawCommandPalette(WindowThreadState_t* window)
                 }
                 if (NULL != strstr(upper_item, upper_filter))
                 {
-                    (void)snprintf(label, sizeof(label), "Select %s (%s)", definition->widgets[index].name, definition->widgets[index].type);
+                    (void)FACEOE_Utl_Print_Format(label, sizeof(label), "Select %s (%s)", definition->widgets[index].name, definition->widgets[index].type);
                     ImGui::PushID((int)(100000 + index));
                     if (ImGui::Selectable(label) || (runs_first && (0 == shown)))
                     {

@@ -35,10 +35,12 @@ endif()
 target_include_directories(os PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 add_library(faceoe_utl STATIC
+    src/faceoe_utl/faceoe_utl_print.c
     src/faceoe_utl/faceoe_utl_scan.c
     src/faceoe_utl/faceoe_utl_util.c
     src/faceoe_utl/faceoe_utl_xml.c
     include/faceoe_utl/faceoe_utl_defines.h
+    include/faceoe_utl/faceoe_utl_print.h
     include/faceoe_utl/faceoe_utl_scan.h
     include/faceoe_utl/faceoe_utl_util.h
     include/faceoe_utl/faceoe_utl_xml.h)

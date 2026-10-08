@@ -21,6 +21,7 @@
 
 #include "arinc661/arinc661_definition.h"
 #include "faceoe_utl/faceoe_utl_defines.h"
+#include "faceoe_utl/faceoe_utl_print.h"
 #include "faceoe_utl/faceoe_utl_scan.h"
 #include "faceoe_utl/faceoe_utl_xml.h"
 
@@ -30,7 +31,6 @@
 #include <inttypes.h>
 #include <limits.h>
 #include <math.h>
-#include <stdio.h>
 #include <string.h>
 
 /*=================================================================================================
@@ -177,6 +177,287 @@
 #define BINARY_FR_PRECISION       (10)            ///< Most fractional digits tried when formatting a fr() value; one fr(180) LSB is 8.4e-8
 #define BINARY_FLOAT_PRECISION    (60)            ///< Most fractional digits tried when formatting a float; the smallest subnormal needs 45
 
+/* Widget and extension type names shared by several tables (Tables 4.6-7 and 4.6-12). */
+#define TYPE_A661_ACTIVE_AREA                          ("A661_ACTIVE_AREA")
+#define TYPE_A661_BASIC_CONTAINER                      ("A661_BASIC_CONTAINER")
+#define TYPE_A661_BLINKING_CONTAINER                   ("A661_BLINKING_CONTAINER")
+#define TYPE_A661_BOUNDARY_CHECK_EXTENSION             ("A661_BOUNDARY_CHECK_EXTENSION")
+#define TYPE_A661_BUFFER_FORMAT                        ("A661_BUFFER_FORMAT")
+#define TYPE_A661_CHECK_BUTTON                         ("A661_CHECK_BUTTON")
+#define TYPE_A661_CHILD_INDEX_EXTENSION                ("A661_CHILD_INDEX_EXTENSION")
+#define TYPE_A661_COMBO_BOX                            ("A661_COMBO_BOX")
+#define TYPE_A661_COMBO_BOX_EDIT                       ("A661_COMBO_BOX_EDIT")
+#define TYPE_A661_CONNECTOR                            ("A661_CONNECTOR")
+#define TYPE_A661_CURSOR_ENTRY_EVENTS_EXTENSION        ("A661_CURSOR_ENTRY_EVENTS_EXTENSION")
+#define TYPE_A661_CURSOR_EVENTS_EXTENSION              ("A661_CURSOR_EVENTS_EXTENSION")
+#define TYPE_A661_CURSOR_OVER                          ("A661_CURSOR_OVER")
+#define TYPE_A661_CURSOR_POS_OVERLAY                   ("A661_CURSOR_POS_OVERLAY")
+#define TYPE_A661_CURSOR_REF                           ("A661_CURSOR_REF")
+#define TYPE_A661_CURSOR_SHAPE_EXTENSION               ("A661_CURSOR_SHAPE_EXTENSION")
+#define TYPE_A661_DATA_CONNECTOR                       ("A661_DATA_CONNECTOR")
+#define TYPE_A661_DIRECTIONAL_TABBING_EXTENSION        ("A661_DIRECTIONAL_TABBING_EXTENSION")
+#define TYPE_A661_EDIT_BOX_MASKED                      ("A661_EDIT_BOX_MASKED")
+#define TYPE_A661_EDIT_BOX_MULTI_LINE                  ("A661_EDIT_BOX_MULTI_LINE")
+#define TYPE_A661_EDIT_BOX_NUMERIC                     ("A661_EDIT_BOX_NUMERIC")
+#define TYPE_A661_EDIT_BOX_NUMERIC_BCD                 ("A661_EDIT_BOX_NUMERIC_BCD")
+#define TYPE_A661_EDIT_BOX_TEXT                        ("A661_EDIT_BOX_TEXT")
+#define TYPE_A661_EXCLUDED_REGIONS_EXTENSION           ("A661_EXCLUDED_REGIONS_EXTENSION")
+#define TYPE_A661_EXTERNAL_SOURCE                      ("A661_EXTERNAL_SOURCE")
+#define TYPE_A661_FOCUS_STOP_EXTENSION                 ("A661_FOCUS_STOP_EXTENSION")
+#define TYPE_A661_GESTURE_AREA                         ("A661_GESTURE_AREA")
+#define TYPE_A661_GP_ARC_CIRCLE                        ("A661_GP_ARC_CIRCLE")
+#define TYPE_A661_GP_ARC_ELLIPSE                       ("A661_GP_ARC_ELLIPSE")
+#define TYPE_A661_GP_CROWN                             ("A661_GP_CROWN")
+#define TYPE_A661_GP_LINE                              ("A661_GP_LINE")
+#define TYPE_A661_GP_LINE_POLAR                        ("A661_GP_LINE_POLAR")
+#define TYPE_A661_GP_POLYLINE                          ("A661_GP_POLYLINE")
+#define TYPE_A661_GP_RECTANGLE                         ("A661_GP_RECTANGLE")
+#define TYPE_A661_GP_TRIANGLE                          ("A661_GP_TRIANGLE")
+#define TYPE_A661_INITIAL_FOCUS_EXTENSION              ("A661_INITIAL_FOCUS_EXTENSION")
+#define TYPE_A661_INK_AREA                             ("A661_INK_AREA")
+#define TYPE_A661_KEYBOARD_AREA                        ("A661_KEYBOARD_AREA")
+#define TYPE_A661_LABEL                                ("A661_LABEL")
+#define TYPE_A661_LABEL_COMPLEX                        ("A661_LABEL_COMPLEX")
+#define TYPE_A661_LEGEND_ALIGN_EXTENSION               ("A661_LEGEND_ALIGN_EXTENSION")
+#define TYPE_A661_MAPHORZ                              ("A661_MAPHORZ")
+#define TYPE_A661_MAPHORZ_CONTAINER                    ("A661_MAPHORZ_CONTAINER")
+#define TYPE_A661_MAPHORZ_COORD_SYSTEM_EVENT_EXTENSION ("A661_MAPHORZ_COORD_SYSTEM_EVENT_EXTENSION")
+#define TYPE_A661_MAPHORZ_ITEMLIST                     ("A661_MAPHORZ_ITEMLIST")
+#define TYPE_A661_MAPHORZ_PANEL                        ("A661_MAPHORZ_PANEL")
+#define TYPE_A661_MAPHORZ_SOURCE                       ("A661_MAPHORZ_SOURCE")
+#define TYPE_A661_MAPVERT                              ("A661_MAPVERT")
+#define TYPE_A661_MAPVERT_CONTAINER                    ("A661_MAPVERT_CONTAINER")
+#define TYPE_A661_MAPVERT_COORD_SYSTEM_EVENT_EXTENSION ("A661_MAPVERT_COORD_SYSTEM_EVENT_EXTENSION")
+#define TYPE_A661_MAPVERT_ITEMLIST                     ("A661_MAPVERT_ITEMLIST")
+#define TYPE_A661_MAPVERT_PANEL                        ("A661_MAPVERT_PANEL")
+#define TYPE_A661_MAPVERT_SOURCE                       ("A661_MAPVERT_SOURCE")
+#define TYPE_A661_MAP_BOUNDARY                         ("A661_MAP_BOUNDARY")
+#define TYPE_A661_MAP_EXTERNAL_SOURCE                  ("A661_MAP_EXTERNAL_SOURCE")
+#define TYPE_A661_MAP_GRID                             ("A661_MAP_GRID")
+#define TYPE_A661_MASK_CONTAINER                       ("A661_MASK_CONTAINER")
+#define TYPE_A661_MENU_BAR                             ("A661_MENU_BAR")
+#define TYPE_A661_MULTI_SELECTION_EXTENSION            ("A661_MULTI_SELECTION_EXTENSION")
+#define TYPE_A661_MULTI_STATE_BUTTON                   ("A661_MULTI_STATE_BUTTON")
+#define TYPE_A661_MUTUALLY_EXCLUSIVE_CONTAINER         ("A661_MUTUALLY_EXCLUSIVE_CONTAINER")
+#define TYPE_A661_NUMERIC_READOUT                      ("A661_NUMERIC_READOUT")
+#define TYPE_A661_PAGING_CONTAINER                     ("A661_PAGING_CONTAINER")
+#define TYPE_A661_PANEL                                ("A661_PANEL")
+#define TYPE_A661_PICTURE                              ("A661_PICTURE")
+#define TYPE_A661_PICTURE_ANIMATED                     ("A661_PICTURE_ANIMATED")
+#define TYPE_A661_PICTURE_EXTENSION                    ("A661_PICTURE_EXTENSION")
+#define TYPE_A661_PICTURE_PUSH_BUTTON                  ("A661_PICTURE_PUSH_BUTTON")
+#define TYPE_A661_PICTURE_TOGGLE_BUTTON                ("A661_PICTURE_TOGGLE_BUTTON")
+#define TYPE_A661_POP_UP_MENU                          ("A661_POP_UP_MENU")
+#define TYPE_A661_POP_UP_MENU_BUTTON                   ("A661_POP_UP_MENU_BUTTON")
+#define TYPE_A661_POP_UP_PANEL                         ("A661_POP_UP_PANEL")
+#define TYPE_A661_POP_UP_PANEL_BUTTON                  ("A661_POP_UP_PANEL_BUTTON")
+#define TYPE_A661_PUSH_BUTTON                          ("A661_PUSH_BUTTON")
+#define TYPE_A661_RADIO_BOX                            ("A661_RADIO_BOX")
+#define TYPE_A661_REORDER_EXTENSION                    ("A661_REORDER_EXTENSION")
+#define TYPE_A661_ROTATION_CONTAINER                   ("A661_ROTATION_CONTAINER")
+#define TYPE_A661_SCALE_CONTAINER                      ("A661_SCALE_CONTAINER")
+#define TYPE_A661_SCROLL_LIST                          ("A661_SCROLL_LIST")
+#define TYPE_A661_SCROLL_PANEL                         ("A661_SCROLL_PANEL")
+#define TYPE_A661_SCROLL_WHEEL_AREA                    ("A661_SCROLL_WHEEL_AREA")
+#define TYPE_A661_SELECTION_LIST_BUTTON                ("A661_SELECTION_LIST_BUTTON")
+#define TYPE_A661_SHUFFLE_TO_FIT_CONTAINER             ("A661_SHUFFLE_TO_FIT_CONTAINER")
+#define TYPE_A661_SIZE_TO_FIT_CONTAINER                ("A661_SIZE_TO_FIT_CONTAINER")
+#define TYPE_A661_SLIDER                               ("A661_SLIDER")
+#define TYPE_A661_STATIC_PARAM_BUFFER_EXTENSION        ("A661_STATIC_PARAM_BUFFER_EXTENSION")
+#define TYPE_A661_STYLE_SET_EXTENSION                  ("A661_STYLE_SET_EXTENSION")
+#define TYPE_A661_SYMBOL                               ("A661_SYMBOL")
+#define TYPE_A661_SYMBOL_ANIMATED                      ("A661_SYMBOL_ANIMATED")
+#define TYPE_A661_SYMBOL_EXTENSION                     ("A661_SYMBOL_EXTENSION")
+#define TYPE_A661_SYMBOL_PUSH_BUTTON                   ("A661_SYMBOL_PUSH_BUTTON")
+#define TYPE_A661_SYMBOL_TOGGLE_BUTTON                 ("A661_SYMBOL_TOGGLE_BUTTON")
+#define TYPE_A661_TABBED_PANEL                         ("A661_TABBED_PANEL")
+#define TYPE_A661_TABBED_PANEL_GROUP                   ("A661_TABBED_PANEL_GROUP")
+#define TYPE_A661_TICS_ARRAY_EXTENSION                 ("A661_TICS_ARRAY_EXTENSION")
+#define TYPE_A661_TOGGLE_BUTTON                        ("A661_TOGGLE_BUTTON")
+#define TYPE_A661_TOUCH_AREA                           ("A661_TOUCH_AREA")
+#define TYPE_A661_TRANSLATION_CONTAINER                ("A661_TRANSLATION_CONTAINER")
+#define TYPE_A661_TREE                                 ("A661_TREE")
+#define TYPE_A661_WORD_WRAP_EXTENSION                  ("A661_WORD_WRAP_EXTENSION")
+
+/* Creation Structure parameter names shared by several types. */
+#define PARAMETER_ALIGNMENT                  ("Alignment")
+#define PARAMETER_ALLOW_OUTSIDE              ("AllowOutside")
+#define PARAMETER_ALTERNATE_FLAG             ("AlternateFlag")
+#define PARAMETER_ALTERNATE_LABEL_STRING     ("AlternateLabelString")
+#define PARAMETER_ANIMATION_LAW_REF          ("AnimationLawRef")
+#define PARAMETER_ANIMATION_REPETITION       ("AnimationRepetition")
+#define PARAMETER_ANONYMOUS                  ("Anonymous")
+#define PARAMETER_AUTOMATIC_CLOSURE          ("AutomaticClosure")
+#define PARAMETER_AUTOMATIC_FOCUS_MOTION     ("AutomaticFocusMotion")
+#define PARAMETER_CENTER_X                   ("CenterX")
+#define PARAMETER_CENTER_Y                   ("CenterY")
+#define PARAMETER_CLAMPING                   ("Clamping")
+#define PARAMETER_COLOR_INDEX                ("ColorIndex")
+#define PARAMETER_CONNECTOR_REFERENCE        ("ConnectorReference")
+#define PARAMETER_CYCLIC_FLAG                ("CyclicFlag")
+#define PARAMETER_DEFAULT_STYLE_TEXT         ("DefaultStyleText")
+#define PARAMETER_DELAY                      ("Delay")
+#define PARAMETER_DURATION                   ("Duration")
+#define PARAMETER_ENABLE                     ("Enable")
+#define PARAMETER_ENABLE_ARRAY               ("EnableArray")
+#define PARAMETER_END_ANGLE                  ("EndAngle")
+#define PARAMETER_END_SCALED_VALUE           ("EndScaledValue")
+#define PARAMETER_END_VALUE                  ("EndValue")
+#define PARAMETER_ENTRY_LIST                 ("EntryList")
+#define PARAMETER_EVENT_FLAG                 ("EventFlag")
+#define PARAMETER_EVENT_ID_ARRAY             ("EventIdArray")
+#define PARAMETER_FILLED                     ("Filled")
+#define PARAMETER_FILL_INDEX                 ("FillIndex")
+#define PARAMETER_FIRST_VISIBLE_ENTRY        ("FirstVisibleEntry")
+#define PARAMETER_FLAG_REPORT_VISIBLE_ENTRY  ("FlagReportVisibleEntry")
+#define PARAMETER_FORMAT_STRING              ("FormatString")
+#define PARAMETER_HALO                       ("Halo")
+#define PARAMETER_INDEX_OF_FREQUENCY         ("IndexOfFrequency")
+#define PARAMETER_ITEM_SPACING               ("ItemSpacing")
+#define PARAMETER_LABEL_STRING               ("LabelString")
+#define PARAMETER_LABEL_STRING_ARRAY         ("LabelStringArray")
+#define PARAMETER_LEGEND_AREA_SIZE_X         ("LegendAreaSizeX")
+#define PARAMETER_LEGEND_POSITION            ("LegendPosition")
+#define PARAMETER_LEGEND_REMOVED             ("LegendRemoved")
+#define PARAMETER_LEGEND_STRING              ("LegendString")
+#define PARAMETER_MAX_FORMAT_STRING_LENGTH   ("MaxFormatStringLength")
+#define PARAMETER_MAX_ITEM_SIZE              ("MaxItemSize")
+#define PARAMETER_MAX_LEGEND_STRING_LENGTH   ("MaxLegendStringLength")
+#define PARAMETER_MAX_NUMBER_OF_ENTRIES      ("MaxNumberOfEntries")
+#define PARAMETER_MAX_NUMBER_OF_ITEM         ("MaxNumberOfItem")
+#define PARAMETER_MAX_NUMBER_OF_VERTICES     ("MaxNumberOfVertices")
+#define PARAMETER_MAX_STRING_LENGTH          ("MaxStringLength")
+#define PARAMETER_MAX_VALUE                  ("MaxValue")
+#define PARAMETER_MIN_VALUE                  ("MinValue")
+#define PARAMETER_MOTION_ALLOWED             ("MotionAllowed")
+#define PARAMETER_NEXT_FOCUSED_WIDGET        ("NextFocusedWidget")
+#define PARAMETER_NUMBER_OF_ENTRIES          ("NumberOfEntries")
+#define PARAMETER_NUMBER_OF_FIELDS           ("NumberOfFields")
+#define PARAMETER_NUMBER_OF_PICTURES         ("NumberOfPictures")
+#define PARAMETER_NUMBER_OF_SYMBOLS          ("NumberOfSymbols")
+#define PARAMETER_NUMBER_OF_VERTICES         ("NumberOfVertices")
+#define PARAMETER_NUMBER_OF_VISIBLE_CHILDREN ("NumberOfVisibleChildren")
+#define PARAMETER_NUMERIC_KEY_FLAG           ("NumericKeyFlag")
+#define PARAMETER_NUM_EVENTS                 ("NumEvents")
+#define PARAMETER_OPENING_ENTRY              ("OpeningEntry")
+#define PARAMETER_OPENING_MODE               ("OpeningMode")
+#define PARAMETER_PICTURE_ARRAY              ("PictureArray")
+#define PARAMETER_PICTURE_POSITION           ("PicturePosition")
+#define PARAMETER_PICTURE_REFERENCE          ("PictureReference")
+#define PARAMETER_POPUP_POS_X                ("PopupPosX")
+#define PARAMETER_POPUP_POS_Y                ("PopupPosY")
+#define PARAMETER_POPUP_SIZE_X               ("PopupSizeX")
+#define PARAMETER_POPUP_SIZE_Y               ("PopupSizeY")
+#define PARAMETER_POP_UP_IDENT_ARRAY         ("PopUpIdentArray")
+#define PARAMETER_POS_X                      ("PosX")
+#define PARAMETER_POS_X_START                ("PosXStart")
+#define PARAMETER_POS_Y                      ("PosY")
+#define PARAMETER_POS_Y_START                ("PosYStart")
+#define PARAMETER_REPORT_ALL_CHANGES         ("ReportAllChanges")
+#define PARAMETER_REPORT_MODE                ("ReportMode")
+#define PARAMETER_ROTATION_ANGLE             ("RotationAngle")
+#define PARAMETER_SELECTED_ENTRY             ("SelectedEntry")
+#define PARAMETER_SELECTING_AREA_HEIGHT      ("SelectingAreaHeight")
+#define PARAMETER_SELECTING_AREA_WIDTH       ("SelectingAreaWidth")
+#define PARAMETER_SIZE_X                     ("SizeX")
+#define PARAMETER_SIZE_Y                     ("SizeY")
+#define PARAMETER_SOURCE_REFERENCE           ("SourceReference")
+#define PARAMETER_START_ANGLE                ("StartAngle")
+#define PARAMETER_START_CURSOR_POS           ("StartCursorPos")
+#define PARAMETER_START_SCALED_VALUE         ("StartScaledValue")
+#define PARAMETER_START_VALUE                ("StartValue")
+#define PARAMETER_STRING_ARRAY               ("StringArray")
+#define PARAMETER_STYLE_SET                  ("StyleSet")
+#define PARAMETER_SYMBOL_ARRAY               ("SymbolArray")
+#define PARAMETER_SYMBOL_POSITION            ("SymbolPosition")
+#define PARAMETER_SYMBOL_REFERENCE           ("SymbolReference")
+#define PARAMETER_TARGET_PARAMETER_ID        ("TargetParameterID")
+#define PARAMETER_TARGET_WIDGET_ID           ("TargetWidgetID")
+#define PARAMETER_TICS_COARSE                ("TicsCoarse")
+#define PARAMETER_TICS_FINE                  ("TicsFine")
+#define PARAMETER_TOGGLE_STATE               ("ToggleState")
+#define PARAMETER_UA_POSITION_FLAG           ("UAPositionFlag")
+#define PARAMETER_VALUE                      ("Value")
+#define PARAMETER_VERTICAL_SCROLL            ("VerticalScroll")
+#define PARAMETER_VERTICES                   ("Vertices")
+#define PARAMETER_VISIBLE                    ("Visible")
+#define PARAMETER_VISIBLE_CHILD              ("VisibleChild")
+
+/* Constant names shared by several tables (section 4.6). */
+#define CONSTANT_A661_ABSENT                              ("A661_ABSENT")
+#define CONSTANT_A661_ARC                                 ("A661_ARC")
+#define CONSTANT_A661_ASCII_EXTENDED                      ("A661_ASCII_EXTENDED")
+#define CONSTANT_A661_BOTH_CLAMPED                        ("A661_BOTH_CLAMPED")
+#define CONSTANT_A661_BOTTOM                              ("A661_BOTTOM")
+#define CONSTANT_A661_BOTTOM_CENTER                       ("A661_BOTTOM_CENTER")
+#define CONSTANT_A661_BOTTOM_LEFT                         ("A661_BOTTOM_LEFT")
+#define CONSTANT_A661_BOTTOM_RIGHT                        ("A661_BOTTOM_RIGHT")
+#define CONSTANT_A661_BOTTOM_TO_TOP                       ("A661_BOTTOM_TO_TOP")
+#define CONSTANT_A661_CDS_DEPENDENT                       ("A661_CDS_DEPENDENT")
+#define CONSTANT_A661_CENTER                              ("A661_CENTER")
+#define CONSTANT_A661_CLOCKWISE                           ("A661_CLOCKWISE")
+#define CONSTANT_A661_COUNTER_CLOCKWISE                   ("A661_COUNTER_CLOCKWISE")
+#define CONSTANT_A661_DONT_RUN                            ("A661_DONT_RUN")
+#define CONSTANT_A661_EDB_ALL_CHANGE                      ("A661_EDB_ALL_CHANGE")
+#define CONSTANT_A661_EDB_CHANGE_CONFIRMED                ("A661_EDB_CHANGE_CONFIRMED")
+#define CONSTANT_A661_EDB_OPEN_CLOSE                      ("A661_EDB_OPEN_CLOSE")
+#define CONSTANT_A661_EVENT_NONE                          ("A661_EVENT_NONE")
+#define CONSTANT_A661_FALSE                               ("A661_FALSE")
+#define CONSTANT_A661_GBK                                 ("A661_GBK")
+#define CONSTANT_A661_HORZ_LINE                           ("A661_HORZ_LINE")
+#define CONSTANT_A661_LEFT                                ("A661_LEFT")
+#define CONSTANT_A661_LEFT_TO_RIGHT                       ("A661_LEFT_TO_RIGHT")
+#define CONSTANT_A661_LOOP_FORWARD                        ("A661_LOOP_FORWARD")
+#define CONSTANT_A661_LOOP_FORWARD_AND_BACKWARD_AND_BLANK ("A661_LOOP_FORWARD_AND_BACKWARD_AND_BLANK")
+#define CONSTANT_A661_LOOP_FORWARD_AND_BLANK              ("A661_LOOP_FORWARD_AND_BLANK")
+#define CONSTANT_A661_LOOP_FORWARD_AND_RESET              ("A661_LOOP_FORWARD_AND_RESET")
+#define CONSTANT_A661_MDF_ABSOLUTE                        ("A661_MDF_ABSOLUTE")
+#define CONSTANT_A661_MDF_BRG_DIST_ACHDG                  ("A661_MDF_BRG_DIST_ACHDG")
+#define CONSTANT_A661_MDF_DIST_DIST                       ("A661_MDF_DIST_DIST")
+#define CONSTANT_A661_MDF_DIST_DIST_FIX                   ("A661_MDF_DIST_DIST_FIX")
+#define CONSTANT_A661_MDF_LAT_LONG                        ("A661_MDF_LAT_LONG")
+#define CONSTANT_A661_MDF_LEGACY                          ("A661_MDF_LEGACY")
+#define CONSTANT_A661_MDF_RELATIVE                        ("A661_MDF_RELATIVE")
+#define CONSTANT_A661_MDF_X_DIST                          ("A661_MDF_X_DIST")
+#define CONSTANT_A661_MDF_Y_ALT                           ("A661_MDF_Y_ALT")
+#define CONSTANT_A661_NOT_CLAMPED                         ("A661_NOT_CLAMPED")
+#define CONSTANT_A661_NO_SHUFFLE                          ("A661_NO_SHUFFLE")
+#define CONSTANT_A661_OPEN_CENTERED                       ("A661_OPEN_CENTERED")
+#define CONSTANT_A661_OPEN_DOWN                           ("A661_OPEN_DOWN")
+#define CONSTANT_A661_OPEN_UP                             ("A661_OPEN_UP")
+#define CONSTANT_A661_OUT_OF_BOUNDS                       ("A661_OUT_OF_BOUNDS")
+#define CONSTANT_A661_REPORT_ALL                          ("A661_REPORT_ALL")
+#define CONSTANT_A661_REPORT_ON_CDS                       ("A661_REPORT_ON_CDS")
+#define CONSTANT_A661_REPORT_ON_TRANSITION                ("A661_REPORT_ON_TRANSITION")
+#define CONSTANT_A661_RIGHT                               ("A661_RIGHT")
+#define CONSTANT_A661_RIGHT_TO_LEFT                       ("A661_RIGHT_TO_LEFT")
+#define CONSTANT_A661_RUN                                 ("A661_RUN")
+#define CONSTANT_A661_RUN_ONCE                            ("A661_RUN_ONCE")
+#define CONSTANT_A661_SAME_LEVEL                          ("A661_SAME_LEVEL")
+#define CONSTANT_A661_SELECTED                            ("A661_SELECTED")
+#define CONSTANT_A661_SELECTOR                            ("A661_SELECTOR")
+#define CONSTANT_A661_SHUFFLE_DOWN                        ("A661_SHUFFLE_DOWN")
+#define CONSTANT_A661_SHUFFLE_LEFT                        ("A661_SHUFFLE_LEFT")
+#define CONSTANT_A661_SHUFFLE_RIGHT                       ("A661_SHUFFLE_RIGHT")
+#define CONSTANT_A661_SHUFFLE_UP                          ("A661_SHUFFLE_UP")
+#define CONSTANT_A661_TOP                                 ("A661_TOP")
+#define CONSTANT_A661_TOP_CENTER                          ("A661_TOP_CENTER")
+#define CONSTANT_A661_TOP_LEFT                            ("A661_TOP_LEFT")
+#define CONSTANT_A661_TOP_RIGHT                           ("A661_TOP_RIGHT")
+#define CONSTANT_A661_TOP_TO_BOTTOM                       ("A661_TOP_TO_BOTTOM")
+#define CONSTANT_A661_TRUE                                ("A661_TRUE")
+#define CONSTANT_A661_TRUE_WITH_VALIDATION                ("A661_TRUE_WITH_VALIDATION")
+#define CONSTANT_A661_UNSELECTED                          ("A661_UNSELECTED")
+#define CONSTANT_A661_UTF8                                ("A661_UTF8")
+#define CONSTANT_A661_VALIDATION                          ("A661_VALIDATION")
+#define CONSTANT_A661_VALIDATION_AND_WHEEL                ("A661_VALIDATION_AND_WHEEL")
+#define CONSTANT_A661_VERT_LINE                           ("A661_VERT_LINE")
+#define CONSTANT_A661_WHEEL                               ("A661_WHEEL")
+#define CONSTANT_A661_WRAP_BOTH                           ("A661_WRAP_BOTH")
+#define CONSTANT_A661_WRAP_FIRST_TO_LAST                  ("A661_WRAP_FIRST_TO_LAST")
+#define CONSTANT_A661_WRAP_LAST_TO_FIRST                  ("A661_WRAP_LAST_TO_FIRST")
+#define CONSTANT_A661_WRAP_NONE                           ("A661_WRAP_NONE")
+
 /*=================================================================================================
 ** 3.2 Types
 **===============================================================================================*/
@@ -289,9 +570,9 @@ typedef struct ExtensionTargets_s
  */
 static const CharsetEncoding_t c_charsetEncodings[] =
 {
-    {"A661_ASCII_EXTENDED", 1U},
-    {"A661_UTF8",           2U},
-    {"A661_GBK",            3U}
+    {CONSTANT_A661_ASCII_EXTENDED, 1U},
+    {CONSTANT_A661_UTF8,           2U},
+    {CONSTANT_A661_GBK,            3U}
 };
 
 /*************************************************************************************************/
@@ -308,46 +589,301 @@ static const uint32_t c_pixelFormatBytes[] = {4U, 2U, 1U};
 
 /*************************************************************************************************/
 /**
- * \brief Constant names each Creation Structure table lists for a parameter, shared where equal.
+ * \brief Constant names an enumerated parameter accepts, as its Creation Structure table lists them.
+ *
+ * \par Details:
+ *  For example, Enable (Table 3.3.1-2) accepts A661_FALSE, A661_TRUE, and
+ *  A661_TRUE_WITH_VALIDATION. A field points at its list through values and
+ *  valueCount; fields whose lists match in content and order share one array.
+ *  The library only hands the list out through Arinc661_Definition_GetParameter,
+ *  for the editor's drop-down and default value. The numbers behind the names
+ *  come from c_binaryConstants.
  */
-static const char_t* const c_enableValues[] = {"A661_FALSE", "A661_TRUE", "A661_TRUE_WITH_VALIDATION"};
-static const char_t* const c_booleanValues[] = {"A661_FALSE", "A661_TRUE"};
-static const char_t* const c_rotationDirectionValues[] = {"A661_CLOCKWISE", "A661_COUNTER_CLOCKWISE"};
-static const char_t* const c_checkButtonStateValues[] = {"A661_SELECTED", "A661_UNSELECTED"};
-static const char_t* const c_buttonAlignmentValues[] = {"A661_LEFT", "A661_CENTER", "A661_RIGHT"};
-static const char_t* const c_checkButtonPicturePositionValues[] = {"A661_LEFT", "A661_RIGHT"};
-static const char_t* const c_comboBoxOpeningModeValues[] = {"A661_OPEN_UP", "A661_OPEN_CENTERED", "A661_OPEN_DOWN"};
-static const char_t* const c_editBoxReportAllChangesValues[] = {"A661_EDB_CHANGE_CONFIRMED", "A661_EDB_ALL_CHANGE", "A661_EDB_OPEN_CLOSE"};
-static const char_t* const c_editBoxAlignmentValues[] = {"A661_CENTER", "A661_LEFT", "A661_RIGHT"};
-static const char_t* const c_positionReportModeValues[] = {"A661_REPORT_ON_TRANSITION", "A661_REPORT_ALL"};
-static const char_t* const c_clampingValues[] = {"A661_NOT_CLAMPED", "A661_BOTH_CLAMPED"};
-static const char_t* const c_scrollBarPositionValues[] = {"A661_TOP", "A661_BOTTOM", "A661_LEFT", "A661_RIGHT", "A661_ABSENT"};
-static const char_t* const c_legendPositionValues[] = {"A661_LEFT", "A661_RIGHT", "A661_TOP", "A661_BOTTOM"};
-static const char_t* const c_editBoxNumericReportAllChangesValues[] = {"A661_EDB_CHANGE_CONFIRMED", "A661_EDB_OPEN_CLOSE", "A661_EDB_ALL_CHANGE"};
-static const char_t* const c_haloValues[] = {"A661_FALSE", "A661_TRUE", "A661_SAME_LEVEL"};
-static const char_t* const c_labelAlignmentValues[] = {"A661_BOTTOM_CENTER", "A661_BOTTOM_LEFT", "A661_BOTTOM_RIGHT", "A661_CENTER", "A661_LEFT", "A661_RIGHT", "A661_TOP_CENTER", "A661_TOP_LEFT", "A661_TOP_RIGHT"};
-static const char_t* const c_mapDataFormatValues[] = {"A661_MDF_BRG_DIST_ACHDG", "A661_MDF_DIST_DIST", "A661_MDF_LAT_LONG", "A661_MDF_DIST_DIST_FIX", "A661_MDF_LEGACY"};
-static const char_t* const c_eventFlagValues[] = {"A661_EVENT_NONE", "A661_VALIDATION", "A661_VALIDATION_AND_WHEEL", "A661_WHEEL"};
-static const char_t* const c_mapDataFormatXValues[] = {"A661_MDF_ABSOLUTE", "A661_MDF_RELATIVE", "A661_MDF_X_DIST"};
-static const char_t* const c_mapDataFormatYValues[] = {"A661_MDF_ABSOLUTE", "A661_MDF_RELATIVE", "A661_MDF_Y_ALT"};
-static const char_t* const c_mapBoundaryAlgorithmValues[] = {"A661_ARC", "A661_HORZ_LINE", "A661_VERT_LINE"};
-static const char_t* const c_pushButtonAlignmentValues[] = {"A661_LEFT", "A661_RIGHT", "A661_CENTER"};
-static const char_t* const c_wrappingTypeValues[] = {"A661_WRAP_NONE", "A661_WRAP_BOTH", "A661_WRAP_FIRST_TO_LAST", "A661_WRAP_LAST_TO_FIRST"};
-static const char_t* const c_pagingControlPositionValues[] = {"A661_ABSENT", "A661_BOTTOM_CENTER", "A661_BOTTOM_LEFT", "A661_BOTTOM_RIGHT", "A661_CENTER", "A661_LEFT", "A661_RIGHT", "A661_TOP_CENTER", "A661_TOP_LEFT", "A661_TOP_RIGHT"};
-static const char_t* const c_picturePositionValues[] = {"A661_LEFT", "A661_CENTER", "A661_RIGHT", "A661_TOP", "A661_BOTTOM"};
-static const char_t* const c_toggleStateValues[] = {"A661_UNSELECTED", "A661_SELECTED"};
-static const char_t* const c_popUpMenuOpeningModeValues[] = {"A661_OPEN_UP", "A661_OPEN_DOWN", "A661_CDS_DEPENDENT"};
-static const char_t* const c_popUpButtonPicturePositionValues[] = {"A661_CENTER", "A661_LEFT", "A661_RIGHT", "A661_TOP", "A661_BOTTOM"};
-static const char_t* const c_popUpMenuButtonOpeningModeValues[] = {"A661_OPEN_UP", "A661_OPEN_DOWN"};
-static const char_t* const c_shuffleToFitModeValues[] = {"A661_SHUFFLE_UP", "A661_SHUFFLE_DOWN", "A661_SHUFFLE_LEFT", "A661_SHUFFLE_RIGHT", "A661_NO_SHUFFLE"};
-static const char_t* const c_trueFalseValues[] = {"A661_TRUE", "A661_FALSE"};
-static const char_t* const c_sliderOrientationValues[] = {"A661_BOTTOM_TO_TOP", "A661_TOP_TO_BOTTOM", "A661_LEFT_TO_RIGHT", "A661_RIGHT_TO_LEFT"};
-static const char_t* const c_sliderAlignmentValues[] = {"A661_LEFT", "A661_RIGHT", "A661_CENTER", "A661_TOP", "A661_BOTTOM"};
-static const char_t* const c_loopTypeValues[] = {"A661_LOOP_FORWARD", "A661_LOOP_FORWARD_AND_RESET", "A661_LOOP_FORWARD_AND_BLANK", "A661_LOOP_FORWARD_AND_BACKWARD_AND_BLANK"};
-static const char_t* const c_animationTypeValues[] = {"A661_DONT_RUN", "A661_RUN", "A661_RUN_ONCE"};
-static const char_t* const c_tabPositionValues[] = {"A661_ABSENT", "A661_TOP", "A661_BOTTOM", "A661_LEFT", "A661_RIGHT"};
-static const char_t* const c_boundaryCheckModeValues[] = {"A661_OUT_OF_BOUNDS"};
-static const char_t* const c_coordSystemReportModeValues[] = {"A661_REPORT_ON_CDS", "A661_REPORT_ALL"};
+static const char_t* const c_enableValues[] =
+{
+    CONSTANT_A661_FALSE,
+    CONSTANT_A661_TRUE,
+    CONSTANT_A661_TRUE_WITH_VALIDATION
+};
+
+static const char_t* const c_booleanValues[] =
+{
+    CONSTANT_A661_FALSE,
+    CONSTANT_A661_TRUE
+};
+
+static const char_t* const c_rotationDirectionValues[] =
+{
+    CONSTANT_A661_CLOCKWISE,
+    CONSTANT_A661_COUNTER_CLOCKWISE
+};
+
+static const char_t* const c_checkButtonStateValues[] =
+{
+    CONSTANT_A661_SELECTED,
+    CONSTANT_A661_UNSELECTED
+};
+
+static const char_t* const c_buttonAlignmentValues[] =
+{
+    CONSTANT_A661_LEFT,
+    CONSTANT_A661_CENTER,
+    CONSTANT_A661_RIGHT
+};
+
+static const char_t* const c_checkButtonPicturePositionValues[] =
+{
+    CONSTANT_A661_LEFT,
+    CONSTANT_A661_RIGHT
+};
+
+static const char_t* const c_comboBoxOpeningModeValues[] =
+{
+    CONSTANT_A661_OPEN_UP,
+    CONSTANT_A661_OPEN_CENTERED,
+    CONSTANT_A661_OPEN_DOWN
+};
+
+static const char_t* const c_editBoxReportAllChangesValues[] =
+{
+    CONSTANT_A661_EDB_CHANGE_CONFIRMED,
+    CONSTANT_A661_EDB_ALL_CHANGE,
+    CONSTANT_A661_EDB_OPEN_CLOSE
+};
+
+static const char_t* const c_editBoxAlignmentValues[] =
+{
+    CONSTANT_A661_CENTER,
+    CONSTANT_A661_LEFT,
+    CONSTANT_A661_RIGHT
+};
+
+static const char_t* const c_positionReportModeValues[] =
+{
+    CONSTANT_A661_REPORT_ON_TRANSITION,
+    CONSTANT_A661_REPORT_ALL
+};
+
+static const char_t* const c_clampingValues[] =
+{
+    CONSTANT_A661_NOT_CLAMPED,
+    CONSTANT_A661_BOTH_CLAMPED
+};
+
+static const char_t* const c_scrollBarPositionValues[] =
+{
+    CONSTANT_A661_TOP,
+    CONSTANT_A661_BOTTOM,
+    CONSTANT_A661_LEFT,
+    CONSTANT_A661_RIGHT,
+    CONSTANT_A661_ABSENT
+};
+
+static const char_t* const c_legendPositionValues[] =
+{
+    CONSTANT_A661_LEFT,
+    CONSTANT_A661_RIGHT,
+    CONSTANT_A661_TOP,
+    CONSTANT_A661_BOTTOM
+};
+
+static const char_t* const c_editBoxNumericReportAllChangesValues[] =
+{
+    CONSTANT_A661_EDB_CHANGE_CONFIRMED,
+    CONSTANT_A661_EDB_OPEN_CLOSE,
+    CONSTANT_A661_EDB_ALL_CHANGE
+};
+
+static const char_t* const c_haloValues[] =
+{
+    CONSTANT_A661_FALSE,
+    CONSTANT_A661_TRUE,
+    CONSTANT_A661_SAME_LEVEL
+};
+
+static const char_t* const c_labelAlignmentValues[] =
+{
+    CONSTANT_A661_BOTTOM_CENTER,
+    CONSTANT_A661_BOTTOM_LEFT,
+    CONSTANT_A661_BOTTOM_RIGHT,
+    CONSTANT_A661_CENTER,
+    CONSTANT_A661_LEFT,
+    CONSTANT_A661_RIGHT,
+    CONSTANT_A661_TOP_CENTER,
+    CONSTANT_A661_TOP_LEFT,
+    CONSTANT_A661_TOP_RIGHT
+};
+
+static const char_t* const c_mapDataFormatValues[] =
+{
+    CONSTANT_A661_MDF_BRG_DIST_ACHDG,
+    CONSTANT_A661_MDF_DIST_DIST,
+    CONSTANT_A661_MDF_LAT_LONG,
+    CONSTANT_A661_MDF_DIST_DIST_FIX,
+    CONSTANT_A661_MDF_LEGACY
+};
+
+static const char_t* const c_eventFlagValues[] =
+{
+    CONSTANT_A661_EVENT_NONE,
+    CONSTANT_A661_VALIDATION,
+    CONSTANT_A661_VALIDATION_AND_WHEEL,
+    CONSTANT_A661_WHEEL
+};
+
+static const char_t* const c_mapDataFormatXValues[] =
+{
+    CONSTANT_A661_MDF_ABSOLUTE,
+    CONSTANT_A661_MDF_RELATIVE,
+    CONSTANT_A661_MDF_X_DIST
+};
+
+static const char_t* const c_mapDataFormatYValues[] =
+{
+    CONSTANT_A661_MDF_ABSOLUTE,
+    CONSTANT_A661_MDF_RELATIVE,
+    CONSTANT_A661_MDF_Y_ALT
+};
+
+static const char_t* const c_mapBoundaryAlgorithmValues[] =
+{
+    CONSTANT_A661_ARC,
+    CONSTANT_A661_HORZ_LINE,
+    CONSTANT_A661_VERT_LINE
+};
+
+static const char_t* const c_pushButtonAlignmentValues[] =
+{
+    CONSTANT_A661_LEFT,
+    CONSTANT_A661_RIGHT,
+    CONSTANT_A661_CENTER
+};
+
+static const char_t* const c_wrappingTypeValues[] =
+{
+    CONSTANT_A661_WRAP_NONE,
+    CONSTANT_A661_WRAP_BOTH,
+    CONSTANT_A661_WRAP_FIRST_TO_LAST,
+    CONSTANT_A661_WRAP_LAST_TO_FIRST
+};
+
+static const char_t* const c_pagingControlPositionValues[] =
+{
+    CONSTANT_A661_ABSENT,
+    CONSTANT_A661_BOTTOM_CENTER,
+    CONSTANT_A661_BOTTOM_LEFT,
+    CONSTANT_A661_BOTTOM_RIGHT,
+    CONSTANT_A661_CENTER,
+    CONSTANT_A661_LEFT,
+    CONSTANT_A661_RIGHT,
+    CONSTANT_A661_TOP_CENTER,
+    CONSTANT_A661_TOP_LEFT,
+    CONSTANT_A661_TOP_RIGHT
+};
+
+static const char_t* const c_picturePositionValues[] =
+{
+    CONSTANT_A661_LEFT,
+    CONSTANT_A661_CENTER,
+    CONSTANT_A661_RIGHT,
+    CONSTANT_A661_TOP,
+    CONSTANT_A661_BOTTOM
+};
+
+static const char_t* const c_toggleStateValues[] =
+{
+    CONSTANT_A661_UNSELECTED,
+    CONSTANT_A661_SELECTED
+};
+
+static const char_t* const c_popUpMenuOpeningModeValues[] =
+{
+    CONSTANT_A661_OPEN_UP,
+    CONSTANT_A661_OPEN_DOWN,
+    CONSTANT_A661_CDS_DEPENDENT
+};
+
+static const char_t* const c_popUpButtonPicturePositionValues[] =
+{
+    CONSTANT_A661_CENTER,
+    CONSTANT_A661_LEFT,
+    CONSTANT_A661_RIGHT,
+    CONSTANT_A661_TOP,
+    CONSTANT_A661_BOTTOM
+};
+
+static const char_t* const c_popUpMenuButtonOpeningModeValues[] =
+{
+    CONSTANT_A661_OPEN_UP,
+    CONSTANT_A661_OPEN_DOWN
+};
+
+static const char_t* const c_shuffleToFitModeValues[] =
+{
+    CONSTANT_A661_SHUFFLE_UP,
+    CONSTANT_A661_SHUFFLE_DOWN,
+    CONSTANT_A661_SHUFFLE_LEFT,
+    CONSTANT_A661_SHUFFLE_RIGHT,
+    CONSTANT_A661_NO_SHUFFLE
+};
+
+static const char_t* const c_trueFalseValues[] =
+{
+    CONSTANT_A661_TRUE,
+    CONSTANT_A661_FALSE
+};
+
+static const char_t* const c_sliderOrientationValues[] =
+{
+    CONSTANT_A661_BOTTOM_TO_TOP,
+    CONSTANT_A661_TOP_TO_BOTTOM,
+    CONSTANT_A661_LEFT_TO_RIGHT,
+    CONSTANT_A661_RIGHT_TO_LEFT
+};
+
+static const char_t* const c_sliderAlignmentValues[] =
+{
+    CONSTANT_A661_LEFT,
+    CONSTANT_A661_RIGHT,
+    CONSTANT_A661_CENTER,
+    CONSTANT_A661_TOP,
+    CONSTANT_A661_BOTTOM
+};
+
+static const char_t* const c_loopTypeValues[] =
+{
+    CONSTANT_A661_LOOP_FORWARD,
+    CONSTANT_A661_LOOP_FORWARD_AND_RESET,
+    CONSTANT_A661_LOOP_FORWARD_AND_BLANK,
+    CONSTANT_A661_LOOP_FORWARD_AND_BACKWARD_AND_BLANK
+};
+
+static const char_t* const c_animationTypeValues[] =
+{
+    CONSTANT_A661_DONT_RUN,
+    CONSTANT_A661_RUN,
+    CONSTANT_A661_RUN_ONCE
+};
+
+static const char_t* const c_tabPositionValues[] =
+{
+    CONSTANT_A661_ABSENT,
+    CONSTANT_A661_TOP,
+    CONSTANT_A661_BOTTOM,
+    CONSTANT_A661_LEFT,
+    CONSTANT_A661_RIGHT
+};
+
+static const char_t* const c_boundaryCheckModeValues[] =
+{
+    CONSTANT_A661_OUT_OF_BOUNDS
+};
+
+static const char_t* const c_coordSystemReportModeValues[] =
+{
+    CONSTANT_A661_REPORT_ON_CDS,
+    CONSTANT_A661_REPORT_ALL
+};
 
 /*************************************************************************************************/
 /**
@@ -368,16 +904,16 @@ static const char_t* const c_coordSystemReportModeValues[] = {"A661_REPORT_ON_CD
  */
 static const BinaryField_t c_activeAreaFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                           BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -386,10 +922,10 @@ static const BinaryField_t c_activeAreaFields[] =
  */
 static const BinaryField_t c_animationGroupFields[] =
 {
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Type"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("Delay"),                         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("AnimationRepetition"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ANONYMOUS,            BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Type"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_DELAY,                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ANIMATION_REPETITION, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -398,18 +934,18 @@ static const BinaryField_t c_animationGroupFields[] =
  */
 static const BinaryField_t c_animationOnparamFields[] =
 {
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("TargetWidgetID"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("TargetParamID"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
-    {("FromValue"),                     BINARY_FIELD_BYTES,        4U,  0U, 0U, NULL, 0U},
-    {("ToValue"),                       BINARY_FIELD_BYTES,        4U,  0U, 0U, NULL, 0U},
-    {("AnimationLawRef"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("Duration"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("Delay"),                         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("AnimationRepetition"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ANONYMOUS,            BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                         BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_TARGET_WIDGET_ID,     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("TargetParamID"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {(NULL),                         BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {("FromValue"),                  BINARY_FIELD_BYTES,        4U,  0U, 0U, NULL, 0U},
+    {("ToValue"),                    BINARY_FIELD_BYTES,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ANIMATION_LAW_REF,    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_DURATION,             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_DELAY,                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ANIMATION_REPETITION, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -418,21 +954,21 @@ static const BinaryField_t c_animationOnparamFields[] =
  */
 static const BinaryField_t c_animationRotationFields[] =
 {
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("TargetWidgetID"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("CenterX"),                       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("CenterY"),                       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("FromAngle"),                     BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
-    {("ToAngle"),                       BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
-    {("AnimationLawRef"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("Duration"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("Delay"),                         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("Direction"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_rotationDirectionValues)},
-    {("NumberOfTurns"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("AnimationRepetition"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ANONYMOUS,            BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                         BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_TARGET_WIDGET_ID,     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_CENTER_X,             BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_CENTER_Y,             BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("FromAngle"),                  BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
+    {("ToAngle"),                    BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ANIMATION_LAW_REF,    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_DURATION,             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_DELAY,                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("Direction"),                  BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_rotationDirectionValues)},
+    {("NumberOfTurns"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ANIMATION_REPETITION, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {(NULL),                         BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -441,18 +977,18 @@ static const BinaryField_t c_animationRotationFields[] =
  */
 static const BinaryField_t c_animationScaleFields[] =
 {
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("TargetWidgetID"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("FromScaleX"),                    BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
-    {("FromScaleY"),                    BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
-    {("ToScaleX"),                      BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
-    {("ToScaleY"),                      BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
-    {("AnimationLawRef"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("Duration"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("Delay"),                         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("AnimationRepetition"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ANONYMOUS,            BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                         BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_TARGET_WIDGET_ID,     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("FromScaleX"),                 BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("FromScaleY"),                 BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("ToScaleX"),                   BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("ToScaleY"),                   BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ANIMATION_LAW_REF,    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_DURATION,             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_DELAY,                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ANIMATION_REPETITION, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -461,18 +997,18 @@ static const BinaryField_t c_animationScaleFields[] =
  */
 static const BinaryField_t c_animationTranslationFields[] =
 {
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("TargetWidgetID"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("FromValueX"),                    BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("FromValueY"),                    BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("ToValueX"),                      BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("ToValueY"),                      BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("AnimationLawRef"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("Duration"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("Delay"),                         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("AnimationRepetition"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ANONYMOUS,            BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                         BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_TARGET_WIDGET_ID,     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("FromValueX"),                 BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("FromValueY"),                 BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("ToValueX"),                   BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("ToValueY"),                   BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ANIMATION_LAW_REF,    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_DURATION,             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_DELAY,                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ANIMATION_REPETITION, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -481,10 +1017,10 @@ static const BinaryField_t c_animationTranslationFields[] =
  */
 static const BinaryField_t c_basicContainerFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,  BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,   BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,   BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -493,8 +1029,8 @@ static const BinaryField_t c_basicContainerFields[] =
  */
 static const BinaryField_t c_blinkingContainerFields[] =
 {
-    {("BlinkingType"),                  BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)}
+    {("BlinkingType"),  BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_VISIBLE, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)}
 };
 
 /*************************************************************************************************/
@@ -503,9 +1039,9 @@ static const BinaryField_t c_blinkingContainerFields[] =
  */
 static const BinaryField_t c_broadcastReceiverFields[] =
 {
-    {("NumberOfFields"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("ParameterIdent"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("WidgetStructure"),               BINARY_FIELD_USHORT,       2U,  0U, 1U, NULL, 0U}
+    {PARAMETER_NUMBER_OF_FIELDS, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("ParameterIdent"),         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("WidgetStructure"),        BINARY_FIELD_USHORT,       2U,  0U, 1U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -514,8 +1050,8 @@ static const BinaryField_t c_broadcastReceiverFields[] =
  */
 static const BinaryField_t c_bufferFormatFields[] =
 {
-    {("NumberOfFields"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("BufferStructure"),               BINARY_FIELD_USHORT,       2U,  0U, 2U, NULL, 0U}
+    {PARAMETER_NUMBER_OF_FIELDS, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("BufferStructure"),        BINARY_FIELD_USHORT,       2U,  0U, 2U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -524,21 +1060,21 @@ static const BinaryField_t c_bufferFormatFields[] =
  */
 static const BinaryField_t c_checkButtonFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("CheckButtonState"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_checkButtonStateValues)},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_buttonAlignmentValues)},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PicturePosition"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_checkButtonPicturePositionValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("CheckButtonState"),             BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_checkButtonStateValues)},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_buttonAlignmentValues)},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_PICTURE_POSITION,       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_checkButtonPicturePositionValues)},
+    {(NULL),                           BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -547,26 +1083,26 @@ static const BinaryField_t c_checkButtonFields[] =
  */
 static const BinaryField_t c_comboBoxFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SelectingAreaWidth"),            BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SelectingAreaHeight"),           BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MaxNumberOfEntries"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NumberOfEntries"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("SelectedEntry"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("OpeningEntry"),                  BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_buttonAlignmentValues)},
-    {("OpeningMode"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_comboBoxOpeningModeValues)},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U},
-    {("EntryList"),                     BINARY_FIELD_STRING,       0U, 11U, 1U, NULL, 0U}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SELECTING_AREA_WIDTH,   BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SELECTING_AREA_HEIGHT,  BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_NUMBER_OF_ENTRIES,  BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NUMBER_OF_ENTRIES,      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SELECTED_ENTRY,         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_OPENING_ENTRY,          BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_buttonAlignmentValues)},
+    {PARAMETER_OPENING_MODE,           BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_comboBoxOpeningModeValues)},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                           BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ENTRY_LIST,             BINARY_FIELD_STRING,       0U, 11U, 1U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -575,27 +1111,27 @@ static const BinaryField_t c_comboBoxFields[] =
  */
 static const BinaryField_t c_comboBoxEditFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SelectingAreaWidth"),            BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SelectingAreaHeight"),           BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MaxNumberOfEntries"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NumberOfEntries"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("SelectedEntry"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("OpeningEntry"),                  BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("OpeningMode"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_comboBoxOpeningModeValues)},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("StartCursorPos"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("ReportAllChanges"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxReportAllChangesValues)},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxAlignmentValues)},
-    {("EntryList"),                     BINARY_FIELD_STRING,       0U, 11U, 1U, NULL, 0U}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SELECTING_AREA_WIDTH,   BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SELECTING_AREA_HEIGHT,  BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_NUMBER_OF_ENTRIES,  BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NUMBER_OF_ENTRIES,      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SELECTED_ENTRY,         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_OPENING_ENTRY,          BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_OPENING_MODE,           BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_comboBoxOpeningModeValues)},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_START_CURSOR_POS,       BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_REPORT_ALL_CHANGES,     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxReportAllChangesValues)},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxAlignmentValues)},
+    {PARAMETER_ENTRY_LIST,             BINARY_FIELD_STRING,       0U, 11U, 1U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -604,10 +1140,10 @@ static const BinaryField_t c_comboBoxEditFields[] =
  */
 static const BinaryField_t c_connectorFields[] =
 {
-    {("ConnectorReference"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
+    {PARAMETER_CONNECTOR_REFERENCE, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_VISIBLE,             BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_ENABLE,              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {(NULL),                        BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -616,16 +1152,16 @@ static const BinaryField_t c_connectorFields[] =
  */
 static const BinaryField_t c_cursorOverFields[] =
 {
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
-    {("PositionReportMode"),            BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_positionReportModeValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U}
+    {PARAMETER_VISIBLE,      BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_ENABLE,       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_POS_X,        BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,        BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,       BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,       BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {(NULL),                 BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {("PositionReportMode"), BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_positionReportModeValues)},
+    {(NULL),                 BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -634,12 +1170,12 @@ static const BinaryField_t c_cursorOverFields[] =
  */
 static const BinaryField_t c_cursorPosOverlayFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {(NULL),           BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_X,  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X, BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y, BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -648,9 +1184,9 @@ static const BinaryField_t c_cursorPosOverlayFields[] =
  */
 static const BinaryField_t c_cursorRefFields[] =
 {
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U}
+    {(NULL),          BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_X, BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y, BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -659,11 +1195,11 @@ static const BinaryField_t c_cursorRefFields[] =
  */
 static const BinaryField_t c_dataConnectorFields[] =
 {
-    {("ConnectorReference"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("DataLength"),                    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("Data"),                          BINARY_FIELD_ULONG,        4U,  3U, 1U, NULL, 0U}
+    {PARAMETER_CONNECTOR_REFERENCE, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_VISIBLE,             BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_ENABLE,              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("DataLength"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("Data"),                      BINARY_FIELD_ULONG,        4U,  3U, 1U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -672,14 +1208,14 @@ static const BinaryField_t c_dataConnectorFields[] =
  */
 static const BinaryField_t c_dataScalingFr180Fields[] =
 {
-    {("TargetWidgetID"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("TargetParameterID"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("Clamping"),                      BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_clampingValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("StartValue"),                    BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
-    {("EndValue"),                      BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
-    {("StartScaledValue"),              BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
-    {("EndScaledValue"),                BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U}
+    {PARAMETER_TARGET_WIDGET_ID,    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_TARGET_PARAMETER_ID, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_CLAMPING,            BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_clampingValues)},
+    {(NULL),                        BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_START_VALUE,         BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_END_VALUE,           BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_START_SCALED_VALUE,  BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_END_SCALED_VALUE,    BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -688,14 +1224,14 @@ static const BinaryField_t c_dataScalingFr180Fields[] =
  */
 static const BinaryField_t c_dataScalingLongFields[] =
 {
-    {("TargetWidgetID"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("TargetParameterID"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("Clamping"),                      BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_clampingValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("StartValue"),                    BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
-    {("EndValue"),                      BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
-    {("StartScaledValue"),              BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("EndScaledValue"),                BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U}
+    {PARAMETER_TARGET_WIDGET_ID,    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_TARGET_PARAMETER_ID, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_CLAMPING,            BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_clampingValues)},
+    {(NULL),                        BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_START_VALUE,         BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_END_VALUE,           BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_START_SCALED_VALUE,  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_END_SCALED_VALUE,    BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -704,14 +1240,14 @@ static const BinaryField_t c_dataScalingLongFields[] =
  */
 static const BinaryField_t c_dataScalingUlongFields[] =
 {
-    {("TargetWidgetID"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("TargetParameterID"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("Clamping"),                      BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_clampingValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("StartValue"),                    BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
-    {("EndValue"),                      BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
-    {("StartScaledValue"),              BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("EndScaledValue"),                BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U}
+    {PARAMETER_TARGET_WIDGET_ID,    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_TARGET_PARAMETER_ID, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_CLAMPING,            BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_clampingValues)},
+    {(NULL),                        BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_START_VALUE,         BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_END_VALUE,           BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_START_SCALED_VALUE,  BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_END_SCALED_VALUE,    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -720,22 +1256,22 @@ static const BinaryField_t c_dataScalingUlongFields[] =
  */
 static const BinaryField_t c_editBoxMaskedFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("AlphaMask"),                     BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("NumericMask"),                   BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StartCursorPos"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("ReportAllChanges"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxReportAllChangesValues)},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_buttonAlignmentValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("AlphaMask"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("NumericMask"),                  BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_START_CURSOR_POS,       BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_REPORT_ALL_CHANGES,     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxReportAllChangesValues)},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_buttonAlignmentValues)},
+    {(NULL),                           BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U},
+    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -744,21 +1280,21 @@ static const BinaryField_t c_editBoxMaskedFields[] =
  */
 static const BinaryField_t c_editBoxMultiLineFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("StartCursorPos"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("ReportAllChanges"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxReportAllChangesValues)},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxAlignmentValues)},
-    {("VerticalScroll"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_scrollBarPositionValues)},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_START_CURSOR_POS,       BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_REPORT_ALL_CHANGES,     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxReportAllChangesValues)},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxAlignmentValues)},
+    {PARAMETER_VERTICAL_SCROLL,        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_scrollBarPositionValues)},
+    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -767,33 +1303,33 @@ static const BinaryField_t c_editBoxMultiLineFields[] =
  */
 static const BinaryField_t c_editBoxNumericFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("Value"),                         BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
-    {("TicsCoarse"),                    BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
-    {("TicsFine"),                      BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
-    {("MinValue"),                      BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
-    {("MaxValue"),                      BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
-    {("LegendAreaSizeX"),               BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StartCursorPosByte"),            BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("MaxFormatStringLength"),         BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("MaxLegendStringLength"),         BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("LegendPosition"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_legendPositionValues)},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("ReportAllChanges"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxNumericReportAllChangesValues)},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxAlignmentValues)},
-    {("LegendRemoved"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("NumericKeyFlag"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("CyclicFlag"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
-    {("FormatString"),                  BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U},
-    {("LegendString"),                  BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,                  BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,                    BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,                    BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,                   BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,                   BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_VALUE,                    BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_TICS_COARSE,              BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_TICS_FINE,                BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MIN_VALUE,                BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_VALUE,                BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_LEGEND_AREA_SIZE_X,       BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("StartCursorPosByte"),             BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_FORMAT_STRING_LENGTH, BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_LEGEND_STRING_LENGTH, BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_LEGEND_POSITION,          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_legendPositionValues)},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION,   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_REPORT_ALL_CHANGES,       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxNumericReportAllChangesValues)},
+    {PARAMETER_ALIGNMENT,                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxAlignmentValues)},
+    {PARAMETER_LEGEND_REMOVED,           BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_NUMERIC_KEY_FLAG,         BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_CYCLIC_FLAG,              BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {(NULL),                             BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_FORMAT_STRING,            BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U},
+    {PARAMETER_LEGEND_STRING,            BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -802,40 +1338,40 @@ static const BinaryField_t c_editBoxNumericFields[] =
  */
 static const BinaryField_t c_editBoxNumericBcdFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("LegendAreaSizeX"),               BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("Value"),                         BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL, 0U},
-    {("MinValue"),                      BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL, 0U},
-    {("MaxValue"),                      BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL, 0U},
-    {("MinFieldsValues"),               BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL, 0U},
-    {("MaxFieldsValues"),               BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL, 0U},
-    {("TicsCoarse"),                    BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL, 0U},
-    {("TicsFine"),                      BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL, 0U},
-    {("NumberOfFields"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("LegendPosition"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("LegendRemoved"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("MaxFormatStringLength"),         BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("MaxLegendStringLength"),         BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("PositiveStringLength"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("NegativeStringLength"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("ReportAllChanges"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("NumericKeyFlag"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("CyclicFlag"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("SizeOfFields"),                  BINARY_FIELD_UCHAR,        1U, 16U, 1U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_ALIGN,        0U,  0U, 0U, NULL, 0U},
-    {("FormatString"),                  BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U},
-    {("LegendString"),                  BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U},
-    {("PositiveString"),                BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U},
-    {("NegativeString"),                BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_VISIBLE,                  BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_X,                    BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,                    BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,                   BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,                   BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_LEGEND_AREA_SIZE_X,       BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_VALUE,                    BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MIN_VALUE,                BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_VALUE,                BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL, 0U},
+    {("MinFieldsValues"),                BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL, 0U},
+    {("MaxFieldsValues"),                BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL, 0U},
+    {PARAMETER_TICS_COARSE,              BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL, 0U},
+    {PARAMETER_TICS_FINE,                BINARY_FIELD_BYTES,        8U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NUMBER_OF_FIELDS,         BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ALIGNMENT,                BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_LEGEND_POSITION,          BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_LEGEND_REMOVED,           BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_FORMAT_STRING_LENGTH, BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_LEGEND_STRING_LENGTH, BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("PositiveStringLength"),           BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("NegativeStringLength"),           BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION,   BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_REPORT_ALL_CHANGES,       BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NUMERIC_KEY_FLAG,         BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_CYCLIC_FLAG,              BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("SizeOfFields"),                   BINARY_FIELD_UCHAR,        1U, 16U, 1U, NULL, 0U},
+    {(NULL),                             BINARY_FIELD_ALIGN,        0U,  0U, 0U, NULL, 0U},
+    {PARAMETER_FORMAT_STRING,            BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U},
+    {PARAMETER_LEGEND_STRING,            BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U},
+    {("PositiveString"),                 BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U},
+    {("NegativeString"),                 BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -844,21 +1380,21 @@ static const BinaryField_t c_editBoxNumericBcdFields[] =
  */
 static const BinaryField_t c_editBoxTextFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("StartCursorPos"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("ReportAllChanges"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxReportAllChangesValues)},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxAlignmentValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_START_CURSOR_POS,       BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_REPORT_ALL_CHANGES,     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxReportAllChangesValues)},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxAlignmentValues)},
+    {(NULL),                           BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -867,15 +1403,15 @@ static const BinaryField_t c_editBoxTextFields[] =
  */
 static const BinaryField_t c_eventHandlerFields[] =
 {
-    {("EnableHandler"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("TriggerLayerIdent"),             BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("TriggerWidgetIdent"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("TriggerEvent"),                  BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
-    {("NumWidgetParamResults"),         BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("NumLayerReqResults"),            BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("WidgetParamResultArray"),        BINARY_FIELD_BYTES,       20U,  5U, 1U, NULL, 0U},
-    {("LayerReqResultArray"),           BINARY_FIELD_LAYER_REQUEST,  0U,  6U, 1U, NULL, 0U}
+    {("EnableHandler"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("TriggerLayerIdent"),      BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("TriggerWidgetIdent"),     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("TriggerEvent"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {(NULL),                     BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {("NumWidgetParamResults"),  BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("NumLayerReqResults"),     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("WidgetParamResultArray"), BINARY_FIELD_BYTES,       20U,  5U, 1U, NULL, 0U},
+    {("LayerReqResultArray"),    BINARY_FIELD_LAYER_REQUEST,  0U,  6U, 1U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -884,20 +1420,20 @@ static const BinaryField_t c_eventHandlerFields[] =
  */
 static const BinaryField_t c_externalSourceFields[] =
 {
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("MotionAllowed"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SourceReference"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
-    {("SourceX"),                       BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SourceY"),                       BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SourceDX"),                      BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SourceDY"),                      BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
+    {PARAMETER_VISIBLE,          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_MOTION_ALLOWED,   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,            BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,            BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,           BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,           BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SOURCE_REFERENCE, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {(NULL),                     BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {("SourceX"),                BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SourceY"),                BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SourceDX"),               BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SourceDY"),               BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,        BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {(NULL),                     BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -906,7 +1442,7 @@ static const BinaryField_t c_externalSourceFields[] =
  */
 static const BinaryField_t c_focusInFields[] =
 {
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
+    {PARAMETER_NEXT_FOCUSED_WIDGET, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -915,10 +1451,10 @@ static const BinaryField_t c_focusInFields[] =
  */
 static const BinaryField_t c_focusLinkFields[] =
 {
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_PAD,          4U,  0U, 0U, NULL, 0U},
-    {("NextLayerConnectorRef"),         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
+    {(NULL),                        BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {(NULL),                        BINARY_FIELD_PAD,          4U,  0U, 0U, NULL, 0U},
+    {("NextLayerConnectorRef"),     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NEXT_FOCUSED_WIDGET, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -927,10 +1463,10 @@ static const BinaryField_t c_focusLinkFields[] =
  */
 static const BinaryField_t c_focusOutFields[] =
 {
-    {("NextFocusInAppId"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NextFocusInLayerId"),            BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("NextFocusInId"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
+    {("NextFocusInAppId"),   BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NextFocusInLayerId"), BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {(NULL),                 BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("NextFocusInId"),      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -939,10 +1475,10 @@ static const BinaryField_t c_focusOutFields[] =
  */
 static const BinaryField_t c_framingRefreshContainerFields[] =
 {
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("CachingEnabled"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U}
+    {PARAMETER_VISIBLE,  BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_ENABLE,   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {("CachingEnabled"), BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),             BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -951,19 +1487,19 @@ static const BinaryField_t c_framingRefreshContainerFields[] =
  */
 static const BinaryField_t c_gestureAreaFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("ReportMode"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("AllowOutside"),                  BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("NumberOfEvents"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("EventIdArray"),                  BINARY_FIELD_UCHAR,        1U, 10U, 1U, NULL, 0U}
+    {PARAMETER_ENABLE,         BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_VISIBLE,        BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {(NULL),                   BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_X,          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_REPORT_MODE,    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ALLOW_OUTSIDE,  BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("NumberOfEvents"),       BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {(NULL),                   BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_EVENT_ID_ARRAY, BINARY_FIELD_UCHAR,        1U, 10U, 1U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -972,19 +1508,19 @@ static const BinaryField_t c_gestureAreaFields[] =
  */
 static const BinaryField_t c_gpArcCircleFields[] =
 {
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("StartAngle"),                    BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
-    {("EndAngle"),                      BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
-    {("Radius"),                        BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("Filled"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("FillIndex"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("Halo"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_haloValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ANONYMOUS,   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_VISIBLE,     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_START_ANGLE, BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_END_ANGLE,   BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
+    {("Radius"),            BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,   BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_COLOR_INDEX, BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_FILLED,      BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_FILL_INDEX,  BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_HALO,        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_haloValues)},
+    {(NULL),                BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -993,20 +1529,20 @@ static const BinaryField_t c_gpArcCircleFields[] =
  */
 static const BinaryField_t c_gpArcEllipseFields[] =
 {
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StartAngle"),                    BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
-    {("EndAngle"),                      BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("Filled"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("FillIndex"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("Halo"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_haloValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ANONYMOUS,   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_VISIBLE,     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,      BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,      BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_START_ANGLE, BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_END_ANGLE,   BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,   BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_COLOR_INDEX, BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_FILLED,      BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_FILL_INDEX,  BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_HALO,        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_haloValues)},
+    {(NULL),                BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1015,20 +1551,20 @@ static const BinaryField_t c_gpArcEllipseFields[] =
  */
 static const BinaryField_t c_gpCrownFields[] =
 {
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("StartAngle"),                    BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
-    {("EndAngle"),                      BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
-    {("InnerRadius"),                   BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("OuterRadius"),                   BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("Filled"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("FillIndex"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("Halo"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_haloValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ANONYMOUS,   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_VISIBLE,     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_START_ANGLE, BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_END_ANGLE,   BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
+    {("InnerRadius"),       BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("OuterRadius"),       BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,   BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_COLOR_INDEX, BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_FILLED,      BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_FILL_INDEX,  BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_HALO,        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_haloValues)},
+    {(NULL),                BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1037,15 +1573,15 @@ static const BinaryField_t c_gpCrownFields[] =
  */
 static const BinaryField_t c_gpLineFields[] =
 {
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosXStart"),                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosYStart"),                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosXEnd"),                       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosYEnd"),                       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("Halo"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_haloValues)}
+    {PARAMETER_ANONYMOUS,   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_VISIBLE,     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X_START, BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y_START, BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosXEnd"),           BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosYEnd"),           BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,   BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_COLOR_INDEX, BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_HALO,        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_haloValues)}
 };
 
 /*************************************************************************************************/
@@ -1054,15 +1590,15 @@ static const BinaryField_t c_gpLineFields[] =
  */
 static const BinaryField_t c_gpLinePolarFields[] =
 {
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosXStart"),                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosYStart"),                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("RotationAngle"),                 BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
-    {("LineLength"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("Halo"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_haloValues)}
+    {PARAMETER_ANONYMOUS,      BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_VISIBLE,        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X_START,    BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y_START,    BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ROTATION_ANGLE, BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
+    {("LineLength"),           BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_COLOR_INDEX,    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_HALO,           BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_haloValues)}
 };
 
 /*************************************************************************************************/
@@ -1071,16 +1607,16 @@ static const BinaryField_t c_gpLinePolarFields[] =
  */
 static const BinaryField_t c_gpPolylineFields[] =
 {
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("Halo"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_haloValues)},
-    {("Closed"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U},
-    {("MaxNumberOfVertices"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NumberOfVertices"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("Vertices"),                      BINARY_FIELD_LONG,         4U,  8U, 2U, NULL, 0U}
+    {PARAMETER_ANONYMOUS,              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_COLOR_INDEX,            BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_HALO,                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_haloValues)},
+    {("Closed"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                           BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_NUMBER_OF_VERTICES, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NUMBER_OF_VERTICES,     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_VERTICES,               BINARY_FIELD_LONG,         4U,  8U, 2U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1089,18 +1625,18 @@ static const BinaryField_t c_gpPolylineFields[] =
  */
 static const BinaryField_t c_gpRectangleFields[] =
 {
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("Filled"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("FillIndex"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("Halo"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_haloValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ANONYMOUS,   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_VISIBLE,     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,      BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,      BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,   BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_COLOR_INDEX, BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_FILLED,      BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_FILL_INDEX,  BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_HALO,        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_haloValues)},
+    {(NULL),                BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1109,20 +1645,20 @@ static const BinaryField_t c_gpRectangleFields[] =
  */
 static const BinaryField_t c_gpTriangleFields[] =
 {
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosX2"),                         BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY2"),                         BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosX3"),                         BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY3"),                         BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("Filled"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("FillIndex"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("Halo"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_haloValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ANONYMOUS,   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_VISIBLE,     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosX2"),             BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY2"),             BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosX3"),             BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("PosY3"),             BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,   BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_COLOR_INDEX, BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_FILLED,      BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_FILL_INDEX,  BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_HALO,        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_haloValues)},
+    {(NULL),                BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1131,17 +1667,17 @@ static const BinaryField_t c_gpTriangleFields[] =
  */
 static const BinaryField_t c_gpTriangleFanFields[] =
 {
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("Filled"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("FillIndex"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("Halo"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_haloValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
-    {("MaxNumberOfVertices"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NumberOfVertices"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("Vertices"),                      BINARY_FIELD_LONG,         4U,  9U, 2U, NULL, 0U}
+    {PARAMETER_ANONYMOUS,              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_COLOR_INDEX,            BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_FILLED,                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_FILL_INDEX,             BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_HALO,                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_haloValues)},
+    {(NULL),                           BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_NUMBER_OF_VERTICES, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NUMBER_OF_VERTICES,     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_VERTICES,               BINARY_FIELD_LONG,         4U,  9U, 2U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1150,17 +1686,17 @@ static const BinaryField_t c_gpTriangleFanFields[] =
  */
 static const BinaryField_t c_gpTriangleStripFields[] =
 {
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("Filled"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("FillIndex"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("Halo"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_haloValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
-    {("MaxNumberOfVertices"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NumberOfVertices"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("Vertices"),                      BINARY_FIELD_LONG,         4U,  9U, 2U, NULL, 0U}
+    {PARAMETER_ANONYMOUS,              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_COLOR_INDEX,            BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_FILLED,                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_FILL_INDEX,             BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_HALO,                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_haloValues)},
+    {(NULL),                           BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_NUMBER_OF_VERTICES, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NUMBER_OF_VERTICES,     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_VERTICES,               BINARY_FIELD_LONG,         4U,  9U, 2U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1169,20 +1705,20 @@ static const BinaryField_t c_gpTriangleStripFields[] =
  */
 static const BinaryField_t c_inkAreaFields[] =
 {
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("Filled"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("FillIndex"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("MaxBufferSize"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
+    {PARAMETER_VISIBLE,             BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_ENABLE,              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_STYLE_SET,           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {(NULL),                        BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_X,               BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,               BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,              BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,              BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_COLOR_INDEX,         BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_FILLED,              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_FILL_INDEX,          BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {(NULL),                        BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("MaxBufferSize"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NEXT_FOCUSED_WIDGET, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1191,15 +1727,15 @@ static const BinaryField_t c_inkAreaFields[] =
  */
 static const BinaryField_t c_keyboardAreaFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("NumberOfKeys"),                  BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("MaxNumberOfKeys"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("KeyArray"),                      BINARY_FIELD_USHORT,       2U,  1U, 1U, NULL, 0U}
+    {PARAMETER_ENABLE,    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("NumberOfKeys"),    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("MaxNumberOfKeys"), BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {(NULL),              BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_X,     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("KeyArray"),        BINARY_FIELD_USHORT,       2U,  1U, 1U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1208,20 +1744,20 @@ static const BinaryField_t c_keyboardAreaFields[] =
  */
 static const BinaryField_t c_labelFields[] =
 {
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("RotationAngle"),                 BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MotionAllowed"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Font"),                          BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_labelAlignmentValues)},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ANONYMOUS,         BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_VISIBLE,           BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,             BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,             BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,            BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,            BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ROTATION_ANGLE,    BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_STRING_LENGTH, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MOTION_ALLOWED,    BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Font"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_COLOR_INDEX,       BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ALIGNMENT,         BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_labelAlignmentValues)},
+    {PARAMETER_LABEL_STRING,      BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1230,18 +1766,18 @@ static const BinaryField_t c_labelFields[] =
  */
 static const BinaryField_t c_labelComplexFields[] =
 {
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_labelAlignmentValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U},
-    {("DefaultStyleText"),              BINARY_FIELD_BYTES,       12U,  0U, 0U, NULL, 0U},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ANONYMOUS,          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_VISIBLE,            BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,              BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,              BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,             BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,             BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,          BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_STRING_LENGTH,  BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ALIGNMENT,          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_labelAlignmentValues)},
+    {(NULL),                       BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U},
+    {PARAMETER_DEFAULT_STYLE_TEXT, BINARY_FIELD_BYTES,       12U,  0U, 0U, NULL, 0U},
+    {PARAMETER_LABEL_STRING,       BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1250,18 +1786,18 @@ static const BinaryField_t c_labelComplexFields[] =
  */
 static const BinaryField_t c_maphorzFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("ScreenReferencePointX"),         BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("ScreenReferencePointY"),         BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("Range"),                         BINARY_FIELD_FR32768,      4U,  0U, 0U, NULL, 0U},
-    {("ScreenRange"),                   BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("ProjectionType"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,         BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,           BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,           BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,          BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,          BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("ScreenReferencePointX"), BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("ScreenReferencePointY"), BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("Range"),                 BINARY_FIELD_FR32768,      4U,  0U, 0U, NULL, 0U},
+    {("ScreenRange"),           BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("ProjectionType"),        BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {(NULL),                    BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1270,8 +1806,8 @@ static const BinaryField_t c_maphorzFields[] =
  */
 static const BinaryField_t c_maphorzContainerFields[] =
 {
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)}
+    {(NULL),            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_VISIBLE, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)}
 };
 
 /*************************************************************************************************/
@@ -1280,11 +1816,11 @@ static const BinaryField_t c_maphorzContainerFields[] =
  */
 static const BinaryField_t c_maphorzItemlistFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("MaxNumberOfItem"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MaxItemSize"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,             BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,            BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_MAX_NUMBER_OF_ITEM, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_ITEM_SIZE,      BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {(NULL),                       BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1293,8 +1829,8 @@ static const BinaryField_t c_maphorzItemlistFields[] =
  */
 static const BinaryField_t c_maphorzPanelFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)}
+    {PARAMETER_ENABLE,  BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)}
 };
 
 /*************************************************************************************************/
@@ -1303,11 +1839,11 @@ static const BinaryField_t c_maphorzPanelFields[] =
  */
 static const BinaryField_t c_maphorzSourceFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("MapDataFormat"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_mapDataFormatValues)},
-    {("EventFlag"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_eventFlagValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,    BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("MapDataFormat"),    BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_mapDataFormatValues)},
+    {PARAMETER_EVENT_FLAG, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_eventFlagValues)},
+    {(NULL),               BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1316,11 +1852,11 @@ static const BinaryField_t c_maphorzSourceFields[] =
  */
 static const BinaryField_t c_maphorzVertexbufferFields[] =
 {
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("MaxNumberOfVertices"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NumberOfVertices"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("Vertices"),                      BINARY_FIELD_LONG,         4U,  3U, 2U, NULL, 0U}
+    {PARAMETER_ANONYMOUS,              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                           BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_NUMBER_OF_VERTICES, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NUMBER_OF_VERTICES,     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_VERTICES,               BINARY_FIELD_LONG,         4U,  3U, 2U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1329,18 +1865,18 @@ static const BinaryField_t c_maphorzVertexbufferFields[] =
  */
 static const BinaryField_t c_mapvertFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("RangeX"),                        BINARY_FIELD_FR32768,      4U,  0U, 0U, NULL, 0U},
-    {("RangeY"),                        BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("RefPosX"),                       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("RefPosY"),                       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("RefGeoPosX"),                    BINARY_FIELD_FR32768,      4U,  0U, 0U, NULL, 0U},
-    {("RefGeoPosY"),                    BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,  BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,   BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,   BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,  BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,  BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("RangeX"),        BINARY_FIELD_FR32768,      4U,  0U, 0U, NULL, 0U},
+    {("RangeY"),        BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("RefPosX"),       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("RefPosY"),       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("RefGeoPosX"),    BINARY_FIELD_FR32768,      4U,  0U, 0U, NULL, 0U},
+    {("RefGeoPosY"),    BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1349,8 +1885,8 @@ static const BinaryField_t c_mapvertFields[] =
  */
 static const BinaryField_t c_mapvertContainerFields[] =
 {
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)}
+    {(NULL),            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_VISIBLE, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)}
 };
 
 /*************************************************************************************************/
@@ -1359,11 +1895,11 @@ static const BinaryField_t c_mapvertContainerFields[] =
  */
 static const BinaryField_t c_mapvertItemlistFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("MaxNumberOfItem"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MaxItemSize"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,             BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,            BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_MAX_NUMBER_OF_ITEM, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_ITEM_SIZE,      BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {(NULL),                       BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1372,8 +1908,8 @@ static const BinaryField_t c_mapvertItemlistFields[] =
  */
 static const BinaryField_t c_mapvertPanelFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)}
+    {PARAMETER_ENABLE,  BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)}
 };
 
 /*************************************************************************************************/
@@ -1382,12 +1918,12 @@ static const BinaryField_t c_mapvertPanelFields[] =
  */
 static const BinaryField_t c_mapvertSourceFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("MapDataFormatX"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_mapDataFormatXValues)},
-    {("MapDataFormatY"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_mapDataFormatYValues)},
-    {("EventFlag"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,    BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("MapDataFormatX"),   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_mapDataFormatXValues)},
+    {("MapDataFormatY"),   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_mapDataFormatYValues)},
+    {PARAMETER_EVENT_FLAG, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),               BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1396,13 +1932,13 @@ static const BinaryField_t c_mapvertSourceFields[] =
  */
 static const BinaryField_t c_mapBoundaryFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("MaxNumberOfEntries"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NumberOfEntries"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("BeginAngleArray"),               BINARY_FIELD_FR180,        4U,  3U, 1U, NULL, 0U},
-    {("DistanceArray"),                 BINARY_FIELD_ULONG,        4U,  3U, 1U, NULL, 0U},
-    {("AlgorithmArray"),                BINARY_FIELD_ULONG,        4U,  3U, 1U, ARRAY_AND_COUNT(c_mapBoundaryAlgorithmValues)}
+    {PARAMETER_ENABLE,                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,               BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_MAX_NUMBER_OF_ENTRIES, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NUMBER_OF_ENTRIES,     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("BeginAngleArray"),             BINARY_FIELD_FR180,        4U,  3U, 1U, NULL, 0U},
+    {("DistanceArray"),               BINARY_FIELD_ULONG,        4U,  3U, 1U, NULL, 0U},
+    {("AlgorithmArray"),              BINARY_FIELD_ULONG,        4U,  3U, 1U, ARRAY_AND_COUNT(c_mapBoundaryAlgorithmValues)}
 };
 
 /*************************************************************************************************/
@@ -1411,14 +1947,14 @@ static const BinaryField_t c_mapBoundaryFields[] =
  */
 static const BinaryField_t c_mapExternalSourceFields[] =
 {
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SourceReference"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
+    {PARAMETER_VISIBLE,          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                     BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_X,            BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,            BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,           BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,           BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SOURCE_REFERENCE, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,        BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1427,14 +1963,14 @@ static const BinaryField_t c_mapExternalSourceFields[] =
  */
 static const BinaryField_t c_mapGridFields[] =
 {
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("OffsetX"),                       BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
-    {("OffsetY"),                       BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
-    {("IncrementX"),                    BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
-    {("IncrementY"),                    BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
-    {("CountX"),                        BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("CountY"),                        BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
+    {PARAMETER_VISIBLE, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("OffsetX"),       BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("OffsetY"),       BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("IncrementX"),    BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("IncrementY"),    BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("CountX"),        BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("CountY"),        BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1443,13 +1979,13 @@ static const BinaryField_t c_mapGridFields[] =
  */
 static const BinaryField_t c_maskContainerFields[] =
 {
-    {("MaskEnabled"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("MaskReference"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MotionAllowed"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U}
+    {("MaskEnabled"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_VISIBLE,        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("MaskReference"),        BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MOTION_ALLOWED, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                   BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1458,14 +1994,14 @@ static const BinaryField_t c_maskContainerFields[] =
  */
 static const BinaryField_t c_menuBarFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Horizontal"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("ButtonPos"),                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("ButtonSize"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,  BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("Horizontal"),    BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_X,   BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,   BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("ButtonPos"),     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("ButtonSize"),    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1474,22 +2010,22 @@ static const BinaryField_t c_menuBarFields[] =
  */
 static const BinaryField_t c_multiStateButtonFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("ButtonState"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_pushButtonAlignmentValues)},
-    {("MaxNumberOfStates"),             BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("NumberOfStates"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("LabelStringArray"),              BINARY_FIELD_STRING,       0U, 13U, 1U, NULL, 0U}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("ButtonState"),                  BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_pushButtonAlignmentValues)},
+    {("MaxNumberOfStates"),            BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("NumberOfStates"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {(NULL),                           BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_LABEL_STRING_ARRAY,     BINARY_FIELD_STRING,       0U, 13U, 1U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1498,12 +2034,12 @@ static const BinaryField_t c_multiStateButtonFields[] =
  */
 static const BinaryField_t c_mutuallyExclusiveContainerFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("VisibleChild"),                  BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,        BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_VISIBLE,       BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_X,         BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,         BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_VISIBLE_CHILD, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {(NULL),                  BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1512,8 +2048,8 @@ static const BinaryField_t c_mutuallyExclusiveContainerFields[] =
  */
 static const BinaryField_t c_noServiceMonitorFields[] =
 {
-    {("ShowNoServiceIdent"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_PAD,          4U,  0U, 0U, NULL, 0U}
+    {("ShowNoServiceIdent"), BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {(NULL),                 BINARY_FIELD_PAD,          4U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1522,24 +2058,24 @@ static const BinaryField_t c_noServiceMonitorFields[] =
  */
 static const BinaryField_t c_numericReadoutFields[] =
 {
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("MotionAllowed"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("RotationAngle"),                 BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_labelAlignmentValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("Value"),                         BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
-    {("LegendAreaSizeX"),               BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("MaxFormatStringLength"),         BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("MaxLegendStringLength"),         BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("LegendPosition"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_legendPositionValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("FormatString"),                  BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U},
-    {("LegendString"),                  BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+    {PARAMETER_VISIBLE,                  BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_MOTION_ALLOWED,           BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,                    BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,                    BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,                   BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,                   BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ROTATION_ANGLE,           BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ALIGNMENT,                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_labelAlignmentValues)},
+    {(NULL),                             BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_VALUE,                    BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_LEGEND_AREA_SIZE_X,       BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_FORMAT_STRING_LENGTH, BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_LEGEND_STRING_LENGTH, BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_LEGEND_POSITION,          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_legendPositionValues)},
+    {(NULL),                             BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_FORMAT_STRING,            BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U},
+    {PARAMETER_LEGEND_STRING,            BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1548,20 +2084,20 @@ static const BinaryField_t c_numericReadoutFields[] =
  */
 static const BinaryField_t c_pagingContainerFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("WrappingType"),                  BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_wrappingTypeValues)},
-    {("PagingControlPosition"),         BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_pagingControlPositionValues)},
-    {("FinePageDelta"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("CoarsePageDelta"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("VisibleChild"),                  BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("ReportVisibleChild"),            BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)}
+    {PARAMETER_ENABLE,          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,         BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,           BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,           BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,          BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,          BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("WrappingType"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_wrappingTypeValues)},
+    {("PagingControlPosition"), BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_pagingControlPositionValues)},
+    {("FinePageDelta"),         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("CoarsePageDelta"),       BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_VISIBLE_CHILD,   BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("ReportVisibleChild"),    BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_STYLE_SET,       BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ANONYMOUS,       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)}
 };
 
 /*************************************************************************************************/
@@ -1570,15 +2106,15 @@ static const BinaryField_t c_pagingContainerFields[] =
  */
 static const BinaryField_t c_panelFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MotionAllowed"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,         BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MOTION_ALLOWED, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                   BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1587,14 +2123,14 @@ static const BinaryField_t c_panelFields[] =
  */
 static const BinaryField_t c_pictureFields[] =
 {
-    {("Anonymous"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("PictureReference"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ANONYMOUS,         BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_VISIBLE,           BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,             BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,             BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,            BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,            BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_PICTURE_REFERENCE, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1603,19 +2139,19 @@ static const BinaryField_t c_pictureFields[] =
  */
 static const BinaryField_t c_pictureAnimatedFields[] =
 {
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NumberOfPictures"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("IndexOfFrequency"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("LoopFlag"),                      BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("AnimationFlag"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("PictureArray"),                  BINARY_FIELD_USHORT,       2U,  7U, 1U, NULL, 0U}
+    {PARAMETER_VISIBLE,            BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                       BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_X,              BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,              BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,             BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,             BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,          BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NUMBER_OF_PICTURES, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_INDEX_OF_FREQUENCY, BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("LoopFlag"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("AnimationFlag"),            BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                       BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_PICTURE_ARRAY,      BINARY_FIELD_USHORT,       2U,  7U, 1U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1624,21 +2160,21 @@ static const BinaryField_t c_pictureAnimatedFields[] =
  */
 static const BinaryField_t c_picturePushButtonFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("PictureReference"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("PicturePosition"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_picturePositionValues)},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_buttonAlignmentValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_PICTURE_REFERENCE,      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_PICTURE_POSITION,       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_picturePositionValues)},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_buttonAlignmentValues)},
+    {(NULL),                           BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1647,25 +2183,25 @@ static const BinaryField_t c_picturePushButtonFields[] =
  */
 static const BinaryField_t c_pictureToggleButtonFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("AlternateFlag"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PictureReference"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("AlternatePictureReference"),     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("PicturePosition"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_picturePositionValues)},
-    {("ToggleState"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_toggleStateValues)},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_buttonAlignmentValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U},
-    {("AlternateLabelString"),          BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ALTERNATE_FLAG,         BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_PICTURE_REFERENCE,      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("AlternatePictureReference"),    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_PICTURE_POSITION,       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_picturePositionValues)},
+    {PARAMETER_TOGGLE_STATE,           BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_toggleStateValues)},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_buttonAlignmentValues)},
+    {(NULL),                           BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ALTERNATE_LABEL_STRING, BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1674,18 +2210,18 @@ static const BinaryField_t c_pictureToggleButtonFields[] =
  */
 static const BinaryField_t c_popUpMenuFields[] =
 {
-    {("OpeningMode"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_popUpMenuOpeningModeValues)},
-    {("NumberOfEntries"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("PopUpIdentArray"),               BINARY_FIELD_USHORT,       2U,  1U, 1U, NULL, 0U},
-    {("PictureArray"),                  BINARY_FIELD_USHORT,       2U,  1U, 1U, NULL, 0U},
-    {("EnableArray"),                   BINARY_FIELD_UCHAR,        1U,  1U, 1U, NULL, 0U},
-    {("StringArray"),                   BINARY_FIELD_STRING,       0U,  1U, 1U, NULL, 0U}
+    {PARAMETER_OPENING_MODE,       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_popUpMenuOpeningModeValues)},
+    {PARAMETER_NUMBER_OF_ENTRIES,  BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_X,              BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,              BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,             BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,             BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_STRING_LENGTH,  BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,          BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POP_UP_IDENT_ARRAY, BINARY_FIELD_USHORT,       2U,  1U, 1U, NULL, 0U},
+    {PARAMETER_PICTURE_ARRAY,      BINARY_FIELD_USHORT,       2U,  1U, 1U, NULL, 0U},
+    {PARAMETER_ENABLE_ARRAY,       BINARY_FIELD_UCHAR,        1U,  1U, 1U, NULL, 0U},
+    {PARAMETER_STRING_ARRAY,       BINARY_FIELD_STRING,       0U,  1U, 1U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1694,33 +2230,33 @@ static const BinaryField_t c_popUpMenuFields[] =
  */
 static const BinaryField_t c_popUpMenuButtonFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("PopupPosX"),                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PopupPosY"),                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PopupSizeX"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("PopupSizeY"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MaxStringLengthPopUp"),          BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("PictureReference"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NumberOfEntries"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("PicturePosition"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_popUpButtonPicturePositionValues)},
-    {("OpeningMode"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_popUpMenuButtonOpeningModeValues)},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_buttonAlignmentValues)},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_ALIGN,        0U,  0U, 0U, NULL, 0U},
-    {("PopUpIdentArray"),               BINARY_FIELD_USHORT,       2U, 15U, 1U, NULL, 0U},
-    {("PictureArray"),                  BINARY_FIELD_USHORT,       2U, 15U, 1U, NULL, 0U},
-    {("EnableArray"),                   BINARY_FIELD_UCHAR,        1U, 15U, 1U, NULL, 0U},
-    {("StringArray"),                   BINARY_FIELD_STRING,       0U, 15U, 1U, NULL, 0U}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POPUP_POS_X,            BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POPUP_POS_Y,            BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POPUP_SIZE_X,           BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POPUP_SIZE_Y,           BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MaxStringLengthPopUp"),         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_PICTURE_REFERENCE,      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NUMBER_OF_ENTRIES,      BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_PICTURE_POSITION,       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_popUpButtonPicturePositionValues)},
+    {PARAMETER_OPENING_MODE,           BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_popUpMenuButtonOpeningModeValues)},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_buttonAlignmentValues)},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                           BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U},
+    {(NULL),                           BINARY_FIELD_ALIGN,        0U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POP_UP_IDENT_ARRAY,     BINARY_FIELD_USHORT,       2U, 15U, 1U, NULL, 0U},
+    {PARAMETER_PICTURE_ARRAY,          BINARY_FIELD_USHORT,       2U, 15U, 1U, NULL, 0U},
+    {PARAMETER_ENABLE_ARRAY,           BINARY_FIELD_UCHAR,        1U, 15U, 1U, NULL, 0U},
+    {PARAMETER_STRING_ARRAY,           BINARY_FIELD_STRING,       0U, 15U, 1U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1729,14 +2265,14 @@ static const BinaryField_t c_popUpMenuButtonFields[] =
  */
 static const BinaryField_t c_popUpPanelFields[] =
 {
-    {("UAPositionFlag"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("AutomaticClosure"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
+    {PARAMETER_UA_POSITION_FLAG,  BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_AUTOMATIC_CLOSURE, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,             BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,             BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,            BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,            BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {(NULL),                      BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1745,25 +2281,25 @@ static const BinaryField_t c_popUpPanelFields[] =
  */
 static const BinaryField_t c_popUpPanelButtonFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("PopupPosX"),                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PopupPosY"),                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PopupSizeX"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("PopupSizeY"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("PictureReference"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("PicturePosition"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_popUpButtonPicturePositionValues)},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_buttonAlignmentValues)},
-    {("UAPositionFlag"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("AutomaticClosure"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,             BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,               BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,               BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,              BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,              BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NEXT_FOCUSED_WIDGET, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POPUP_POS_X,         BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POPUP_POS_Y,         BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POPUP_SIZE_X,        BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POPUP_SIZE_Y,        BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_STRING_LENGTH,   BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_PICTURE_REFERENCE,   BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_PICTURE_POSITION,    BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_popUpButtonPicturePositionValues)},
+    {PARAMETER_ALIGNMENT,           BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_buttonAlignmentValues)},
+    {PARAMETER_UA_POSITION_FLAG,    BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_AUTOMATIC_CLOSURE,   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_LABEL_STRING,        BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1772,10 +2308,10 @@ static const BinaryField_t c_popUpPanelButtonFields[] =
  */
 static const BinaryField_t c_proxyButtonFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("DedicatedKeyIdent"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("TargetWidgetIdent"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,      BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {(NULL),                BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("DedicatedKeyIdent"), BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("TargetWidgetIdent"), BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1784,18 +2320,18 @@ static const BinaryField_t c_proxyButtonFields[] =
  */
 static const BinaryField_t c_pushButtonFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_pushButtonAlignmentValues)},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_pushButtonAlignmentValues)},
+    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1804,8 +2340,8 @@ static const BinaryField_t c_pushButtonFields[] =
  */
 static const BinaryField_t c_radioBoxFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)}
+    {PARAMETER_ENABLE,  BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)}
 };
 
 /*************************************************************************************************/
@@ -1814,11 +2350,11 @@ static const BinaryField_t c_radioBoxFields[] =
  */
 static const BinaryField_t c_rotationContainerFields[] =
 {
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("CenterX"),                       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("CenterY"),                       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("RotationAngle"),                 BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U}
+    {PARAMETER_VISIBLE,        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                   BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_CENTER_X,       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_CENTER_Y,       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ROTATION_ANGLE, BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1827,12 +2363,12 @@ static const BinaryField_t c_rotationContainerFields[] =
  */
 static const BinaryField_t c_scaleContainerFields[] =
 {
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("CenterX"),                       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("CenterY"),                       BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("ScaleX"),                        BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
-    {("ScaleY"),                        BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U}
+    {PARAMETER_VISIBLE,  BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),             BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_CENTER_X, BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_CENTER_Y, BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("ScaleX"),         BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("ScaleY"),         BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1841,27 +2377,27 @@ static const BinaryField_t c_scaleContainerFields[] =
  */
 static const BinaryField_t c_scrollListFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MaxNumberOfEntries"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NumberOfEntries"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("SelectedEntry"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("FirstAccessibleEntry"),          BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("FirstVisibleEntry"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("VerticalScroll"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_scrollBarPositionValues)},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_pushButtonAlignmentValues)},
-    {("FlagReportVisibleEntry"),        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("DefaultStyleText"),              BINARY_FIELD_BYTES,       12U,  0U, 0U, NULL, 0U},
-    {("EnableArray"),                   BINARY_FIELD_UCHAR,        1U,  9U, 1U, NULL, 0U},
-    {("LabelStringArray"),              BINARY_FIELD_STRING,       0U,  9U, 1U, NULL, 0U}
+    {PARAMETER_ENABLE,                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,       BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_NUMBER_OF_ENTRIES,     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NUMBER_OF_ENTRIES,         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SELECTED_ENTRY,            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_STRING_LENGTH,         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("FirstAccessibleEntry"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_FIRST_VISIBLE_ENTRY,       BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_VERTICAL_SCROLL,           BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_scrollBarPositionValues)},
+    {PARAMETER_ALIGNMENT,                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_pushButtonAlignmentValues)},
+    {PARAMETER_FLAG_REPORT_VISIBLE_ENTRY, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION,    BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_DEFAULT_STYLE_TEXT,        BINARY_FIELD_BYTES,       12U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ENABLE_ARRAY,              BINARY_FIELD_UCHAR,        1U,  9U, 1U, NULL, 0U},
+    {PARAMETER_LABEL_STRING_ARRAY,        BINARY_FIELD_STRING,       0U,  9U, 1U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1870,32 +2406,32 @@ static const BinaryField_t c_scrollListFields[] =
  */
 static const BinaryField_t c_scrollPanelFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("LineDeltaX"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("LineDeltaY"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("PageDeltaX"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("PageDeltaY"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("HomeX"),                         BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("HomeY"),                         BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("FrameX"),                        BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("FrameY"),                        BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeXsheet"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeYsheet"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("BoundX"),                        BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("BoundY"),                        BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeXbound"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeYbound"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
-    {("HorizontalScroll"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_scrollBarPositionValues)},
-    {("VerticalScroll"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_scrollBarPositionValues)},
-    {("FlagReportFramePos"),            BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,         BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,           BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,           BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,          BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,          BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("LineDeltaX"),            BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("LineDeltaY"),            BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("PageDeltaX"),            BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("PageDeltaY"),            BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("HomeX"),                 BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("HomeY"),                 BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("FrameX"),                BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("FrameY"),                BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeXsheet"),            BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeYsheet"),            BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("BoundX"),                BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("BoundY"),                BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("SizeXbound"),            BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {("SizeYbound"),            BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,       BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {(NULL),                    BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {("HorizontalScroll"),      BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_scrollBarPositionValues)},
+    {PARAMETER_VERTICAL_SCROLL, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_scrollBarPositionValues)},
+    {("FlagReportFramePos"),    BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                    BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1904,12 +2440,12 @@ static const BinaryField_t c_scrollPanelFields[] =
  */
 static const BinaryField_t c_scrollWheelAreaFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE, BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {(NULL),           BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_X,  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X, BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y, BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1918,28 +2454,28 @@ static const BinaryField_t c_scrollWheelAreaFields[] =
  */
 static const BinaryField_t c_selectionListButtonFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SelectingAreaWidth"),            BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SelectingAreaHeight"),           BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MaxNumberOfEntries"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NumberOfEntries"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("SelectedEntry"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("OpeningEntry"),                  BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_buttonAlignmentValues)},
-    {("OpeningMode"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_comboBoxOpeningModeValues)},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_ALIGN,        0U,  0U, 0U, NULL, 0U},
-    {("EntryList"),                     BINARY_FIELD_STRING,       0U, 11U, 1U, NULL, 0U}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SELECTING_AREA_WIDTH,   BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SELECTING_AREA_HEIGHT,  BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_NUMBER_OF_ENTRIES,  BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NUMBER_OF_ENTRIES,      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SELECTED_ENTRY,         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_OPENING_ENTRY,          BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_buttonAlignmentValues)},
+    {PARAMETER_OPENING_MODE,           BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_comboBoxOpeningModeValues)},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                           BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U},
+    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U},
+    {(NULL),                           BINARY_FIELD_ALIGN,        0U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ENTRY_LIST,             BINARY_FIELD_STRING,       0U, 11U, 1U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1948,18 +2484,18 @@ static const BinaryField_t c_selectionListButtonFields[] =
  */
 static const BinaryField_t c_shuffleToFitContainerFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("NumberOfVisibleChildren"),       BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("ShuffleToFitMode"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_shuffleToFitModeValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("ItemSpacing"),                   BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,                      BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,                      BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,                     BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,                     BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NUMBER_OF_VISIBLE_CHILDREN, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("ShuffleToFitMode"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_shuffleToFitModeValues)},
+    {(NULL),                               BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ITEM_SPACING,               BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,                  BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {(NULL),                               BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1968,16 +2504,16 @@ static const BinaryField_t c_shuffleToFitContainerFields[] =
  */
 static const BinaryField_t c_sizeToFitContainerFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("NumberOfVisibleChildren"),       BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("SizeToFitMode"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("ItemSpacing"),                   BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,                      BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,                      BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,                     BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,                     BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NUMBER_OF_VISIBLE_CHILDREN, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("SizeToFitMode"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {(NULL),                               BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ITEM_SPACING,               BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -1986,25 +2522,25 @@ static const BinaryField_t c_sizeToFitContainerFields[] =
  */
 static const BinaryField_t c_sliderFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MinValue"),                      BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
-    {("MaxValue"),                      BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
-    {("Value"),                         BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
-    {("MajorTickInterval"),             BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
-    {("ShowMajorLabels"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_trueFalseValues)},
-    {("Orientation"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_sliderOrientationValues)},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_sliderAlignmentValues)},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("LsbMultiple"),                   BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MinorTickMultiple"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MajorTickReference"),            BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MIN_VALUE,              BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_VALUE,              BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_VALUE,                  BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("MajorTickInterval"),            BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U},
+    {("ShowMajorLabels"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_trueFalseValues)},
+    {("Orientation"),                  BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_sliderOrientationValues)},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_sliderAlignmentValues)},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("LsbMultiple"),                  BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MinorTickMultiple"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MajorTickReference"),           BINARY_FIELD_FLOAT,        4U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -2013,15 +2549,15 @@ static const BinaryField_t c_sliderFields[] =
  */
 static const BinaryField_t c_symbolFields[] =
 {
-    {("MotionAllowed"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("RotationAngle"),                 BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("SymbolReference"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U}
+    {PARAMETER_MOTION_ALLOWED,   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_VISIBLE,          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,            BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,            BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ROTATION_ANGLE,   BINARY_FIELD_FR180,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,        BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SYMBOL_REFERENCE, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_COLOR_INDEX,      BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {(NULL),                     BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -2030,21 +2566,21 @@ static const BinaryField_t c_symbolFields[] =
  */
 static const BinaryField_t c_symbolAnimatedFields[] =
 {
-    {("MotionAllowed"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("ColorIndex"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("LoopType"),                      BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_loopTypeValues)},
-    {("NumberOfSymbols"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("IndexOfFrequency"),              BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("AnimationType"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_animationTypeValues)},
-    {("SymbolArray"),                   BINARY_FIELD_USHORT,       2U,  7U, 1U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_ALIGN,        0U,  0U, 0U, NULL, 0U},
-    {("OrientationArray"),              BINARY_FIELD_FR180,        4U,  7U, 1U, NULL, 0U},
-    {("MovementXArray"),                BINARY_FIELD_LONG,         4U,  7U, 1U, NULL, 0U},
-    {("MovementYArray"),                BINARY_FIELD_LONG,         4U,  7U, 1U, NULL, 0U}
+    {PARAMETER_MOTION_ALLOWED,     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_VISIBLE,            BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,              BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,              BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,          BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_COLOR_INDEX,        BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("LoopType"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_loopTypeValues)},
+    {PARAMETER_NUMBER_OF_SYMBOLS,  BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_INDEX_OF_FREQUENCY, BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("AnimationType"),            BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_animationTypeValues)},
+    {PARAMETER_SYMBOL_ARRAY,       BINARY_FIELD_USHORT,       2U,  7U, 1U, NULL, 0U},
+    {(NULL),                       BINARY_FIELD_ALIGN,        0U,  0U, 0U, NULL, 0U},
+    {("OrientationArray"),         BINARY_FIELD_FR180,        4U,  7U, 1U, NULL, 0U},
+    {("MovementXArray"),           BINARY_FIELD_LONG,         4U,  7U, 1U, NULL, 0U},
+    {("MovementYArray"),           BINARY_FIELD_LONG,         4U,  7U, 1U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -2053,21 +2589,21 @@ static const BinaryField_t c_symbolAnimatedFields[] =
  */
 static const BinaryField_t c_symbolPushButtonFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("SymbolReference"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("SymbolPosition"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_picturePositionValues)},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_buttonAlignmentValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SYMBOL_REFERENCE,       BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SYMBOL_POSITION,        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_picturePositionValues)},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_buttonAlignmentValues)},
+    {(NULL),                           BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -2076,25 +2612,25 @@ static const BinaryField_t c_symbolPushButtonFields[] =
  */
 static const BinaryField_t c_symbolToggleButtonFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("AlternateFlag"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("SymbolReference"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("AlternateSymbolReference"),      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("SymbolPosition"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_picturePositionValues)},
-    {("ToggleState"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_toggleStateValues)},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_buttonAlignmentValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U},
-    {("AlternateLabelString"),          BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ALTERNATE_FLAG,         BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_SYMBOL_REFERENCE,       BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("AlternateSymbolReference"),     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SYMBOL_POSITION,        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_picturePositionValues)},
+    {PARAMETER_TOGGLE_STATE,           BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_toggleStateValues)},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_buttonAlignmentValues)},
+    {(NULL),                           BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ALTERNATE_LABEL_STRING, BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -2103,18 +2639,18 @@ static const BinaryField_t c_symbolToggleButtonFields[] =
  */
 static const BinaryField_t c_tabbedPanelFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("PictureReference"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("PicturePosition"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_popUpButtonPicturePositionValues)},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_pushButtonAlignmentValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("InsetSize"),                     BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_PICTURE_REFERENCE,      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_PICTURE_POSITION,       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_popUpButtonPicturePositionValues)},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_pushButtonAlignmentValues)},
+    {(NULL),                           BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("InsetSize"),                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -2123,17 +2659,17 @@ static const BinaryField_t c_tabbedPanelFields[] =
  */
 static const BinaryField_t c_tabbedPanelGroupFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("ActiveTabbedPanelID"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("TabPosition"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_tabPositionValues)},
-    {("AutomaticInsetSizeFlag"),        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,           BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,            BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,            BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,           BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,           BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,        BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("ActiveTabbedPanelID"),    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("TabPosition"),            BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_tabPositionValues)},
+    {("AutomaticInsetSizeFlag"), BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                     BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -2142,22 +2678,22 @@ static const BinaryField_t c_tabbedPanelGroupFields[] =
  */
 static const BinaryField_t c_toggleButtonFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("ToggleState"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_toggleStateValues)},
-    {("AlternateFlag"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_pushButtonAlignmentValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
-    {("LabelString"),                   BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U},
-    {("AlternateLabelString"),          BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,                 BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_STRING_LENGTH,      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_TOGGLE_STATE,           BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_toggleStateValues)},
+    {PARAMETER_ALTERNATE_FLAG,         BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_ALIGNMENT,              BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_pushButtonAlignmentValues)},
+    {(NULL),                           BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_LABEL_STRING,           BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U},
+    {PARAMETER_ALTERNATE_LABEL_STRING, BINARY_FIELD_STRING,       0U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -2166,18 +2702,18 @@ static const BinaryField_t c_toggleButtonFields[] =
  */
 static const BinaryField_t c_touchAreaFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("ReportMode"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_positionReportModeValues)},
-    {("AllowOutside"),                  BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("MaxTouchPoints"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("NumberOfTouchPoints"),           BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U}
+    {PARAMETER_ENABLE,        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_STYLE_SET,     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {(NULL),                  BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_X,         BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,         BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,        BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,        BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_REPORT_MODE,   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_positionReportModeValues)},
+    {PARAMETER_ALLOW_OUTSIDE, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("MaxTouchPoints"),      BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("NumberOfTouchPoints"), BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -2186,10 +2722,10 @@ static const BinaryField_t c_touchAreaFields[] =
  */
 static const BinaryField_t c_translationContainerFields[] =
 {
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("TranslationX"),                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("TranslationY"),                  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U}
+    {PARAMETER_VISIBLE, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("TranslationX"),  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {("TranslationY"),  BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -2198,29 +2734,29 @@ static const BinaryField_t c_translationContainerFields[] =
  */
 static const BinaryField_t c_treeFields[] =
 {
-    {("Enable"),                        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
-    {("Visible"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("PosX"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("PosY"),                          BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
-    {("SizeX"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("SizeY"),                         BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
-    {("FirstVisibleEntry"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("FlagReportVisibleEntry"),        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("StyleSet"),                      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NextFocusedWidget"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MaxNumberOfEntries"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NumberOfEntries"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("SelectedEntry"),                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MaxStringLength"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("AutomaticFocusMotion"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("Alignment"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxAlignmentValues)},
-    {("NodeStyleArray"),                BINARY_FIELD_USHORT,       2U, 12U, 1U, NULL, 0U},
-    {("ParentArray"),                   BINARY_FIELD_USHORT,       2U, 12U, 1U, NULL, 0U},
-    {("EnableArray"),                   BINARY_FIELD_UCHAR,        1U, 12U, 1U, NULL, 0U},
-    {("OpenArray"),                     BINARY_FIELD_UCHAR,        1U, 12U, 1U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_ALIGN,        0U,  0U, 0U, NULL, 0U},
-    {("LabelStringArray"),              BINARY_FIELD_STRING,       0U, 12U, 1U, NULL, 0U}
+    {PARAMETER_ENABLE,                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_enableValues)},
+    {PARAMETER_VISIBLE,                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_POS_X,                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_POS_Y,                     BINARY_FIELD_LONG,         4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_X,                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SIZE_Y,                    BINARY_FIELD_ULONG,        4U,  0U, 0U, NULL, 0U},
+    {PARAMETER_FIRST_VISIBLE_ENTRY,       BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_FLAG_REPORT_VISIBLE_ENTRY, BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {(NULL),                              BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_STYLE_SET,                 BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,       BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_NUMBER_OF_ENTRIES,     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NUMBER_OF_ENTRIES,         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SELECTED_ENTRY,            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_MAX_STRING_LENGTH,         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION,    BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {PARAMETER_ALIGNMENT,                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxAlignmentValues)},
+    {("NodeStyleArray"),                  BINARY_FIELD_USHORT,       2U, 12U, 1U, NULL, 0U},
+    {("ParentArray"),                     BINARY_FIELD_USHORT,       2U, 12U, 1U, NULL, 0U},
+    {PARAMETER_ENABLE_ARRAY,              BINARY_FIELD_UCHAR,        1U, 12U, 1U, NULL, 0U},
+    {("OpenArray"),                       BINARY_FIELD_UCHAR,        1U, 12U, 1U, NULL, 0U},
+    {(NULL),                              BINARY_FIELD_ALIGN,        0U,  0U, 0U, NULL, 0U},
+    {PARAMETER_LABEL_STRING_ARRAY,        BINARY_FIELD_STRING,       0U, 12U, 1U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -2229,15 +2765,15 @@ static const BinaryField_t c_treeFields[] =
  */
 static const BinaryField_t c_watchdogContainerFields[] =
 {
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
-    {("TimePeriod"),                    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("ValidCountLimit"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("FailCountLimit"),                BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("Refresh"),                       BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("ShowIfFailIdent"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("ShowFail"),                      BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_trueFalseValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U}
+    {(NULL),              BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {("TimePeriod"),      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("ValidCountLimit"), BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("FailCountLimit"),  BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("Refresh"),         BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {(NULL),              BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("ShowIfFailIdent"), BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("ShowFail"),        BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_trueFalseValues)},
+    {(NULL),              BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -2246,9 +2782,9 @@ static const BinaryField_t c_watchdogContainerFields[] =
  */
 static const BinaryField_t c_directionalTabbingExtensionFields[] =
 {
-    {("NumDirections"),                 BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("TabDirectionWidgetIdArray"),     BINARY_FIELD_USHORT,       2U,  0U, 1U, NULL, 0U}
+    {("NumDirections"),             BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {(NULL),                        BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("TabDirectionWidgetIdArray"), BINARY_FIELD_USHORT,       2U,  0U, 1U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -2257,8 +2793,8 @@ static const BinaryField_t c_directionalTabbingExtensionFields[] =
  */
 static const BinaryField_t c_cursorEventsExtensionFields[] =
 {
-    {("NumEvents"),                     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("EventIdArray"),                  BINARY_FIELD_USHORT,       2U,  0U, 1U, NULL, 0U}
+    {PARAMETER_NUM_EVENTS,     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_EVENT_ID_ARRAY, BINARY_FIELD_USHORT,       2U,  0U, 1U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -2267,8 +2803,8 @@ static const BinaryField_t c_cursorEventsExtensionFields[] =
  */
 static const BinaryField_t c_legendAlignExtensionFields[] =
 {
-    {("LegendAlignment"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxAlignmentValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U}
+    {("LegendAlignment"), BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_editBoxAlignmentValues)},
+    {(NULL),              BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -2277,7 +2813,7 @@ static const BinaryField_t c_legendAlignExtensionFields[] =
  */
 static const BinaryField_t c_childIndexExtensionFields[] =
 {
-    {("VisibleChildIndex"),             BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
+    {("VisibleChildIndex"), BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -2286,8 +2822,8 @@ static const BinaryField_t c_childIndexExtensionFields[] =
  */
 static const BinaryField_t c_initialFocusExtensionFields[] =
 {
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("InitialFocus"),                  BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)}
+    {(NULL),           BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("InitialFocus"), BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)}
 };
 
 /*************************************************************************************************/
@@ -2296,8 +2832,8 @@ static const BinaryField_t c_initialFocusExtensionFields[] =
  */
 static const BinaryField_t c_focusStopExtensionFields[] =
 {
-    {("StopForward"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("StopBackward"),                  BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)}
+    {("StopForward"),  BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("StopBackward"), BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)}
 };
 
 /*************************************************************************************************/
@@ -2306,8 +2842,8 @@ static const BinaryField_t c_focusStopExtensionFields[] =
  */
 static const BinaryField_t c_cursorShapeExtensionFields[] =
 {
-    {("AllowChange"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
-    {("CursorIndex"),                   BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U}
+    {("AllowChange"), BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_booleanValues)},
+    {("CursorIndex"), BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -2316,11 +2852,11 @@ static const BinaryField_t c_cursorShapeExtensionFields[] =
  */
 static const BinaryField_t c_pictureExtensionFields[] =
 {
-    {("MaxNumberOfPictures"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NumberOfPictures"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("PicturePosition"),               BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_picturePositionValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("PictureArray"),                  BINARY_FIELD_USHORT,       2U,  1U, 1U, NULL, 0U}
+    {("MaxNumberOfPictures"),      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NUMBER_OF_PICTURES, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_PICTURE_POSITION,   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_picturePositionValues)},
+    {(NULL),                       BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_PICTURE_ARRAY,      BINARY_FIELD_USHORT,       2U,  1U, 1U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -2329,11 +2865,11 @@ static const BinaryField_t c_pictureExtensionFields[] =
  */
 static const BinaryField_t c_symbolExtensionFields[] =
 {
-    {("MaxNumberOfSymbols"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NumberOfSymbols"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("SymbolPosition"),                BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_picturePositionValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("SymbolArray"),                   BINARY_FIELD_USHORT,       2U,  1U, 1U, NULL, 0U}
+    {("MaxNumberOfSymbols"),      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_NUMBER_OF_SYMBOLS, BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SYMBOL_POSITION,   BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_picturePositionValues)},
+    {(NULL),                      BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {PARAMETER_SYMBOL_ARRAY,      BINARY_FIELD_USHORT,       2U,  1U, 1U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -2342,13 +2878,13 @@ static const BinaryField_t c_symbolExtensionFields[] =
  */
 static const BinaryField_t c_ticsArrayExtensionFields[] =
 {
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
-    {("MaxNumberOfTicsCoarse"),         BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NumberOfTicsCoarse"),            BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("MaxNumberOfTicsFine"),           BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("NumberOfTicsFine"),              BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("TicsCoarseArray"),               BINARY_FIELD_FLOAT,        4U,  2U, 2U, NULL, 0U},
-    {("TicsFineArray"),                 BINARY_FIELD_FLOAT,        4U,  4U, 2U, NULL, 0U}
+    {(NULL),                    BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U},
+    {("MaxNumberOfTicsCoarse"), BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NumberOfTicsCoarse"),    BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("MaxNumberOfTicsFine"),   BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("NumberOfTicsFine"),      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("TicsCoarseArray"),       BINARY_FIELD_FLOAT,        4U,  2U, 2U, NULL, 0U},
+    {("TicsFineArray"),         BINARY_FIELD_FLOAT,        4U,  4U, 2U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -2357,9 +2893,9 @@ static const BinaryField_t c_ticsArrayExtensionFields[] =
  */
 static const BinaryField_t c_styleSetExtensionFields[] =
 {
-    {("MaxStyleSetArraySize"),          BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("StyleSetArraySize"),             BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("StyleSetArray"),                 BINARY_FIELD_USHORT,       2U,  1U, 1U, NULL, 0U}
+    {("MaxStyleSetArraySize"), BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("StyleSetArraySize"),    BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("StyleSetArray"),        BINARY_FIELD_USHORT,       2U,  1U, 1U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -2368,8 +2904,8 @@ static const BinaryField_t c_styleSetExtensionFields[] =
  */
 static const BinaryField_t c_staticParamBufferExtensionFields[] =
 {
-    {("NumberOfBuffers"),               BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("BufferArray"),                   BINARY_FIELD_SIZED_BYTES,  0U,  0U, 1U, NULL, 0U}
+    {("NumberOfBuffers"), BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {("BufferArray"),     BINARY_FIELD_SIZED_BYTES,  0U,  0U, 1U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -2378,7 +2914,7 @@ static const BinaryField_t c_staticParamBufferExtensionFields[] =
  */
 static const BinaryField_t c_multiSelectionExtensionFields[] =
 {
-    {("MaximumSelectableEntries"),      BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
+    {("MaximumSelectableEntries"), BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -2387,11 +2923,11 @@ static const BinaryField_t c_multiSelectionExtensionFields[] =
  */
 static const BinaryField_t c_excludedRegionsExtensionFields[] =
 {
-    {("MaxNumberOfRegions"),            BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
-    {("EffectivityArray"),              BINARY_FIELD_UCHAR,        1U,  0U, 1U, NULL, 0U},
-    {(NULL),                            BINARY_FIELD_ALIGN,        0U,  0U, 0U, NULL, 0U},
-    {("ExcludedRegionsList"),           BINARY_FIELD_REGION,       0U,  0U, 1U, NULL, 0U}
+    {("MaxNumberOfRegions"),  BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {(NULL),                  BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U},
+    {("EffectivityArray"),    BINARY_FIELD_UCHAR,        1U,  0U, 1U, NULL, 0U},
+    {(NULL),                  BINARY_FIELD_ALIGN,        0U,  0U, 0U, NULL, 0U},
+    {("ExcludedRegionsList"), BINARY_FIELD_REGION,       0U,  0U, 1U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -2400,8 +2936,8 @@ static const BinaryField_t c_excludedRegionsExtensionFields[] =
  */
 static const BinaryField_t c_boundaryCheckExtensionFields[] =
 {
-    {("BoundaryCheckMode"),             BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_boundaryCheckModeValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U}
+    {("BoundaryCheckMode"), BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_boundaryCheckModeValues)},
+    {(NULL),                BINARY_FIELD_PAD,          1U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -2410,7 +2946,7 @@ static const BinaryField_t c_boundaryCheckExtensionFields[] =
  */
 static const BinaryField_t c_reorderExtensionFields[] =
 {
-    {(NULL),                            BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
+    {(NULL), BINARY_FIELD_PAD,          2U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -2419,8 +2955,8 @@ static const BinaryField_t c_reorderExtensionFields[] =
  */
 static const BinaryField_t c_wordWrapExtensionFields[] =
 {
-    {("WordWrap"),                      BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
-    {("WrapStyle"),                     BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U}
+    {("WordWrap"),  BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U},
+    {("WrapStyle"), BINARY_FIELD_UCHAR,        1U,  0U, 0U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -2429,8 +2965,8 @@ static const BinaryField_t c_wordWrapExtensionFields[] =
  */
 static const BinaryField_t c_cursorEntryEventsExtensionFields[] =
 {
-    {("NumEvents"),                     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("EventIdArray"),                  BINARY_FIELD_USHORT,       2U,  0U, 1U, NULL, 0U}
+    {PARAMETER_NUM_EVENTS,     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_EVENT_ID_ARRAY, BINARY_FIELD_USHORT,       2U,  0U, 1U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -2439,10 +2975,10 @@ static const BinaryField_t c_cursorEntryEventsExtensionFields[] =
  */
 static const BinaryField_t c_maphorzCoordSystemEventExtensionFields[] =
 {
-    {("NumEvents"),                     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("ReportMode"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_coordSystemReportModeValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U},
-    {("EventIdArray"),                  BINARY_FIELD_USHORT,       2U,  0U, 1U, NULL, 0U}
+    {PARAMETER_NUM_EVENTS,     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_REPORT_MODE,    BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_coordSystemReportModeValues)},
+    {(NULL),                   BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U},
+    {PARAMETER_EVENT_ID_ARRAY, BINARY_FIELD_USHORT,       2U,  0U, 1U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -2451,10 +2987,10 @@ static const BinaryField_t c_maphorzCoordSystemEventExtensionFields[] =
  */
 static const BinaryField_t c_mapvertCoordSystemEventExtensionFields[] =
 {
-    {("NumEvents"),                     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
-    {("ReportMode"),                    BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_coordSystemReportModeValues)},
-    {(NULL),                            BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U},
-    {("EventIdArray"),                  BINARY_FIELD_USHORT,       2U,  0U, 1U, NULL, 0U}
+    {PARAMETER_NUM_EVENTS,     BINARY_FIELD_USHORT,       2U,  0U, 0U, NULL, 0U},
+    {PARAMETER_REPORT_MODE,    BINARY_FIELD_UCHAR,        1U,  0U, 0U, ARRAY_AND_COUNT(c_coordSystemReportModeValues)},
+    {(NULL),                   BINARY_FIELD_PAD,          3U,  0U, 0U, NULL, 0U},
+    {PARAMETER_EVENT_ID_ARRAY, BINARY_FIELD_USHORT,       2U,  0U, 1U, NULL, 0U}
 };
 
 /*************************************************************************************************/
@@ -2463,106 +2999,106 @@ static const BinaryField_t c_mapvertCoordSystemEventExtensionFields[] =
  */
 static const BinaryWidget_t c_binaryWidgets[] =
 {
-    {("A661_ACTIVE_AREA"),                    0xA010U, ARRAY_AND_COUNT(c_activeAreaFields)},
-    {("A661_ANIMATION_GROUP"),                0xA1E3U, ARRAY_AND_COUNT(c_animationGroupFields)},
-    {("A661_ANIMATION_ONPARAM"),              0xA1E4U, ARRAY_AND_COUNT(c_animationOnparamFields)},
-    {("A661_ANIMATION_ROTATION"),             0xA1E5U, ARRAY_AND_COUNT(c_animationRotationFields)},
-    {("A661_ANIMATION_SCALE"),                0xA1E6U, ARRAY_AND_COUNT(c_animationScaleFields)},
-    {("A661_ANIMATION_TRANSLATION"),          0xA1E7U, ARRAY_AND_COUNT(c_animationTranslationFields)},
-    {("A661_BASIC_CONTAINER"),                0xA020U, ARRAY_AND_COUNT(c_basicContainerFields)},
-    {("A661_BLINKING_CONTAINER"),             0xA030U, ARRAY_AND_COUNT(c_blinkingContainerFields)},
-    {("A661_BROADCAST_RECEIVER"),             0xA032U, ARRAY_AND_COUNT(c_broadcastReceiverFields)},
-    {("A661_BUFFER_FORMAT"),                  0xA040U, ARRAY_AND_COUNT(c_bufferFormatFields)},
-    {("A661_CHECK_BUTTON"),                   0xA050U, ARRAY_AND_COUNT(c_checkButtonFields)},
-    {("A661_COMBO_BOX"),                      0xA070U, ARRAY_AND_COUNT(c_comboBoxFields)},
-    {("A661_COMBO_BOX_EDIT"),                 0xA0E0U, ARRAY_AND_COUNT(c_comboBoxEditFields)},
-    {("A661_CONNECTOR"),                      0xA080U, ARRAY_AND_COUNT(c_connectorFields)},
-    {("A661_CURSOR_OVER"),                    0xA480U, ARRAY_AND_COUNT(c_cursorOverFields)},
-    {("A661_CURSOR_POS_OVERLAY"),             0xA090U, ARRAY_AND_COUNT(c_cursorPosOverlayFields)},
-    {("A661_CURSOR_REF"),                     0xA470U, ARRAY_AND_COUNT(c_cursorRefFields)},
-    {("A661_DATA_CONNECTOR"),                 0xA088U, ARRAY_AND_COUNT(c_dataConnectorFields)},
-    {("A661_DATA_SCALING_FR180"),             0xA2E0U, ARRAY_AND_COUNT(c_dataScalingFr180Fields)},
-    {("A661_DATA_SCALING_LONG"),              0xA2D8U, ARRAY_AND_COUNT(c_dataScalingLongFields)},
-    {("A661_DATA_SCALING_ULONG"),             0xA2D9U, ARRAY_AND_COUNT(c_dataScalingUlongFields)},
-    {("A661_EDIT_BOX_MASKED"),                0xA0A0U, ARRAY_AND_COUNT(c_editBoxMaskedFields)},
-    {("A661_EDIT_BOX_MULTI_LINE"),            0xA0B0U, ARRAY_AND_COUNT(c_editBoxMultiLineFields)},
-    {("A661_EDIT_BOX_NUMERIC"),               0xA0C0U, ARRAY_AND_COUNT(c_editBoxNumericFields)},
-    {("A661_EDIT_BOX_NUMERIC_BCD"),           0xA0C2U, ARRAY_AND_COUNT(c_editBoxNumericBcdFields)},
-    {("A661_EDIT_BOX_TEXT"),                  0xA0D0U, ARRAY_AND_COUNT(c_editBoxTextFields)},
-    {("A661_EVENT_HANDLER"),                  0xA600U, ARRAY_AND_COUNT(c_eventHandlerFields)},
-    {("A661_EXTERNAL_SOURCE"),                0xA188U, ARRAY_AND_COUNT(c_externalSourceFields)},
-    {("A661_FOCUS_IN"),                       0xA498U, ARRAY_AND_COUNT(c_focusInFields)},
-    {("A661_FOCUS_LINK"),                     0xA490U, ARRAY_AND_COUNT(c_focusLinkFields)},
-    {("A661_FOCUS_OUT"),                      0xA499U, ARRAY_AND_COUNT(c_focusOutFields)},
-    {("A661_FRAMING_REFRESH_CONTAINER"),      0xA380U, ARRAY_AND_COUNT(c_framingRefreshContainerFields)},
-    {("A661_GESTURE_AREA"),                   0xA501U, ARRAY_AND_COUNT(c_gestureAreaFields)},
-    {("A661_GP_ARC_CIRCLE"),                  0xA0F0U, ARRAY_AND_COUNT(c_gpArcCircleFields)},
-    {("A661_GP_ARC_ELLIPSE"),                 0xA100U, ARRAY_AND_COUNT(c_gpArcEllipseFields)},
-    {("A661_GP_CROWN"),                       0xA110U, ARRAY_AND_COUNT(c_gpCrownFields)},
-    {("A661_GP_LINE"),                        0xA120U, ARRAY_AND_COUNT(c_gpLineFields)},
-    {("A661_GP_LINE_POLAR"),                  0xA130U, ARRAY_AND_COUNT(c_gpLinePolarFields)},
-    {("A661_GP_POLYLINE"),                    0xA138U, ARRAY_AND_COUNT(c_gpPolylineFields)},
-    {("A661_GP_RECTANGLE"),                   0xA140U, ARRAY_AND_COUNT(c_gpRectangleFields)},
-    {("A661_GP_TRIANGLE"),                    0xA150U, ARRAY_AND_COUNT(c_gpTriangleFields)},
-    {("A661_GP_TRIANGLE_FAN"),                0xA151U, ARRAY_AND_COUNT(c_gpTriangleFanFields)},
-    {("A661_GP_TRIANGLE_STRIP"),              0xA152U, ARRAY_AND_COUNT(c_gpTriangleStripFields)},
-    {("A661_INK_AREA"),                       0xA502U, ARRAY_AND_COUNT(c_inkAreaFields)},
-    {("A661_KEYBOARD_AREA"),                  0xA1E1U, ARRAY_AND_COUNT(c_keyboardAreaFields)},
-    {("A661_LABEL"),                          0xA160U, ARRAY_AND_COUNT(c_labelFields)},
-    {("A661_LABEL_COMPLEX"),                  0xA170U, ARRAY_AND_COUNT(c_labelComplexFields)},
-    {("A661_MAPHORZ"),                        0xA1B0U, ARRAY_AND_COUNT(c_maphorzFields)},
-    {("A661_MAPHORZ_CONTAINER"),              0xA1B8U, ARRAY_AND_COUNT(c_maphorzContainerFields)},
-    {("A661_MAPHORZ_ITEMLIST"),               0xA180U, ARRAY_AND_COUNT(c_maphorzItemlistFields)},
-    {("A661_MAPHORZ_PANEL"),                  0xA189U, ARRAY_AND_COUNT(c_maphorzPanelFields)},
-    {("A661_MAPHORZ_SOURCE"),                 0xA1A0U, ARRAY_AND_COUNT(c_maphorzSourceFields)},
-    {("A661_MAPHORZ_VERTEXBUFFER"),           0xA1A9U, ARRAY_AND_COUNT(c_maphorzVertexbufferFields)},
-    {("A661_MAPVERT"),                        0xA1B2U, ARRAY_AND_COUNT(c_mapvertFields)},
-    {("A661_MAPVERT_CONTAINER"),              0xA1B5U, ARRAY_AND_COUNT(c_mapvertContainerFields)},
-    {("A661_MAPVERT_ITEMLIST"),               0xA1B3U, ARRAY_AND_COUNT(c_mapvertItemlistFields)},
-    {("A661_MAPVERT_PANEL"),                  0xA1B6U, ARRAY_AND_COUNT(c_mapvertPanelFields)},
-    {("A661_MAPVERT_SOURCE"),                 0xA1B4U, ARRAY_AND_COUNT(c_mapvertSourceFields)},
-    {("A661_MAP_BOUNDARY"),                   0xA1BAU, ARRAY_AND_COUNT(c_mapBoundaryFields)},
-    {("A661_MAP_EXTERNAL_SOURCE"),            0xA224U, ARRAY_AND_COUNT(c_mapExternalSourceFields)},
-    {("A661_MAP_GRID"),                       0xA178U, ARRAY_AND_COUNT(c_mapGridFields)},
-    {("A661_MASK_CONTAINER"),                 0xA1C0U, ARRAY_AND_COUNT(c_maskContainerFields)},
-    {("A661_MENU_BAR"),                       0xA1D0U, ARRAY_AND_COUNT(c_menuBarFields)},
-    {("A661_MULTI_STATE_BUTTON"),             0xA348U, ARRAY_AND_COUNT(c_multiStateButtonFields)},
-    {("A661_MUTUALLY_EXCLUSIVE_CONTAINER"),   0xA400U, ARRAY_AND_COUNT(c_mutuallyExclusiveContainerFields)},
-    {("A661_NO_SERVICE_MONITOR"),             0xA4F0U, ARRAY_AND_COUNT(c_noServiceMonitorFields)},
-    {("A661_NUMERIC_READOUT"),                0xA406U, ARRAY_AND_COUNT(c_numericReadoutFields)},
-    {("A661_PAGING_CONTAINER"),               0xA408U, ARRAY_AND_COUNT(c_pagingContainerFields)},
-    {("A661_PANEL"),                          0xA1F0U, ARRAY_AND_COUNT(c_panelFields)},
-    {("A661_PICTURE"),                        0xA200U, ARRAY_AND_COUNT(c_pictureFields)},
-    {("A661_PICTURE_ANIMATED"),               0xA210U, ARRAY_AND_COUNT(c_pictureAnimatedFields)},
-    {("A661_PICTURE_PUSH_BUTTON"),            0xA240U, ARRAY_AND_COUNT(c_picturePushButtonFields)},
-    {("A661_PICTURE_TOGGLE_BUTTON"),          0xA250U, ARRAY_AND_COUNT(c_pictureToggleButtonFields)},
-    {("A661_POP_UP_MENU"),                    0xA270U, ARRAY_AND_COUNT(c_popUpMenuFields)},
-    {("A661_POP_UP_MENU_BUTTON"),             0xA280U, ARRAY_AND_COUNT(c_popUpMenuButtonFields)},
-    {("A661_POP_UP_PANEL"),                   0xA290U, ARRAY_AND_COUNT(c_popUpPanelFields)},
-    {("A661_POP_UP_PANEL_BUTTON"),            0xA4E0U, ARRAY_AND_COUNT(c_popUpPanelButtonFields)},
-    {("A661_PROXY_BUTTON"),                   0xA420U, ARRAY_AND_COUNT(c_proxyButtonFields)},
-    {("A661_PUSH_BUTTON"),                    0xA2A0U, ARRAY_AND_COUNT(c_pushButtonFields)},
-    {("A661_RADIO_BOX"),                      0xA2B0U, ARRAY_AND_COUNT(c_radioBoxFields)},
-    {("A661_ROTATION_CONTAINER"),             0xA2D0U, ARRAY_AND_COUNT(c_rotationContainerFields)},
-    {("A661_SCALE_CONTAINER"),                0xA2F2U, ARRAY_AND_COUNT(c_scaleContainerFields)},
-    {("A661_SCROLL_LIST"),                    0xA2F0U, ARRAY_AND_COUNT(c_scrollListFields)},
-    {("A661_SCROLL_PANEL"),                   0xA300U, ARRAY_AND_COUNT(c_scrollPanelFields)},
-    {("A661_SCROLL_WHEEL_AREA"),              0xA1E2U, ARRAY_AND_COUNT(c_scrollWheelAreaFields)},
-    {("A661_SELECTION_LIST_BUTTON"),          0xA370U, ARRAY_AND_COUNT(c_selectionListButtonFields)},
-    {("A661_SHUFFLE_TO_FIT_CONTAINER"),       0xA4B0U, ARRAY_AND_COUNT(c_shuffleToFitContainerFields)},
-    {("A661_SIZE_TO_FIT_CONTAINER"),          0xA4A0U, ARRAY_AND_COUNT(c_sizeToFitContainerFields)},
-    {("A661_SLIDER"),                         0xA440U, ARRAY_AND_COUNT(c_sliderFields)},
-    {("A661_SYMBOL"),                         0xA310U, ARRAY_AND_COUNT(c_symbolFields)},
-    {("A661_SYMBOL_ANIMATED"),                0xA450U, ARRAY_AND_COUNT(c_symbolAnimatedFields)},
-    {("A661_SYMBOL_PUSH_BUTTON"),             0xA4C0U, ARRAY_AND_COUNT(c_symbolPushButtonFields)},
-    {("A661_SYMBOL_TOGGLE_BUTTON"),           0xA4D0U, ARRAY_AND_COUNT(c_symbolToggleButtonFields)},
-    {("A661_TABBED_PANEL"),                   0xA320U, ARRAY_AND_COUNT(c_tabbedPanelFields)},
-    {("A661_TABBED_PANEL_GROUP"),             0xA330U, ARRAY_AND_COUNT(c_tabbedPanelGroupFields)},
-    {("A661_TOGGLE_BUTTON"),                  0xA340U, ARRAY_AND_COUNT(c_toggleButtonFields)},
-    {("A661_TOUCH_AREA"),                     0xA500U, ARRAY_AND_COUNT(c_touchAreaFields)},
-    {("A661_TRANSLATION_CONTAINER"),          0xA360U, ARRAY_AND_COUNT(c_translationContainerFields)},
-    {("A661_TREE"),                           0xA222U, ARRAY_AND_COUNT(c_treeFields)},
-    {("A661_WATCHDOG_CONTAINER"),             0xA460U, ARRAY_AND_COUNT(c_watchdogContainerFields)}
+    {TYPE_A661_ACTIVE_AREA,                  0xA010U, ARRAY_AND_COUNT(c_activeAreaFields)},
+    {("A661_ANIMATION_GROUP"),               0xA1E3U, ARRAY_AND_COUNT(c_animationGroupFields)},
+    {("A661_ANIMATION_ONPARAM"),             0xA1E4U, ARRAY_AND_COUNT(c_animationOnparamFields)},
+    {("A661_ANIMATION_ROTATION"),            0xA1E5U, ARRAY_AND_COUNT(c_animationRotationFields)},
+    {("A661_ANIMATION_SCALE"),               0xA1E6U, ARRAY_AND_COUNT(c_animationScaleFields)},
+    {("A661_ANIMATION_TRANSLATION"),         0xA1E7U, ARRAY_AND_COUNT(c_animationTranslationFields)},
+    {TYPE_A661_BASIC_CONTAINER,              0xA020U, ARRAY_AND_COUNT(c_basicContainerFields)},
+    {TYPE_A661_BLINKING_CONTAINER,           0xA030U, ARRAY_AND_COUNT(c_blinkingContainerFields)},
+    {("A661_BROADCAST_RECEIVER"),            0xA032U, ARRAY_AND_COUNT(c_broadcastReceiverFields)},
+    {TYPE_A661_BUFFER_FORMAT,                0xA040U, ARRAY_AND_COUNT(c_bufferFormatFields)},
+    {TYPE_A661_CHECK_BUTTON,                 0xA050U, ARRAY_AND_COUNT(c_checkButtonFields)},
+    {TYPE_A661_COMBO_BOX,                    0xA070U, ARRAY_AND_COUNT(c_comboBoxFields)},
+    {TYPE_A661_COMBO_BOX_EDIT,               0xA0E0U, ARRAY_AND_COUNT(c_comboBoxEditFields)},
+    {TYPE_A661_CONNECTOR,                    0xA080U, ARRAY_AND_COUNT(c_connectorFields)},
+    {TYPE_A661_CURSOR_OVER,                  0xA480U, ARRAY_AND_COUNT(c_cursorOverFields)},
+    {TYPE_A661_CURSOR_POS_OVERLAY,           0xA090U, ARRAY_AND_COUNT(c_cursorPosOverlayFields)},
+    {TYPE_A661_CURSOR_REF,                   0xA470U, ARRAY_AND_COUNT(c_cursorRefFields)},
+    {TYPE_A661_DATA_CONNECTOR,               0xA088U, ARRAY_AND_COUNT(c_dataConnectorFields)},
+    {("A661_DATA_SCALING_FR180"),            0xA2E0U, ARRAY_AND_COUNT(c_dataScalingFr180Fields)},
+    {("A661_DATA_SCALING_LONG"),             0xA2D8U, ARRAY_AND_COUNT(c_dataScalingLongFields)},
+    {("A661_DATA_SCALING_ULONG"),            0xA2D9U, ARRAY_AND_COUNT(c_dataScalingUlongFields)},
+    {TYPE_A661_EDIT_BOX_MASKED,              0xA0A0U, ARRAY_AND_COUNT(c_editBoxMaskedFields)},
+    {TYPE_A661_EDIT_BOX_MULTI_LINE,          0xA0B0U, ARRAY_AND_COUNT(c_editBoxMultiLineFields)},
+    {TYPE_A661_EDIT_BOX_NUMERIC,             0xA0C0U, ARRAY_AND_COUNT(c_editBoxNumericFields)},
+    {TYPE_A661_EDIT_BOX_NUMERIC_BCD,         0xA0C2U, ARRAY_AND_COUNT(c_editBoxNumericBcdFields)},
+    {TYPE_A661_EDIT_BOX_TEXT,                0xA0D0U, ARRAY_AND_COUNT(c_editBoxTextFields)},
+    {("A661_EVENT_HANDLER"),                 0xA600U, ARRAY_AND_COUNT(c_eventHandlerFields)},
+    {TYPE_A661_EXTERNAL_SOURCE,              0xA188U, ARRAY_AND_COUNT(c_externalSourceFields)},
+    {("A661_FOCUS_IN"),                      0xA498U, ARRAY_AND_COUNT(c_focusInFields)},
+    {("A661_FOCUS_LINK"),                    0xA490U, ARRAY_AND_COUNT(c_focusLinkFields)},
+    {("A661_FOCUS_OUT"),                     0xA499U, ARRAY_AND_COUNT(c_focusOutFields)},
+    {("A661_FRAMING_REFRESH_CONTAINER"),     0xA380U, ARRAY_AND_COUNT(c_framingRefreshContainerFields)},
+    {TYPE_A661_GESTURE_AREA,                 0xA501U, ARRAY_AND_COUNT(c_gestureAreaFields)},
+    {TYPE_A661_GP_ARC_CIRCLE,                0xA0F0U, ARRAY_AND_COUNT(c_gpArcCircleFields)},
+    {TYPE_A661_GP_ARC_ELLIPSE,               0xA100U, ARRAY_AND_COUNT(c_gpArcEllipseFields)},
+    {TYPE_A661_GP_CROWN,                     0xA110U, ARRAY_AND_COUNT(c_gpCrownFields)},
+    {TYPE_A661_GP_LINE,                      0xA120U, ARRAY_AND_COUNT(c_gpLineFields)},
+    {TYPE_A661_GP_LINE_POLAR,                0xA130U, ARRAY_AND_COUNT(c_gpLinePolarFields)},
+    {TYPE_A661_GP_POLYLINE,                  0xA138U, ARRAY_AND_COUNT(c_gpPolylineFields)},
+    {TYPE_A661_GP_RECTANGLE,                 0xA140U, ARRAY_AND_COUNT(c_gpRectangleFields)},
+    {TYPE_A661_GP_TRIANGLE,                  0xA150U, ARRAY_AND_COUNT(c_gpTriangleFields)},
+    {("A661_GP_TRIANGLE_FAN"),               0xA151U, ARRAY_AND_COUNT(c_gpTriangleFanFields)},
+    {("A661_GP_TRIANGLE_STRIP"),             0xA152U, ARRAY_AND_COUNT(c_gpTriangleStripFields)},
+    {TYPE_A661_INK_AREA,                     0xA502U, ARRAY_AND_COUNT(c_inkAreaFields)},
+    {TYPE_A661_KEYBOARD_AREA,                0xA1E1U, ARRAY_AND_COUNT(c_keyboardAreaFields)},
+    {TYPE_A661_LABEL,                        0xA160U, ARRAY_AND_COUNT(c_labelFields)},
+    {TYPE_A661_LABEL_COMPLEX,                0xA170U, ARRAY_AND_COUNT(c_labelComplexFields)},
+    {TYPE_A661_MAPHORZ,                      0xA1B0U, ARRAY_AND_COUNT(c_maphorzFields)},
+    {TYPE_A661_MAPHORZ_CONTAINER,            0xA1B8U, ARRAY_AND_COUNT(c_maphorzContainerFields)},
+    {TYPE_A661_MAPHORZ_ITEMLIST,             0xA180U, ARRAY_AND_COUNT(c_maphorzItemlistFields)},
+    {TYPE_A661_MAPHORZ_PANEL,                0xA189U, ARRAY_AND_COUNT(c_maphorzPanelFields)},
+    {TYPE_A661_MAPHORZ_SOURCE,               0xA1A0U, ARRAY_AND_COUNT(c_maphorzSourceFields)},
+    {("A661_MAPHORZ_VERTEXBUFFER"),          0xA1A9U, ARRAY_AND_COUNT(c_maphorzVertexbufferFields)},
+    {TYPE_A661_MAPVERT,                      0xA1B2U, ARRAY_AND_COUNT(c_mapvertFields)},
+    {TYPE_A661_MAPVERT_CONTAINER,            0xA1B5U, ARRAY_AND_COUNT(c_mapvertContainerFields)},
+    {TYPE_A661_MAPVERT_ITEMLIST,             0xA1B3U, ARRAY_AND_COUNT(c_mapvertItemlistFields)},
+    {TYPE_A661_MAPVERT_PANEL,                0xA1B6U, ARRAY_AND_COUNT(c_mapvertPanelFields)},
+    {TYPE_A661_MAPVERT_SOURCE,               0xA1B4U, ARRAY_AND_COUNT(c_mapvertSourceFields)},
+    {TYPE_A661_MAP_BOUNDARY,                 0xA1BAU, ARRAY_AND_COUNT(c_mapBoundaryFields)},
+    {TYPE_A661_MAP_EXTERNAL_SOURCE,          0xA224U, ARRAY_AND_COUNT(c_mapExternalSourceFields)},
+    {TYPE_A661_MAP_GRID,                     0xA178U, ARRAY_AND_COUNT(c_mapGridFields)},
+    {TYPE_A661_MASK_CONTAINER,               0xA1C0U, ARRAY_AND_COUNT(c_maskContainerFields)},
+    {TYPE_A661_MENU_BAR,                     0xA1D0U, ARRAY_AND_COUNT(c_menuBarFields)},
+    {TYPE_A661_MULTI_STATE_BUTTON,           0xA348U, ARRAY_AND_COUNT(c_multiStateButtonFields)},
+    {TYPE_A661_MUTUALLY_EXCLUSIVE_CONTAINER, 0xA400U, ARRAY_AND_COUNT(c_mutuallyExclusiveContainerFields)},
+    {("A661_NO_SERVICE_MONITOR"),            0xA4F0U, ARRAY_AND_COUNT(c_noServiceMonitorFields)},
+    {TYPE_A661_NUMERIC_READOUT,              0xA406U, ARRAY_AND_COUNT(c_numericReadoutFields)},
+    {TYPE_A661_PAGING_CONTAINER,             0xA408U, ARRAY_AND_COUNT(c_pagingContainerFields)},
+    {TYPE_A661_PANEL,                        0xA1F0U, ARRAY_AND_COUNT(c_panelFields)},
+    {TYPE_A661_PICTURE,                      0xA200U, ARRAY_AND_COUNT(c_pictureFields)},
+    {TYPE_A661_PICTURE_ANIMATED,             0xA210U, ARRAY_AND_COUNT(c_pictureAnimatedFields)},
+    {TYPE_A661_PICTURE_PUSH_BUTTON,          0xA240U, ARRAY_AND_COUNT(c_picturePushButtonFields)},
+    {TYPE_A661_PICTURE_TOGGLE_BUTTON,        0xA250U, ARRAY_AND_COUNT(c_pictureToggleButtonFields)},
+    {TYPE_A661_POP_UP_MENU,                  0xA270U, ARRAY_AND_COUNT(c_popUpMenuFields)},
+    {TYPE_A661_POP_UP_MENU_BUTTON,           0xA280U, ARRAY_AND_COUNT(c_popUpMenuButtonFields)},
+    {TYPE_A661_POP_UP_PANEL,                 0xA290U, ARRAY_AND_COUNT(c_popUpPanelFields)},
+    {TYPE_A661_POP_UP_PANEL_BUTTON,          0xA4E0U, ARRAY_AND_COUNT(c_popUpPanelButtonFields)},
+    {("A661_PROXY_BUTTON"),                  0xA420U, ARRAY_AND_COUNT(c_proxyButtonFields)},
+    {TYPE_A661_PUSH_BUTTON,                  0xA2A0U, ARRAY_AND_COUNT(c_pushButtonFields)},
+    {TYPE_A661_RADIO_BOX,                    0xA2B0U, ARRAY_AND_COUNT(c_radioBoxFields)},
+    {TYPE_A661_ROTATION_CONTAINER,           0xA2D0U, ARRAY_AND_COUNT(c_rotationContainerFields)},
+    {TYPE_A661_SCALE_CONTAINER,              0xA2F2U, ARRAY_AND_COUNT(c_scaleContainerFields)},
+    {TYPE_A661_SCROLL_LIST,                  0xA2F0U, ARRAY_AND_COUNT(c_scrollListFields)},
+    {TYPE_A661_SCROLL_PANEL,                 0xA300U, ARRAY_AND_COUNT(c_scrollPanelFields)},
+    {TYPE_A661_SCROLL_WHEEL_AREA,            0xA1E2U, ARRAY_AND_COUNT(c_scrollWheelAreaFields)},
+    {TYPE_A661_SELECTION_LIST_BUTTON,        0xA370U, ARRAY_AND_COUNT(c_selectionListButtonFields)},
+    {TYPE_A661_SHUFFLE_TO_FIT_CONTAINER,     0xA4B0U, ARRAY_AND_COUNT(c_shuffleToFitContainerFields)},
+    {TYPE_A661_SIZE_TO_FIT_CONTAINER,        0xA4A0U, ARRAY_AND_COUNT(c_sizeToFitContainerFields)},
+    {TYPE_A661_SLIDER,                       0xA440U, ARRAY_AND_COUNT(c_sliderFields)},
+    {TYPE_A661_SYMBOL,                       0xA310U, ARRAY_AND_COUNT(c_symbolFields)},
+    {TYPE_A661_SYMBOL_ANIMATED,              0xA450U, ARRAY_AND_COUNT(c_symbolAnimatedFields)},
+    {TYPE_A661_SYMBOL_PUSH_BUTTON,           0xA4C0U, ARRAY_AND_COUNT(c_symbolPushButtonFields)},
+    {TYPE_A661_SYMBOL_TOGGLE_BUTTON,         0xA4D0U, ARRAY_AND_COUNT(c_symbolToggleButtonFields)},
+    {TYPE_A661_TABBED_PANEL,                 0xA320U, ARRAY_AND_COUNT(c_tabbedPanelFields)},
+    {TYPE_A661_TABBED_PANEL_GROUP,           0xA330U, ARRAY_AND_COUNT(c_tabbedPanelGroupFields)},
+    {TYPE_A661_TOGGLE_BUTTON,                0xA340U, ARRAY_AND_COUNT(c_toggleButtonFields)},
+    {TYPE_A661_TOUCH_AREA,                   0xA500U, ARRAY_AND_COUNT(c_touchAreaFields)},
+    {TYPE_A661_TRANSLATION_CONTAINER,        0xA360U, ARRAY_AND_COUNT(c_translationContainerFields)},
+    {TYPE_A661_TREE,                         0xA222U, ARRAY_AND_COUNT(c_treeFields)},
+    {("A661_WATCHDOG_CONTAINER"),            0xA460U, ARRAY_AND_COUNT(c_watchdogContainerFields)}
 };
 
 /*************************************************************************************************/
@@ -2571,26 +3107,26 @@ static const BinaryWidget_t c_binaryWidgets[] =
  */
 static const BinaryWidget_t c_binaryExtensions[] =
 {
-    {("A661_DIRECTIONAL_TABBING_EXTENSION"),        0x8003U, ARRAY_AND_COUNT(c_directionalTabbingExtensionFields)},
-    {("A661_CURSOR_EVENTS_EXTENSION"),              0x8002U, ARRAY_AND_COUNT(c_cursorEventsExtensionFields)},
-    {("A661_LEGEND_ALIGN_EXTENSION"),               0x8004U, ARRAY_AND_COUNT(c_legendAlignExtensionFields)},
-    {("A661_CHILD_INDEX_EXTENSION"),                0x8001U, ARRAY_AND_COUNT(c_childIndexExtensionFields)},
-    {("A661_INITIAL_FOCUS_EXTENSION"),              0x8006U, ARRAY_AND_COUNT(c_initialFocusExtensionFields)},
-    {("A661_FOCUS_STOP_EXTENSION"),                 0x8007U, ARRAY_AND_COUNT(c_focusStopExtensionFields)},
-    {("A661_CURSOR_SHAPE_EXTENSION"),               0x8008U, ARRAY_AND_COUNT(c_cursorShapeExtensionFields)},
-    {("A661_PICTURE_EXTENSION"),                    0x8009U, ARRAY_AND_COUNT(c_pictureExtensionFields)},
-    {("A661_SYMBOL_EXTENSION"),                     0x800AU, ARRAY_AND_COUNT(c_symbolExtensionFields)},
-    {("A661_TICS_ARRAY_EXTENSION"),                 0x800BU, ARRAY_AND_COUNT(c_ticsArrayExtensionFields)},
-    {("A661_STYLE_SET_EXTENSION"),                  0x800CU, ARRAY_AND_COUNT(c_styleSetExtensionFields)},
-    {("A661_STATIC_PARAM_BUFFER_EXTENSION"),        0x800DU, ARRAY_AND_COUNT(c_staticParamBufferExtensionFields)},
-    {("A661_MULTI_SELECTION_EXTENSION"),            0x800FU, ARRAY_AND_COUNT(c_multiSelectionExtensionFields)},
-    {("A661_EXCLUDED_REGIONS_EXTENSION"),           0x800EU, ARRAY_AND_COUNT(c_excludedRegionsExtensionFields)},
-    {("A661_BOUNDARY_CHECK_EXTENSION"),             0x8010U, ARRAY_AND_COUNT(c_boundaryCheckExtensionFields)},
-    {("A661_REORDER_EXTENSION"),                    0x8011U, ARRAY_AND_COUNT(c_reorderExtensionFields)},
-    {("A661_WORD_WRAP_EXTENSION"),                  0x8012U, ARRAY_AND_COUNT(c_wordWrapExtensionFields)},
-    {("A661_CURSOR_ENTRY_EVENTS_EXTENSION"),        0x8013U, ARRAY_AND_COUNT(c_cursorEntryEventsExtensionFields)},
-    {("A661_MAPHORZ_COORD_SYSTEM_EVENT_EXTENSION"), 0x8014U, ARRAY_AND_COUNT(c_maphorzCoordSystemEventExtensionFields)},
-    {("A661_MAPVERT_COORD_SYSTEM_EVENT_EXTENSION"), 0x8015U, ARRAY_AND_COUNT(c_mapvertCoordSystemEventExtensionFields)}
+    {TYPE_A661_DIRECTIONAL_TABBING_EXTENSION,        0x8003U, ARRAY_AND_COUNT(c_directionalTabbingExtensionFields)},
+    {TYPE_A661_CURSOR_EVENTS_EXTENSION,              0x8002U, ARRAY_AND_COUNT(c_cursorEventsExtensionFields)},
+    {TYPE_A661_LEGEND_ALIGN_EXTENSION,               0x8004U, ARRAY_AND_COUNT(c_legendAlignExtensionFields)},
+    {TYPE_A661_CHILD_INDEX_EXTENSION,                0x8001U, ARRAY_AND_COUNT(c_childIndexExtensionFields)},
+    {TYPE_A661_INITIAL_FOCUS_EXTENSION,              0x8006U, ARRAY_AND_COUNT(c_initialFocusExtensionFields)},
+    {TYPE_A661_FOCUS_STOP_EXTENSION,                 0x8007U, ARRAY_AND_COUNT(c_focusStopExtensionFields)},
+    {TYPE_A661_CURSOR_SHAPE_EXTENSION,               0x8008U, ARRAY_AND_COUNT(c_cursorShapeExtensionFields)},
+    {TYPE_A661_PICTURE_EXTENSION,                    0x8009U, ARRAY_AND_COUNT(c_pictureExtensionFields)},
+    {TYPE_A661_SYMBOL_EXTENSION,                     0x800AU, ARRAY_AND_COUNT(c_symbolExtensionFields)},
+    {TYPE_A661_TICS_ARRAY_EXTENSION,                 0x800BU, ARRAY_AND_COUNT(c_ticsArrayExtensionFields)},
+    {TYPE_A661_STYLE_SET_EXTENSION,                  0x800CU, ARRAY_AND_COUNT(c_styleSetExtensionFields)},
+    {TYPE_A661_STATIC_PARAM_BUFFER_EXTENSION,        0x800DU, ARRAY_AND_COUNT(c_staticParamBufferExtensionFields)},
+    {TYPE_A661_MULTI_SELECTION_EXTENSION,            0x800FU, ARRAY_AND_COUNT(c_multiSelectionExtensionFields)},
+    {TYPE_A661_EXCLUDED_REGIONS_EXTENSION,           0x800EU, ARRAY_AND_COUNT(c_excludedRegionsExtensionFields)},
+    {TYPE_A661_BOUNDARY_CHECK_EXTENSION,             0x8010U, ARRAY_AND_COUNT(c_boundaryCheckExtensionFields)},
+    {TYPE_A661_REORDER_EXTENSION,                    0x8011U, ARRAY_AND_COUNT(c_reorderExtensionFields)},
+    {TYPE_A661_WORD_WRAP_EXTENSION,                  0x8012U, ARRAY_AND_COUNT(c_wordWrapExtensionFields)},
+    {TYPE_A661_CURSOR_ENTRY_EVENTS_EXTENSION,        0x8013U, ARRAY_AND_COUNT(c_cursorEntryEventsExtensionFields)},
+    {TYPE_A661_MAPHORZ_COORD_SYSTEM_EVENT_EXTENSION, 0x8014U, ARRAY_AND_COUNT(c_maphorzCoordSystemEventExtensionFields)},
+    {TYPE_A661_MAPVERT_COORD_SYSTEM_EVENT_EXTENSION, 0x8015U, ARRAY_AND_COUNT(c_mapvertCoordSystemEventExtensionFields)}
 };
 
 /*************************************************************************************************/
@@ -2599,547 +3135,915 @@ static const BinaryWidget_t c_binaryExtensions[] =
  */
 static const BinaryConstant_t c_binaryConstants[] =
 {
-    {("A661_ABORT"),                                      0x02U},
-    {("A661_ABORTED"),                                    0x02U},
-    {("A661_ABSENT"),                                     0x10U},
-    {("A661_ACTIVE_TABBED_PANEL"),                        0xB050U},
-    {("A661_AC_LAT"),                                     0xB010U},
-    {("A661_AC_LAT_LONG"),                                0xB030U},
-    {("A661_AC_LONG"),                                    0xB020U},
-    {("A661_AC_ORIENTATION"),                             0xB040U},
-    {("A661_ALIGNMENT"),                                  0xB49AU},
-    {("A661_ALLOW_CHANGE"),                               0xB6A1U},
-    {("A661_ALPHA_MASK"),                                 0xB060U},
-    {("A661_ALTERNATE_FLAG"),                             0xB088U},
-    {("A661_ALTERN_PICTURE_REFERENCE"),                   0xB080U},
-    {("A661_ALTERN_SYMBOL_REFERENCE"),                    0xB4C1U},
-    {("A661_ANIMATION_DELAY"),                            0xB702U},
-    {("A661_ANIMATION_DURATION"),                         0xB703U},
-    {("A661_ANIMATION_FLAG"),                             0xB090U},
-    {("A661_ANIMATION_LAW_REF"),                          0xB704U},
-    {("A661_ANIMATION_REPETITION"),                       0xB705U},
-    {("A661_ANIMATION_STATE"),                            0xB706U},
-    {("A661_ANIMATION_TYPE"),                             0xB098U},
-    {("A661_APP_DATA"),                                   0xB6D0U},
-    {("A661_ARC"),                                        0x01U},
-    {("A661_ASCII_EXTENDED"),                             0x01U},
-    {("A661_AUTO_CLOSURE"),                               0xB1C2U},
-    {("A661_AUTO_FOCUS_MOTION"),                          0xB2B9U},
-    {("A661_BLINKING_TYPE"),                              0xB0A8U},
-    {("A661_BLOCKED_BUFFER_OF_MAPITEM"),                  0xB121U},
-    {("A661_BLOCKED_BUFFER_OF_MAPVERT_ITEMS"),            0xB126U},
-    {("A661_BOTH_CLAMPED"),                               0x01U},
-    {("A661_BOTTOM"),                                     0x12U},
-    {("A661_BOTTOM_CENTER"),                              0x30U},
-    {("A661_BOTTOM_LEFT"),                                0x31U},
-    {("A661_BOTTOM_RIGHT"),                               0x32U},
-    {("A661_BOTTOM_TO_TOP"),                              0x40U},
-    {("A661_BOUNDARY_ARRAY"),                             0xB6C1U},
-    {("A661_BOUNDARY_CHECK"),                             0xBCU},
-    {("A661_BOUNDARY_CHECK_MODE"),                        0xB122U},
-    {("A661_BOUND_SIZE_X"),                               0xB0E0U},
-    {("A661_BOUND_SIZE_XY"),                              0xB100U},
-    {("A661_BOUND_SIZE_Y"),                               0xB0F0U},
-    {("A661_BOUND_X"),                                    0xB0B0U},
-    {("A661_BOUND_XY"),                                   0xB0D0U},
-    {("A661_BOUND_Y"),                                    0xB0C0U},
-    {("A661_BROADCAST_DATA"),                             0xB0C2U},
-    {("A661_BUFFER_OF_FILL_STYLES"),                      0xB0F8U},
-    {("A661_BUFFER_OF_MAPITEM"),                          0xB120U},
-    {("A661_BUFFER_OF_MAPVERT_ITEMS"),                    0xB125U},
-    {("A661_BUFFER_OF_PARAM"),                            0xB110U},
-    {("A661_BUTTON_POS"),                                 0xB641U},
-    {("A661_BUTTON_SIZE"),                                0xB642U},
-    {("A661_CACHING_ENABLE"),                             0xB117U},
-    {("A661_CDS_DEPENDENT"),                              0x1EU},
-    {("A661_CENTER"),                                     0x15U},
-    {("A661_CENTER_X"),                                   0xB130U},
-    {("A661_CENTER_XY"),                                  0xB150U},
-    {("A661_CENTER_Y"),                                   0xB140U},
-    {("A661_CIRCULAR"),                                   0x02U},
-    {("A661_CLAMPING"),                                   0xB501U},
-    {("A661_CLEAR"),                                      0xB000U},
-    {("A661_CLOCKWISE"),                                  0x00U},
-    {("A661_CLOSED"),                                     0xB1E2U},
-    {("A661_COARSE_PAGE_DELTA"),                          0xB6E3U},
-    {("A661_COLOR_INDEX"),                                0xB160U},
-    {("A661_COMPLETED"),                                  0x01U},
-    {("A661_COUNTER_CLOCKWISE"),                          0x01U},
-    {("A661_CRP_LAT"),                                    0xB162U},
-    {("A661_CRP_LAT_LONG"),                               0xB166U},
-    {("A661_CRP_LONG"),                                   0xB164U},
-    {("A661_CURSOR_CLICKED"),                             0xB1D3U},
-    {("A661_CURSOR_DOUBLE_CLICKED"),                      0xB1D4U},
-    {("A661_CURSOR_INDEX"),                               0xB6A0U},
-    {("A661_CURSOR_POS"),                                 0xB170U},
-    {("A661_CURSOR_POS_BYTE"),                            0xB172U},
-    {("A661_CURSOR_PRESSED"),                             0xB1D1U},
-    {("A661_CURSOR_RELEASED"),                            0xB1D2U},
-    {("A661_CURSOR_RIGHT_CLICKED"),                       0xB1D5U},
-    {("A661_DEACTIVATE"),                                 0x04U},
-    {("A661_DIRECTION"),                                  0xB713U},
-    {("A661_DONT_RUN"),                                   0x00U},
-    {("A661_DOWN"),                                       0x1AU},
-    {("A661_DRAW_LINE_TO_CURSOR"),                        0x36U},
-    {("A661_EASING_IN"),                                  0x01U},
-    {("A661_EASING_INOUT"),                               0x03U},
-    {("A661_EASING_OUT"),                                 0x02U},
-    {("A661_EDB_ALL_CHANGE"),                             0x01U},
-    {("A661_EDB_CHANGE_CONFIRMED"),                       0x00U},
-    {("A661_EDB_OPEN_CLOSE"),                             0x02U},
-    {("A661_EDITING"),                                    0x1BU},
-    {("A661_EFFECTIVITY_ARRAY"),                          0xB6C8U},
-    {("A661_ENABLE"),                                     0xB180U},
-    {("A661_ENABLE_ENTRY_ARRAY"),                         0xB1A8U},
-    {("A661_ENABLE_HANDLER"),                             0xB1A1U},
-    {("A661_END"),                                        0x03U},
-    {("A661_END_ANGLE"),                                  0xB1B0U},
-    {("A661_END_SCALED_VALUE"),                           0xB505U},
-    {("A661_END_VALUE"),                                  0xB503U},
-    {("A661_ENTRY_ARRAY"),                                0xB190U},
-    {("A661_ENTRY_POP_UP_ARRAY"),                         0xB1C0U},
-    {("A661_ENTRY_VALID"),                                0xB570U},
-    {("A661_ERROR"),                                      0x1CU},
-    {("A661_EVENT_FLAG"),                                 0xB1D0U},
-    {("A661_EVENT_NONE"),                                 0x00U},
-    {("A661_EXCLUDED_CIRCLE"),                            0x03U},
-    {("A661_EXCLUDED_RECTANGLE"),                         0x01U},
-    {("A661_EXCLUDED_REGIONS_LIST"),                      0xB6C9U},
-    {("A661_EXCLUDED_TRIANGLE"),                          0x02U},
-    {("A661_FALSE"),                                      0x00U},
-    {("A661_FILLED"),                                     0xB1E1U},
-    {("A661_FILLED_POLY_START"),                          0x2BU},
-    {("A661_FILLED_POLY_START_INTERACTIVE"),              0xABU},
-    {("A661_FILL_INDEX"),                                 0xB1E0U},
-    {("A661_FINE_PAGE_DELTA"),                            0xB6E2U},
-    {("A661_FIRST_ACCESS_ENTRY"),                         0xB1F0U},
-    {("A661_FIRST_ACCESS_UA_ENTRY"),                      0xB1F8U},
-    {("A661_FIRST_VISIBLE_ENTRY"),                        0xB200U},
-    {("A661_FONT"),                                       0xB590U},
-    {("A661_FORMAT_STRING"),                              0xB550U},
-    {("A661_FRAME_X"),                                    0xB210U},
-    {("A661_FRAME_XY"),                                   0xB230U},
-    {("A661_FRAME_Y"),                                    0xB220U},
-    {("A661_FROM"),                                       0x05U},
-    {("A661_FROM_ANGLE"),                                 0xB707U},
-    {("A661_FROM_SCALE_X"),                               0xB708U},
-    {("A661_FROM_SCALE_XY"),                              0xB715U},
-    {("A661_FROM_SCALE_Y"),                               0xB709U},
-    {("A661_FROM_VALUE"),                                 0xB70AU},
-    {("A661_FROM_VALUE_X"),                               0xB70BU},
-    {("A661_FROM_VALUE_XY"),                              0xB717U},
-    {("A661_FROM_VALUE_Y"),                               0xB70CU},
-    {("A661_GBK"),                                        0x03U},
-    {("A661_GESTURE_ABORT"),                              0x04U},
-    {("A661_GESTURE_CANDIDATE"),                          0x05U},
-    {("A661_GESTURE_DOUBLE_TAP"),                         0x02U},
-    {("A661_GESTURE_DRAG"),                               0x06U},
-    {("A661_GESTURE_END"),                                0x03U},
-    {("A661_GESTURE_FLICK"),                              0x07U},
-    {("A661_GESTURE_FLICK_DOWN"),                         0x0BU},
-    {("A661_GESTURE_FLICK_LEFT"),                         0x08U},
-    {("A661_GESTURE_FLICK_RIGHT"),                        0x09U},
-    {("A661_GESTURE_FLICK_UP"),                           0x0AU},
-    {("A661_GESTURE_HOLD"),                               0x0CU},
-    {("A661_GESTURE_PINCH"),                              0x04U},
-    {("A661_GESTURE_PRESS_AND_HOLD"),                     0x03U},
-    {("A661_GESTURE_ROTATE"),                             0x05U},
-    {("A661_GESTURE_START"),                              0x01U},
-    {("A661_GESTURE_TAP"),                                0x01U},
-    {("A661_GESTURE_UPDATE"),                             0x02U},
-    {("A661_GRID"),                                       0x03U},
-    {("A661_HALO"),                                       0xB1E8U},
-    {("A661_HIGHLIGHT_ONLY"),                             0x04U},
-    {("A661_HOME_X"),                                     0xB219U},
-    {("A661_HOME_Y"),                                     0xB21AU},
-    {("A661_HORIZONTAL"),                                 0x01U},
-    {("A661_HORIZONTAL_SCROLL"),                          0xB217U},
-    {("A661_HORZ_LINE"),                                  0x02U},
-    {("A661_HYPHENATE"),                                  0x02U},
-    {("A661_INDEX_OF_FREQUENCY"),                         0xB091U},
-    {("A661_INITIAL_FOCUS"),                              0xB6B0U},
-    {("A661_INNER_RADIUS"),                               0xB240U},
-    {("A661_INNER_STATE_CHECK"),                          0xB244U},
-    {("A661_INNER_STATE_TOGGLE"),                         0xB258U},
-    {("A661_INSET_SIZE"),                                 0xB051U},
-    {("A661_IN_BOUNDS"),                                  0x01U},
-    {("A661_ITEM_SPACING"),                               0xB5C1U},
-    {("A661_ITEM_STYLE"),                                 0x20U},
-    {("A661_ITEM_SYNCHRONIZATION"),                       0x51U},
-    {("A661_KEY_ARRAY"),                                  0xB700U},
-    {("A661_LAYOUT"),                                     0xB5F0U},
-    {("A661_LEFT"),                                       0x13U},
-    {("A661_LEFT_TO_RIGHT"),                              0x41U},
-    {("A661_LEGEND"),                                     0x21U},
-    {("A661_LEGEND_ALIGNMENT"),                           0xB49BU},
-    {("A661_LEGEND_ANCHOR"),                              0x22U},
-    {("A661_LEGEND_ANCHOR_ROTATED"),                      0x35U},
-    {("A661_LEGEND_AND_HIGHLIGHT"),                       0x05U},
-    {("A661_LEGEND_AND_POPUP"),                           0x03U},
-    {("A661_LEGEND_AND_POPUP_AND_HIGHLIGHT"),             0x07U},
-    {("A661_LEGEND_AREA_SIZE_X"),                         0xB451U},
-    {("A661_LEGEND_COMBO"),                               0x38U},
-    {("A661_LEGEND_HIGHLIGHT"),                           0x58U},
-    {("A661_LEGEND_ONLY"),                                0x01U},
-    {("A661_LEGEND_POP_UP"),                              0x23U},
-    {("A661_LEGEND_POSITION"),                            0xB260U},
-    {("A661_LEGEND_READOUT"),                             0x45U},
-    {("A661_LEGEND_READOUT_COMBO"),                       0x48U},
-    {("A661_LEGEND_READOUT_FORMAT_STRING"),               0x44U},
-    {("A661_LEGEND_REMOVED"),                             0xB452U},
-    {("A661_LINEAR"),                                     0x00U},
-    {("A661_LINE_ARC"),                                   0x24U},
-    {("A661_LINE_ARC_INTERACTIVE"),                       0xA4U},
-    {("A661_LINE_DELTA_X"),                               0xB211U},
-    {("A661_LINE_DELTA_Y"),                               0xB212U},
-    {("A661_LINE_LENGTH"),                                0xB270U},
-    {("A661_LINE_SEGMENT"),                               0x25U},
-    {("A661_LINE_SEGMENT_INTERACTIVE"),                   0xA5U},
-    {("A661_LINE_START"),                                 0x26U},
-    {("A661_LINE_START_INTERACTIVE"),                     0xA6U},
-    {("A661_LOOP_FORWARD"),                               0x00U},
-    {("A661_LOOP_FORWARD_AND_BACKWARD_AND_BLANK"),        0x03U},
-    {("A661_LOOP_FORWARD_AND_BLANK"),                     0x02U},
-    {("A661_LOOP_FORWARD_AND_RESET"),                     0x01U},
-    {("A661_LSB_MULTIPLE"),                               0xB631U},
-    {("A661_MAJOR_TICK_INTERVAL"),                        0xB600U},
-    {("A661_MAJOR_TICK_REFERENCE"),                       0xB608U},
-    {("A661_MAPGRID_CELLSIZE"),                           0xB274U},
-    {("A661_MAPGRID_OFFSET"),                             0xB278U},
-    {("A661_MAP_SYNCHRONIZATION_NUMBER"),                 0xB277U},
-    {("A661_MASK_ENABLED"),                               0xB290U},
-    {("A661_MASK_REFERENCE"),                             0xB280U},
-    {("A661_MAX_VALUE"),                                  0xB610U},
-    {("A661_MDF_ABSOLUTE"),                               0x65U},
-    {("A661_MDF_BRG_DIST_ACHDG"),                         0x60U},
-    {("A661_MDF_DIST_DIST"),                              0x67U},
-    {("A661_MDF_DIST_DIST_FIX"),                          0x6AU},
-    {("A661_MDF_LAT_LONG"),                               0x61U},
-    {("A661_MDF_LEGACY"),                                 0x62U},
-    {("A661_MDF_RELATIVE"),                               0x66U},
-    {("A661_MDF_X_DIST"),                                 0x68U},
-    {("A661_MDF_Y_ALT"),                                  0x69U},
-    {("A661_MENU_HORIZONTAL"),                            0xB640U},
-    {("A661_MINIMUM_SIZE"),                               0x02U},
-    {("A661_MINMAX_VALUES"),                              0xB580U},
-    {("A661_MINOR_TICK_MULTIPLE"),                        0xB630U},
-    {("A661_MIN_VALUE"),                                  0xB620U},
-    {("A661_MULTI_STATE_VALUE"),                          0xB5A0U},
-    {("A661_NEGATIVE_STRING"),                            0xB4D4U},
-    {("A661_NEXT_FOCUSED_WIDGET"),                        0xB2B8U},
-    {("A661_NEXT_FOCUS_IN_APP_ID"),                       0xB2BAU},
-    {("A661_NEXT_FOCUS_IN_ID"),                           0xB2BCU},
-    {("A661_NEXT_FOCUS_IN_LAYER_ID"),                     0xB2BBU},
-    {("A661_NORMAL"),                                     0x1DU},
-    {("A661_NOT_CLAMPED"),                                0x00U},
-    {("A661_NOT_USED"),                                   0x00U},
-    {("A661_NO_SHUFFLE"),                                 0x84U},
-    {("A661_NO_SIZING"),                                  0x74U},
-    {("A661_NUMBER_OF_ENTRIES"),                          0xB2A0U},
-    {("A661_NUMBER_OF_KEYS"),                             0xB701U},
-    {("A661_NUMBER_OF_PICTURES"),                         0xB2A2U},
-    {("A661_NUMBER_OF_STATES"),                           0xB5A1U},
-    {("A661_NUMBER_OF_SYMBOLS"),                          0xB2A4U},
-    {("A661_NUMBER_OF_TICS_COARSE"),                      0xB0A2U},
-    {("A661_NUMBER_OF_TICS_FINE"),                        0xB0A4U},
-    {("A661_NUMBER_OF_TOUCH_POINTS"),                     0xB0A0U},
-    {("A661_NUMBER_OF_TURNS"),                            0xB714U},
-    {("A661_NUMBER_OF_UA_ENTRIES"),                       0xB2A8U},
-    {("A661_NUMBER_OF_VISIBLE_CHILDREN"),                 0xB5D0U},
-    {("A661_NUMERIC_MASK"),                               0xB2B0U},
-    {("A661_OPENING_ENTRY"),                              0xB560U},
-    {("A661_OPENING_MODE"),                               0xB561U},
-    {("A661_OPEN_CENTERED"),                              0x17U},
-    {("A661_OPEN_DOWN"),                                  0x18U},
-    {("A661_OPEN_ENTRY_ARRAY"),                           0xB627U},
-    {("A661_OPEN_UP"),                                    0x16U},
-    {("A661_OPERATOR_ADD_ASSIGN_ARG"),                    0x0BU},
-    {("A661_OPERATOR_ADD_ASSIGN_SRC"),                    0x08U},
-    {("A661_OPERATOR_ASSIGNMENT"),                        0x00U},
-    {("A661_OPERATOR_CONSTANT"),                          0x02U},
-    {("A661_OPERATOR_INVERSE"),                           0x01U},
-    {("A661_OPERATOR_LOGICAL_AND"),                       0x06U},
-    {("A661_OPERATOR_LOGICAL_OR"),                        0x07U},
-    {("A661_OPERATOR_PRODUCT"),                           0x05U},
-    {("A661_OPERATOR_PROD_ASSIGN_ARG"),                   0x0DU},
-    {("A661_OPERATOR_PROD_ASSIGN_SRC"),                   0x0AU},
-    {("A661_OPERATOR_SUB_ASSIGN_ARG"),                    0x0CU},
-    {("A661_OPERATOR_SUB_ASSIGN_SRC"),                    0x09U},
-    {("A661_OPERATOR_SUM"),                               0x04U},
-    {("A661_ORIENTATION"),                                0xB1D2U},
-    {("A661_OUTER_RADIUS"),                               0xB2D0U},
-    {("A661_OUT_OF_BOUNDS"),                              0x00U},
-    {("A661_PAGE_CONTROL_POSITION"),                      0xB6E1U},
-    {("A661_PAGE_DELTA_X"),                               0xB213U},
-    {("A661_PAGE_DELTA_Y"),                               0xB214U},
-    {("A661_PAGE_WRAP_TYPE"),                             0xB6E0U},
-    {("A661_PARALLEL"),                                   0x00U},
-    {("A661_PARAM_BUFFER_INDEX"),                         0xB111U},
-    {("A661_PARENT_ENTRY_ARRAY"),                         0xB628U},
-    {("A661_PARKING_LINE_END"),                           0xBBU},
-    {("A661_PARKING_LINE_START"),                         0xBAU},
-    {("A661_PICTURE_ARRAY"),                              0xB2E0U},
-    {("A661_PICTURE_ENTRY_ARRAY"),                        0xB2E8U},
-    {("A661_PICTURE_POSITION"),                           0xB2F1U},
-    {("A661_PICTURE_REFERENCE"),                          0xB2F0U},
-    {("A661_PIX_FMT_COLOR_INDEXED_8"),                    0xC2U},
-    {("A661_PIX_FMT_LUMINANCE_ALPHA_8"),                  0xC1U},
-    {("A661_PIX_FMT_RGBA_8"),                             0xC0U},
-    {("A661_PLAY"),                                       0x01U},
-    {("A661_POPUP_AND_HIGHLIGHT"),                        0x06U},
-    {("A661_POPUP_ONLY"),                                 0x02U},
-    {("A661_POPUP_POS_X"),                                0xB1C3U},
-    {("A661_POPUP_POS_Y"),                                0xB1C4U},
-    {("A661_POPUP_SIZE_X"),                               0xB1C5U},
-    {("A661_POPUP_SIZE_Y"),                               0xB1C6U},
-    {("A661_POSITIVE_STRING"),                            0xB4D3U},
-    {("A661_POS_X"),                                      0xB300U},
-    {("A661_POS_X2"),                                     0xB330U},
-    {("A661_POS_X3"),                                     0xB360U},
-    {("A661_POS_XY"),                                     0xB320U},
-    {("A661_POS_XY2"),                                    0xB350U},
-    {("A661_POS_XY3"),                                    0xB380U},
-    {("A661_POS_Y"),                                      0xB310U},
-    {("A661_POS_Y2"),                                     0xB340U},
-    {("A661_POS_Y3"),                                     0xB370U},
-    {("A661_PRESERVE_CHARACTER"),                         0x01U},
-    {("A661_PRESERVE_WORD"),                              0x00U},
-    {("A661_PROJECTION_REFERENCE"),                       0xB1D3U},
-    {("A661_PRP_LAT"),                                    0xB390U},
-    {("A661_PRP_LAT_LONG"),                               0xB3B0U},
-    {("A661_PRP_LONG"),                                   0xB3A0U},
-    {("A661_PRP_SCREEN_X"),                               0xB3C0U},
-    {("A661_PRP_SCREEN_XY"),                              0xB3E0U},
-    {("A661_PRP_SCREEN_Y"),                               0xB3D0U},
-    {("A661_PRP_X"),                                      0xB3B2U},
-    {("A661_PRP_XY"),                                     0xB3B4U},
-    {("A661_PRP_Y"),                                      0xB3B3U},
-    {("A661_RADIUS"),                                     0xB3F0U},
-    {("A661_RANGE"),                                      0xB1D1U},
-    {("A661_RANGE_X"),                                    0xB402U},
-    {("A661_RANGE_XY"),                                   0xB404U},
-    {("A661_RANGE_Y"),                                    0xB403U},
-    {("A661_REFRESH"),                                    0xB670U},
-    {("A661_REF_POS_X"),                                  0xB690U},
-    {("A661_REF_POS_XY"),                                 0xB691U},
-    {("A661_REF_POS_Y"),                                  0xB692U},
-    {("A661_REORDER"),                                    0xB0ABU},
-    {("A661_REPORT_ALL"),                                 0x61U},
-    {("A661_REPORT_ALL_WITH_CANDIDATE"),                  0x64U},
-    {("A661_REPORT_ON_CDS"),                              0x63U},
-    {("A661_REPORT_ON_COMPLETION"),                       0x62U},
-    {("A661_REPORT_ON_TRANSITION"),                       0x60U},
-    {("A661_REPORT_ON_TRANSITION_WITH_CANDIDATE"),        0x65U},
-    {("A661_REP_DEFAULT"),                                0x00U},
-    {("A661_REP_FOCUS"),                                  0x02U},
-    {("A661_REP_HIGHLIGHT"),                              0x03U},
-    {("A661_REP_STANDARD"),                               0x01U},
-    {("A661_RIGHT"),                                      0x14U},
-    {("A661_RIGHT_TO_LEFT"),                              0x42U},
-    {("A661_ROTATION_ANGLE"),                             0xB410U},
-    {("A661_RUN"),                                        0x01U},
-    {("A661_RUN_ONCE"),                                   0x02U},
-    {("A661_SAME_LEVEL"),                                 0x02U},
-    {("A661_SCALE_X"),                                    0xB0ACU},
-    {("A661_SCALE_XY"),                                   0xB0AEU},
-    {("A661_SCALE_Y"),                                    0xB0ADU},
-    {("A661_SCREEN_RANGE"),                               0xB420U},
-    {("A661_SELECTED"),                                   0x01U},
-    {("A661_SELECTED_ENTRY"),                             0xB430U},
-    {("A661_SELECTED_ENTRY_ARRAY"),                       0xB439U},
-    {("A661_SELECTING_HEIGHT"),                           0xB431U},
-    {("A661_SELECTING_WIDTH"),                            0xB432U},
-    {("A661_SELECT_ALL"),                                 0xB438U},
-    {("A661_SEQUENTIAL"),                                 0x01U},
-    {("A661_SEQUENTIAL_FROM"),                            0x02U},
-    {("A661_SHEET_SIZE_X"),                               0xB215U},
-    {("A661_SHEET_SIZE_Y"),                               0xB216U},
-    {("A661_SHIFT_FIRST_VISIBLE_ENTRY"),                  0xB440U},
-    {("A661_SHOW_FAIL"),                                  0xB671U},
-    {("A661_SHOW_MAJOR_TICKS"),                           0xB601U},
-    {("A661_SHUFFLE_DOWN"),                               0x81U},
-    {("A661_SHUFFLE_LEFT"),                               0x82U},
-    {("A661_SHUFFLE_RIGHT"),                              0x83U},
-    {("A661_SHUFFLE_TO_FIT_MODE"),                        0xB5E0U},
-    {("A661_SHUFFLE_UP"),                                 0x80U},
-    {("A661_SIZE_BOTTOM_UP"),                             0x71U},
-    {("A661_SIZE_LEFT_TO_RIGHT"),                         0x72U},
-    {("A661_SIZE_RIGHT_TO_LEFT"),                         0x73U},
-    {("A661_SIZE_TOP_DOWN"),                              0x70U},
-    {("A661_SIZE_TO_FIT_MODE"),                           0xB5C0U},
-    {("A661_SIZE_X"),                                     0xB450U},
-    {("A661_SIZE_XY"),                                    0xB470U},
-    {("A661_SIZE_Y"),                                     0xB460U},
-    {("A661_SOURCE_DX"),                                  0xB662U},
-    {("A661_SOURCE_DXDY"),                                0xB665U},
-    {("A661_SOURCE_DY"),                                  0xB663U},
-    {("A661_SOURCE_REF"),                                 0xB666U},
-    {("A661_SOURCE_WIDGET_PARAM"),                        0x00U},
-    {("A661_SOURCE_X"),                                   0xB660U},
-    {("A661_SOURCE_XY"),                                  0xB664U},
-    {("A661_SOURCE_Y"),                                   0xB661U},
-    {("A661_STAR"),                                       0x04U},
-    {("A661_START_ANGLE"),                                0xB480U},
-    {("A661_START_SCALED_VALUE"),                         0xB504U},
-    {("A661_START_VALUE"),                                0xB502U},
-    {("A661_STOP_BACKWARD"),                              0xB6B2U},
-    {("A661_STOP_FORWARD"),                               0xB6B1U},
-    {("A661_STRING"),                                     0xB490U},
-    {("A661_STRING_ALTERNATE"),                           0xB498U},
-    {("A661_STRING_ARRAY"),                               0xB4A0U},
-    {("A661_STYLE_SET"),                                  0xB4B0U},
-    {("A661_STYLE_SET_ARRAY"),                            0xB4B1U},
-    {("A661_STYLE_SET_ARRAY_SIZE"),                       0xB4B2U},
-    {("A661_STYLE_SET_DEFAULT"),                          0x00U},
-    {("A661_SYMBOL_CIRCLE"),                              0x27U},
-    {("A661_SYMBOL_CIRCLE_INTERACTIVE"),                  0xA7U},
-    {("A661_SYMBOL_ENTRY_ARRAY"),                         0xB2E9U},
-    {("A661_SYMBOL_GENERIC"),                             0x28U},
-    {("A661_SYMBOL_GENERIC_INTERACTIVE"),                 0xA8U},
-    {("A661_SYMBOL_OVAL"),                                0x2CU},
-    {("A661_SYMBOL_OVAL_INTERACTIVE"),                    0xACU},
-    {("A661_SYMBOL_PARKABLE"),                            0xB8U},
-    {("A661_SYMBOL_PARKABLE_INTERACTIVE"),                0xB9U},
-    {("A661_SYMBOL_POSITION"),                            0xB4C2U},
-    {("A661_SYMBOL_RECTANGLE"),                           0x37U},
-    {("A661_SYMBOL_RECTANGLE_INTERACTIVE"),               0xB7U},
-    {("A661_SYMBOL_REFERENCE"),                           0xB4C0U},
-    {("A661_SYMBOL_ROTATED"),                             0x29U},
-    {("A661_SYMBOL_ROTATED_INTERACTIVE"),                 0xA9U},
-    {("A661_SYMBOL_ROTATED_PARKABLE"),                    0xBEU},
-    {("A661_SYMBOL_ROTATED_PARKABLE_INTERACTIVE"),        0xBFU},
-    {("A661_SYMBOL_RUNWAY"),                              0x2AU},
-    {("A661_SYMBOL_RUNWAY_INTERACTIVE"),                  0xAAU},
-    {("A661_SYMBOL_TARGET"),                              0x2DU},
-    {("A661_SYMBOL_TARGET_INTERACTIVE"),                  0xADU},
-    {("A661_SYMBOL_TARGET_PARKABLE"),                     0x3DU},
-    {("A661_SYMBOL_TARGET_PARKABLE_INTERACTIVE"),         0xBDU},
-    {("A661_SYNC_FRAME"),                                 0xB4C7U},
-    {("A661_TAB_DIRECTION_WIDGET_ID_ARRAY"),              0xB672U},
-    {("A661_TAB_POSITION"),                               0xB052U},
-    {("A661_TARGET_WIDGET_ID"),                           0xB650U},
-    {("A661_TICS_COARSE"),                                0xB4D0U},
-    {("A661_TICS_COARSE_8BYTE"),                          0xB4D2U},
-    {("A661_TICS_COARSE_ARRAY"),                          0xB0A6U},
-    {("A661_TICS_FINE"),                                  0xB4E0U},
-    {("A661_TICS_FINE_8BYTE"),                            0xB4E2U},
-    {("A661_TICS_FINE_ARRAY"),                            0xB0AAU},
-    {("A661_TO"),                                         0x06U},
-    {("A661_TOP"),                                        0x11U},
-    {("A661_TOP_CENTER"),                                 0x33U},
-    {("A661_TOP_LEFT"),                                   0x34U},
-    {("A661_TOP_RIGHT"),                                  0x35U},
-    {("A661_TOP_TO_BOTTOM"),                              0x43U},
-    {("A661_TOUCH_ABORT"),                                0x04U},
-    {("A661_TOUCH_DOWN"),                                 0x01U},
-    {("A661_TOUCH_MOVE"),                                 0x02U},
-    {("A661_TOUCH_MOVE_OUTSIDE"),                         0x05U},
-    {("A661_TOUCH_UP"),                                   0x03U},
-    {("A661_TO_ANGLE"),                                   0xB70DU},
-    {("A661_TO_BACK"),                                    0x01U},
-    {("A661_TO_FRONT"),                                   0x02U},
-    {("A661_TO_SCALE_X"),                                 0xB70EU},
-    {("A661_TO_SCALE_XY"),                                0xB716U},
-    {("A661_TO_SCALE_Y"),                                 0xB70FU},
-    {("A661_TO_VALUE"),                                   0xB710U},
-    {("A661_TO_VALUE_X"),                                 0xB711U},
-    {("A661_TO_VALUE_XY"),                                0xB718U},
-    {("A661_TO_VALUE_Y"),                                 0xB712U},
-    {("A661_TRANSLATION_X"),                              0xB4F0U},
-    {("A661_TRANSLATION_XY"),                             0xB510U},
-    {("A661_TRANSLATION_Y"),                              0xB500U},
-    {("A661_TREE_NODE_STYLE_ARRAY"),                      0xB629U},
-    {("A661_TRIANGLE_END"),                               0x32U},
-    {("A661_TRIANGLE_END_DOUBLE"),                        0x33U},
-    {("A661_TRIANGLE_END_DOUBLE_INTERACTIVE"),            0xB3U},
-    {("A661_TRIANGLE_END_INTERACTIVE"),                   0xB2U},
-    {("A661_TRIANGLE_FAN_START"),                         0x34U},
-    {("A661_TRIANGLE_FAN_START_INTERACTIVE"),             0xB4U},
-    {("A661_TRIANGLE_SEGMENT"),                           0x2FU},
-    {("A661_TRIANGLE_SEGMENT_DOUBLE"),                    0x31U},
-    {("A661_TRIANGLE_SEGMENT_DOUBLE_INTERACTIVE"),        0xB1U},
-    {("A661_TRIANGLE_SEGMENT_INTERACTIVE"),               0xAFU},
-    {("A661_TRIANGLE_STRIP_START"),                       0x2EU},
-    {("A661_TRIANGLE_STRIP_START_INTERACTIVE"),           0xAEU},
-    {("A661_TRUE"),                                       0x01U},
-    {("A661_TRUE_WITH_VALIDATION"),                       0x02U},
-    {("A661_UA_POSITION_FLAG"),                           0xB1C1U},
-    {("A661_UNSELECTED"),                                 0x00U},
-    {("A661_UNSELECT_ALL"),                               0xB43AU},
-    {("A661_UP"),                                         0x19U},
-    {("A661_UTF8"),                                       0x02U},
-    {("A661_VALIDATION"),                                 0x01U},
-    {("A661_VALIDATION_AND_WHEEL"),                       0x02U},
-    {("A661_VALUE"),                                      0xB520U},
-    {("A661_VALUE_8BYTE"),                                0xB522U},
-    {("A661_VERTEX_RENDER_END"),                          0x3BU},
-    {("A661_VERTEX_RENDER_LINES"),                        0x01U},
-    {("A661_VERTEX_RENDER_LINE_LOOP"),                    0x02U},
-    {("A661_VERTEX_RENDER_POLYLINE"),                     0x03U},
-    {("A661_VERTEX_RENDER_SEGMENT"),                      0x3AU},
-    {("A661_VERTEX_RENDER_START"),                        0x39U},
-    {("A661_VERTEX_RENDER_TRIANGLE"),                     0x04U},
-    {("A661_VERTEX_RENDER_TRIANGLE_FAN"),                 0x05U},
-    {("A661_VERTEX_RENDER_TRIANGLE_STRIP"),               0x06U},
-    {("A661_VERTICAL"),                                   0x00U},
-    {("A661_VERTICAL_SCROLL"),                            0xB218U},
-    {("A661_VERTICES_ARRAY"),                             0xB528U},
-    {("A661_VERT_LINE"),                                  0x03U},
-    {("A661_VISIBLE"),                                    0xB530U},
-    {("A661_VISIBLE_CHILD"),                              0xB540U},
-    {("A661_VISIBLE_CHILD_INDEX"),                        0xB680U},
-    {("A661_WHEEL"),                                      0x03U},
-    {("A661_WORD_WRAP"),                                  0xB4A8U},
-    {("A661_WRAP_BOTH"),                                  0x01U},
-    {("A661_WRAP_FIRST_TO_LAST"),                         0x02U},
-    {("A661_WRAP_LAST_TO_FIRST"),                         0x03U},
-    {("A661_WRAP_NONE"),                                  0x00U},
-    {("A661_WRAP_STYLE"),                                 0xB4A9U}
+    {("A661_ABORT"),                                    0x02U},
+    {("A661_ABORTED"),                                  0x02U},
+    {CONSTANT_A661_ABSENT,                              0x10U},
+    {("A661_ACTIVE_TABBED_PANEL"),                      0xB050U},
+    {("A661_AC_LAT"),                                   0xB010U},
+    {("A661_AC_LAT_LONG"),                              0xB030U},
+    {("A661_AC_LONG"),                                  0xB020U},
+    {("A661_AC_ORIENTATION"),                           0xB040U},
+    {("A661_ALIGNMENT"),                                0xB49AU},
+    {("A661_ALLOW_CHANGE"),                             0xB6A1U},
+    {("A661_ALPHA_MASK"),                               0xB060U},
+    {("A661_ALTERNATE_FLAG"),                           0xB088U},
+    {("A661_ALTERN_PICTURE_REFERENCE"),                 0xB080U},
+    {("A661_ALTERN_SYMBOL_REFERENCE"),                  0xB4C1U},
+    {("A661_ANIMATION_DELAY"),                          0xB702U},
+    {("A661_ANIMATION_DURATION"),                       0xB703U},
+    {("A661_ANIMATION_FLAG"),                           0xB090U},
+    {("A661_ANIMATION_LAW_REF"),                        0xB704U},
+    {("A661_ANIMATION_REPETITION"),                     0xB705U},
+    {("A661_ANIMATION_STATE"),                          0xB706U},
+    {("A661_ANIMATION_TYPE"),                           0xB098U},
+    {("A661_APP_DATA"),                                 0xB6D0U},
+    {CONSTANT_A661_ARC,                                 0x01U},
+    {CONSTANT_A661_ASCII_EXTENDED,                      0x01U},
+    {("A661_AUTO_CLOSURE"),                             0xB1C2U},
+    {("A661_AUTO_FOCUS_MOTION"),                        0xB2B9U},
+    {("A661_BLINKING_TYPE"),                            0xB0A8U},
+    {("A661_BLOCKED_BUFFER_OF_MAPITEM"),                0xB121U},
+    {("A661_BLOCKED_BUFFER_OF_MAPVERT_ITEMS"),          0xB126U},
+    {CONSTANT_A661_BOTH_CLAMPED,                        0x01U},
+    {CONSTANT_A661_BOTTOM,                              0x12U},
+    {CONSTANT_A661_BOTTOM_CENTER,                       0x30U},
+    {CONSTANT_A661_BOTTOM_LEFT,                         0x31U},
+    {CONSTANT_A661_BOTTOM_RIGHT,                        0x32U},
+    {CONSTANT_A661_BOTTOM_TO_TOP,                       0x40U},
+    {("A661_BOUNDARY_ARRAY"),                           0xB6C1U},
+    {("A661_BOUNDARY_CHECK"),                           0xBCU},
+    {("A661_BOUNDARY_CHECK_MODE"),                      0xB122U},
+    {("A661_BOUND_SIZE_X"),                             0xB0E0U},
+    {("A661_BOUND_SIZE_XY"),                            0xB100U},
+    {("A661_BOUND_SIZE_Y"),                             0xB0F0U},
+    {("A661_BOUND_X"),                                  0xB0B0U},
+    {("A661_BOUND_XY"),                                 0xB0D0U},
+    {("A661_BOUND_Y"),                                  0xB0C0U},
+    {("A661_BROADCAST_DATA"),                           0xB0C2U},
+    {("A661_BUFFER_OF_FILL_STYLES"),                    0xB0F8U},
+    {("A661_BUFFER_OF_MAPITEM"),                        0xB120U},
+    {("A661_BUFFER_OF_MAPVERT_ITEMS"),                  0xB125U},
+    {("A661_BUFFER_OF_PARAM"),                          0xB110U},
+    {("A661_BUTTON_POS"),                               0xB641U},
+    {("A661_BUTTON_SIZE"),                              0xB642U},
+    {("A661_CACHING_ENABLE"),                           0xB117U},
+    {CONSTANT_A661_CDS_DEPENDENT,                       0x1EU},
+    {CONSTANT_A661_CENTER,                              0x15U},
+    {("A661_CENTER_X"),                                 0xB130U},
+    {("A661_CENTER_XY"),                                0xB150U},
+    {("A661_CENTER_Y"),                                 0xB140U},
+    {("A661_CIRCULAR"),                                 0x02U},
+    {("A661_CLAMPING"),                                 0xB501U},
+    {("A661_CLEAR"),                                    0xB000U},
+    {CONSTANT_A661_CLOCKWISE,                           0x00U},
+    {("A661_CLOSED"),                                   0xB1E2U},
+    {("A661_COARSE_PAGE_DELTA"),                        0xB6E3U},
+    {("A661_COLOR_INDEX"),                              0xB160U},
+    {("A661_COMPLETED"),                                0x01U},
+    {CONSTANT_A661_COUNTER_CLOCKWISE,                   0x01U},
+    {("A661_CRP_LAT"),                                  0xB162U},
+    {("A661_CRP_LAT_LONG"),                             0xB166U},
+    {("A661_CRP_LONG"),                                 0xB164U},
+    {("A661_CURSOR_CLICKED"),                           0xB1D3U},
+    {("A661_CURSOR_DOUBLE_CLICKED"),                    0xB1D4U},
+    {("A661_CURSOR_INDEX"),                             0xB6A0U},
+    {("A661_CURSOR_POS"),                               0xB170U},
+    {("A661_CURSOR_POS_BYTE"),                          0xB172U},
+    {("A661_CURSOR_PRESSED"),                           0xB1D1U},
+    {("A661_CURSOR_RELEASED"),                          0xB1D2U},
+    {("A661_CURSOR_RIGHT_CLICKED"),                     0xB1D5U},
+    {("A661_DEACTIVATE"),                               0x04U},
+    {("A661_DIRECTION"),                                0xB713U},
+    {CONSTANT_A661_DONT_RUN,                            0x00U},
+    {("A661_DOWN"),                                     0x1AU},
+    {("A661_DRAW_LINE_TO_CURSOR"),                      0x36U},
+    {("A661_EASING_IN"),                                0x01U},
+    {("A661_EASING_INOUT"),                             0x03U},
+    {("A661_EASING_OUT"),                               0x02U},
+    {CONSTANT_A661_EDB_ALL_CHANGE,                      0x01U},
+    {CONSTANT_A661_EDB_CHANGE_CONFIRMED,                0x00U},
+    {CONSTANT_A661_EDB_OPEN_CLOSE,                      0x02U},
+    {("A661_EDITING"),                                  0x1BU},
+    {("A661_EFFECTIVITY_ARRAY"),                        0xB6C8U},
+    {("A661_ENABLE"),                                   0xB180U},
+    {("A661_ENABLE_ENTRY_ARRAY"),                       0xB1A8U},
+    {("A661_ENABLE_HANDLER"),                           0xB1A1U},
+    {("A661_END"),                                      0x03U},
+    {("A661_END_ANGLE"),                                0xB1B0U},
+    {("A661_END_SCALED_VALUE"),                         0xB505U},
+    {("A661_END_VALUE"),                                0xB503U},
+    {("A661_ENTRY_ARRAY"),                              0xB190U},
+    {("A661_ENTRY_POP_UP_ARRAY"),                       0xB1C0U},
+    {("A661_ENTRY_VALID"),                              0xB570U},
+    {("A661_ERROR"),                                    0x1CU},
+    {("A661_EVENT_FLAG"),                               0xB1D0U},
+    {CONSTANT_A661_EVENT_NONE,                          0x00U},
+    {("A661_EXCLUDED_CIRCLE"),                          0x03U},
+    {("A661_EXCLUDED_RECTANGLE"),                       0x01U},
+    {("A661_EXCLUDED_REGIONS_LIST"),                    0xB6C9U},
+    {("A661_EXCLUDED_TRIANGLE"),                        0x02U},
+    {CONSTANT_A661_FALSE,                               0x00U},
+    {("A661_FILLED"),                                   0xB1E1U},
+    {("A661_FILLED_POLY_START"),                        0x2BU},
+    {("A661_FILLED_POLY_START_INTERACTIVE"),            0xABU},
+    {("A661_FILL_INDEX"),                               0xB1E0U},
+    {("A661_FINE_PAGE_DELTA"),                          0xB6E2U},
+    {("A661_FIRST_ACCESS_ENTRY"),                       0xB1F0U},
+    {("A661_FIRST_ACCESS_UA_ENTRY"),                    0xB1F8U},
+    {("A661_FIRST_VISIBLE_ENTRY"),                      0xB200U},
+    {("A661_FONT"),                                     0xB590U},
+    {("A661_FORMAT_STRING"),                            0xB550U},
+    {("A661_FRAME_X"),                                  0xB210U},
+    {("A661_FRAME_XY"),                                 0xB230U},
+    {("A661_FRAME_Y"),                                  0xB220U},
+    {("A661_FROM"),                                     0x05U},
+    {("A661_FROM_ANGLE"),                               0xB707U},
+    {("A661_FROM_SCALE_X"),                             0xB708U},
+    {("A661_FROM_SCALE_XY"),                            0xB715U},
+    {("A661_FROM_SCALE_Y"),                             0xB709U},
+    {("A661_FROM_VALUE"),                               0xB70AU},
+    {("A661_FROM_VALUE_X"),                             0xB70BU},
+    {("A661_FROM_VALUE_XY"),                            0xB717U},
+    {("A661_FROM_VALUE_Y"),                             0xB70CU},
+    {CONSTANT_A661_GBK,                                 0x03U},
+    {("A661_GESTURE_ABORT"),                            0x04U},
+    {("A661_GESTURE_CANDIDATE"),                        0x05U},
+    {("A661_GESTURE_DOUBLE_TAP"),                       0x02U},
+    {("A661_GESTURE_DRAG"),                             0x06U},
+    {("A661_GESTURE_END"),                              0x03U},
+    {("A661_GESTURE_FLICK"),                            0x07U},
+    {("A661_GESTURE_FLICK_DOWN"),                       0x0BU},
+    {("A661_GESTURE_FLICK_LEFT"),                       0x08U},
+    {("A661_GESTURE_FLICK_RIGHT"),                      0x09U},
+    {("A661_GESTURE_FLICK_UP"),                         0x0AU},
+    {("A661_GESTURE_HOLD"),                             0x0CU},
+    {("A661_GESTURE_PINCH"),                            0x04U},
+    {("A661_GESTURE_PRESS_AND_HOLD"),                   0x03U},
+    {("A661_GESTURE_ROTATE"),                           0x05U},
+    {("A661_GESTURE_START"),                            0x01U},
+    {("A661_GESTURE_TAP"),                              0x01U},
+    {("A661_GESTURE_UPDATE"),                           0x02U},
+    {("A661_GRID"),                                     0x03U},
+    {("A661_HALO"),                                     0xB1E8U},
+    {("A661_HIGHLIGHT_ONLY"),                           0x04U},
+    {("A661_HOME_X"),                                   0xB219U},
+    {("A661_HOME_Y"),                                   0xB21AU},
+    {("A661_HORIZONTAL"),                               0x01U},
+    {("A661_HORIZONTAL_SCROLL"),                        0xB217U},
+    {CONSTANT_A661_HORZ_LINE,                           0x02U},
+    {("A661_HYPHENATE"),                                0x02U},
+    {("A661_INDEX_OF_FREQUENCY"),                       0xB091U},
+    {("A661_INITIAL_FOCUS"),                            0xB6B0U},
+    {("A661_INNER_RADIUS"),                             0xB240U},
+    {("A661_INNER_STATE_CHECK"),                        0xB244U},
+    {("A661_INNER_STATE_TOGGLE"),                       0xB258U},
+    {("A661_INSET_SIZE"),                               0xB051U},
+    {("A661_IN_BOUNDS"),                                0x01U},
+    {("A661_ITEM_SPACING"),                             0xB5C1U},
+    {("A661_ITEM_STYLE"),                               0x20U},
+    {("A661_ITEM_SYNCHRONIZATION"),                     0x51U},
+    {("A661_KEY_ARRAY"),                                0xB700U},
+    {("A661_LAYOUT"),                                   0xB5F0U},
+    {CONSTANT_A661_LEFT,                                0x13U},
+    {CONSTANT_A661_LEFT_TO_RIGHT,                       0x41U},
+    {("A661_LEGEND"),                                   0x21U},
+    {("A661_LEGEND_ALIGNMENT"),                         0xB49BU},
+    {("A661_LEGEND_ANCHOR"),                            0x22U},
+    {("A661_LEGEND_ANCHOR_ROTATED"),                    0x35U},
+    {("A661_LEGEND_AND_HIGHLIGHT"),                     0x05U},
+    {("A661_LEGEND_AND_POPUP"),                         0x03U},
+    {("A661_LEGEND_AND_POPUP_AND_HIGHLIGHT"),           0x07U},
+    {("A661_LEGEND_AREA_SIZE_X"),                       0xB451U},
+    {("A661_LEGEND_COMBO"),                             0x38U},
+    {("A661_LEGEND_HIGHLIGHT"),                         0x58U},
+    {("A661_LEGEND_ONLY"),                              0x01U},
+    {("A661_LEGEND_POP_UP"),                            0x23U},
+    {("A661_LEGEND_POSITION"),                          0xB260U},
+    {("A661_LEGEND_READOUT"),                           0x45U},
+    {("A661_LEGEND_READOUT_COMBO"),                     0x48U},
+    {("A661_LEGEND_READOUT_FORMAT_STRING"),             0x44U},
+    {("A661_LEGEND_REMOVED"),                           0xB452U},
+    {("A661_LINEAR"),                                   0x00U},
+    {("A661_LINE_ARC"),                                 0x24U},
+    {("A661_LINE_ARC_INTERACTIVE"),                     0xA4U},
+    {("A661_LINE_DELTA_X"),                             0xB211U},
+    {("A661_LINE_DELTA_Y"),                             0xB212U},
+    {("A661_LINE_LENGTH"),                              0xB270U},
+    {("A661_LINE_SEGMENT"),                             0x25U},
+    {("A661_LINE_SEGMENT_INTERACTIVE"),                 0xA5U},
+    {("A661_LINE_START"),                               0x26U},
+    {("A661_LINE_START_INTERACTIVE"),                   0xA6U},
+    {CONSTANT_A661_LOOP_FORWARD,                        0x00U},
+    {CONSTANT_A661_LOOP_FORWARD_AND_BACKWARD_AND_BLANK, 0x03U},
+    {CONSTANT_A661_LOOP_FORWARD_AND_BLANK,              0x02U},
+    {CONSTANT_A661_LOOP_FORWARD_AND_RESET,              0x01U},
+    {("A661_LSB_MULTIPLE"),                             0xB631U},
+    {("A661_MAJOR_TICK_INTERVAL"),                      0xB600U},
+    {("A661_MAJOR_TICK_REFERENCE"),                     0xB608U},
+    {("A661_MAPGRID_CELLSIZE"),                         0xB274U},
+    {("A661_MAPGRID_OFFSET"),                           0xB278U},
+    {("A661_MAP_SYNCHRONIZATION_NUMBER"),               0xB277U},
+    {("A661_MASK_ENABLED"),                             0xB290U},
+    {("A661_MASK_REFERENCE"),                           0xB280U},
+    {("A661_MAX_VALUE"),                                0xB610U},
+    {CONSTANT_A661_MDF_ABSOLUTE,                        0x65U},
+    {CONSTANT_A661_MDF_BRG_DIST_ACHDG,                  0x60U},
+    {CONSTANT_A661_MDF_DIST_DIST,                       0x67U},
+    {CONSTANT_A661_MDF_DIST_DIST_FIX,                   0x6AU},
+    {CONSTANT_A661_MDF_LAT_LONG,                        0x61U},
+    {CONSTANT_A661_MDF_LEGACY,                          0x62U},
+    {CONSTANT_A661_MDF_RELATIVE,                        0x66U},
+    {CONSTANT_A661_MDF_X_DIST,                          0x68U},
+    {CONSTANT_A661_MDF_Y_ALT,                           0x69U},
+    {("A661_MENU_HORIZONTAL"),                          0xB640U},
+    {("A661_MINIMUM_SIZE"),                             0x02U},
+    {("A661_MINMAX_VALUES"),                            0xB580U},
+    {("A661_MINOR_TICK_MULTIPLE"),                      0xB630U},
+    {("A661_MIN_VALUE"),                                0xB620U},
+    {("A661_MULTI_STATE_VALUE"),                        0xB5A0U},
+    {("A661_NEGATIVE_STRING"),                          0xB4D4U},
+    {("A661_NEXT_FOCUSED_WIDGET"),                      0xB2B8U},
+    {("A661_NEXT_FOCUS_IN_APP_ID"),                     0xB2BAU},
+    {("A661_NEXT_FOCUS_IN_ID"),                         0xB2BCU},
+    {("A661_NEXT_FOCUS_IN_LAYER_ID"),                   0xB2BBU},
+    {("A661_NORMAL"),                                   0x1DU},
+    {CONSTANT_A661_NOT_CLAMPED,                         0x00U},
+    {("A661_NOT_USED"),                                 0x00U},
+    {CONSTANT_A661_NO_SHUFFLE,                          0x84U},
+    {("A661_NO_SIZING"),                                0x74U},
+    {("A661_NUMBER_OF_ENTRIES"),                        0xB2A0U},
+    {("A661_NUMBER_OF_KEYS"),                           0xB701U},
+    {("A661_NUMBER_OF_PICTURES"),                       0xB2A2U},
+    {("A661_NUMBER_OF_STATES"),                         0xB5A1U},
+    {("A661_NUMBER_OF_SYMBOLS"),                        0xB2A4U},
+    {("A661_NUMBER_OF_TICS_COARSE"),                    0xB0A2U},
+    {("A661_NUMBER_OF_TICS_FINE"),                      0xB0A4U},
+    {("A661_NUMBER_OF_TOUCH_POINTS"),                   0xB0A0U},
+    {("A661_NUMBER_OF_TURNS"),                          0xB714U},
+    {("A661_NUMBER_OF_UA_ENTRIES"),                     0xB2A8U},
+    {("A661_NUMBER_OF_VISIBLE_CHILDREN"),               0xB5D0U},
+    {("A661_NUMERIC_MASK"),                             0xB2B0U},
+    {("A661_OPENING_ENTRY"),                            0xB560U},
+    {("A661_OPENING_MODE"),                             0xB561U},
+    {CONSTANT_A661_OPEN_CENTERED,                       0x17U},
+    {CONSTANT_A661_OPEN_DOWN,                           0x18U},
+    {("A661_OPEN_ENTRY_ARRAY"),                         0xB627U},
+    {CONSTANT_A661_OPEN_UP,                             0x16U},
+    {("A661_OPERATOR_ADD_ASSIGN_ARG"),                  0x0BU},
+    {("A661_OPERATOR_ADD_ASSIGN_SRC"),                  0x08U},
+    {("A661_OPERATOR_ASSIGNMENT"),                      0x00U},
+    {("A661_OPERATOR_CONSTANT"),                        0x02U},
+    {("A661_OPERATOR_INVERSE"),                         0x01U},
+    {("A661_OPERATOR_LOGICAL_AND"),                     0x06U},
+    {("A661_OPERATOR_LOGICAL_OR"),                      0x07U},
+    {("A661_OPERATOR_PRODUCT"),                         0x05U},
+    {("A661_OPERATOR_PROD_ASSIGN_ARG"),                 0x0DU},
+    {("A661_OPERATOR_PROD_ASSIGN_SRC"),                 0x0AU},
+    {("A661_OPERATOR_SUB_ASSIGN_ARG"),                  0x0CU},
+    {("A661_OPERATOR_SUB_ASSIGN_SRC"),                  0x09U},
+    {("A661_OPERATOR_SUM"),                             0x04U},
+    {("A661_ORIENTATION"),                              0xB1D2U},
+    {("A661_OUTER_RADIUS"),                             0xB2D0U},
+    {CONSTANT_A661_OUT_OF_BOUNDS,                       0x00U},
+    {("A661_PAGE_CONTROL_POSITION"),                    0xB6E1U},
+    {("A661_PAGE_DELTA_X"),                             0xB213U},
+    {("A661_PAGE_DELTA_Y"),                             0xB214U},
+    {("A661_PAGE_WRAP_TYPE"),                           0xB6E0U},
+    {("A661_PARALLEL"),                                 0x00U},
+    {("A661_PARAM_BUFFER_INDEX"),                       0xB111U},
+    {("A661_PARENT_ENTRY_ARRAY"),                       0xB628U},
+    {("A661_PARKING_LINE_END"),                         0xBBU},
+    {("A661_PARKING_LINE_START"),                       0xBAU},
+    {("A661_PICTURE_ARRAY"),                            0xB2E0U},
+    {("A661_PICTURE_ENTRY_ARRAY"),                      0xB2E8U},
+    {("A661_PICTURE_POSITION"),                         0xB2F1U},
+    {("A661_PICTURE_REFERENCE"),                        0xB2F0U},
+    {("A661_PIX_FMT_COLOR_INDEXED_8"),                  0xC2U},
+    {("A661_PIX_FMT_LUMINANCE_ALPHA_8"),                0xC1U},
+    {("A661_PIX_FMT_RGBA_8"),                           0xC0U},
+    {("A661_PLAY"),                                     0x01U},
+    {("A661_POPUP_AND_HIGHLIGHT"),                      0x06U},
+    {("A661_POPUP_ONLY"),                               0x02U},
+    {("A661_POPUP_POS_X"),                              0xB1C3U},
+    {("A661_POPUP_POS_Y"),                              0xB1C4U},
+    {("A661_POPUP_SIZE_X"),                             0xB1C5U},
+    {("A661_POPUP_SIZE_Y"),                             0xB1C6U},
+    {("A661_POSITIVE_STRING"),                          0xB4D3U},
+    {("A661_POS_X"),                                    0xB300U},
+    {("A661_POS_X2"),                                   0xB330U},
+    {("A661_POS_X3"),                                   0xB360U},
+    {("A661_POS_XY"),                                   0xB320U},
+    {("A661_POS_XY2"),                                  0xB350U},
+    {("A661_POS_XY3"),                                  0xB380U},
+    {("A661_POS_Y"),                                    0xB310U},
+    {("A661_POS_Y2"),                                   0xB340U},
+    {("A661_POS_Y3"),                                   0xB370U},
+    {("A661_PRESERVE_CHARACTER"),                       0x01U},
+    {("A661_PRESERVE_WORD"),                            0x00U},
+    {("A661_PROJECTION_REFERENCE"),                     0xB1D3U},
+    {("A661_PRP_LAT"),                                  0xB390U},
+    {("A661_PRP_LAT_LONG"),                             0xB3B0U},
+    {("A661_PRP_LONG"),                                 0xB3A0U},
+    {("A661_PRP_SCREEN_X"),                             0xB3C0U},
+    {("A661_PRP_SCREEN_XY"),                            0xB3E0U},
+    {("A661_PRP_SCREEN_Y"),                             0xB3D0U},
+    {("A661_PRP_X"),                                    0xB3B2U},
+    {("A661_PRP_XY"),                                   0xB3B4U},
+    {("A661_PRP_Y"),                                    0xB3B3U},
+    {("A661_RADIUS"),                                   0xB3F0U},
+    {("A661_RANGE"),                                    0xB1D1U},
+    {("A661_RANGE_X"),                                  0xB402U},
+    {("A661_RANGE_XY"),                                 0xB404U},
+    {("A661_RANGE_Y"),                                  0xB403U},
+    {("A661_REFRESH"),                                  0xB670U},
+    {("A661_REF_POS_X"),                                0xB690U},
+    {("A661_REF_POS_XY"),                               0xB691U},
+    {("A661_REF_POS_Y"),                                0xB692U},
+    {("A661_REORDER"),                                  0xB0ABU},
+    {CONSTANT_A661_REPORT_ALL,                          0x61U},
+    {("A661_REPORT_ALL_WITH_CANDIDATE"),                0x64U},
+    {CONSTANT_A661_REPORT_ON_CDS,                       0x63U},
+    {("A661_REPORT_ON_COMPLETION"),                     0x62U},
+    {CONSTANT_A661_REPORT_ON_TRANSITION,                0x60U},
+    {("A661_REPORT_ON_TRANSITION_WITH_CANDIDATE"),      0x65U},
+    {("A661_REP_DEFAULT"),                              0x00U},
+    {("A661_REP_FOCUS"),                                0x02U},
+    {("A661_REP_HIGHLIGHT"),                            0x03U},
+    {("A661_REP_STANDARD"),                             0x01U},
+    {CONSTANT_A661_RIGHT,                               0x14U},
+    {CONSTANT_A661_RIGHT_TO_LEFT,                       0x42U},
+    {("A661_ROTATION_ANGLE"),                           0xB410U},
+    {CONSTANT_A661_RUN,                                 0x01U},
+    {CONSTANT_A661_RUN_ONCE,                            0x02U},
+    {CONSTANT_A661_SAME_LEVEL,                          0x02U},
+    {("A661_SCALE_X"),                                  0xB0ACU},
+    {("A661_SCALE_XY"),                                 0xB0AEU},
+    {("A661_SCALE_Y"),                                  0xB0ADU},
+    {("A661_SCREEN_RANGE"),                             0xB420U},
+    {CONSTANT_A661_SELECTED,                            0x01U},
+    {("A661_SELECTED_ENTRY"),                           0xB430U},
+    {("A661_SELECTED_ENTRY_ARRAY"),                     0xB439U},
+    {("A661_SELECTING_HEIGHT"),                         0xB431U},
+    {("A661_SELECTING_WIDTH"),                          0xB432U},
+    {("A661_SELECT_ALL"),                               0xB438U},
+    {("A661_SEQUENTIAL"),                               0x01U},
+    {("A661_SEQUENTIAL_FROM"),                          0x02U},
+    {("A661_SHEET_SIZE_X"),                             0xB215U},
+    {("A661_SHEET_SIZE_Y"),                             0xB216U},
+    {("A661_SHIFT_FIRST_VISIBLE_ENTRY"),                0xB440U},
+    {("A661_SHOW_FAIL"),                                0xB671U},
+    {("A661_SHOW_MAJOR_TICKS"),                         0xB601U},
+    {CONSTANT_A661_SHUFFLE_DOWN,                        0x81U},
+    {CONSTANT_A661_SHUFFLE_LEFT,                        0x82U},
+    {CONSTANT_A661_SHUFFLE_RIGHT,                       0x83U},
+    {("A661_SHUFFLE_TO_FIT_MODE"),                      0xB5E0U},
+    {CONSTANT_A661_SHUFFLE_UP,                          0x80U},
+    {("A661_SIZE_BOTTOM_UP"),                           0x71U},
+    {("A661_SIZE_LEFT_TO_RIGHT"),                       0x72U},
+    {("A661_SIZE_RIGHT_TO_LEFT"),                       0x73U},
+    {("A661_SIZE_TOP_DOWN"),                            0x70U},
+    {("A661_SIZE_TO_FIT_MODE"),                         0xB5C0U},
+    {("A661_SIZE_X"),                                   0xB450U},
+    {("A661_SIZE_XY"),                                  0xB470U},
+    {("A661_SIZE_Y"),                                   0xB460U},
+    {("A661_SOURCE_DX"),                                0xB662U},
+    {("A661_SOURCE_DXDY"),                              0xB665U},
+    {("A661_SOURCE_DY"),                                0xB663U},
+    {("A661_SOURCE_REF"),                               0xB666U},
+    {("A661_SOURCE_WIDGET_PARAM"),                      0x00U},
+    {("A661_SOURCE_X"),                                 0xB660U},
+    {("A661_SOURCE_XY"),                                0xB664U},
+    {("A661_SOURCE_Y"),                                 0xB661U},
+    {("A661_STAR"),                                     0x04U},
+    {("A661_START_ANGLE"),                              0xB480U},
+    {("A661_START_SCALED_VALUE"),                       0xB504U},
+    {("A661_START_VALUE"),                              0xB502U},
+    {("A661_STOP_BACKWARD"),                            0xB6B2U},
+    {("A661_STOP_FORWARD"),                             0xB6B1U},
+    {("A661_STRING"),                                   0xB490U},
+    {("A661_STRING_ALTERNATE"),                         0xB498U},
+    {("A661_STRING_ARRAY"),                             0xB4A0U},
+    {("A661_STYLE_SET"),                                0xB4B0U},
+    {("A661_STYLE_SET_ARRAY"),                          0xB4B1U},
+    {("A661_STYLE_SET_ARRAY_SIZE"),                     0xB4B2U},
+    {("A661_STYLE_SET_DEFAULT"),                        0x00U},
+    {("A661_SYMBOL_CIRCLE"),                            0x27U},
+    {("A661_SYMBOL_CIRCLE_INTERACTIVE"),                0xA7U},
+    {("A661_SYMBOL_ENTRY_ARRAY"),                       0xB2E9U},
+    {("A661_SYMBOL_GENERIC"),                           0x28U},
+    {("A661_SYMBOL_GENERIC_INTERACTIVE"),               0xA8U},
+    {("A661_SYMBOL_OVAL"),                              0x2CU},
+    {("A661_SYMBOL_OVAL_INTERACTIVE"),                  0xACU},
+    {("A661_SYMBOL_PARKABLE"),                          0xB8U},
+    {("A661_SYMBOL_PARKABLE_INTERACTIVE"),              0xB9U},
+    {("A661_SYMBOL_POSITION"),                          0xB4C2U},
+    {("A661_SYMBOL_RECTANGLE"),                         0x37U},
+    {("A661_SYMBOL_RECTANGLE_INTERACTIVE"),             0xB7U},
+    {("A661_SYMBOL_REFERENCE"),                         0xB4C0U},
+    {("A661_SYMBOL_ROTATED"),                           0x29U},
+    {("A661_SYMBOL_ROTATED_INTERACTIVE"),               0xA9U},
+    {("A661_SYMBOL_ROTATED_PARKABLE"),                  0xBEU},
+    {("A661_SYMBOL_ROTATED_PARKABLE_INTERACTIVE"),      0xBFU},
+    {("A661_SYMBOL_RUNWAY"),                            0x2AU},
+    {("A661_SYMBOL_RUNWAY_INTERACTIVE"),                0xAAU},
+    {("A661_SYMBOL_TARGET"),                            0x2DU},
+    {("A661_SYMBOL_TARGET_INTERACTIVE"),                0xADU},
+    {("A661_SYMBOL_TARGET_PARKABLE"),                   0x3DU},
+    {("A661_SYMBOL_TARGET_PARKABLE_INTERACTIVE"),       0xBDU},
+    {("A661_SYNC_FRAME"),                               0xB4C7U},
+    {("A661_TAB_DIRECTION_WIDGET_ID_ARRAY"),            0xB672U},
+    {("A661_TAB_POSITION"),                             0xB052U},
+    {("A661_TARGET_WIDGET_ID"),                         0xB650U},
+    {("A661_TICS_COARSE"),                              0xB4D0U},
+    {("A661_TICS_COARSE_8BYTE"),                        0xB4D2U},
+    {("A661_TICS_COARSE_ARRAY"),                        0xB0A6U},
+    {("A661_TICS_FINE"),                                0xB4E0U},
+    {("A661_TICS_FINE_8BYTE"),                          0xB4E2U},
+    {("A661_TICS_FINE_ARRAY"),                          0xB0AAU},
+    {("A661_TO"),                                       0x06U},
+    {CONSTANT_A661_TOP,                                 0x11U},
+    {CONSTANT_A661_TOP_CENTER,                          0x33U},
+    {CONSTANT_A661_TOP_LEFT,                            0x34U},
+    {CONSTANT_A661_TOP_RIGHT,                           0x35U},
+    {CONSTANT_A661_TOP_TO_BOTTOM,                       0x43U},
+    {("A661_TOUCH_ABORT"),                              0x04U},
+    {("A661_TOUCH_DOWN"),                               0x01U},
+    {("A661_TOUCH_MOVE"),                               0x02U},
+    {("A661_TOUCH_MOVE_OUTSIDE"),                       0x05U},
+    {("A661_TOUCH_UP"),                                 0x03U},
+    {("A661_TO_ANGLE"),                                 0xB70DU},
+    {("A661_TO_BACK"),                                  0x01U},
+    {("A661_TO_FRONT"),                                 0x02U},
+    {("A661_TO_SCALE_X"),                               0xB70EU},
+    {("A661_TO_SCALE_XY"),                              0xB716U},
+    {("A661_TO_SCALE_Y"),                               0xB70FU},
+    {("A661_TO_VALUE"),                                 0xB710U},
+    {("A661_TO_VALUE_X"),                               0xB711U},
+    {("A661_TO_VALUE_XY"),                              0xB718U},
+    {("A661_TO_VALUE_Y"),                               0xB712U},
+    {("A661_TRANSLATION_X"),                            0xB4F0U},
+    {("A661_TRANSLATION_XY"),                           0xB510U},
+    {("A661_TRANSLATION_Y"),                            0xB500U},
+    {("A661_TREE_NODE_STYLE_ARRAY"),                    0xB629U},
+    {("A661_TRIANGLE_END"),                             0x32U},
+    {("A661_TRIANGLE_END_DOUBLE"),                      0x33U},
+    {("A661_TRIANGLE_END_DOUBLE_INTERACTIVE"),          0xB3U},
+    {("A661_TRIANGLE_END_INTERACTIVE"),                 0xB2U},
+    {("A661_TRIANGLE_FAN_START"),                       0x34U},
+    {("A661_TRIANGLE_FAN_START_INTERACTIVE"),           0xB4U},
+    {("A661_TRIANGLE_SEGMENT"),                         0x2FU},
+    {("A661_TRIANGLE_SEGMENT_DOUBLE"),                  0x31U},
+    {("A661_TRIANGLE_SEGMENT_DOUBLE_INTERACTIVE"),      0xB1U},
+    {("A661_TRIANGLE_SEGMENT_INTERACTIVE"),             0xAFU},
+    {("A661_TRIANGLE_STRIP_START"),                     0x2EU},
+    {("A661_TRIANGLE_STRIP_START_INTERACTIVE"),         0xAEU},
+    {CONSTANT_A661_TRUE,                                0x01U},
+    {CONSTANT_A661_TRUE_WITH_VALIDATION,                0x02U},
+    {("A661_UA_POSITION_FLAG"),                         0xB1C1U},
+    {CONSTANT_A661_UNSELECTED,                          0x00U},
+    {("A661_UNSELECT_ALL"),                             0xB43AU},
+    {("A661_UP"),                                       0x19U},
+    {CONSTANT_A661_UTF8,                                0x02U},
+    {CONSTANT_A661_VALIDATION,                          0x01U},
+    {CONSTANT_A661_VALIDATION_AND_WHEEL,                0x02U},
+    {("A661_VALUE"),                                    0xB520U},
+    {("A661_VALUE_8BYTE"),                              0xB522U},
+    {("A661_VERTEX_RENDER_END"),                        0x3BU},
+    {("A661_VERTEX_RENDER_LINES"),                      0x01U},
+    {("A661_VERTEX_RENDER_LINE_LOOP"),                  0x02U},
+    {("A661_VERTEX_RENDER_POLYLINE"),                   0x03U},
+    {("A661_VERTEX_RENDER_SEGMENT"),                    0x3AU},
+    {("A661_VERTEX_RENDER_START"),                      0x39U},
+    {("A661_VERTEX_RENDER_TRIANGLE"),                   0x04U},
+    {("A661_VERTEX_RENDER_TRIANGLE_FAN"),               0x05U},
+    {("A661_VERTEX_RENDER_TRIANGLE_STRIP"),             0x06U},
+    {("A661_VERTICAL"),                                 0x00U},
+    {("A661_VERTICAL_SCROLL"),                          0xB218U},
+    {("A661_VERTICES_ARRAY"),                           0xB528U},
+    {CONSTANT_A661_VERT_LINE,                           0x03U},
+    {("A661_VISIBLE"),                                  0xB530U},
+    {("A661_VISIBLE_CHILD"),                            0xB540U},
+    {("A661_VISIBLE_CHILD_INDEX"),                      0xB680U},
+    {CONSTANT_A661_WHEEL,                               0x03U},
+    {("A661_WORD_WRAP"),                                0xB4A8U},
+    {CONSTANT_A661_WRAP_BOTH,                           0x01U},
+    {CONSTANT_A661_WRAP_FIRST_TO_LAST,                  0x02U},
+    {CONSTANT_A661_WRAP_LAST_TO_FIRST,                  0x03U},
+    {CONSTANT_A661_WRAP_NONE,                           0x00U},
+    {("A661_WRAP_STYLE"),                               0xB4A9U}
 };
 
-static const char_t* const c_boundaryCheckTargets[] = {"A661_MAPHORZ_ITEMLIST"};
-static const char_t* const c_childIndexTargets[] = {"A661_MUTUALLY_EXCLUSIVE_CONTAINER", "A661_PAGING_CONTAINER", "A661_TABBED_PANEL_GROUP"};
-static const char_t* const c_cursorEntryEventsTargets[] = {"A661_COMBO_BOX", "A661_SCROLL_LIST", "A661_SELECTOR", "A661_TREE"};
-static const char_t* const c_cursorEventsTargets[] = {"A661_ACTIVE_AREA", "A661_PICTURE_PUSH_BUTTON", "A661_PUSH_BUTTON", "A661_SYMBOL_PUSH_BUTTON"};
-static const char_t* const c_cursorShapeTargets[] = {"A661_ACTIVE_AREA", "A661_CHECK_BUTTON", "A661_COMBO_BOX", "A661_COMBO_BOX_EDIT", "A661_CURSOR_OVER", "A661_EDIT_BOX_MASKED", "A661_EDIT_BOX_MULTI_LINE", "A661_EDIT_BOX_NUMERIC", "A661_EDIT_BOX_NUMERIC_BCD", "A661_EDIT_BOX_TEXT", "A661_INK_AREA", "A661_KEYBOARD_AREA", "A661_MAPHORZ_ITEMLIST", "A661_MULTI_STATE_BUTTON", "A661_PICTURE_PUSH_BUTTON", "A661_PICTURE_TOGGLE_BUTTON", "A661_POP_UP_MENU_BUTTON", "A661_POP_UP_PANEL_BUTTON", "A661_PUSH_BUTTON", "A661_SCROLL_LIST", "A661_SCROLL_WHEEL_AREA", "A661_SELECTION_LIST_BUTTON", "A661_SELECTOR", "A661_SLIDER", "A661_SYMBOL_PUSH_BUTTON", "A661_SYMBOL_TOGGLE_BUTTON", "A661_TABBED_PANEL", "A661_TOGGLE_BUTTON", "A661_TREE"};
-static const char_t* const c_directionalTabbingTargets[] = {"A661_ACTIVE_AREA", "A661_CHECK_BUTTON", "A661_COMBO_BOX", "A661_COMBO_BOX_EDIT", "A661_EDIT_BOX_MASKED", "A661_EDIT_BOX_MULTI_LINE", "A661_EDIT_BOX_NUMERIC", "A661_EDIT_BOX_NUMERIC_BCD", "A661_EDIT_BOX_TEXT", "A661_MULTI_STATE_BUTTON", "A661_PICTURE_PUSH_BUTTON", "A661_PICTURE_TOGGLE_BUTTON", "A661_POP_UP_MENU_BUTTON", "A661_POP_UP_PANEL_BUTTON", "A661_PUSH_BUTTON", "A661_SCROLL_LIST", "A661_SELECTION_LIST_BUTTON", "A661_SELECTOR", "A661_SLIDER", "A661_SYMBOL_PUSH_BUTTON", "A661_SYMBOL_TOGGLE_BUTTON", "A661_TABBED_PANEL", "A661_TOGGLE_BUTTON", "A661_TREE"};
-static const char_t* const c_excludedRegionsTargets[] = {"A661_MAP_BOUNDARY"};
-static const char_t* const c_focusStopTargets[] = {"A661_ACTIVE_AREA", "A661_CHECK_BUTTON", "A661_COMBO_BOX", "A661_COMBO_BOX_EDIT", "A661_EDIT_BOX_MASKED", "A661_EDIT_BOX_MULTI_LINE", "A661_EDIT_BOX_NUMERIC", "A661_EDIT_BOX_NUMERIC_BCD", "A661_EDIT_BOX_TEXT", "A661_INK_AREA", "A661_MULTI_STATE_BUTTON", "A661_PICTURE_PUSH_BUTTON", "A661_PICTURE_TOGGLE_BUTTON", "A661_POP_UP_MENU_BUTTON", "A661_POP_UP_PANEL_BUTTON", "A661_PUSH_BUTTON", "A661_SCROLL_LIST", "A661_SELECTION_LIST_BUTTON", "A661_SELECTOR", "A661_SLIDER", "A661_SYMBOL_PUSH_BUTTON", "A661_SYMBOL_TOGGLE_BUTTON", "A661_TABBED_PANEL", "A661_TOGGLE_BUTTON", "A661_TREE"};
-static const char_t* const c_initialFocusTargets[] = {"A661_ACTIVE_AREA", "A661_CHECK_BUTTON", "A661_COMBO_BOX", "A661_COMBO_BOX_EDIT", "A661_EDIT_BOX_MASKED", "A661_EDIT_BOX_MULTI_LINE", "A661_EDIT_BOX_NUMERIC", "A661_EDIT_BOX_NUMERIC_BCD", "A661_EDIT_BOX_TEXT", "A661_INK_AREA", "A661_MULTI_STATE_BUTTON", "A661_PICTURE_PUSH_BUTTON", "A661_PICTURE_TOGGLE_BUTTON", "A661_POP_UP_MENU_BUTTON", "A661_POP_UP_PANEL_BUTTON", "A661_PUSH_BUTTON", "A661_SCROLL_LIST", "A661_SELECTION_LIST_BUTTON", "A661_SELECTOR", "A661_SLIDER", "A661_SYMBOL_PUSH_BUTTON", "A661_SYMBOL_TOGGLE_BUTTON", "A661_TABBED_PANEL", "A661_TOGGLE_BUTTON", "A661_TREE"};
-static const char_t* const c_legendAlignTargets[] = {"A661_EDIT_BOX_NUMERIC", "A661_EDIT_BOX_NUMERIC_BCD", "A661_NUMERIC_READOUT"};
-static const char_t* const c_maphorzCoordSystemEventTargets[] = {"A661_MAPHORZ", "A661_MAPHORZ_SOURCE", "A661_MAP_EXTERNAL_SOURCE"};
-static const char_t* const c_mapvertCoordSystemEventTargets[] = {"A661_MAPVERT", "A661_MAPVERT_SOURCE", "A661_MAP_EXTERNAL_SOURCE"};
-static const char_t* const c_multiSelectionTargets[] = {"A661_SCROLL_LIST", "A661_TREE"};
-static const char_t* const c_pictureTargets[] = {"A661_CHECK_BUTTON", "A661_COMBO_BOX", "A661_COMBO_BOX_EDIT", "A661_MULTI_STATE_BUTTON", "A661_PUSH_BUTTON", "A661_SCROLL_LIST", "A661_SELECTION_LIST_BUTTON", "A661_SELECTOR", "A661_TOGGLE_BUTTON", "A661_TREE"};
-static const char_t* const c_reorderTargets[] = {"A661_ACTIVE_AREA", "A661_BASIC_CONTAINER", "A661_BLINKING_CONTAINER", "A661_CHECK_BUTTON", "A661_COMBO_BOX", "A661_COMBO_BOX_EDIT", "A661_CONNECTOR", "A661_CURSOR_OVER", "A661_CURSOR_POS_OVERLAY", "A661_CURSOR_REF", "A661_DATA_CONNECTOR", "A661_EDIT_BOX_MASKED", "A661_EDIT_BOX_MULTI_LINE", "A661_EDIT_BOX_NUMERIC", "A661_EDIT_BOX_NUMERIC_BCD", "A661_EDIT_BOX_TEXT", "A661_EXTERNAL_SOURCE", "A661_GESTURE_AREA", "A661_GP_ARC_CIRCLE", "A661_GP_ARC_ELLIPSE", "A661_GP_CROWN", "A661_GP_LINE", "A661_GP_LINE_POLAR", "A661_GP_POLYLINE", "A661_GP_RECTANGLE", "A661_GP_TRIANGLE", "A661_INK_AREA", "A661_KEYBOARD_AREA", "A661_LABEL", "A661_LABEL_COMPLEX", "A661_MAPHORZ", "A661_MAPHORZ_CONTAINER", "A661_MAPHORZ_ITEMLIST", "A661_MAPHORZ_PANEL", "A661_MAPHORZ_SOURCE", "A661_MAPVERT", "A661_MAPVERT_CONTAINER", "A661_MAPVERT_ITEMLIST", "A661_MAPVERT_PANEL", "A661_MAPVERT_SOURCE", "A661_MAP_GRID", "A661_MASK_CONTAINER", "A661_MENU_BAR", "A661_MULTI_STATE_BUTTON", "A661_MUTUALLY_EXCLUSIVE_CONTAINER", "A661_NUMERIC_READOUT", "A661_PAGING_CONTAINER", "A661_PANEL", "A661_PICTURE", "A661_PICTURE_ANIMATED", "A661_PICTURE_PUSH_BUTTON", "A661_PICTURE_TOGGLE_BUTTON", "A661_POP_UP_MENU", "A661_POP_UP_MENU_BUTTON", "A661_POP_UP_PANEL", "A661_POP_UP_PANEL_BUTTON", "A661_PUSH_BUTTON", "A661_RADIO_BOX", "A661_ROTATION_CONTAINER", "A661_SCALE_CONTAINER", "A661_SCROLL_LIST", "A661_SCROLL_PANEL", "A661_SCROLL_WHEEL_AREA", "A661_SELECTION_LIST_BUTTON", "A661_SELECTOR", "A661_SHUFFLE_TO_FIT_CONTAINER", "A661_SIZE_TO_FIT_CONTAINER", "A661_SLIDER", "A661_SYMBOL", "A661_SYMBOL_ANIMATED", "A661_SYMBOL_PUSH_BUTTON", "A661_SYMBOL_TOGGLE_BUTTON", "A661_TABBED_PANEL", "A661_TABBED_PANEL_GROUP", "A661_TOGGLE_BUTTON", "A661_TOUCH_AREA", "A661_TRANSLATION_CONTAINER", "A661_TREE"};
-static const char_t* const c_staticParamBufferTargets[] = {"A661_BUFFER_FORMAT"};
-static const char_t* const c_styleSetTargets[] = {"A661_ACTIVE_AREA", "A661_CHECK_BUTTON", "A661_COMBO_BOX", "A661_COMBO_BOX_EDIT", "A661_CURSOR_OVER", "A661_EDIT_BOX_MASKED", "A661_EDIT_BOX_MULTI_LINE", "A661_EDIT_BOX_NUMERIC", "A661_EDIT_BOX_NUMERIC_BCD", "A661_EDIT_BOX_TEXT", "A661_EXTERNAL_SOURCE", "A661_GESTURE_AREA", "A661_GP_ARC_CIRCLE", "A661_GP_ARC_ELLIPSE", "A661_GP_CROWN", "A661_GP_LINE", "A661_GP_LINE_POLAR", "A661_GP_POLYLINE", "A661_GP_RECTANGLE", "A661_GP_TRIANGLE", "A661_INK_AREA", "A661_LABEL", "A661_LABEL_COMPLEX", "A661_MAPHORZ_PANEL", "A661_MULTI_STATE_BUTTON", "A661_NUMERIC_READOUT", "A661_PAGING_CONTAINER", "A661_PANEL", "A661_PICTURE", "A661_PICTURE_ANIMATED", "A661_PICTURE_PUSH_BUTTON", "A661_PICTURE_TOGGLE_BUTTON", "A661_POP_UP_MENU", "A661_POP_UP_MENU_BUTTON", "A661_POP_UP_PANEL", "A661_POP_UP_PANEL_BUTTON", "A661_PUSH_BUTTON", "A661_SCROLL_LIST", "A661_SCROLL_PANEL", "A661_SELECTION_LIST_BUTTON", "A661_SELECTOR", "A661_SHUFFLE_TO_FIT_CONTAINER", "A661_SIZE_TO_FIT_CONTAINER", "A661_SLIDER", "A661_SYMBOL", "A661_SYMBOL_ANIMATED", "A661_SYMBOL_PUSH_BUTTON", "A661_SYMBOL_TOGGLE_BUTTON", "A661_TABBED_PANEL", "A661_TABBED_PANEL_GROUP", "A661_TOGGLE_BUTTON", "A661_TOUCH_AREA", "A661_TREE"};
-static const char_t* const c_symbolTargets[] = {"A661_CHECK_BUTTON", "A661_COMBO_BOX", "A661_COMBO_BOX_EDIT", "A661_MULTI_STATE_BUTTON", "A661_POP_UP_MENU", "A661_POP_UP_MENU_BUTTON", "A661_POP_UP_PANEL_BUTTON", "A661_PUSH_BUTTON", "A661_SCROLL_LIST", "A661_SELECTION_LIST_BUTTON", "A661_SELECTOR", "A661_TABBED_PANEL", "A661_TOGGLE_BUTTON", "A661_TREE"};
-static const char_t* const c_ticsArrayTargets[] = {"A661_EDIT_BOX_NUMERIC"};
-static const char_t* const c_wordWrapTargets[] = {"A661_CHECK_BUTTON", "A661_COMBO_BOX", "A661_COMBO_BOX_EDIT", "A661_LABEL", "A661_LABEL_COMPLEX", "A661_NUMERIC_READOUT", "A661_PICTURE_PUSH_BUTTON", "A661_PICTURE_TOGGLE_BUTTON", "A661_POP_UP_MENU_BUTTON", "A661_POP_UP_PANEL", "A661_POP_UP_PANEL_BUTTON", "A661_PUSH_BUTTON", "A661_SCROLL_LIST", "A661_SELECTION_LIST_BUTTON", "A661_TABBED_PANEL", "A661_TOGGLE_BUTTON", "A661_TREE"};
+/*************************************************************************************************/
+/**
+ * \brief Widget types each extension may be attached to, from Table 8.4, Possible Widgets for Extension.
+ */
+static const char_t* const c_boundaryCheckTargets[] =
+{
+    TYPE_A661_MAPHORZ_ITEMLIST
+};
 
+static const char_t* const c_childIndexTargets[] =
+{
+    TYPE_A661_MUTUALLY_EXCLUSIVE_CONTAINER,
+    TYPE_A661_PAGING_CONTAINER,
+    TYPE_A661_TABBED_PANEL_GROUP
+};
+
+static const char_t* const c_cursorEntryEventsTargets[] =
+{
+    TYPE_A661_COMBO_BOX,
+    TYPE_A661_SCROLL_LIST,
+    CONSTANT_A661_SELECTOR,
+    TYPE_A661_TREE
+};
+
+static const char_t* const c_cursorEventsTargets[] =
+{
+    TYPE_A661_ACTIVE_AREA,
+    TYPE_A661_PICTURE_PUSH_BUTTON,
+    TYPE_A661_PUSH_BUTTON,
+    TYPE_A661_SYMBOL_PUSH_BUTTON
+};
+
+static const char_t* const c_cursorShapeTargets[] =
+{
+    TYPE_A661_ACTIVE_AREA,
+    TYPE_A661_CHECK_BUTTON,
+    TYPE_A661_COMBO_BOX,
+    TYPE_A661_COMBO_BOX_EDIT,
+    TYPE_A661_CURSOR_OVER,
+    TYPE_A661_EDIT_BOX_MASKED,
+    TYPE_A661_EDIT_BOX_MULTI_LINE,
+    TYPE_A661_EDIT_BOX_NUMERIC,
+    TYPE_A661_EDIT_BOX_NUMERIC_BCD,
+    TYPE_A661_EDIT_BOX_TEXT,
+    TYPE_A661_INK_AREA,
+    TYPE_A661_KEYBOARD_AREA,
+    TYPE_A661_MAPHORZ_ITEMLIST,
+    TYPE_A661_MULTI_STATE_BUTTON,
+    TYPE_A661_PICTURE_PUSH_BUTTON,
+    TYPE_A661_PICTURE_TOGGLE_BUTTON,
+    TYPE_A661_POP_UP_MENU_BUTTON,
+    TYPE_A661_POP_UP_PANEL_BUTTON,
+    TYPE_A661_PUSH_BUTTON,
+    TYPE_A661_SCROLL_LIST,
+    TYPE_A661_SCROLL_WHEEL_AREA,
+    TYPE_A661_SELECTION_LIST_BUTTON,
+    CONSTANT_A661_SELECTOR,
+    TYPE_A661_SLIDER,
+    TYPE_A661_SYMBOL_PUSH_BUTTON,
+    TYPE_A661_SYMBOL_TOGGLE_BUTTON,
+    TYPE_A661_TABBED_PANEL,
+    TYPE_A661_TOGGLE_BUTTON,
+    TYPE_A661_TREE
+};
+
+static const char_t* const c_directionalTabbingTargets[] =
+{
+    TYPE_A661_ACTIVE_AREA,
+    TYPE_A661_CHECK_BUTTON,
+    TYPE_A661_COMBO_BOX,
+    TYPE_A661_COMBO_BOX_EDIT,
+    TYPE_A661_EDIT_BOX_MASKED,
+    TYPE_A661_EDIT_BOX_MULTI_LINE,
+    TYPE_A661_EDIT_BOX_NUMERIC,
+    TYPE_A661_EDIT_BOX_NUMERIC_BCD,
+    TYPE_A661_EDIT_BOX_TEXT,
+    TYPE_A661_MULTI_STATE_BUTTON,
+    TYPE_A661_PICTURE_PUSH_BUTTON,
+    TYPE_A661_PICTURE_TOGGLE_BUTTON,
+    TYPE_A661_POP_UP_MENU_BUTTON,
+    TYPE_A661_POP_UP_PANEL_BUTTON,
+    TYPE_A661_PUSH_BUTTON,
+    TYPE_A661_SCROLL_LIST,
+    TYPE_A661_SELECTION_LIST_BUTTON,
+    CONSTANT_A661_SELECTOR,
+    TYPE_A661_SLIDER,
+    TYPE_A661_SYMBOL_PUSH_BUTTON,
+    TYPE_A661_SYMBOL_TOGGLE_BUTTON,
+    TYPE_A661_TABBED_PANEL,
+    TYPE_A661_TOGGLE_BUTTON,
+    TYPE_A661_TREE
+};
+
+static const char_t* const c_excludedRegionsTargets[] =
+{
+    TYPE_A661_MAP_BOUNDARY
+};
+
+static const char_t* const c_focusStopTargets[] =
+{
+    TYPE_A661_ACTIVE_AREA,
+    TYPE_A661_CHECK_BUTTON,
+    TYPE_A661_COMBO_BOX,
+    TYPE_A661_COMBO_BOX_EDIT,
+    TYPE_A661_EDIT_BOX_MASKED,
+    TYPE_A661_EDIT_BOX_MULTI_LINE,
+    TYPE_A661_EDIT_BOX_NUMERIC,
+    TYPE_A661_EDIT_BOX_NUMERIC_BCD,
+    TYPE_A661_EDIT_BOX_TEXT,
+    TYPE_A661_INK_AREA,
+    TYPE_A661_MULTI_STATE_BUTTON,
+    TYPE_A661_PICTURE_PUSH_BUTTON,
+    TYPE_A661_PICTURE_TOGGLE_BUTTON,
+    TYPE_A661_POP_UP_MENU_BUTTON,
+    TYPE_A661_POP_UP_PANEL_BUTTON,
+    TYPE_A661_PUSH_BUTTON,
+    TYPE_A661_SCROLL_LIST,
+    TYPE_A661_SELECTION_LIST_BUTTON,
+    CONSTANT_A661_SELECTOR,
+    TYPE_A661_SLIDER,
+    TYPE_A661_SYMBOL_PUSH_BUTTON,
+    TYPE_A661_SYMBOL_TOGGLE_BUTTON,
+    TYPE_A661_TABBED_PANEL,
+    TYPE_A661_TOGGLE_BUTTON,
+    TYPE_A661_TREE
+};
+
+static const char_t* const c_initialFocusTargets[] =
+{
+    TYPE_A661_ACTIVE_AREA,
+    TYPE_A661_CHECK_BUTTON,
+    TYPE_A661_COMBO_BOX,
+    TYPE_A661_COMBO_BOX_EDIT,
+    TYPE_A661_EDIT_BOX_MASKED,
+    TYPE_A661_EDIT_BOX_MULTI_LINE,
+    TYPE_A661_EDIT_BOX_NUMERIC,
+    TYPE_A661_EDIT_BOX_NUMERIC_BCD,
+    TYPE_A661_EDIT_BOX_TEXT,
+    TYPE_A661_INK_AREA,
+    TYPE_A661_MULTI_STATE_BUTTON,
+    TYPE_A661_PICTURE_PUSH_BUTTON,
+    TYPE_A661_PICTURE_TOGGLE_BUTTON,
+    TYPE_A661_POP_UP_MENU_BUTTON,
+    TYPE_A661_POP_UP_PANEL_BUTTON,
+    TYPE_A661_PUSH_BUTTON,
+    TYPE_A661_SCROLL_LIST,
+    TYPE_A661_SELECTION_LIST_BUTTON,
+    CONSTANT_A661_SELECTOR,
+    TYPE_A661_SLIDER,
+    TYPE_A661_SYMBOL_PUSH_BUTTON,
+    TYPE_A661_SYMBOL_TOGGLE_BUTTON,
+    TYPE_A661_TABBED_PANEL,
+    TYPE_A661_TOGGLE_BUTTON,
+    TYPE_A661_TREE
+};
+
+static const char_t* const c_legendAlignTargets[] =
+{
+    TYPE_A661_EDIT_BOX_NUMERIC,
+    TYPE_A661_EDIT_BOX_NUMERIC_BCD,
+    TYPE_A661_NUMERIC_READOUT
+};
+
+static const char_t* const c_maphorzCoordSystemEventTargets[] =
+{
+    TYPE_A661_MAPHORZ,
+    TYPE_A661_MAPHORZ_SOURCE,
+    TYPE_A661_MAP_EXTERNAL_SOURCE
+};
+
+static const char_t* const c_mapvertCoordSystemEventTargets[] =
+{
+    TYPE_A661_MAPVERT,
+    TYPE_A661_MAPVERT_SOURCE,
+    TYPE_A661_MAP_EXTERNAL_SOURCE
+};
+
+static const char_t* const c_multiSelectionTargets[] =
+{
+    TYPE_A661_SCROLL_LIST,
+    TYPE_A661_TREE
+};
+
+static const char_t* const c_pictureTargets[] =
+{
+    TYPE_A661_CHECK_BUTTON,
+    TYPE_A661_COMBO_BOX,
+    TYPE_A661_COMBO_BOX_EDIT,
+    TYPE_A661_MULTI_STATE_BUTTON,
+    TYPE_A661_PUSH_BUTTON,
+    TYPE_A661_SCROLL_LIST,
+    TYPE_A661_SELECTION_LIST_BUTTON,
+    CONSTANT_A661_SELECTOR,
+    TYPE_A661_TOGGLE_BUTTON,
+    TYPE_A661_TREE
+};
+
+static const char_t* const c_reorderTargets[] =
+{
+    TYPE_A661_ACTIVE_AREA,
+    TYPE_A661_BASIC_CONTAINER,
+    TYPE_A661_BLINKING_CONTAINER,
+    TYPE_A661_CHECK_BUTTON,
+    TYPE_A661_COMBO_BOX,
+    TYPE_A661_COMBO_BOX_EDIT,
+    TYPE_A661_CONNECTOR,
+    TYPE_A661_CURSOR_OVER,
+    TYPE_A661_CURSOR_POS_OVERLAY,
+    TYPE_A661_CURSOR_REF,
+    TYPE_A661_DATA_CONNECTOR,
+    TYPE_A661_EDIT_BOX_MASKED,
+    TYPE_A661_EDIT_BOX_MULTI_LINE,
+    TYPE_A661_EDIT_BOX_NUMERIC,
+    TYPE_A661_EDIT_BOX_NUMERIC_BCD,
+    TYPE_A661_EDIT_BOX_TEXT,
+    TYPE_A661_EXTERNAL_SOURCE,
+    TYPE_A661_GESTURE_AREA,
+    TYPE_A661_GP_ARC_CIRCLE,
+    TYPE_A661_GP_ARC_ELLIPSE,
+    TYPE_A661_GP_CROWN,
+    TYPE_A661_GP_LINE,
+    TYPE_A661_GP_LINE_POLAR,
+    TYPE_A661_GP_POLYLINE,
+    TYPE_A661_GP_RECTANGLE,
+    TYPE_A661_GP_TRIANGLE,
+    TYPE_A661_INK_AREA,
+    TYPE_A661_KEYBOARD_AREA,
+    TYPE_A661_LABEL,
+    TYPE_A661_LABEL_COMPLEX,
+    TYPE_A661_MAPHORZ,
+    TYPE_A661_MAPHORZ_CONTAINER,
+    TYPE_A661_MAPHORZ_ITEMLIST,
+    TYPE_A661_MAPHORZ_PANEL,
+    TYPE_A661_MAPHORZ_SOURCE,
+    TYPE_A661_MAPVERT,
+    TYPE_A661_MAPVERT_CONTAINER,
+    TYPE_A661_MAPVERT_ITEMLIST,
+    TYPE_A661_MAPVERT_PANEL,
+    TYPE_A661_MAPVERT_SOURCE,
+    TYPE_A661_MAP_GRID,
+    TYPE_A661_MASK_CONTAINER,
+    TYPE_A661_MENU_BAR,
+    TYPE_A661_MULTI_STATE_BUTTON,
+    TYPE_A661_MUTUALLY_EXCLUSIVE_CONTAINER,
+    TYPE_A661_NUMERIC_READOUT,
+    TYPE_A661_PAGING_CONTAINER,
+    TYPE_A661_PANEL,
+    TYPE_A661_PICTURE,
+    TYPE_A661_PICTURE_ANIMATED,
+    TYPE_A661_PICTURE_PUSH_BUTTON,
+    TYPE_A661_PICTURE_TOGGLE_BUTTON,
+    TYPE_A661_POP_UP_MENU,
+    TYPE_A661_POP_UP_MENU_BUTTON,
+    TYPE_A661_POP_UP_PANEL,
+    TYPE_A661_POP_UP_PANEL_BUTTON,
+    TYPE_A661_PUSH_BUTTON,
+    TYPE_A661_RADIO_BOX,
+    TYPE_A661_ROTATION_CONTAINER,
+    TYPE_A661_SCALE_CONTAINER,
+    TYPE_A661_SCROLL_LIST,
+    TYPE_A661_SCROLL_PANEL,
+    TYPE_A661_SCROLL_WHEEL_AREA,
+    TYPE_A661_SELECTION_LIST_BUTTON,
+    CONSTANT_A661_SELECTOR,
+    TYPE_A661_SHUFFLE_TO_FIT_CONTAINER,
+    TYPE_A661_SIZE_TO_FIT_CONTAINER,
+    TYPE_A661_SLIDER,
+    TYPE_A661_SYMBOL,
+    TYPE_A661_SYMBOL_ANIMATED,
+    TYPE_A661_SYMBOL_PUSH_BUTTON,
+    TYPE_A661_SYMBOL_TOGGLE_BUTTON,
+    TYPE_A661_TABBED_PANEL,
+    TYPE_A661_TABBED_PANEL_GROUP,
+    TYPE_A661_TOGGLE_BUTTON,
+    TYPE_A661_TOUCH_AREA,
+    TYPE_A661_TRANSLATION_CONTAINER,
+    TYPE_A661_TREE
+};
+
+static const char_t* const c_staticParamBufferTargets[] =
+{
+    TYPE_A661_BUFFER_FORMAT
+};
+
+static const char_t* const c_styleSetTargets[] =
+{
+    TYPE_A661_ACTIVE_AREA,
+    TYPE_A661_CHECK_BUTTON,
+    TYPE_A661_COMBO_BOX,
+    TYPE_A661_COMBO_BOX_EDIT,
+    TYPE_A661_CURSOR_OVER,
+    TYPE_A661_EDIT_BOX_MASKED,
+    TYPE_A661_EDIT_BOX_MULTI_LINE,
+    TYPE_A661_EDIT_BOX_NUMERIC,
+    TYPE_A661_EDIT_BOX_NUMERIC_BCD,
+    TYPE_A661_EDIT_BOX_TEXT,
+    TYPE_A661_EXTERNAL_SOURCE,
+    TYPE_A661_GESTURE_AREA,
+    TYPE_A661_GP_ARC_CIRCLE,
+    TYPE_A661_GP_ARC_ELLIPSE,
+    TYPE_A661_GP_CROWN,
+    TYPE_A661_GP_LINE,
+    TYPE_A661_GP_LINE_POLAR,
+    TYPE_A661_GP_POLYLINE,
+    TYPE_A661_GP_RECTANGLE,
+    TYPE_A661_GP_TRIANGLE,
+    TYPE_A661_INK_AREA,
+    TYPE_A661_LABEL,
+    TYPE_A661_LABEL_COMPLEX,
+    TYPE_A661_MAPHORZ_PANEL,
+    TYPE_A661_MULTI_STATE_BUTTON,
+    TYPE_A661_NUMERIC_READOUT,
+    TYPE_A661_PAGING_CONTAINER,
+    TYPE_A661_PANEL,
+    TYPE_A661_PICTURE,
+    TYPE_A661_PICTURE_ANIMATED,
+    TYPE_A661_PICTURE_PUSH_BUTTON,
+    TYPE_A661_PICTURE_TOGGLE_BUTTON,
+    TYPE_A661_POP_UP_MENU,
+    TYPE_A661_POP_UP_MENU_BUTTON,
+    TYPE_A661_POP_UP_PANEL,
+    TYPE_A661_POP_UP_PANEL_BUTTON,
+    TYPE_A661_PUSH_BUTTON,
+    TYPE_A661_SCROLL_LIST,
+    TYPE_A661_SCROLL_PANEL,
+    TYPE_A661_SELECTION_LIST_BUTTON,
+    CONSTANT_A661_SELECTOR,
+    TYPE_A661_SHUFFLE_TO_FIT_CONTAINER,
+    TYPE_A661_SIZE_TO_FIT_CONTAINER,
+    TYPE_A661_SLIDER,
+    TYPE_A661_SYMBOL,
+    TYPE_A661_SYMBOL_ANIMATED,
+    TYPE_A661_SYMBOL_PUSH_BUTTON,
+    TYPE_A661_SYMBOL_TOGGLE_BUTTON,
+    TYPE_A661_TABBED_PANEL,
+    TYPE_A661_TABBED_PANEL_GROUP,
+    TYPE_A661_TOGGLE_BUTTON,
+    TYPE_A661_TOUCH_AREA,
+    TYPE_A661_TREE
+};
+
+static const char_t* const c_symbolTargets[] =
+{
+    TYPE_A661_CHECK_BUTTON,
+    TYPE_A661_COMBO_BOX,
+    TYPE_A661_COMBO_BOX_EDIT,
+    TYPE_A661_MULTI_STATE_BUTTON,
+    TYPE_A661_POP_UP_MENU,
+    TYPE_A661_POP_UP_MENU_BUTTON,
+    TYPE_A661_POP_UP_PANEL_BUTTON,
+    TYPE_A661_PUSH_BUTTON,
+    TYPE_A661_SCROLL_LIST,
+    TYPE_A661_SELECTION_LIST_BUTTON,
+    CONSTANT_A661_SELECTOR,
+    TYPE_A661_TABBED_PANEL,
+    TYPE_A661_TOGGLE_BUTTON,
+    TYPE_A661_TREE
+};
+
+static const char_t* const c_ticsArrayTargets[] =
+{
+    TYPE_A661_EDIT_BOX_NUMERIC
+};
+
+static const char_t* const c_wordWrapTargets[] =
+{
+    TYPE_A661_CHECK_BUTTON,
+    TYPE_A661_COMBO_BOX,
+    TYPE_A661_COMBO_BOX_EDIT,
+    TYPE_A661_LABEL,
+    TYPE_A661_LABEL_COMPLEX,
+    TYPE_A661_NUMERIC_READOUT,
+    TYPE_A661_PICTURE_PUSH_BUTTON,
+    TYPE_A661_PICTURE_TOGGLE_BUTTON,
+    TYPE_A661_POP_UP_MENU_BUTTON,
+    TYPE_A661_POP_UP_PANEL,
+    TYPE_A661_POP_UP_PANEL_BUTTON,
+    TYPE_A661_PUSH_BUTTON,
+    TYPE_A661_SCROLL_LIST,
+    TYPE_A661_SELECTION_LIST_BUTTON,
+    TYPE_A661_TABBED_PANEL,
+    TYPE_A661_TOGGLE_BUTTON,
+    TYPE_A661_TREE
+};
+
+/*************************************************************************************************/
+/**
+ * \brief Each extension type with its list of widget types, in type name order.
+ */
 static const ExtensionTargets_t c_extensionTargets[] =
 {
-    {"A661_BOUNDARY_CHECK_EXTENSION", ARRAY_AND_COUNT(c_boundaryCheckTargets)},
-    {"A661_CHILD_INDEX_EXTENSION", ARRAY_AND_COUNT(c_childIndexTargets)},
-    {"A661_CURSOR_ENTRY_EVENTS_EXTENSION", ARRAY_AND_COUNT(c_cursorEntryEventsTargets)},
-    {"A661_CURSOR_EVENTS_EXTENSION", ARRAY_AND_COUNT(c_cursorEventsTargets)},
-    {"A661_CURSOR_SHAPE_EXTENSION", ARRAY_AND_COUNT(c_cursorShapeTargets)},
-    {"A661_DIRECTIONAL_TABBING_EXTENSION", ARRAY_AND_COUNT(c_directionalTabbingTargets)},
-    {"A661_EXCLUDED_REGIONS_EXTENSION", ARRAY_AND_COUNT(c_excludedRegionsTargets)},
-    {"A661_FOCUS_STOP_EXTENSION", ARRAY_AND_COUNT(c_focusStopTargets)},
-    {"A661_INITIAL_FOCUS_EXTENSION", ARRAY_AND_COUNT(c_initialFocusTargets)},
-    {"A661_LEGEND_ALIGN_EXTENSION", ARRAY_AND_COUNT(c_legendAlignTargets)},
-    {"A661_MAPHORZ_COORD_SYSTEM_EVENT_EXTENSION", ARRAY_AND_COUNT(c_maphorzCoordSystemEventTargets)},
-    {"A661_MAPVERT_COORD_SYSTEM_EVENT_EXTENSION", ARRAY_AND_COUNT(c_mapvertCoordSystemEventTargets)},
-    {"A661_MULTI_SELECTION_EXTENSION", ARRAY_AND_COUNT(c_multiSelectionTargets)},
-    {"A661_PICTURE_EXTENSION", ARRAY_AND_COUNT(c_pictureTargets)},
-    {"A661_REORDER_EXTENSION", ARRAY_AND_COUNT(c_reorderTargets)},
-    {"A661_STATIC_PARAM_BUFFER_EXTENSION", ARRAY_AND_COUNT(c_staticParamBufferTargets)},
-    {"A661_STYLE_SET_EXTENSION", ARRAY_AND_COUNT(c_styleSetTargets)},
-    {"A661_SYMBOL_EXTENSION", ARRAY_AND_COUNT(c_symbolTargets)},
-    {"A661_TICS_ARRAY_EXTENSION", ARRAY_AND_COUNT(c_ticsArrayTargets)},
-    {"A661_WORD_WRAP_EXTENSION", ARRAY_AND_COUNT(c_wordWrapTargets)},
+    {TYPE_A661_BOUNDARY_CHECK_EXTENSION, ARRAY_AND_COUNT(c_boundaryCheckTargets)},
+    {TYPE_A661_CHILD_INDEX_EXTENSION, ARRAY_AND_COUNT(c_childIndexTargets)},
+    {TYPE_A661_CURSOR_ENTRY_EVENTS_EXTENSION, ARRAY_AND_COUNT(c_cursorEntryEventsTargets)},
+    {TYPE_A661_CURSOR_EVENTS_EXTENSION, ARRAY_AND_COUNT(c_cursorEventsTargets)},
+    {TYPE_A661_CURSOR_SHAPE_EXTENSION, ARRAY_AND_COUNT(c_cursorShapeTargets)},
+    {TYPE_A661_DIRECTIONAL_TABBING_EXTENSION, ARRAY_AND_COUNT(c_directionalTabbingTargets)},
+    {TYPE_A661_EXCLUDED_REGIONS_EXTENSION, ARRAY_AND_COUNT(c_excludedRegionsTargets)},
+    {TYPE_A661_FOCUS_STOP_EXTENSION, ARRAY_AND_COUNT(c_focusStopTargets)},
+    {TYPE_A661_INITIAL_FOCUS_EXTENSION, ARRAY_AND_COUNT(c_initialFocusTargets)},
+    {TYPE_A661_LEGEND_ALIGN_EXTENSION, ARRAY_AND_COUNT(c_legendAlignTargets)},
+    {TYPE_A661_MAPHORZ_COORD_SYSTEM_EVENT_EXTENSION, ARRAY_AND_COUNT(c_maphorzCoordSystemEventTargets)},
+    {TYPE_A661_MAPVERT_COORD_SYSTEM_EVENT_EXTENSION, ARRAY_AND_COUNT(c_mapvertCoordSystemEventTargets)},
+    {TYPE_A661_MULTI_SELECTION_EXTENSION, ARRAY_AND_COUNT(c_multiSelectionTargets)},
+    {TYPE_A661_PICTURE_EXTENSION, ARRAY_AND_COUNT(c_pictureTargets)},
+    {TYPE_A661_REORDER_EXTENSION, ARRAY_AND_COUNT(c_reorderTargets)},
+    {TYPE_A661_STATIC_PARAM_BUFFER_EXTENSION, ARRAY_AND_COUNT(c_staticParamBufferTargets)},
+    {TYPE_A661_STYLE_SET_EXTENSION, ARRAY_AND_COUNT(c_styleSetTargets)},
+    {TYPE_A661_SYMBOL_EXTENSION, ARRAY_AND_COUNT(c_symbolTargets)},
+    {TYPE_A661_TICS_ARRAY_EXTENSION, ARRAY_AND_COUNT(c_ticsArrayTargets)},
+    {TYPE_A661_WORD_WRAP_EXTENSION, ARRAY_AND_COUNT(c_wordWrapTargets)},
 };
 
 #define EXTENSION_TARGET_COUNT ((uint32_t)COUNT_OF(c_extensionTargets))
@@ -4114,7 +5018,7 @@ static const char_t* FormatInteger(XmlWorkspace_t* xml, int64_t value)
     if (XML_INTEGER_TEXT_BYTES <= (xml->textCapacity - xml->textByteCount))
     {
         text       = (char_t*)&xml->text[xml->textByteCount];
-        byte_count = snprintf(text, XML_INTEGER_TEXT_BYTES, "%" PRId64, value);
+        byte_count = FACEOE_Utl_Print_Format(text, XML_INTEGER_TEXT_BYTES, "%" PRId64, value);
         LOGASSERT((0 < byte_count) && ((uint32_t)byte_count < XML_INTEGER_TEXT_BYTES));
         // Keep the terminator in workspace storage for subsequent strlen calls
         xml->textByteCount += ((uint64_t)byte_count + 1);
@@ -5280,7 +6184,7 @@ static uint32_t FormatReal(char_t* text, uint32_t capacity, float64_t value, int
     int      byte_count;
     uint32_t byte_index;
 
-    byte_count = snprintf(text, capacity, "%.*f", precision, value);
+    byte_count = FACEOE_Utl_Print_Format(text, capacity, "%.*f", precision, value);
     LOGASSERT((0 < byte_count) && ((uint32_t)byte_count < capacity));
     if (NULL != strchr(text, '.'))
     {
@@ -5425,7 +6329,7 @@ static bool_t AddIntegerProperty(Arinc661_Definition_t* definition, Arinc661_Pro
     char_t text[BINARY_INTEGER_TEXT_BYTES];
     int    byte_count;
 
-    byte_count = snprintf(text, sizeof(text), "%" PRId64, value);
+    byte_count = FACEOE_Utl_Print_Format(text, sizeof(text), "%" PRId64, value);
     LOGASSERT((0 < byte_count) && ((uint32_t)byte_count < sizeof(text)));
 
     return AddProperty(definition, owner, ownerIndex, name, text, (uint64_t)byte_count);

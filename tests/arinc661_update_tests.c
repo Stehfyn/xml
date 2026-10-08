@@ -8,6 +8,7 @@
 
 #include "../examples/arinc661_update.h"
 
+#include "faceoe_utl/faceoe_utl_print.h"
 #include "os/os_file.h"
 
 #ifdef NDEBUG
@@ -79,12 +80,12 @@ void RunArinc661UpdateTests(void)
     assert(Arinc661_Update_Sha256(package, sizeof(package), digest));
     for (index = 0; index < ARINC661_UPDATE_SHA256_BYTES; ++index)
     {
-        (void)snprintf(&hex[index * 2], 3, "%02x", (unsigned)digest[index]);
+        (void)FACEOE_Utl_Print_Format(&hex[index * 2], 3, "%02x", (unsigned)digest[index]);
     }
     assert(0 <= OS_File_WriteFile(PACKAGE_FILE, package, sizeof(package)));
 
     /* Manifest with a relative package name resolves against the manifest's folder */
-    (void)snprintf(manifest_text, sizeof(manifest_text), "# comment\nversion = 9.1.0.0\r\nmsi=%s\nSHA256=%s\nnotes=Faster layers\n", PACKAGE_FILE, hex);
+    (void)FACEOE_Utl_Print_Format(manifest_text, sizeof(manifest_text), "# comment\nversion = 9.1.0.0\r\nmsi=%s\nSHA256=%s\nnotes=Faster layers\n", PACKAGE_FILE, hex);
     assert(Arinc661_Update_ParseManifest(manifest_text, (uint32_t)strlen(manifest_text), "C:\\share\\updates\\manifest.txt", &manifest));
     assert((9 == manifest.version.major) && (1 == manifest.version.minor));
     assert(0 == strcmp("9.1.0.0", manifest.versionText));
@@ -115,7 +116,7 @@ void RunArinc661UpdateTests(void)
     (void)remove(path);
     manifest.sha256[0] ^= 0xFF;
     assert(ARINC661_UPDATE_RESULT_CORRUPT == Arinc661_Update_Download(&manifest, path, sizeof(path)));
-    (void)snprintf(manifest.packageUrl, sizeof(manifest.packageUrl), "no_such_package.msi");
+    (void)FACEOE_Utl_Print_Format(manifest.packageUrl, sizeof(manifest.packageUrl), "no_such_package.msi");
     assert(ARINC661_UPDATE_RESULT_UNREACHABLE == Arinc661_Update_Download(&manifest, path, sizeof(path)));
 
     (void)remove(MANIFEST_FILE);

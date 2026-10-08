@@ -12,6 +12,7 @@
 **===============================================================================================*/
 
 #include "faceoe/faceoe_displaymanagement.h"
+#include "faceoe_utl/faceoe_utl_print.h"
 #include "faceoe_utl/faceoe_utl_scan.h"
 #include "faceoe_utl/faceoe_utl_xml.h"
 
@@ -20,7 +21,6 @@
 #include <float.h>
 #include <inttypes.h>
 #include <limits.h>
-#include <stdio.h>
 #include <string.h>
 
 /*=================================================================================================
@@ -1182,7 +1182,7 @@ static const char_t* FormatInteger(XmlWorkspace_t* xml, int64_t value)
     if (XML_INTEGER_TEXT_BYTES <= (xml->textCapacity - xml->textByteCount))
     {
         text       = (char_t*)&xml->text[xml->textByteCount];
-        byte_count = snprintf(text, XML_INTEGER_TEXT_BYTES, "%" PRId64, value);
+        byte_count = FACEOE_Utl_Print_Format(text, XML_INTEGER_TEXT_BYTES, "%" PRId64, value);
         LOGASSERT((0 < byte_count) && ((uint32_t)byte_count < XML_INTEGER_TEXT_BYTES));
         // Keep the terminator in workspace storage for subsequent strlen calls
         xml->textByteCount += ((uint64_t)byte_count + 1);
@@ -1231,7 +1231,7 @@ static const char_t* FormatDecimal(XmlWorkspace_t* xml, float32_t value)
         // Keep the fewest fractional digits that scan back to the identical single
         for (precision = 0; precision <= XML_DECIMAL_MAX_PRECISION; ++precision)
         {
-            byte_count = snprintf(text, XML_DECIMAL_TEXT_BYTES, "%.*f", precision, value);
+            byte_count = FACEOE_Utl_Print_Format(text, XML_DECIMAL_TEXT_BYTES, "%.*f", precision, value);
             LOGASSERT((0 < byte_count) && ((uint32_t)byte_count < XML_DECIMAL_TEXT_BYTES));
             if (NULL != strchr(text, '.'))
             {

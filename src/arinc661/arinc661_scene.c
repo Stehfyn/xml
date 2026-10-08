@@ -14,11 +14,11 @@
 #include "arinc661/arinc661_scene.h"
 #include "faceoe_utl/faceoe_utl_defines.h"
 
+#include "faceoe_utl/faceoe_utl_print.h"
 #include "faceoe_utl/faceoe_utl_scan.h"
 #include "os/os_assert.h"
 
 #include <math.h>
-#include <stdio.h>
 #include <string.h>
 
 /*=================================================================================================
@@ -1383,7 +1383,7 @@ static void Chip(Scene_t* scene, uint32_t widgetIndex, float32_t alpha, Bounds_t
             {
                 scene->isChip[widgetIndex] = 1;
             }
-            (void)snprintf(text, sizeof(text), "%s  %s", widget->name, widget->type);
+            (void)FACEOE_Utl_Print_Format(text, sizeof(text), "%s  %s", widget->name, widget->type);
             Frame(scene, x, y, width, height, COLOR_CHIP, COLOR_CHIP_BORDER, alpha, bounds);
             BoxText(scene, x + (gap * 0.5f), y, width - gap, height, text, FACEOE_GFX_ALIGN_START, FACEOE_GFX_ALIGN_CENTER, 0.0f, Fade(COLOR_TEXT, alpha));
             FACEOE_Gfx_DrawList_PopTransform(scene->drawList);
@@ -1440,11 +1440,11 @@ static void Record(Scene_t* scene, uint32_t widgetIndex, const Bounds_t* bounds,
             extension_count = ExtensionCount(scene, widgetIndex);
             if (0 < extension_count)
             {
-                (void)snprintf(text, sizeof(text), "%s +%u", scene->definition->widgets[widgetIndex].name, (unsigned)extension_count);
+                (void)FACEOE_Utl_Print_Format(text, sizeof(text), "%s +%u", scene->definition->widgets[widgetIndex].name, (unsigned)extension_count);
             }
             else
             {
-                (void)snprintf(text, sizeof(text), "%s", scene->definition->widgets[widgetIndex].name);
+                (void)FACEOE_Utl_Print_Format(text, sizeof(text), "%s", scene->definition->widgets[widgetIndex].name);
             }
             // Draw names upright in output space at the bounds' top-left corner
             (void)memset(&identity, 0, sizeof(identity));
@@ -1488,7 +1488,7 @@ static void Button(const Scene_t* scene, uint32_t widgetIndex, const Layout_t* l
             icon_size = (*width);
         }
         icon_size *= 0.6f;
-        (void)snprintf(caption, sizeof(caption), "%s", Text(scene, widgetIndex, iconName));
+        (void)FACEOE_Utl_Print_Format(caption, sizeof(caption), "%s", Text(scene, widgetIndex, iconName));
         if (Is(scene, widgetIndex, iconPosition, "A661_LEFT"))
         {
             Placeholder(scene, (*x) + SCENE_PAD, (*y) + (((*height) - icon_size) * 0.5f), icon_size, icon_size, caption, alpha, bounds);
@@ -1946,7 +1946,7 @@ static void DrawSlider(const Scene_t* scene, uint32_t widgetIndex, const Layout_
                     FACEOE_Gfx_DrawList_Line(scene->drawList, track_x, along, track_x + (side * tick_length), along, Fade(COLOR_TRACK, alpha), SCENE_THIN);
                     if (shows_labels)
                     {
-                        (void)snprintf(label, sizeof(label), "%g", (float64_t)tick);
+                        (void)FACEOE_Utl_Print_Format(label, sizeof(label), "%g", (float64_t)tick);
                         if (0.0f <= side)
                         {
                             BoxText(scene, track_x + tick_length, along - (label_height * 0.5f), (x + width) - (track_x + tick_length), label_height, label, FACEOE_GFX_ALIGN_START, FACEOE_GFX_ALIGN_CENTER, 0.0f, Fade(COLOR_TEXT, alpha));
@@ -1963,7 +1963,7 @@ static void DrawSlider(const Scene_t* scene, uint32_t widgetIndex, const Layout_
                     FACEOE_Gfx_DrawList_Line(scene->drawList, along, track_y, along, track_y + (side * tick_length), Fade(COLOR_TRACK, alpha), SCENE_THIN);
                     if (shows_labels)
                     {
-                        (void)snprintf(label, sizeof(label), "%g", (float64_t)tick);
+                        (void)FACEOE_Utl_Print_Format(label, sizeof(label), "%g", (float64_t)tick);
                         if (0.0f <= side)
                         {
                             BoxText(scene, along - (width * 0.5f), track_y + tick_length, width, label_height, label, FACEOE_GFX_ALIGN_CENTER, FACEOE_GFX_ALIGN_START, 0.0f, Fade(COLOR_TEXT, alpha));
@@ -2699,7 +2699,7 @@ static void DrawWidget(Scene_t* scene, uint32_t widgetIndex, float32_t alpha, co
                 Dashed(scene, x, y, width, height, COLOR_AREA, alpha, &bounds);
                 if (KIND_KEYBOARD_AREA == kind)
                 {
-                    (void)snprintf(caption, sizeof(caption), "%u keys", (unsigned)NumberOr(scene, widgetIndex, "NumberOfKeys", 0.0f));
+                    (void)FACEOE_Utl_Print_Format(caption, sizeof(caption), "%u keys", (unsigned)NumberOr(scene, widgetIndex, "NumberOfKeys", 0.0f));
                     BoxText(scene, x, y, width, height, caption, FACEOE_GFX_ALIGN_CENTER, FACEOE_GFX_ALIGN_CENTER, 0.0f, Fade(COLOR_AREA, alpha));
                 }
                 FACEOE_Gfx_DrawList_Translate(scene->drawList, x, y);
@@ -2715,17 +2715,17 @@ static void DrawWidget(Scene_t* scene, uint32_t widgetIndex, float32_t alpha, co
             case KIND_EXTERNAL_SOURCE:
             case KIND_MAP_EXTERNAL_SOURCE:
                 Rect(scene, widgetIndex, layout, &x, &y, &width, &height);
-                (void)snprintf(caption, sizeof(caption), "Source %s", Text(scene, widgetIndex, "SourceReference"));
+                (void)FACEOE_Utl_Print_Format(caption, sizeof(caption), "Source %s", Text(scene, widgetIndex, "SourceReference"));
                 Placeholder(scene, x, y, width, height, caption, alpha, &bounds);
                 break;
             case KIND_PICTURE:
                 Rect(scene, widgetIndex, layout, &x, &y, &width, &height);
-                (void)snprintf(caption, sizeof(caption), "Picture %s", Text(scene, widgetIndex, "PictureReference"));
+                (void)FACEOE_Utl_Print_Format(caption, sizeof(caption), "Picture %s", Text(scene, widgetIndex, "PictureReference"));
                 Placeholder(scene, x, y, width, height, caption, alpha, &bounds);
                 break;
             case KIND_PICTURE_ANIMATED:
                 Rect(scene, widgetIndex, layout, &x, &y, &width, &height);
-                (void)snprintf(caption, sizeof(caption), "%u pictures", (unsigned)NumberOr(scene, widgetIndex, "NumberOfPictures", 0.0f));
+                (void)FACEOE_Utl_Print_Format(caption, sizeof(caption), "%u pictures", (unsigned)NumberOr(scene, widgetIndex, "NumberOfPictures", 0.0f));
                 Placeholder(scene, x, y, width, height, caption, alpha, &bounds);
                 break;
             case KIND_SYMBOL:
@@ -2733,14 +2733,14 @@ static void DrawWidget(Scene_t* scene, uint32_t widgetIndex, float32_t alpha, co
                 y     = NumberOr(scene, widgetIndex, "PosY", 0.0f);
                 angle = (NumberOr(scene, widgetIndex, "RotationAngle", 0.0f) * SCENE_DEGREES);
                 Marker(scene, x, y, angle, IndexColor(scene, widgetIndex, 1.0f), alpha, &bounds);
-                (void)snprintf(caption, sizeof(caption), "Symbol %s", Text(scene, widgetIndex, "SymbolReference"));
+                (void)FACEOE_Utl_Print_Format(caption, sizeof(caption), "Symbol %s", Text(scene, widgetIndex, "SymbolReference"));
                 BoxText(scene, x + SCENE_MARKER_RADIUS, y - SCENE_MARKER_RADIUS, SCENE_CHIP_WIDTH, SCENE_MARKER_RADIUS, caption, FACEOE_GFX_ALIGN_START, FACEOE_GFX_ALIGN_CENTER, 0.0f, Fade(COLOR_TEXT, alpha));
                 break;
             case KIND_SYMBOL_ANIMATED:
                 x = NumberOr(scene, widgetIndex, "PosX", 0.0f);
                 y = NumberOr(scene, widgetIndex, "PosY", 0.0f);
                 Marker(scene, x, y, (NumberAt(scene, widgetIndex, "OrientationArray", 0, 0.0f) * SCENE_DEGREES), IndexColor(scene, widgetIndex, 1.0f), alpha, &bounds);
-                (void)snprintf(caption, sizeof(caption), "%u symbols", (unsigned)NumberOr(scene, widgetIndex, "NumberOfSymbols", 0.0f));
+                (void)FACEOE_Utl_Print_Format(caption, sizeof(caption), "%u symbols", (unsigned)NumberOr(scene, widgetIndex, "NumberOfSymbols", 0.0f));
                 BoxText(scene, x + SCENE_MARKER_RADIUS, y - SCENE_MARKER_RADIUS, SCENE_CHIP_WIDTH, SCENE_MARKER_RADIUS, caption, FACEOE_GFX_ALIGN_START, FACEOE_GFX_ALIGN_CENTER, 0.0f, Fade(COLOR_TEXT, alpha));
                 break;
             case KIND_LABEL:
@@ -3257,7 +3257,7 @@ void Arinc661_Scene_FormatNumber(const char_t* format, float64_t value, char_t* 
     integer_part = (uint64_t)(rounded / scale);
     decimal_part = (uint64_t)(rounded - ((float64_t)integer_part * scale));
     // Zero-pad the integer digits to the slots and keep extra digits in front
-    integer_length = (uint32_t)snprintf(integer_digits, sizeof(integer_digits), "%llu", (unsigned long long)integer_part);
+    integer_length = FACEOE_Utl_Print_Format(integer_digits, sizeof(integer_digits), "%llu", (unsigned long long)integer_part);
     if ((0 == integer_slots) && (0 == integer_part))
     {
         integer_length = 0;
