@@ -31,6 +31,7 @@
 
 #define RENDERER_MAX_ANIMATIONS  (256)
 #define RENDERER_MAX_POINTS      (256)
+#define RENDERER_MAX_TICKS       (1000)
 #define RENDERER_TEXT_BYTES      (ARINC661_MAX_PROPERTY_BYTES + 64)
 #define RENDERER_DEFAULT_EXTENT  (10000.0f)
 #define RENDERER_DEGREES         (0.01745329252f)
@@ -412,19 +413,17 @@ static FACEOE_Gfx_Color_t Fade(FACEOE_Gfx_Color_t color, float32_t alpha);
 /**
  * \brief Resolves a widget's ColorIndex through the palette.
  *
- * \param renderer      Drawing state
  * \param node          Widget node in the scene
  * \param alpha         Alpha
  *
  * \retval FACEOE_Gfx_Color_t   Palette colour for the ColorIndex, faded.
  */
-static FACEOE_Gfx_Color_t IndexColor(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, float32_t alpha);
+static FACEOE_Gfx_Color_t IndexColor(const FACEOE_Utl_Node_t* node, float32_t alpha);
 
 /*************************************************************************************************/
 /**
  * \brief Reads a widget's reference point and size, or takes them from the container's layout.
  *
- * \param renderer      Drawing state
  * \param node          Widget node in the scene
  * \param layout        Layout
  * \param x             X in layer units
@@ -434,7 +433,7 @@ static FACEOE_Gfx_Color_t IndexColor(const Renderer_t* renderer, const FACEOE_Ut
  *
  * \retval None
  */
-static void Rect(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, const Layout_t* layout, float32_t* x, float32_t* y, float32_t* width, float32_t* height);
+static void Rect(const FACEOE_Utl_Node_t* node, const Layout_t* layout, float32_t* x, float32_t* y, float32_t* width, float32_t* height);
 
 /*************************************************************************************************/
 /**
@@ -479,7 +478,6 @@ static float32_t FontFor(const Renderer_t* renderer, float32_t height);
 /**
  * \brief Converts an Alignment constant to box alignments.
  *
- * \param renderer      Drawing state
  * \param node          Widget node in the scene
  * \param name          Property or element name
  * \param horizontal    Horizontal
@@ -487,7 +485,7 @@ static float32_t FontFor(const Renderer_t* renderer, float32_t height);
  *
  * \retval None
  */
-static void AlignOf(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, const char_t* name, FACEOE_Gfx_Align_t* horizontal, FACEOE_Gfx_Align_t* vertical);
+static void AlignOf(const FACEOE_Utl_Node_t* node, const char_t* name, FACEOE_Gfx_Align_t* horizontal, FACEOE_Gfx_Align_t* vertical);
 
 /*************************************************************************************************/
 /**
@@ -775,7 +773,7 @@ static void DrawTabbedGroup(const Renderer_t* renderer, const FACEOE_Utl_Node_t*
 
 /*************************************************************************************************/
 /**
- * \brief Applies the layer's transform animations that target a widget at the scene's animation time.
+ * \brief Applies the layer's transform animations that target a widget at the options' animation time.
  *
  * \param renderer      Drawing state
  * \param node          Widget node in the scene
@@ -799,7 +797,7 @@ static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, floa
 
 /*************************************************************************************************/
 /**
- * \brief Records a container's children in array order under its policy.
+ * \brief Records a container's children in scene order under its policy.
  *
  * \param renderer      Drawing state
  * \param node          Widget node in the scene
@@ -851,8 +849,12 @@ static const FACEOE_Utl_Node_t* FindLayer(const Arinc661_Scene_t* scene, uint32_
     uint32_t                 index;
 
     layer = GetFirstChild(scene->root);
-    for (index = 0; (NULL != layer) && (index < layerIndex); ++index)
+    for (index = 0; index < layerIndex; ++index)
     {
+        if (NULL == layer)
+        {
+            break;
+        }
         layer = layer->nextSibling;
     }
 
@@ -1131,7 +1133,7 @@ static FACEOE_Gfx_Color_t Fade(FACEOE_Gfx_Color_t color, float32_t alpha)
 /**
  * \brief Resolves a widget's ColorIndex through the palette.
  */
-static FACEOE_Gfx_Color_t IndexColor(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, float32_t alpha)
+static FACEOE_Gfx_Color_t IndexColor(const FACEOE_Utl_Node_t* node, float32_t alpha)
 {
     float32_t index;
 
@@ -1148,7 +1150,7 @@ static FACEOE_Gfx_Color_t IndexColor(const Renderer_t* renderer, const FACEOE_Ut
 /**
  * \brief Reads a widget's reference point and size, or takes them from the container's layout.
  */
-static void Rect(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, const Layout_t* layout, float32_t* x, float32_t* y, float32_t* width, float32_t* height)
+static void Rect(const FACEOE_Utl_Node_t* node, const Layout_t* layout, float32_t* x, float32_t* y, float32_t* width, float32_t* height)
 {
     (*x)      = NumberOr(node, "PosX", 0.0f);
     (*y)      = NumberOr(node, "PosY", 0.0f);
@@ -1244,7 +1246,7 @@ static float32_t FontFor(const Renderer_t* renderer, float32_t height)
 /**
  * \brief Converts an Alignment constant to box alignments.
  */
-static void AlignOf(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, const char_t* name, FACEOE_Gfx_Align_t* horizontal, FACEOE_Gfx_Align_t* vertical)
+static void AlignOf(const FACEOE_Utl_Node_t* node, const char_t* name, FACEOE_Gfx_Align_t* horizontal, FACEOE_Gfx_Align_t* vertical)
 {
     (*horizontal) = FACEOE_GFX_ALIGN_CENTER;
     (*vertical)   = FACEOE_GFX_ALIGN_CENTER;
@@ -1526,7 +1528,7 @@ static void Button(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, co
     float32_t          label_height;
     float32_t          icon_size;
 
-    Rect(renderer, node, layout, x, y, width, height);
+    Rect(node, layout, x, y, width, height);
     Frame(renderer, (*x), (*y), (*width), (*height), COLOR_BUTTON, COLOR_BUTTON_BORDER, alpha, bounds);
     label_x      = (*x);
     label_y      = (*y);
@@ -1571,7 +1573,7 @@ static void Button(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, co
     }
     if (NULL != label)
     {
-        AlignOf(renderer, node, "Alignment", &horizontal, &vertical);
+        AlignOf(node, "Alignment", &horizontal, &vertical);
         BoxText(renderer, label_x + RENDERER_PAD, label_y, label_width - (2.0f * RENDERER_PAD), label_height, label, horizontal, FACEOE_GFX_ALIGN_CENTER, 0.0f, Fade(COLOR_TEXT, alpha));
     }
 }
@@ -1589,6 +1591,7 @@ static void EntryRows(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node,
     float32_t     row_y;
     float32_t     row_alpha;
     uint32_t      entry;
+    bool_t        is_row_inside;
 
     FACEOE_Gfx_DrawList_UnitLengths(renderer->drawList, &unit_x, &unit_y);
     row_height = ((renderer->options->fontSize * 1.3f) / unit_y);
@@ -1598,8 +1601,13 @@ static void EntryRows(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node,
     }
     FACEOE_Gfx_DrawList_PushClip(renderer->drawList, x, y, width, height);
     row_y = (y + height - row_height);
-    for (entry = first; (entry < count) && ((y - row_height) < row_y); ++entry)
+    for (entry = first; entry < count; ++entry)
     {
+        is_row_inside = ((y - row_height) < row_y);
+        if (FALSE == is_row_inside)
+        {
+            break;
+        }
         text = Value(node, arrayName, entry);
         if (NULL == text)
         {
@@ -1645,7 +1653,7 @@ static void NumericBox(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node
     float32_t          legend_height;
     bool_t             has_legend;
 
-    Rect(renderer, node, layout, &x, &y, &width, &height);
+    Rect(node, layout, &x, &y, &width, &height);
     if (0.0f != radians)
     {
         FACEOE_Gfx_DrawList_Rotate(renderer->drawList, x, y, radians);
@@ -1696,7 +1704,7 @@ static void NumericBox(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node
         }
         FACEOE_Gfx_DrawList_Line(renderer->drawList, field_x, field_y, field_x, field_y + field_height, Fade(COLOR_EDIT_BORDER, alpha * 0.5f), RENDERER_THIN);
     }
-    AlignOf(renderer, node, "Alignment", &horizontal, &vertical);
+    AlignOf(node, "Alignment", &horizontal, &vertical);
     BoxText(renderer, field_x + RENDERER_PAD, field_y, field_width - (2.0f * RENDERER_PAD), field_height, text, horizontal, FACEOE_GFX_ALIGN_CENTER, 0.0f, Fade(COLOR_TEXT, alpha));
 }
 
@@ -1727,7 +1735,7 @@ static void DrawGp(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, Ki
     bool_t             is_filled;
     bool_t             has_halo;
 
-    color     = IndexColor(renderer, node, alpha);
+    color     = IndexColor(node, alpha);
     halo      = Fade(FACEOE_GFX_RGBA(0, 0, 0, 255), alpha);
     is_filled = Is(node, "Filled", "A661_TRUE");
     has_halo  = (FALSE == Is(node, "Halo", "A661_FALSE")) && (NULL != Value(node, "Halo", 0));
@@ -1929,9 +1937,10 @@ static void DrawSlider(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node
     uint32_t  minor_index;
     bool_t    is_vertical;
     bool_t    is_reversed;
+    bool_t    is_tick_in_range;
     bool_t    shows_labels;
 
-    Rect(renderer, node, layout, &x, &y, &width, &height);
+    Rect(node, layout, &x, &y, &width, &height);
     Frame(renderer, x, y, width, height, COLOR_CONTAINER, COLOR_BORDER, alpha, bounds);
     track_x        = (x + (width * 0.5f));
     track_y        = (y + (height * 0.5f));
@@ -1984,8 +1993,13 @@ static void DrawSlider(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node
         {
             tick -= interval;
         }
-        for (tick_index = 0; (tick <= maximum) && (tick_index < 1000); ++tick_index)
+        for (tick_index = 0; tick_index < RENDERER_MAX_TICKS; ++tick_index)
         {
+            is_tick_in_range = (tick <= maximum);
+            if (FALSE == is_tick_in_range)
+            {
+                break;
+            }
             if (minimum <= tick)
             {
                 fraction = ((tick - minimum) / (maximum - minimum));
@@ -2110,11 +2124,12 @@ static void DrawTree(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, 
     uint32_t           shown;
     uint32_t           guard;
     bool_t             is_shown;
+    bool_t             is_row_inside;
     bool_t             has_children;
 
-    Rect(renderer, node, layout, &x, &y, &width, &height);
+    Rect(node, layout, &x, &y, &width, &height);
     Frame(renderer, x, y, width, height, COLOR_EDIT, COLOR_EDIT_BORDER, alpha, bounds);
-    AlignOf(renderer, node, "Alignment", &horizontal, &vertical);
+    AlignOf(node, "Alignment", &horizontal, &vertical);
     count    = (uint32_t)NumberOr(node, "NumberOfEntries", 0.0f);
     first    = (uint32_t)NumberOr(node, "FirstVisibleEntry", 1.0f);
     selected = (uint32_t)NumberOr(node, "SelectedEntry", 0.0f);
@@ -2128,14 +2143,27 @@ static void DrawTree(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, 
     FACEOE_Gfx_DrawList_PushClip(renderer->drawList, x, y, width, height);
     row_y = (y + height - row_height);
     shown = 0;
-    for (entry = 0; (entry < count) && ((y - row_height) < row_y); ++entry)
+    for (entry = 0; entry < count; ++entry)
     {
+        is_row_inside = ((y - row_height) < row_y);
+        if (FALSE == is_row_inside)
+        {
+            break;
+        }
         // Show an entry only when every ancestor is open; read ParentArray as 1-based with 0 for roots
         is_shown = TRUE;
         depth    = 0;
         parent   = (uint32_t)NumberAt(node, "ParentArray", entry, 0.0f);
-        for (guard = 0; (0 != parent) && (parent <= count) && (guard < count); ++guard)
+        for (guard = 0; guard < count; ++guard)
         {
+            if (0 == parent)
+            {
+                break;
+            }
+            if (count < parent)
+            {
+                break;
+            }
             depth += 1;
             if (IsAt(node, "OpenArray", parent - 1, "A661_FALSE"))
             {
@@ -2337,7 +2365,7 @@ static void DrawTabbedGroup(const Renderer_t* renderer, const FACEOE_Utl_Node_t*
     bool_t                   is_active;
     int32_t                  position;
 
-    Rect(renderer, node, layout, &x, &y, &width, &height);
+    Rect(node, layout, &x, &y, &width, &height);
     Frame(renderer, x, y, width, height, COLOR_CONTAINER, COLOR_BORDER, alpha, bounds);
     FACEOE_Gfx_DrawList_UnitLengths(renderer->drawList, &unit_x, &unit_y);
     strip = ((renderer->options->fontSize * 1.6f) / unit_y);
@@ -2400,7 +2428,7 @@ static void DrawTabbedGroup(const Renderer_t* renderer, const FACEOE_Utl_Node_t*
             }
         }
         along = 0.0f;
-        for (child = GetFirstChild(node); (NULL != child) && (0 < tab_count); child = child->nextSibling)
+        for (child = GetFirstChild(node); NULL != child; child = child->nextSibling)
         {
             if (FALSE == WidgetOf(child)->isExtension)
             {
@@ -2456,7 +2484,7 @@ static void DrawTabbedGroup(const Renderer_t* renderer, const FACEOE_Utl_Node_t*
 /*************************************************************************************************/
 /**
  * \brief Applies the layer's rotation, scale, and translation animations that target a widget
- *  at the scene's animation time: linear law, Delay and Duration in milliseconds, repetition
+ *  at the options' animation time: linear law, Delay and Duration in milliseconds, repetition
  *  looping the sweep, clamped at the end otherwise.
  */
 static void ApplyAnimations(Renderer_t* renderer, const FACEOE_Utl_Node_t* node)
@@ -2608,17 +2636,17 @@ static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, floa
             case KIND_PANEL:
             case KIND_SHUFFLE_TO_FIT_CONTAINER:
             case KIND_SIZE_TO_FIT_CONTAINER:
-                Rect(renderer, node, layout, &x, &y, &width, &height);
+                Rect(node, layout, &x, &y, &width, &height);
                 Frame(renderer, x, y, width, height, COLOR_CONTAINER, COLOR_BORDER, alpha, &bounds);
                 FACEOE_Gfx_DrawList_Translate(renderer->drawList, x, y);
                 break;
             case KIND_PAGING_CONTAINER:
-                Rect(renderer, node, layout, &x, &y, &width, &height);
+                Rect(node, layout, &x, &y, &width, &height);
                 Frame(renderer, x, y, width, height, COLOR_CONTAINER, COLOR_BORDER, alpha, &bounds);
                 if (FALSE == Is(node, "PagingControlPosition", "A661_ABSENT"))
                 {
                     // Draw the paging control as a small strip of page marks at the named position
-                    AlignOf(renderer, node, "PagingControlPosition", &horizontal, &vertical);
+                    AlignOf(node, "PagingControlPosition", &horizontal, &vertical);
                     BoxText(renderer, x + RENDERER_PAD, y + RENDERER_PAD, width - (2.0f * RENDERER_PAD), height - (2.0f * RENDERER_PAD), "< o o o >", horizontal, vertical, 0.0f, Fade(COLOR_TEXT, alpha * 0.8f));
                 }
                 children.mode  = CHILD_IDENT;
@@ -2661,7 +2689,7 @@ static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, floa
                 FACEOE_Gfx_DrawList_Scale(renderer->drawList, x, y, NumberOr(node, "ScaleX", 1.0f), NumberOr(node, "ScaleY", 1.0f));
                 break;
             case KIND_SCROLL_PANEL:
-                Rect(renderer, node, layout, &x, &y, &width, &height);
+                Rect(node, layout, &x, &y, &width, &height);
                 Frame(renderer, x, y, width, height, COLOR_CONTAINER, COLOR_BORDER, alpha, &bounds);
                 area_width  = NumberOr(node, "SizeXsheet", width);
                 area_height = NumberOr(node, "SizeYsheet", height);
@@ -2689,7 +2717,7 @@ static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, floa
                 break;
             case KIND_TABBED_PANEL:
                 // Take the content area the group hands down and position children from it
-                Rect(renderer, node, layout, &x, &y, &width, &height);
+                Rect(node, layout, &x, &y, &width, &height);
                 Frame(renderer, x, y, width, height, COLOR_CONTAINER, COLOR_BORDER, alpha, &bounds);
                 FACEOE_Gfx_DrawList_Translate(renderer->drawList, x, y);
                 break;
@@ -2704,7 +2732,7 @@ static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, floa
                 FACEOE_Gfx_DrawList_Translate(renderer->drawList, x, y);
                 break;
             case KIND_MAPHORZ:
-                Rect(renderer, node, layout, &x, &y, &width, &height);
+                Rect(node, layout, &x, &y, &width, &height);
                 Frame(renderer, x, y, width, height, COLOR_CONTAINER, COLOR_BORDER, alpha, &bounds);
                 area_x = NumberOr(node, "ScreenReferencePointX", 0.0f);
                 area_y = NumberOr(node, "ScreenReferencePointY", 0.0f);
@@ -2719,7 +2747,7 @@ static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, floa
                 FACEOE_Gfx_DrawList_Translate(renderer->drawList, x + area_x, y + area_y);
                 break;
             case KIND_MAPVERT:
-                Rect(renderer, node, layout, &x, &y, &width, &height);
+                Rect(node, layout, &x, &y, &width, &height);
                 Frame(renderer, x, y, width, height, COLOR_CONTAINER, COLOR_BORDER, alpha, &bounds);
                 area_x = NumberOr(node, "RefPosX", 0.0f);
                 area_y = NumberOr(node, "RefPosY", 0.0f);
@@ -2744,7 +2772,7 @@ static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, floa
             case KIND_GESTURE_AREA:
             case KIND_SCROLL_WHEEL_AREA:
             case KIND_KEYBOARD_AREA:
-                Rect(renderer, node, layout, &x, &y, &width, &height);
+                Rect(node, layout, &x, &y, &width, &height);
                 Dashed(renderer, x, y, width, height, COLOR_AREA, alpha, &bounds);
                 if (KIND_KEYBOARD_AREA == kind)
                 {
@@ -2754,26 +2782,26 @@ static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, floa
                 FACEOE_Gfx_DrawList_Translate(renderer->drawList, x, y);
                 break;
             case KIND_INK_AREA:
-                Rect(renderer, node, layout, &x, &y, &width, &height);
+                Rect(node, layout, &x, &y, &width, &height);
                 if (Is(node, "Filled", "A661_TRUE"))
                 {
-                    FACEOE_Gfx_DrawList_FillRectangle(renderer->drawList, x, y, width, height, IndexColor(renderer, node, alpha * 0.5f));
+                    FACEOE_Gfx_DrawList_FillRectangle(renderer->drawList, x, y, width, height, IndexColor(node, alpha * 0.5f));
                 }
                 Dashed(renderer, x, y, width, height, COLOR_AREA, alpha, &bounds);
                 break;
             case KIND_EXTERNAL_SOURCE:
             case KIND_MAP_EXTERNAL_SOURCE:
-                Rect(renderer, node, layout, &x, &y, &width, &height);
+                Rect(node, layout, &x, &y, &width, &height);
                 (void)snprintf(caption, sizeof(caption), "Source %s", Text(node, "SourceReference"));
                 Placeholder(renderer, x, y, width, height, caption, alpha, &bounds);
                 break;
             case KIND_PICTURE:
-                Rect(renderer, node, layout, &x, &y, &width, &height);
+                Rect(node, layout, &x, &y, &width, &height);
                 (void)snprintf(caption, sizeof(caption), "Picture %s", Text(node, "PictureReference"));
                 Placeholder(renderer, x, y, width, height, caption, alpha, &bounds);
                 break;
             case KIND_PICTURE_ANIMATED:
-                Rect(renderer, node, layout, &x, &y, &width, &height);
+                Rect(node, layout, &x, &y, &width, &height);
                 (void)snprintf(caption, sizeof(caption), "%u pictures", (unsigned)NumberOr(node, "NumberOfPictures", 0.0f));
                 Placeholder(renderer, x, y, width, height, caption, alpha, &bounds);
                 break;
@@ -2781,20 +2809,20 @@ static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, floa
                 x     = NumberOr(node, "PosX", 0.0f);
                 y     = NumberOr(node, "PosY", 0.0f);
                 angle = (NumberOr(node, "RotationAngle", 0.0f) * RENDERER_DEGREES);
-                Marker(renderer, x, y, angle, IndexColor(renderer, node, 1.0f), alpha, &bounds);
+                Marker(renderer, x, y, angle, IndexColor(node, 1.0f), alpha, &bounds);
                 (void)snprintf(caption, sizeof(caption), "Symbol %s", Text(node, "SymbolReference"));
                 BoxText(renderer, x + RENDERER_MARKER_RADIUS, y - RENDERER_MARKER_RADIUS, RENDERER_CHIP_WIDTH, RENDERER_MARKER_RADIUS, caption, FACEOE_GFX_ALIGN_START, FACEOE_GFX_ALIGN_CENTER, 0.0f, Fade(COLOR_TEXT, alpha));
                 break;
             case KIND_SYMBOL_ANIMATED:
                 x = NumberOr(node, "PosX", 0.0f);
                 y = NumberOr(node, "PosY", 0.0f);
-                Marker(renderer, x, y, (NumberAt(node, "OrientationArray", 0, 0.0f) * RENDERER_DEGREES), IndexColor(renderer, node, 1.0f), alpha, &bounds);
+                Marker(renderer, x, y, (NumberAt(node, "OrientationArray", 0, 0.0f) * RENDERER_DEGREES), IndexColor(node, 1.0f), alpha, &bounds);
                 (void)snprintf(caption, sizeof(caption), "%u symbols", (unsigned)NumberOr(node, "NumberOfSymbols", 0.0f));
                 BoxText(renderer, x + RENDERER_MARKER_RADIUS, y - RENDERER_MARKER_RADIUS, RENDERER_CHIP_WIDTH, RENDERER_MARKER_RADIUS, caption, FACEOE_GFX_ALIGN_START, FACEOE_GFX_ALIGN_CENTER, 0.0f, Fade(COLOR_TEXT, alpha));
                 break;
             case KIND_LABEL:
             case KIND_LABEL_COMPLEX:
-                Rect(renderer, node, layout, &x, &y, &width, &height);
+                Rect(node, layout, &x, &y, &width, &height);
                 angle = (NumberOr(node, "RotationAngle", 0.0f) * RENDERER_DEGREES);
                 if (0.0f != angle)
                 {
@@ -2805,7 +2833,7 @@ static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, floa
                 {
                     text = "";
                 }
-                AlignOf(renderer, node, "Alignment", &horizontal, &vertical);
+                AlignOf(node, "Alignment", &horizontal, &vertical);
                 if (renderer->options->showsHidden)
                 {
                     Dashed(renderer, x, y, width, height, COLOR_BORDER, alpha * 0.5f, &bounds);
@@ -2814,19 +2842,19 @@ static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, floa
                 {
                     ExtendBox(renderer, &bounds, x, y, width, height);
                 }
-                BoxText(renderer, x, y, width, height, text, horizontal, vertical, 0.0f, IndexColor(renderer, node, alpha));
+                BoxText(renderer, x, y, width, height, text, horizontal, vertical, 0.0f, IndexColor(node, alpha));
                 break;
             case KIND_EDIT_BOX_TEXT:
             case KIND_EDIT_BOX_MASKED:
             case KIND_EDIT_BOX_MULTI_LINE:
-                Rect(renderer, node, layout, &x, &y, &width, &height);
+                Rect(node, layout, &x, &y, &width, &height);
                 Frame(renderer, x, y, width, height, COLOR_EDIT, COLOR_EDIT_BORDER, alpha, &bounds);
                 text = Value(node, "LabelString", 0);
                 if (NULL == text)
                 {
                     text = "";
                 }
-                AlignOf(renderer, node, "Alignment", &horizontal, &vertical);
+                AlignOf(node, "Alignment", &horizontal, &vertical);
                 if (KIND_EDIT_BOX_MULTI_LINE == kind)
                 {
                     Scrollbar(renderer, node, "VerticalScroll", x, y, width, height, 1.0f, 0.0f, alpha);
@@ -2880,7 +2908,7 @@ static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, floa
                 Button(renderer, node, layout, Value(node, "LabelString", 0), "SymbolReference", "SymbolPosition", alpha, &bounds, &x, &y, &width, &height);
                 break;
             case KIND_CHECK_BUTTON:
-                Rect(renderer, node, layout, &x, &y, &width, &height);
+                Rect(node, layout, &x, &y, &width, &height);
                 Frame(renderer, x, y, width, height, COLOR_CONTAINER, COLOR_BORDER, alpha, &bounds);
                 box = (height * 0.6f);
                 if (width < box)
@@ -2951,7 +2979,7 @@ static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, floa
                 }
                 break;
             case KIND_SCROLL_LIST:
-                Rect(renderer, node, layout, &x, &y, &width, &height);
+                Rect(node, layout, &x, &y, &width, &height);
                 Frame(renderer, x, y, width, height, COLOR_EDIT, COLOR_EDIT_BORDER, alpha, &bounds);
                 count    = (uint32_t)NumberOr(node, "NumberOfEntries", 0.0f);
                 first    = (uint32_t)NumberOr(node, "FirstVisibleEntry", 1.0f);
@@ -2960,7 +2988,7 @@ static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, floa
                 {
                     first = 1;
                 }
-                AlignOf(renderer, node, "Alignment", &horizontal, &vertical);
+                AlignOf(node, "Alignment", &horizontal, &vertical);
                 EntryRows(renderer, node, "LabelStringArray", "EnableArray", first - 1, count, selected, x, y, width, height, horizontal, alpha);
                 fraction = 1.0f;
                 start    = 0.0f;
@@ -2975,7 +3003,7 @@ static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, floa
                 DrawTree(renderer, node, layout, alpha, &bounds);
                 break;
             case KIND_POP_UP_MENU:
-                Rect(renderer, node, layout, &x, &y, &width, &height);
+                Rect(node, layout, &x, &y, &width, &height);
                 Frame(renderer, x, y, width, height, COLOR_POPUP, COLOR_BORDER, alpha, &bounds);
                 EntryRows(renderer, node, "StringArray", "EnableArray", 0, (uint32_t)NumberOr(node, "NumberOfEntries", 0.0f), 0, x, y, width, height, FACEOE_GFX_ALIGN_START, alpha);
                 break;
@@ -2998,7 +3026,7 @@ static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, floa
                 break;
             case KIND_POP_UP_PANEL:
                 // Keep the panel closed until its button or the UA opens it
-                Rect(renderer, node, layout, &x, &y, &width, &height);
+                Rect(node, layout, &x, &y, &width, &height);
                 if (renderer->options->showsHidden)
                 {
                     Dashed(renderer, x, y, width, height, COLOR_BORDER, alpha * 0.6f, &bounds);
@@ -3328,16 +3356,27 @@ void Arinc661_Renderer_FormatNumber(const char_t* format, float64_t value, char_
     consumed_decimal    = 0;
     has_nonzero_integer = FALSE;
     is_past_point       = FALSE;
-    for (index = 0; ('\0' != format[index]) && (out < (capacity - 1)); ++index)
+    for (index = 0; '\0' != format[index]; ++index)
     {
+        if ((capacity - 1) <= out)
+        {
+            break;
+        }
         symbol = format[index];
         if ('.' == symbol)
         {
             // Emit integer digits that found no slot before the point
-            for (digit_index = 0; (0 == integer_slots) && (digit_index < integer_length) && (out < (capacity - 1)); ++digit_index)
+            if (0 == integer_slots)
             {
-                text[out] = integer_digits[digit_index];
-                out += 1;
+                for (digit_index = 0; digit_index < integer_length; ++digit_index)
+                {
+                    if ((capacity - 1) <= out)
+                    {
+                        break;
+                    }
+                    text[out] = integer_digits[digit_index];
+                    out += 1;
+                }
             }
             is_past_point = TRUE;
             text[out]     = '.';
@@ -3385,8 +3424,12 @@ void Arinc661_Renderer_FormatNumber(const char_t* format, float64_t value, char_
                 consumed_integer += 1;
                 if ((0 == digit_index) && (integer_slots < integer_length))
                 {
-                    while ((digit_index < (integer_length - integer_slots)) && (out < (capacity - 1)))
+                    while (digit_index < (integer_length - integer_slots))
                     {
+                        if ((capacity - 1) <= out)
+                        {
+                            break;
+                        }
                         text[out] = integer_digits[digit_index];
                         has_nonzero_integer = TRUE;
                         out += 1;
@@ -3425,8 +3468,12 @@ void Arinc661_Renderer_FormatNumber(const char_t* format, float64_t value, char_
     if ((0 == integer_slots) && (FALSE == has_point) && (0 < integer_length) && (out < (capacity - 1)))
     {
         // Emit the integer digits a slot-less format left out
-        for (digit_index = 0; (digit_index < integer_length) && (out < (capacity - 1)); ++digit_index)
+        for (digit_index = 0; digit_index < integer_length; ++digit_index)
         {
+            if ((capacity - 1) <= out)
+            {
+                break;
+            }
             text[out] = integer_digits[digit_index];
             out += 1;
         }

@@ -211,13 +211,19 @@ static void Settle(void)
  */
 static bool_t BoundsOf(const char_t* name, ImVec2* minimum, ImVec2* maximum)
 {
-    uint32_t widget_index;
-    uint32_t bounds_index;
+    const Arinc661_DefinitionEditor_Document_t* document;
+    uint32_t                                    widget_index;
+    uint32_t                                    bounds_index;
 
+    document     = &s_definitionEditor->documents[s_definitionEditor->activeDocumentIndex];
     widget_index = IndexOf(name);
     for (bounds_index = 0; bounds_index < s_definitionEditor->sceneBoundsCount; ++bounds_index)
     {
-        if (s_definitionEditor->sceneBounds[bounds_index].widgetIndex == widget_index)
+        if (document->definition.widgetCount <= widget_index)
+        {
+            break;
+        }
+        if (s_definitionEditor->sceneBounds[bounds_index].widget == &document->widgets[widget_index])
         {
             (*minimum) = ImVec2(s_definitionEditor->sceneBounds[bounds_index].minimum.x, s_definitionEditor->sceneBounds[bounds_index].minimum.y);
             (*maximum) = ImVec2(s_definitionEditor->sceneBounds[bounds_index].maximum.x, s_definitionEditor->sceneBounds[bounds_index].maximum.y);

@@ -3909,8 +3909,12 @@ static void LoadUpdateSource(WindowThreadState_t* window)
     }
     roots[0] = HKEY_CURRENT_USER;
     roots[1] = HKEY_LOCAL_MACHINE;
-    for (index = 0; (index < 2) && ('\0' == window->updateUrl[0]); ++index)
+    for (index = 0; index < COUNT_OF(roots); ++index)
     {
+        if ('\0' != window->updateUrl[0])
+        {
+            break;
+        }
         if (ERROR_SUCCESS == ::RegOpenKeyExA(roots[index], UPDATE_REGISTRY_KEY, 0, KEY_READ, &key))
         {
             byte_count = (DWORD)(sizeof(window->updateUrl) - 1);
@@ -4308,28 +4312,31 @@ static void DrawCommandPalette(WindowThreadState_t* window)
             }
             // Widgets of the active Definition File
             definition = Arinc661_DefinitionEditor_Document(window->definitionEditor, window->definitionEditor->activeDocumentIndex);
-            for (index = 0; (NULL != definition) && ('\0' != upper_filter[0]) && (index < definition->widgetCount); ++index)
+            if ((NULL != definition) && ('\0' != upper_filter[0]))
             {
-                for (character = 0; character < sizeof(upper_item); ++character)
+                for (index = 0; index < definition->widgetCount; ++index)
                 {
-                    upper_item[character] = (char_t)ImToUpper(definition->widgets[index].name[character]);
-                    if ('\0' == definition->widgets[index].name[character])
+                    for (character = 0; character < sizeof(upper_item); ++character)
                     {
-                        break;
+                        upper_item[character] = (char_t)ImToUpper(definition->widgets[index].name[character]);
+                        if ('\0' == definition->widgets[index].name[character])
+                        {
+                            break;
+                        }
                     }
-                }
-                if (NULL != strstr(upper_item, upper_filter))
-                {
-                    (void)snprintf(label, sizeof(label), "Select %s (%s)", definition->widgets[index].name, definition->widgets[index].type);
-                    ImGui::PushID((int)(100000 + index));
-                    if (ImGui::Selectable(label) || (runs_first && (0 == shown)))
+                    if (NULL != strstr(upper_item, upper_filter))
                     {
-                        Arinc661_DefinitionEditor_SelectWidget(window->definitionEditor, window->definitionEditor->activeDocumentIndex, index);
-                        window->isDefinitionActive = TRUE;
-                        window->isPaletteOpen      = FALSE;
+                        (void)snprintf(label, sizeof(label), "Select %s (%s)", definition->widgets[index].name, definition->widgets[index].type);
+                        ImGui::PushID((int)(100000 + index));
+                        if (ImGui::Selectable(label) || (runs_first && (0 == shown)))
+                        {
+                            Arinc661_DefinitionEditor_SelectWidget(window->definitionEditor, window->definitionEditor->activeDocumentIndex, index);
+                            window->isDefinitionActive = TRUE;
+                            window->isPaletteOpen      = FALSE;
+                        }
+                        ImGui::PopID();
+                        shown += 1;
                     }
-                    ImGui::PopID();
-                    shown += 1;
                 }
             }
         }

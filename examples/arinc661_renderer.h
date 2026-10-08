@@ -17,12 +17,12 @@
 ** 2. INCLUDE FILES
 **===============================================================================================*/
 
-#include "arinc661/arinc661_scene.h"
-#include "faceoe_gfx/faceoe_gfx_drawlist.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include "arinc661/arinc661_scene.h"
+#include "faceoe_gfx/faceoe_gfx_drawlist.h"
 
 /*=================================================================================================
 ** 3. DECLARATIONS

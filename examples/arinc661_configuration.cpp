@@ -4430,8 +4430,12 @@ static void DrawScenePane(Arinc661_Configuration_Editor_t* owner, Arinc661_Confi
                     play_point.x = mouse_position.x;
                     play_point.y = mouse_position.y;
                     play_widget  = Arinc661_Renderer_Pick(owner->previewBounds, owner->previewBoundsCount, play_point);
-                    for (play_slot = 0; (NULL != play_widget) && (play_slot < owner->previewBoundsCount); ++play_slot)
+                    for (play_slot = 0; play_slot < owner->previewBoundsCount; ++play_slot)
                     {
+                        if (NULL == play_widget)
+                        {
+                            break;
+                        }
                         if (owner->previewBounds[play_slot].widget == play_widget)
                         {
                             // The bounds point into the widgets of the document they were drawn from

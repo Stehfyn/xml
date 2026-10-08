@@ -314,7 +314,7 @@ uint32_t Arinc661_Context_Check(Arinc661_Context_t* context)
     const Arinc661_Definition_t*       model;
     const char_t*                      document_name;
     const char_t*                      window_name;
-    const char_t*                      layer_id;
+    const char_t*                      layer_id_text;
     const char_t*                      layer_name;
     char_t                             text[ARINC661_CONTEXT_MAX_PROBLEM_BYTES];
     float32_t                          layer_width;
@@ -384,13 +384,16 @@ uint32_t Arinc661_Context_Check(Arinc661_Context_t* context)
             if (Arinc661_Configuration_Window(context->configurationEditor, application.documentIndex, application.windowId, &window_index, &pixel_width, &pixel_height, &units_per_pixel_x, &units_per_pixel_y))
             {
                 model = Arinc661_DefinitionEditor_Document(context->definitionEditor, definition.documentIndex);
-                for (layer_index = 0; (NULL != model) && (layer_index < model->layerCount); ++layer_index)
+                if (NULL != model)
                 {
-                    (void)Arinc661_DefinitionEditor_LayerAt(context->definitionEditor, definition.documentIndex, layer_index, &layer_id, &layer_name, &layer_width, &layer_height);
-                    if ((layer_width > ((float32_t)pixel_width * units_per_pixel_x * 1.001f)) || (layer_height > ((float32_t)pixel_height * units_per_pixel_y * 1.001f)))
+                    for (layer_index = 0; layer_index < model->layerCount; ++layer_index)
                     {
-                        (void)snprintf(text, sizeof(text), "%s layer %u is %.0f x %.0f but window %lld of %s holds %.0f x %.0f (0.01 mm); the layer will be cut off.", application.dFPath, (unsigned)layer_index, (float64_t)layer_width, (float64_t)layer_height, (long long)application.windowId, application.documentName, (float64_t)((float32_t)pixel_width * units_per_pixel_x), (float64_t)((float32_t)pixel_height * units_per_pixel_y));
-                        AddProblem(context, FALSE, ARINC661_CONTEXT_TARGET_LAYER, definition.documentIndex, layer_index, text);
+                        (void)Arinc661_DefinitionEditor_LayerAt(context->definitionEditor, definition.documentIndex, layer_index, &layer_id_text, &layer_name, &layer_width, &layer_height);
+                        if ((layer_width > ((float32_t)pixel_width * units_per_pixel_x * 1.001f)) || (layer_height > ((float32_t)pixel_height * units_per_pixel_y * 1.001f)))
+                        {
+                            (void)snprintf(text, sizeof(text), "%s layer %u is %.0f x %.0f but window %lld of %s holds %.0f x %.0f (0.01 mm); the layer will be cut off.", application.dFPath, (unsigned)layer_index, (float64_t)layer_width, (float64_t)layer_height, (long long)application.windowId, application.documentName, (float64_t)((float32_t)pixel_width * units_per_pixel_x), (float64_t)((float32_t)pixel_height * units_per_pixel_y));
+                            AddProblem(context, FALSE, ARINC661_CONTEXT_TARGET_LAYER, definition.documentIndex, layer_index, text);
+                        }
                     }
                 }
             }

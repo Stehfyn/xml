@@ -2537,8 +2537,12 @@ static uint32_t HexByteCount(const char_t* value)
     {
         byte_count = INVALID_HIERARCHY_INDEX;
     }
-    for (index = 0; (INVALID_HIERARCHY_INDEX != byte_count) && (index < length); ++index)
+    for (index = 0; index < length; ++index)
     {
+        if (INVALID_HIERARCHY_INDEX == byte_count)
+        {
+            break;
+        }
         if (NULL == FACEOE_Utl_StrChr(c_hexDigits, value[index], sizeof(c_hexDigits)))
         {
             byte_count = INVALID_HIERARCHY_INDEX;
@@ -2684,8 +2688,12 @@ static bool_t ConformParameters(Arinc661_DefinitionEditor_Document_t* document, 
             if ((ARINC661_PROPERTY_WIDGET == document->properties[property_index].owner) && (widgetIndex == document->properties[property_index].ownerIndex))
             {
                 is_parameter = !!((FALSE == widget->isExtension) && (0 == strncmp(PROPERTY_WIDGET_IDENT, document->properties[property_index].name, sizeof(PROPERTY_WIDGET_IDENT))));
-                for (parameter_index = 0; (FALSE == is_parameter) && (parameter_index < parameter_count); ++parameter_index)
+                for (parameter_index = 0; parameter_index < parameter_count; ++parameter_index)
                 {
+                    if (is_parameter)
+                    {
+                        break;
+                    }
                     (void)Arinc661_Definition_GetParameter(widget->type, widget->isExtension, parameter_index, &parameter);
                     is_parameter = (0 == strncmp(parameter.name, document->properties[property_index].name, sizeof(document->properties[property_index].name)));
                 }
@@ -2928,8 +2936,12 @@ static void AddWidget(Arinc661_DefinitionEditor_Document_t* document, uint32_t l
         {
             ImStrncpy(widget->type, DEFAULT_EXTENSION_TYPE, sizeof(widget->type));
             // Prefer an extension Table 8.4 allows on the parent
-            for (type_index = 0; (INVALID_HIERARCHY_INDEX != parentIndex) && (type_index < Arinc661_Definition_GetTypeCount(TRUE)); ++type_index)
+            for (type_index = 0; type_index < Arinc661_Definition_GetTypeCount(TRUE); ++type_index)
             {
+                if (INVALID_HIERARCHY_INDEX == parentIndex)
+                {
+                    break;
+                }
                 if (Arinc661_Definition_ExtensionApplies(Arinc661_Definition_GetTypeName(TRUE, type_index), document->widgets[parentIndex].type))
                 {
                     ImStrncpy(widget->type, Arinc661_Definition_GetTypeName(TRUE, type_index), sizeof(widget->type));
@@ -3267,8 +3279,12 @@ static void DescribeChange(const Arinc661_DefinitionEditor_Document_t* document,
     else
     {
         ImStrncpy(label, HISTORY_MOVE_LABEL, (int)capacity);
-        for (index = 0; (index < before->propertyCount) && (index < document->definition.propertyCount); ++index)
+        for (index = 0; index < before->propertyCount; ++index)
         {
+            if (document->definition.propertyCount <= index)
+            {
+                break;
+            }
             if ((0 != strncmp(old_properties[index].value, document->properties[index].value, sizeof(document->properties[index].value))) || (0 != strncmp(old_properties[index].name, document->properties[index].name, sizeof(document->properties[index].name))))
             {
                 owner_index = document->properties[index].ownerIndex;
@@ -3404,8 +3420,12 @@ static void AbsoluteOrigin(const Arinc661_DefinitionEditor_Document_t* document,
     (*x)  = 0.0f;
     (*y)  = 0.0f;
     index = widgetIndex;
-    for (depth = 0; (INVALID_HIERARCHY_INDEX != index) && (depth < document->definition.widgetCount); ++depth)
+    for (depth = 0; depth < document->definition.widgetCount; ++depth)
     {
+        if (INVALID_HIERARCHY_INDEX == index)
+        {
+            break;
+        }
         if (GetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, index, PROPERTY_POS_X, &position_x) && GetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, index, PROPERTY_POS_Y, &position_y))
         {
             (*x) += position_x;
@@ -3752,15 +3772,18 @@ static bool_t ResolveReference(const Arinc661_DefinitionEditor_Document_t* docum
                 }
                 break;
             case REFERENCE_APPLICATION:
-                for (index = 0; (NULL != context) && Arinc661_Context_UserApplication(context, index, &application); ++index)
+                if (NULL != context)
                 {
-                    if (application.applicationId == ident)
+                    for (index = 0; Arinc661_Context_UserApplication(context, index, &application); ++index)
                     {
-                        (*targetDocument) = application.documentIndex;
-                        (*targetIndex)    = application.applicationIndex;
-                        ImFormatString(label, labelCapacity, REFERENCE_APPLICATION_FORMAT, (long long)ident, application.dFPath, application.documentName);
-                        is_valid = TRUE;
-                        break;
+                        if (application.applicationId == ident)
+                        {
+                            (*targetDocument) = application.documentIndex;
+                            (*targetIndex)    = application.applicationIndex;
+                            ImFormatString(label, labelCapacity, REFERENCE_APPLICATION_FORMAT, (long long)ident, application.dFPath, application.documentName);
+                            is_valid = TRUE;
+                            break;
+                        }
                     }
                 }
                 break;
@@ -3789,8 +3812,16 @@ static bool_t ResolveReference(const Arinc661_DefinitionEditor_Document_t* docum
                 }
                 break;
             case REFERENCE_SOURCE:
-                for (other_document = 0; (NULL != context) && (other_document < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS) && (FALSE == is_valid); ++other_document)
+                for (other_document = 0; other_document < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS; ++other_document)
                 {
+                    if (NULL == context)
+                    {
+                        break;
+                    }
+                    if (is_valid)
+                    {
+                        break;
+                    }
                     for (index = 0; Arinc661_Configuration_ExternalSourceAt(context->configurationEditor, other_document, index, &source_id, &source_name, &source_type); ++index)
                     {
                         if ((int64_t)source_id == ident)
@@ -3902,17 +3933,20 @@ static bool_t DrawReferenceValue(Arinc661_DefinitionEditor_Document_t* document,
                 }
                 break;
             case REFERENCE_APPLICATION:
-                for (index = 0; (NULL != context) && Arinc661_Context_UserApplication(context, index, &application); ++index)
+                if (NULL != context)
                 {
-                    ImFormatString(item, sizeof(item), REFERENCE_APPLICATION_FORMAT, (long long)application.applicationId, application.dFPath, application.documentName);
-                    ImGui::PushID((int)index);
-                    if (ImGui::Selectable(item))
+                    for (index = 0; Arinc661_Context_UserApplication(context, index, &application); ++index)
                     {
-                        ImFormatString(text, sizeof(text), "%lld", (long long)application.applicationId);
-                        ImStrncpy(value, text, (int)capacity);
-                        has_changed = TRUE;
+                        ImFormatString(item, sizeof(item), REFERENCE_APPLICATION_FORMAT, (long long)application.applicationId, application.dFPath, application.documentName);
+                        ImGui::PushID((int)index);
+                        if (ImGui::Selectable(item))
+                        {
+                            ImFormatString(text, sizeof(text), "%lld", (long long)application.applicationId);
+                            ImStrncpy(value, text, (int)capacity);
+                            has_changed = TRUE;
+                        }
+                        ImGui::PopID();
                     }
-                    ImGui::PopID();
                 }
                 break;
             case REFERENCE_FOCUS_IN:
@@ -3925,8 +3959,12 @@ static bool_t DrawReferenceValue(Arinc661_DefinitionEditor_Document_t* document,
                 {
                     target      = &document->owner->documents[other_document];
                     layer_index = FindLayerById(target, (int64_t)number);
-                    for (index = 0; (INVALID_HIERARCHY_INDEX != layer_index) && (index < target->definition.widgetCount); ++index)
+                    for (index = 0; index < target->definition.widgetCount; ++index)
                     {
+                        if (INVALID_HIERARCHY_INDEX == layer_index)
+                        {
+                            break;
+                        }
                         if ((target->widgets[index].layerIndex == layer_index) && (0 == strncmp("A661_FOCUS_IN", target->widgets[index].type, sizeof("A661_FOCUS_IN"))) && GetPropertyNumber(target, ARINC661_PROPERTY_WIDGET, index, PROPERTY_WIDGET_IDENT, &number))
                         {
                             ImFormatString(item, sizeof(item), REFERENCE_WIDGET_FORMAT, (long long)number, target->widgets[index].name, target->documentName);
@@ -3943,8 +3981,12 @@ static bool_t DrawReferenceValue(Arinc661_DefinitionEditor_Document_t* document,
                 }
                 break;
             case REFERENCE_SOURCE:
-                for (other_document = 0; (NULL != context) && (other_document < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS); ++other_document)
+                for (other_document = 0; other_document < ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS; ++other_document)
                 {
+                    if (NULL == context)
+                    {
+                        break;
+                    }
                     for (index = 0; Arinc661_Configuration_ExternalSourceAt(context->configurationEditor, other_document, index, &source_id, &source_name, &source_type); ++index)
                     {
                         ImFormatString(item, sizeof(item), REFERENCE_SOURCE_FORMAT, (unsigned)source_id, source_name, source_type);
@@ -4051,8 +4093,12 @@ static bool_t IsParentAllowed(const char_t* childType, const char_t* parentType)
             continue;
         }
         is_listed = FALSE;
-        for (parent_index = 0; (parent_index < 4) && (NULL != rule->parents[parent_index]); ++parent_index)
+        for (parent_index = 0; parent_index < COUNT_OF(rule->parents); ++parent_index)
         {
+            if (NULL == rule->parents[parent_index])
+            {
+                break;
+            }
             if (NULL == parentType)
             {
                 if (0 == strncmp(rule->parents[parent_index], PARENT_LAYER_NAME, sizeof(PARENT_LAYER_NAME)))
@@ -4534,8 +4580,12 @@ static bool_t MatchesFilter(const Arinc661_DefinitionEditor_Document_t* document
     bool_t   is_match;
 
     is_match = !!((NULL != ImStristr(document->widgets[widgetIndex].name, NULL, filter, NULL)) || (NULL != ImStristr(document->widgets[widgetIndex].type, NULL, filter, NULL)));
-    for (child_index = widgetIndex + 1; (FALSE == is_match) && (child_index < document->definition.widgetCount); ++child_index)
+    for (child_index = widgetIndex + 1; child_index < document->definition.widgetCount; ++child_index)
     {
+        if (is_match)
+        {
+            break;
+        }
         if (document->widgets[child_index].parentWidgetIndex == widgetIndex)
         {
             is_match = MatchesFilter(document, child_index, filter);
@@ -6215,8 +6265,12 @@ static bool_t DrawParameterRow(Arinc661_DefinitionEditor_Document_t* document, A
     // Multi-object editing: a widget parameter other than the ident is shared with every other selected widget that has it
     is_shared = !!((ARINC661_PROPERTY_WIDGET == owner) && (1 < SelectedCount(document)) && (0 != strncmp(propertyName, PROPERTY_WIDGET_IDENT, sizeof(PROPERTY_WIDGET_IDENT))));
     is_mixed  = FALSE;
-    for (other_index = 0; is_shared && (other_index < document->definition.widgetCount); ++other_index)
+    for (other_index = 0; other_index < document->definition.widgetCount; ++other_index)
     {
+        if (FALSE == is_shared)
+        {
+            break;
+        }
         other_property = FindOwnedPropertyAt(document, ARINC661_PROPERTY_WIDGET, other_index, propertyName, occurrence);
         if ((other_index != ownerIndex) && document->isSelected[other_index] && (INVALID_HIERARCHY_INDEX != other_property) && (0 != strncmp(document->properties[other_property].value, value, sizeof(document->properties[other_property].value))))
         {
@@ -6298,8 +6352,16 @@ static bool_t DrawParameterRow(Arinc661_DefinitionEditor_Document_t* document, A
         has_changed = AppendProperty(document, owner, ownerIndex, propertyName, scratch);
     }
     // Apply the edit to the rest of the selection
-    for (other_index = 0; has_changed && is_shared && (other_index < document->definition.widgetCount); ++other_index)
+    for (other_index = 0; other_index < document->definition.widgetCount; ++other_index)
     {
+        if (FALSE == has_changed)
+        {
+            break;
+        }
+        if (FALSE == is_shared)
+        {
+            break;
+        }
         other_property = FindOwnedPropertyAt(document, ARINC661_PROPERTY_WIDGET, other_index, propertyName, occurrence);
         if ((other_index != ownerIndex) && document->isSelected[other_index] && (FALSE == document->isLocked[other_index]) && (INVALID_HIERARCHY_INDEX != other_property))
         {
@@ -7498,8 +7560,12 @@ static void ResolveWidgetArea(const Arinc661_DefinitionEditor_Document_t* docume
                        GetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, widgetIndex, PROPERTY_SIZE_X, &area->width) &&
                        GetPropertyNumber(document, ARINC661_PROPERTY_WIDGET, widgetIndex, PROPERTY_SIZE_Y, &area->height));
     ancestor_index = document->widgets[widgetIndex].parentWidgetIndex;
-    for (depth = 0; area->isValid && (depth < document->definition.widgetCount); ++depth)
+    for (depth = 0; depth < document->definition.widgetCount; ++depth)
     {
+        if (FALSE == area->isValid)
+        {
+            break;
+        }
         if (INVALID_HIERARCHY_INDEX == ancestor_index)
         {
             break;
@@ -9277,8 +9343,12 @@ uint32_t Arinc661_DefinitionEditor_Copy(Arinc661_DefinitionEditor_t* editor)
         }
         has_selected_ancestor = FALSE;
         ancestor              = document->widgets[root].parentWidgetIndex;
-        for (depth = 0; (INVALID_HIERARCHY_INDEX != ancestor) && (depth < document->definition.widgetCount); ++depth)
+        for (depth = 0; depth < document->definition.widgetCount; ++depth)
         {
+            if (INVALID_HIERARCHY_INDEX == ancestor)
+            {
+                break;
+            }
             if (document->isSelected[ancestor])
             {
                 has_selected_ancestor = TRUE;
@@ -9905,12 +9975,24 @@ void Arinc661_DefinitionEditor_GoToHistory(Arinc661_DefinitionEditor_t* editor, 
     if ((INVALID_DOCUMENT_INDEX != editor->activeDocumentIndex) && editor->documents[editor->activeDocumentIndex].isLoaded)
     {
         document = &editor->documents[editor->activeDocumentIndex];
-        for (guard = 0; (index < document->undoCount) && (guard < ARINC661_DEFINITION_EDITOR_MAX_HISTORY); ++guard)
+        for (guard = 0; guard < ARINC661_DEFINITION_EDITOR_MAX_HISTORY; ++guard)
         {
+            if (document->undoCount <= index)
+            {
+                break;
+            }
             UndoDocument(document);
         }
-        for (guard = 0; (index > document->undoCount) && (0 < document->redoCount) && (guard < ARINC661_DEFINITION_EDITOR_MAX_HISTORY); ++guard)
+        for (guard = 0; guard < ARINC661_DEFINITION_EDITOR_MAX_HISTORY; ++guard)
         {
+            if (index <= document->undoCount)
+            {
+                break;
+            }
+            if (0 == document->redoCount)
+            {
+                break;
+            }
             RedoDocument(document);
         }
     }
