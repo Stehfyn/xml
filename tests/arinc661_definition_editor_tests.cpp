@@ -102,13 +102,13 @@ int main(void)
     assert(0 == document->widgets[2].parentWidgetIndex);
     /* WidgetIdent plus the eight Table 3.3.27-2 parameters; the extension takes a type Table 8.4 allows on a panel, fully seeded */
     assert(9 == CountOwned(document, ARINC661_PROPERTY_WIDGET, 2));
-    assert(Arinc661_ExtensionApplies(document->widgets[1].type, "A661_PANEL"));
-    assert(Arinc661_FindType(document->widgets[1].type, TRUE, &extension_parameter_count));
+    assert(Arinc661_Definition_ExtensionApplies(document->widgets[1].type, "A661_PANEL"));
+    assert(Arinc661_Definition_FindType(document->widgets[1].type, TRUE, &extension_parameter_count));
     /* Every single-valued parameter is seeded; arrays start empty */
     single_count = 0;
     for (extension_index = 0; extension_index < extension_parameter_count; ++extension_index)
     {
-        (void)Arinc661_Parameter(document->widgets[1].type, TRUE, extension_index, &extension_parameter);
+        (void)Arinc661_Definition_GetParameter(document->widgets[1].type, TRUE, extension_index, &extension_parameter);
         if (0 == extension_parameter.elementsPerEntry)
         {
             single_count += 1;
@@ -134,7 +134,7 @@ int main(void)
     assert(FALSE == IsDescendant(document, 4, 2));
 
     /* The model writes as a binary Definition File, including the extension directly after its widget */
-    byte_count = Arinc661_WriteDefinitionBinary(&document->definition, document->outputBuffer, sizeof(document->outputBuffer));
+    byte_count = Arinc661_Definition_WriteBinary(&document->definition, document->outputBuffer, sizeof(document->outputBuffer));
     assert(0 < byte_count);
     assert(0xCA == document->outputBuffer[16 + 32]);
     assert(0x05 == document->outputBuffer[16 + 33]);
@@ -157,26 +157,26 @@ int main(void)
     assert(4 == CountOwned(document, ARINC661_PROPERTY_LAYER, 0));
     assert(15 == CountOwned(document, ARINC661_PROPERTY_WIDGET, 0));
     assert(0 == CountOwned(document, ARINC661_PROPERTY_WIDGET, 1));
-    byte_count = Arinc661_WriteDefinitionBinary(&document->definition, document->outputBuffer, sizeof(document->outputBuffer));
+    byte_count = Arinc661_Definition_WriteBinary(&document->definition, document->outputBuffer, sizeof(document->outputBuffer));
     assert(0 < byte_count);
 
     /* Property removal keeps the remaining order; the XML form round-trips the edited document */
     RemovePropertyAt(document, FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, 0, PROPERTY_VISIBLE));
     assert(14 == CountOwned(document, ARINC661_PROPERTY_WIDGET, 0));
     assert(INVALID_HIERARCHY_INDEX == FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, 0, PROPERTY_VISIBLE));
-    byte_count = Arinc661_WriteDefinition(&document->definition, document->outputBuffer, sizeof(document->outputBuffer), document->workspace, sizeof(document->workspace));
+    byte_count = Arinc661_Definition_Write(&document->definition, document->outputBuffer, sizeof(document->outputBuffer), document->workspace, sizeof(document->workspace));
     assert(0 < byte_count);
     memcpy(document->inputBuffer, document->outputBuffer, (size_t)byte_count);
-    assert(Arinc661_ReadDefinition(&document->definition, document->inputBuffer, byte_count, document->workspace, sizeof(document->workspace)));
+    assert(Arinc661_Definition_Read(&document->definition, document->inputBuffer, byte_count, document->workspace, sizeof(document->workspace)));
     assert(1 == document->definition.widgetCount);
     assert(14 == CountOwned(document, ARINC661_PROPERTY_WIDGET, 0));
 
     /* Every widget and extension type seeds a property set that writes as binary */
-    for (type_index = 0; type_index < Arinc661_TypeCount(FALSE); ++type_index)
+    for (type_index = 0; type_index < Arinc661_Definition_GetTypeCount(FALSE); ++type_index)
     {
-        strcpy(document->widgets[0].type, Arinc661_TypeName(FALSE, type_index));
+        strcpy(document->widgets[0].type, Arinc661_Definition_GetTypeName(FALSE, type_index));
         (void)ConformParameters(document, 0);
-        if (0 == Arinc661_WriteDefinitionBinary(&document->definition, document->outputBuffer, sizeof(document->outputBuffer)))
+        if (0 == Arinc661_Definition_WriteBinary(&document->definition, document->outputBuffer, sizeof(document->outputBuffer)))
         {
             fprintf(stderr, "seed write failed for %s\n", document->widgets[0].type);
             for (parameter_index = 0; parameter_index < document->definition.propertyCount; ++parameter_index)
@@ -189,10 +189,10 @@ int main(void)
             assert(FALSE);
         }
         /* Growing every array to two entries still writes */
-        assert(Arinc661_FindType(document->widgets[0].type, FALSE, &parameter_count));
+        assert(Arinc661_Definition_FindType(document->widgets[0].type, FALSE, &parameter_count));
         for (parameter_index = 0; parameter_index < parameter_count; ++parameter_index)
         {
-            (void)Arinc661_Parameter(document->widgets[0].type, FALSE, parameter_index, &parameter);
+            (void)Arinc661_Definition_GetParameter(document->widgets[0].type, FALSE, parameter_index, &parameter);
             if (0 != parameter.elementsPerEntry)
             {
                 strcpy(document->properties[FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, 0, parameter.countName)].value, "2");
@@ -200,7 +200,7 @@ int main(void)
         }
         for (parameter_index = 0; parameter_index < parameter_count; ++parameter_index)
         {
-            (void)Arinc661_Parameter(document->widgets[0].type, FALSE, parameter_index, &parameter);
+            (void)Arinc661_Definition_GetParameter(document->widgets[0].type, FALSE, parameter_index, &parameter);
             if (0 != parameter.elementsPerEntry)
             {
                 (void)SyncArrayLength(document, 0, &parameter);
@@ -209,7 +209,7 @@ int main(void)
                 DefaultParameterValue(&parameter, value, sizeof(value));
             }
         }
-        if (0 == Arinc661_WriteDefinitionBinary(&document->definition, document->outputBuffer, sizeof(document->outputBuffer)))
+        if (0 == Arinc661_Definition_WriteBinary(&document->definition, document->outputBuffer, sizeof(document->outputBuffer)))
         {
             fprintf(stderr, "array write failed for %s\n", document->widgets[0].type);
             assert(FALSE);
@@ -218,11 +218,11 @@ int main(void)
     strcpy(document->widgets[0].type, "A661_PANEL");
     (void)ConformParameters(document, 0);
     AddWidget(document, 0, 0, TRUE);
-    for (type_index = 0; type_index < Arinc661_TypeCount(TRUE); ++type_index)
+    for (type_index = 0; type_index < Arinc661_Definition_GetTypeCount(TRUE); ++type_index)
     {
-        strcpy(document->widgets[1].type, Arinc661_TypeName(TRUE, type_index));
+        strcpy(document->widgets[1].type, Arinc661_Definition_GetTypeName(TRUE, type_index));
         (void)ConformParameters(document, 1);
-        if (0 == Arinc661_WriteDefinitionBinary(&document->definition, document->outputBuffer, sizeof(document->outputBuffer)))
+        if (0 == Arinc661_Definition_WriteBinary(&document->definition, document->outputBuffer, sizeof(document->outputBuffer)))
         {
             fprintf(stderr, "extension write failed for %s\n", document->widgets[1].type);
             assert(FALSE);
@@ -251,7 +251,7 @@ int main(void)
     assert(CountOwned(document, ARINC661_PROPERTY_WIDGET, 0) == CountOwned(document, ARINC661_PROPERTY_WIDGET, 4));
     assert(CountOwned(document, ARINC661_PROPERTY_WIDGET, 3) == CountOwned(document, ARINC661_PROPERTY_WIDGET, 7));
     assert(0 != strcmp(document->properties[FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, 0, PROPERTY_WIDGET_IDENT)].value, document->properties[FindOwnedProperty(document, ARINC661_PROPERTY_WIDGET, 4, PROPERTY_WIDGET_IDENT)].value));
-    assert(0 < Arinc661_WriteDefinitionBinary(&document->definition, document->outputBuffer, sizeof(document->outputBuffer)));
+    assert(0 < Arinc661_Definition_WriteBinary(&document->definition, document->outputBuffer, sizeof(document->outputBuffer)));
 
     /* Moving the grandchild (3) under the copied panel (4) re-parents it and keeps its properties */
     assert(MoveWidgetSubtree(document, 3, 0, 4));
@@ -259,7 +259,7 @@ int main(void)
     assert(SELECTION_WIDGET == document->selectedKind);
     assert(document->widgets[document->selectedIndex].parentWidgetIndex == 3);  /* panel copy shifted down to 3 after the removal */
     assert(SubtreeEnd(document, 0) == 3);
-    assert(0 < Arinc661_WriteDefinitionBinary(&document->definition, document->outputBuffer, sizeof(document->outputBuffer)));
+    assert(0 < Arinc661_Definition_WriteBinary(&document->definition, document->outputBuffer, sizeof(document->outputBuffer)));
     /* Moving a container onto its own descendant is refused */
     assert(FALSE == MoveWidgetSubtree(document, 3, 0, document->selectedIndex));
     /* Moving a top-level panel to the layer is a no-op */

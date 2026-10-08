@@ -44,12 +44,12 @@ typedef struct Arinc661_Update_Version_s
 /** What an update manifest says. */
 typedef struct Arinc661_Update_Manifest_s
 {
-    Arinc661_Update_Version_t version;                                   ///< Version offered
+    Arinc661_Update_Version_t version;                                        ///< Version offered
     char_t                    versionText[ARINC661_UPDATE_MAX_VERSION_BYTES]; ///< Version as written
-    char_t                    packageUrl[ARINC661_UPDATE_MAX_URL_BYTES]; ///< Where the MSI is
-    char_t                    notes[ARINC661_UPDATE_MAX_NOTE_BYTES];     ///< One line of release notes, or empty
-    byte_t                    sha256[ARINC661_UPDATE_SHA256_BYTES];      ///< Expected digest of the MSI
-    bool_t                    hasSha256;                                 ///< TRUE when sha256 was given
+    char_t                    packageUrl[ARINC661_UPDATE_MAX_URL_BYTES];      ///< Where the MSI is
+    char_t                    notes[ARINC661_UPDATE_MAX_NOTE_BYTES];          ///< One line of release notes, or empty
+    byte_t                    sha256[ARINC661_UPDATE_SHA256_BYTES];           ///< Expected digest of the MSI
+    bool_t                    hasSha256;                                      ///< TRUE when sha256 was given
 } Arinc661_Update_Manifest_t;
 
 /** Outcome of a check or a download. */

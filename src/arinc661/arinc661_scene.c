@@ -943,11 +943,11 @@ static bool_t ScanNumber(const char_t* text, float32_t* number)
     }
     else
     {
-        for (constant_index = 0; constant_index < Arinc661_ConstantCount(); ++constant_index)
+        for (constant_index = 0; constant_index < Arinc661_Definition_GetConstantCount(); ++constant_index)
         {
-            if (0 == strcmp(text, Arinc661_ConstantName(constant_index)))
+            if (0 == strcmp(text, Arinc661_Definition_GetConstantName(constant_index)))
             {
-                (*number) = (float32_t)Arinc661_ConstantValue(constant_index);
+                (*number) = (float32_t)Arinc661_Definition_GetConstantValue(constant_index);
                 is_number = TRUE;
                 break;
             }

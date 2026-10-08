@@ -78,15 +78,15 @@ typedef struct Arinc661_Context_Problem_s
  */
 typedef struct Arinc661_Context_s
 {
-    struct Arinc661_Configuration_Editor_s* configurationEditor;                                                       ///< Configuration editor, never NULL once set up.
-    struct Arinc661_Definition_Editor_s*    definitionEditor;                                                          ///< Definition File editor, never NULL once set up.
-    uint32_t                                definitionFileCount;                                                       ///< Valid Definition Files in the shared folder.
+    struct Arinc661_Configuration_Editor_s* configurationEditor;                                                                          ///< Configuration editor, never NULL once set up.
+    struct Arinc661_Definition_Editor_s*    definitionEditor;                                                                             ///< Definition File editor, never NULL once set up.
+    uint32_t                                definitionFileCount;                                                                          ///< Valid Definition Files in the shared folder.
     char_t                                  definitionFiles[ARINC661_CONTEXT_MAX_DEFINITION_FILES][ARINC661_CONTEXT_MAX_FILE_NAME_BYTES]; ///< Their names.
-    bool_t                                  isDefinitionFocused;                                                       ///< TRUE when the last focus request named the Definition File section.
-    bool_t                                  hasFocusRequest;                                                           ///< TRUE until the host moves the focus as requested.
-    Arinc661_Context_Problem_t              problems[ARINC661_CONTEXT_MAX_PROBLEMS];                                   ///< Problems found by the last check.
-    uint32_t                                problemCount;                                                              ///< Problems found.
-    uint32_t                                errorCount;                                                                ///< Problems that are errors.
+    bool_t                                  isDefinitionFocused;                                                                          ///< TRUE when the last focus request named the Definition File section.
+    bool_t                                  hasFocusRequest;                                                                              ///< TRUE until the host moves the focus as requested.
+    Arinc661_Context_Problem_t              problems[ARINC661_CONTEXT_MAX_PROBLEMS];                                                      ///< Problems found by the last check.
+    uint32_t                                problemCount;                                                                                 ///< Problems found.
+    uint32_t                                errorCount;                                                                                   ///< Problems that are errors.
 } Arinc661_Context_t;
 
 /*************************************************************************************************/
@@ -95,12 +95,12 @@ typedef struct Arinc661_Context_s
  */
 typedef struct Arinc661_Context_UserApplication_s
 {
-    const char_t* documentName;  ///< Configuration document holding the user application.
-    uint32_t      documentIndex; ///< Configuration document slot.
+    const char_t* documentName;     ///< Configuration document holding the user application.
+    uint32_t      documentIndex;    ///< Configuration document slot.
     uint32_t      applicationIndex; ///< Index in that document's user application array.
-    int64_t       applicationId; ///< FACE applicationId.
-    int64_t       windowId;      ///< FACE window reference.
-    const char_t* dFPath;        ///< FACE dFPath.
+    int64_t       applicationId;    ///< FACE applicationId.
+    int64_t       windowId;         ///< FACE window reference.
+    const char_t* dFPath;           ///< FACE dFPath.
 } Arinc661_Context_UserApplication_t;
 
 /*************************************************************************************************/
@@ -109,13 +109,13 @@ typedef struct Arinc661_Context_UserApplication_s
  */
 typedef struct Arinc661_Context_Definition_s
 {
-    bool_t   isInFolder;    ///< TRUE when the shared folder holds a valid Definition File of that name.
-    bool_t   isOpen;        ///< TRUE when the Definition File editor has it open.
-    uint32_t documentIndex; ///< Definition File document slot when open.
+    bool_t   isInFolder;       ///< TRUE when the shared folder holds a valid Definition File of that name.
+    bool_t   isOpen;           ///< TRUE when the Definition File editor has it open.
+    uint32_t documentIndex;    ///< Definition File document slot when open.
     bool_t   hasApplicationId; ///< TRUE when the open document carries a numeric ApplicationId.
-    int64_t  applicationId; ///< That ApplicationId.
-    uint32_t layerCount;    ///< Layers of the open document.
-    uint32_t widgetCount;   ///< Widgets and extensions of the open document.
+    int64_t  applicationId;    ///< That ApplicationId.
+    uint32_t layerCount;       ///< Layers of the open document.
+    uint32_t widgetCount;      ///< Widgets and extensions of the open document.
 } Arinc661_Context_Definition_t;
 
 /*=================================================================================================

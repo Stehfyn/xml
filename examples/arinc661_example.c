@@ -283,13 +283,13 @@ int main(void)
     bytes_written = OS_File_WriteFile(CONFIGURATION_FILE_PATH, xml_buffer, (uint32_t)byte_count);
     LOGASSERT(byte_count == (uint64_t)bytes_written);
 
-    byte_count = Arinc661_WriteDefinition(&definition_file, xml_buffer, XML_BUFFER_BYTES, c_workspace, sizeof(c_workspace));
+    byte_count = Arinc661_Definition_Write(&definition_file, xml_buffer, XML_BUFFER_BYTES, c_workspace, sizeof(c_workspace));
     LOGASSERT(0 < byte_count);
     LOGASSERT(byte_count <= XML_BUFFER_BYTES);
     bytes_written = OS_File_WriteFile(DEFINITION_FILE_PATH, xml_buffer, (uint32_t)byte_count);
     LOGASSERT(byte_count == (uint64_t)bytes_written);
 
-    byte_count = Arinc661_WriteDefinitionBinary(&definition_file, xml_buffer, XML_BUFFER_BYTES);
+    byte_count = Arinc661_Definition_WriteBinary(&definition_file, xml_buffer, XML_BUFFER_BYTES);
     LOGASSERT(0 < byte_count);
     bytes_written = OS_File_WriteFile(DEFINITION_BINARY_PATH, xml_buffer, (uint32_t)byte_count);
     LOGASSERT(byte_count == (uint64_t)bytes_written);
@@ -308,7 +308,7 @@ int main(void)
     bytes_read = OS_File_ReadFile(DEFINITION_FILE_PATH, xml_buffer, sizeof(xml_buffer));
     LOGASSERT(0 < bytes_read);
     LOGASSERT(bytes_read <= XML_BUFFER_BYTES);
-    is_valid = Arinc661_ReadDefinition(&definition_file, xml_buffer, (uint64_t)bytes_read, c_workspace, sizeof(c_workspace));
+    is_valid = Arinc661_Definition_Read(&definition_file, xml_buffer, (uint64_t)bytes_read, c_workspace, sizeof(c_workspace));
     LOGASSERT(is_valid);
     LOGASSERT(COUNT_OF(layers) == definition_file.layerCount);
     LOGASSERT(COUNT_OF(widgets) == definition_file.widgetCount);
@@ -316,7 +316,7 @@ int main(void)
 
     bytes_read = OS_File_ReadFile(DEFINITION_BINARY_PATH, xml_buffer, sizeof(xml_buffer));
     LOGASSERT(0 < bytes_read);
-    is_valid = Arinc661_ReadDefinitionBinary(&definition_file, xml_buffer, (uint64_t)bytes_read);
+    is_valid = Arinc661_Definition_ReadBinary(&definition_file, xml_buffer, (uint64_t)bytes_read);
     LOGASSERT(is_valid);
     LOGASSERT(COUNT_OF(layers) == definition_file.layerCount);
     LOGASSERT(COUNT_OF(widgets) == definition_file.widgetCount);

@@ -66,10 +66,10 @@ typedef enum Arinc661_PropertyOwner_e
  */
 typedef struct Arinc661_Property_s
 {
-    Arinc661_PropertyOwner_t owner;                                  ///< Owning model kind
-    uint32_t                     ownerIndex;                             ///< Layer or widget array index; zero for the Definition File
-    char_t                       name[ARINC661_MAX_NAME_BYTES];      ///< Zero-terminated property name
-    char_t                       value[ARINC661_MAX_PROPERTY_BYTES]; ///< Zero-terminated property value
+    Arinc661_PropertyOwner_t owner;                              ///< Owning model kind
+    uint32_t                 ownerIndex;                         ///< Layer or widget array index; zero for the Definition File
+    char_t                   name[ARINC661_MAX_NAME_BYTES];      ///< Zero-terminated property name
+    char_t                   value[ARINC661_MAX_PROPERTY_BYTES]; ///< Zero-terminated property value
 } Arinc661_Property_t;
 
 /*************************************************************************************************/
@@ -95,9 +95,9 @@ typedef struct Arinc661_Widget_s
 {
     char_t   name[ARINC661_MAX_NAME_BYTES]; ///< Zero-terminated optional widget name
     char_t   type[ARINC661_MAX_NAME_BYTES]; ///< Zero-terminated required widget type
-    uint32_t layerIndex;                        ///< Array index of the owning layer
-    uint32_t parentWidgetIndex;                 ///< Earlier parent widget array index, or UINT32_MAX for a direct layer child
-    bool_t   isExtension;                       ///< TRUE for an a661_extension of parentWidgetIndex (Part 1-7, section 8); type names the extension
+    uint32_t layerIndex;                    ///< Array index of the owning layer
+    uint32_t parentWidgetIndex;             ///< Earlier parent widget array index, or UINT32_MAX for a direct layer child
+    bool_t   isExtension;                   ///< TRUE for an a661_extension of parentWidgetIndex (Part 1-7, section 8); type names the extension
 } Arinc661_Widget_t;
 
 /*************************************************************************************************/
@@ -109,22 +109,22 @@ typedef struct Arinc661_Widget_s
  */
 typedef struct Arinc661_Definition_s
 {
-    char_t                   name[ARINC661_MAX_NAME_BYTES]; ///< Zero-terminated optional Definition File name
-    uint32_t                 libraryVersion;                    ///< Library version
-    uint32_t                 supplementVersion;                 ///< Supplement version
-    Arinc661_Layer_t*    layers;                            ///< Pointer to the caller's layer array
-    Arinc661_Widget_t*   widgets;                           ///< Pointer to the caller's widget array
-    Arinc661_Property_t* properties;                        ///< Pointer to the caller's property array
-    uint32_t                 layerCapacity;                     ///< Layer slots
-    uint32_t                 widgetCapacity;                    ///< Widget slots
-    uint32_t                 propertyCapacity;                  ///< Property slots
-    uint32_t                 layerCount;                        ///< Layers in use
-    uint32_t                 widgetCount;                       ///< Widgets in use
-    uint32_t                 propertyCount;                     ///< Properties in use
-    uint32_t                 charsetEncoding;                   ///< A661_Charset_Encoding value (Part 1-7, Table 4.6-13), or zero when no charset-encoding is given
-    byte_t*                  blocks;                            ///< Pointer to the caller's storage for binary symbol, picture, and animation law blocks, kept byte for byte
-    uint64_t                 blockCapacity;                     ///< Block storage bytes
-    uint64_t                 blockByteCount;                    ///< Block storage bytes in use
+    char_t               name[ARINC661_MAX_NAME_BYTES]; ///< Zero-terminated optional Definition File name
+    uint32_t             libraryVersion;                ///< Library version
+    uint32_t             supplementVersion;             ///< Supplement version
+    Arinc661_Layer_t*    layers;                        ///< Pointer to the caller's layer array
+    Arinc661_Widget_t*   widgets;                       ///< Pointer to the caller's widget array
+    Arinc661_Property_t* properties;                    ///< Pointer to the caller's property array
+    uint32_t             layerCapacity;                 ///< Layer slots
+    uint32_t             widgetCapacity;                ///< Widget slots
+    uint32_t             propertyCapacity;              ///< Property slots
+    uint32_t             layerCount;                    ///< Layers in use
+    uint32_t             widgetCount;                   ///< Widgets in use
+    uint32_t             propertyCount;                 ///< Properties in use
+    uint32_t             charsetEncoding;               ///< A661_Charset_Encoding value (Part 1-7, Table 4.6-13), or zero when no charset-encoding is given
+    byte_t*              blocks;                        ///< Pointer to the caller's storage for binary symbol, picture, and animation law blocks, kept byte for byte
+    uint64_t             blockCapacity;                 ///< Block storage bytes
+    uint64_t             blockByteCount;                ///< Block storage bytes in use
 } Arinc661_Definition_t;
 
 /*************************************************************************************************/
@@ -133,17 +133,17 @@ typedef struct Arinc661_Definition_s
  */
 typedef enum Arinc661_ParameterKind_e
 {
-    ARINC661_PARAMETER_UCHAR,       ///< Unsigned 8-bit integer; decimal or constant name
-    ARINC661_PARAMETER_USHORT,      ///< Unsigned 16-bit integer; decimal or constant name
-    ARINC661_PARAMETER_LONG,        ///< Signed 32-bit integer
-    ARINC661_PARAMETER_ULONG,       ///< Unsigned 32-bit integer
-    ARINC661_PARAMETER_FLOAT,       ///< IEEE 754 single precision decimal
-    ARINC661_PARAMETER_FR180,       ///< Angle in degrees, -180 to 180
-    ARINC661_PARAMETER_FR32768,     ///< Fraction of 32768
-    ARINC661_PARAMETER_STRING,      ///< Text
-    ARINC661_PARAMETER_BYTES,       ///< Fixed byte count as hexadecimal digits
-    ARINC661_PARAMETER_SIZED_BYTES, ///< StaticParamBuffer entry as hexadecimal digits
-    ARINC661_PARAMETER_REGION,      ///< Excluded region structure as hexadecimal digits
+    ARINC661_PARAMETER_UCHAR,        ///< Unsigned 8-bit integer; decimal or constant name
+    ARINC661_PARAMETER_USHORT,       ///< Unsigned 16-bit integer; decimal or constant name
+    ARINC661_PARAMETER_LONG,         ///< Signed 32-bit integer
+    ARINC661_PARAMETER_ULONG,        ///< Unsigned 32-bit integer
+    ARINC661_PARAMETER_FLOAT,        ///< IEEE 754 single precision decimal
+    ARINC661_PARAMETER_FR180,        ///< Angle in degrees, -180 to 180
+    ARINC661_PARAMETER_FR32768,      ///< Fraction of 32768
+    ARINC661_PARAMETER_STRING,       ///< Text
+    ARINC661_PARAMETER_BYTES,        ///< Fixed byte count as hexadecimal digits
+    ARINC661_PARAMETER_SIZED_BYTES,  ///< StaticParamBuffer entry as hexadecimal digits
+    ARINC661_PARAMETER_REGION,       ///< Excluded region structure as hexadecimal digits
     ARINC661_PARAMETER_LAYER_REQUEST ///< EventHandler LayerReqResult entry as hexadecimal digits
 } Arinc661_ParameterKind_t;
 
@@ -216,7 +216,7 @@ typedef struct Arinc661_Parameter_s
  * \retval        TRUE        if the supported Definition File values were read.
  * \retval        FALSE       if the XML or a supported value is invalid, or supplied storage is insufficient.
  */
-bool_t Arinc661_ReadDefinition(Arinc661_Definition_t* definition, byte_t* buffer, uint64_t byteCount, void* workspace, uint64_t workspaceSize);
+bool_t Arinc661_Definition_Read(Arinc661_Definition_t* definition, byte_t* buffer, uint64_t byteCount, void* workspace, uint64_t workspaceSize);
 
 /*************************************************************************************************/
 /**
@@ -252,7 +252,7 @@ bool_t Arinc661_ReadDefinition(Arinc661_Definition_t* definition, byte_t* buffer
  *
  * \retval    uint64_t   Number of bytes written, or zero when a value or supplied storage is invalid.
  */
-uint64_t Arinc661_WriteDefinition(const Arinc661_Definition_t* definition, byte_t* buffer, uint64_t capacity, void* workspace, uint64_t workspaceSize);
+uint64_t Arinc661_Definition_Write(const Arinc661_Definition_t* definition, byte_t* buffer, uint64_t capacity, void* workspace, uint64_t workspaceSize);
 
 /*************************************************************************************************/
 /**
@@ -296,7 +296,7 @@ uint64_t Arinc661_WriteDefinition(const Arinc661_Definition_t* definition, byte_
  * \retval        TRUE        if the supported Definition File values were read.
  * \retval        FALSE       if the input is malformed or unsupported, or supplied storage is insufficient.
  */
-bool_t Arinc661_ReadDefinitionBinary(Arinc661_Definition_t* definition, const byte_t* buffer, uint64_t byteCount);
+bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const byte_t* buffer, uint64_t byteCount);
 
 /*************************************************************************************************/
 /**
@@ -335,7 +335,7 @@ bool_t Arinc661_ReadDefinitionBinary(Arinc661_Definition_t* definition, const by
  *
  * \retval    uint64_t   Number of bytes written, or zero when a value is unsupported or the capacity is insufficient.
  */
-uint64_t Arinc661_WriteDefinitionBinary(const Arinc661_Definition_t* definition, byte_t* buffer, uint64_t capacity);
+uint64_t Arinc661_Definition_WriteBinary(const Arinc661_Definition_t* definition, byte_t* buffer, uint64_t capacity);
 
 /*************************************************************************************************/
 /**
@@ -345,18 +345,18 @@ uint64_t Arinc661_WriteDefinitionBinary(const Arinc661_Definition_t* definition,
  *
  * \retval    uint32_t      Number of types.
  */
-uint32_t Arinc661_TypeCount(bool_t isExtension);
+uint32_t Arinc661_Definition_GetTypeCount(bool_t isExtension);
 
 /*************************************************************************************************/
 /**
  * \brief Returns the name of a widget or extension type.
  *
  * \param[in] isExtension   TRUE for extension types, FALSE for widget types
- * \param[in] typeIndex     Index below Arinc661_TypeCount
+ * \param[in] typeIndex     Index below Arinc661_Definition_GetTypeCount
  *
  * \retval    const char_t*   Zero-terminated type name, such as A661_PANEL.
  */
-const char_t* Arinc661_TypeName(bool_t isExtension, uint32_t typeIndex);
+const char_t* Arinc661_Definition_GetTypeName(bool_t isExtension, uint32_t typeIndex);
 
 /*************************************************************************************************/
 /**
@@ -369,7 +369,7 @@ const char_t* Arinc661_TypeName(bool_t isExtension, uint32_t typeIndex);
  * \retval     TRUE             if the type is known.
  * \retval     FALSE            otherwise.
  */
-bool_t Arinc661_FindType(const char_t* typeName, bool_t isExtension, uint32_t* parameterCount);
+bool_t Arinc661_Definition_FindType(const char_t* typeName, bool_t isExtension, uint32_t* parameterCount);
 
 /*************************************************************************************************/
 /**
@@ -382,13 +382,13 @@ bool_t Arinc661_FindType(const char_t* typeName, bool_t isExtension, uint32_t* p
  *
  * \param[in]  typeName         Zero-terminated type name
  * \param[in]  isExtension      TRUE for extension types, FALSE for widget types
- * \param[in]  parameterIndex   Index below the count from Arinc661_FindType
+ * \param[in]  parameterIndex   Index below the count from Arinc661_Definition_FindType
  * \param[out] parameter        Parameter description; its pointers stay valid for the program lifetime
  *
  * \retval     TRUE             if the type and parameter exist.
  * \retval     FALSE            otherwise.
  */
-bool_t Arinc661_Parameter(const char_t* typeName, bool_t isExtension, uint32_t parameterIndex, Arinc661_Parameter_t* parameter);
+bool_t Arinc661_Definition_GetParameter(const char_t* typeName, bool_t isExtension, uint32_t parameterIndex, Arinc661_Parameter_t* parameter);
 
 /*************************************************************************************************/
 /**
@@ -396,27 +396,27 @@ bool_t Arinc661_Parameter(const char_t* typeName, bool_t isExtension, uint32_t p
  *
  * \retval    uint32_t   Number of constants.
  */
-uint32_t Arinc661_ConstantCount(void);
+uint32_t Arinc661_Definition_GetConstantCount(void);
 
 /*************************************************************************************************/
 /**
  * \brief Returns a constant name.
  *
- * \param[in] constantIndex   Index below Arinc661_ConstantCount
+ * \param[in] constantIndex   Index below Arinc661_Definition_GetConstantCount
  *
  * \retval    const char_t*   Zero-terminated constant name, such as A661_TRUE.
  */
-const char_t* Arinc661_ConstantName(uint32_t constantIndex);
+const char_t* Arinc661_Definition_GetConstantName(uint32_t constantIndex);
 
 /*************************************************************************************************/
 /**
  * \brief Returns the value the binary form stores for a constant.
  *
- * \param[in] constantIndex   Index below Arinc661_ConstantCount
+ * \param[in] constantIndex   Index below Arinc661_Definition_GetConstantCount
  *
  * \retval    uint32_t        Constant value.
  */
-uint32_t Arinc661_ConstantValue(uint32_t constantIndex);
+uint32_t Arinc661_Definition_GetConstantValue(uint32_t constantIndex);
 
 /*************************************************************************************************/
 /**
@@ -430,7 +430,7 @@ uint32_t Arinc661_ConstantValue(uint32_t constantIndex);
  * \retval TRUE   if the type has a section.
  * \retval FALSE  otherwise.
  */
-bool_t Arinc661_TypeHelp(const char_t* type, const char_t** description, const char_t** categories, const char_t** restriction);
+bool_t Arinc661_Definition_GetTypeHelp(const char_t* type, const char_t** description, const char_t** categories, const char_t** restriction);
 
 /*************************************************************************************************/
 /**
@@ -442,7 +442,7 @@ bool_t Arinc661_TypeHelp(const char_t* type, const char_t** description, const c
  *
  * \retval const char_t*   Description, or an empty string.
  */
-const char_t* Arinc661_ParameterHelp(const char_t* type, const char_t* parameterName, const char_t** change);
+const char_t* Arinc661_Definition_GetParameterHelp(const char_t* type, const char_t* parameterName, const char_t** change);
 
 /*************************************************************************************************/
 /**
@@ -457,7 +457,7 @@ const char_t* Arinc661_ParameterHelp(const char_t* type, const char_t* parameter
  * \retval    TRUE            if the table lists the widget for the extension.
  * \retval    FALSE           otherwise.
  */
-bool_t Arinc661_ExtensionApplies(const char_t* extensionType, const char_t* widgetType);
+bool_t Arinc661_Definition_ExtensionApplies(const char_t* extensionType, const char_t* widgetType);
 
 /*************************************************************************************************/
 /**
@@ -468,6 +468,6 @@ bool_t Arinc661_ExtensionApplies(const char_t* extensionType, const char_t* widg
  *
  * \retval    const char_t*   Widget type name, or NULL past the end.
  */
-const char_t* Arinc661_ExtensionTarget(const char_t* extensionType, uint32_t index);
+const char_t* Arinc661_Definition_GetExtensionTarget(const char_t* extensionType, uint32_t index);
 
 #endif /* ARINC661_DEFINITION_H */

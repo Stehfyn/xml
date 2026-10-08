@@ -51,31 +51,31 @@ struct Arinc661_Configuration_Editor_s;
 
 typedef struct Arinc661_Configuration_Document_s
 {
-    struct Arinc661_Configuration_Editor_s* owner;                                                             ///< Editor holding this document.
-    int32_t                                status;                                                           ///< Current status message.
-    void*                                  undoStack[ARINC661_CONFIGURATION_MAX_HISTORY];                    ///< Model snapshots older than the shadow, oldest first.
-    void*                                  redoStack[ARINC661_CONFIGURATION_MAX_HISTORY];                    ///< Model snapshots undone, oldest first.
-    void*                                  shadow;                                                           ///< Snapshot of the model as last committed.
-    uint32_t                               undoCount;                                                        ///< Snapshots on the undo stack.
-    uint32_t                               redoCount;                                                        ///< Snapshots on the redo stack.
-    bool_t                                 isLoaded;                                                         ///< TRUE after a successful read.
-    bool_t                                 isDirty;                                                          ///< TRUE when the loaded document has unsaved changes.
-    int32_t                                selectedKind;                                                     ///< Selected entity type.
-    uint32_t                               selectedIndex;                                                    ///< Selected array index.
-    float32_t                              totalScreenWidth;                                                 ///< Sum of drawable screen widths.
-    float32_t                              maximumScreenHeight;                                              ///< Largest drawable screen height.
-    uint32_t                               drawableScreenCount;                                              ///< Screens with positive pixel size.
-    char_t                                 documentName[ARINC661_CONFIGURATION_MAX_XML_NAME_BYTES];          ///< Filename shown on the tab.
-    char_t                                 documentPath[ARINC661_CONFIGURATION_MAX_FILE_PATH_BYTES];         ///< Path of the loaded document.
-    byte_t                                 inputBuffer[ARINC661_CONFIGURATION_MAX_DOCUMENT_BYTES + 1];       ///< Input file bytes.
-    byte_t                                 outputBuffer[ARINC661_CONFIGURATION_MAX_DOCUMENT_BYTES];          ///< Built XML bytes.
-    uint64_t                               workspace[FACEOE_DISPLAYMANAGEMENT_WORKSPACE_BYTES / sizeof(uint64_t)];       ///< XML conversion scratch space.
-    FACEOE_DisplayManagement_Screen_t                  screens[ARINC661_CONFIGURATION_MAX_SCREENS];                      ///< Screen values.
-    FACEOE_DisplayManagement_Layout_t                  layouts[ARINC661_CONFIGURATION_MAX_LAYOUTS];                      ///< Layout values.
-    FACEOE_DisplayManagement_Window_t                  windows[ARINC661_CONFIGURATION_MAX_WINDOWS];                      ///< Window values.
-    FACEOE_DisplayManagement_UserApplication_t         userApplications[ARINC661_CONFIGURATION_MAX_USER_APPLICATIONS];   ///< User application values.
-    FACEOE_DisplayManagement_ExternalSource_t          externalSources[ARINC661_CONFIGURATION_MAX_EXTERNAL_SOURCES];     ///< External source values.
-    FACEOE_DisplayManagement_Configuration_t           configuration;                                                    ///< Display management configuration values.
+    struct Arinc661_Configuration_Editor_s*    owner;                                                                  ///< Editor holding this document.
+    int32_t                                    status;                                                                 ///< Current status message.
+    void*                                      undoStack[ARINC661_CONFIGURATION_MAX_HISTORY];                          ///< Model snapshots older than the shadow, oldest first.
+    void*                                      redoStack[ARINC661_CONFIGURATION_MAX_HISTORY];                          ///< Model snapshots undone, oldest first.
+    void*                                      shadow;                                                                 ///< Snapshot of the model as last committed.
+    uint32_t                                   undoCount;                                                              ///< Snapshots on the undo stack.
+    uint32_t                                   redoCount;                                                              ///< Snapshots on the redo stack.
+    bool_t                                     isLoaded;                                                               ///< TRUE after a successful read.
+    bool_t                                     isDirty;                                                                ///< TRUE when the loaded document has unsaved changes.
+    int32_t                                    selectedKind;                                                           ///< Selected entity type.
+    uint32_t                                   selectedIndex;                                                          ///< Selected array index.
+    float32_t                                  totalScreenWidth;                                                       ///< Sum of drawable screen widths.
+    float32_t                                  maximumScreenHeight;                                                    ///< Largest drawable screen height.
+    uint32_t                                   drawableScreenCount;                                                    ///< Screens with positive pixel size.
+    char_t                                     documentName[ARINC661_CONFIGURATION_MAX_XML_NAME_BYTES];                ///< Filename shown on the tab.
+    char_t                                     documentPath[ARINC661_CONFIGURATION_MAX_FILE_PATH_BYTES];               ///< Path of the loaded document.
+    byte_t                                     inputBuffer[ARINC661_CONFIGURATION_MAX_DOCUMENT_BYTES + 1];             ///< Input file bytes.
+    byte_t                                     outputBuffer[ARINC661_CONFIGURATION_MAX_DOCUMENT_BYTES];                ///< Built XML bytes.
+    uint64_t                                   workspace[FACEOE_DISPLAYMANAGEMENT_WORKSPACE_BYTES / sizeof(uint64_t)]; ///< XML conversion scratch space.
+    FACEOE_DisplayManagement_Screen_t          screens[ARINC661_CONFIGURATION_MAX_SCREENS];                            ///< Screen values.
+    FACEOE_DisplayManagement_Layout_t          layouts[ARINC661_CONFIGURATION_MAX_LAYOUTS];                            ///< Layout values.
+    FACEOE_DisplayManagement_Window_t          windows[ARINC661_CONFIGURATION_MAX_WINDOWS];                            ///< Window values.
+    FACEOE_DisplayManagement_UserApplication_t userApplications[ARINC661_CONFIGURATION_MAX_USER_APPLICATIONS];         ///< User application values.
+    FACEOE_DisplayManagement_ExternalSource_t  externalSources[ARINC661_CONFIGURATION_MAX_EXTERNAL_SOURCES];           ///< External source values.
+    FACEOE_DisplayManagement_Configuration_t   configuration;                                                          ///< Display management configuration values.
 } Arinc661_Configuration_Document_t;
 
 /*************************************************************************************************/
@@ -86,36 +86,36 @@ struct Arinc661_Context_s;
 
 typedef struct Arinc661_Configuration_Editor_s
 {
-    struct Arinc661_Context_s*          context;                                                        ///< Shared application context, or NULL.
-    FACEOE_Gfx_DrawList_t               drawList;                                                       ///< Draw list for Definition File previews.
-    FACEOE_Gfx_Command_t                sceneCommands[ARINC661_CONFIGURATION_MAX_SCENE_COMMANDS];       ///< Preview command storage.
-    FACEOE_Gfx_Point_t                  scenePoints[ARINC661_CONFIGURATION_MAX_SCENE_POINTS];           ///< Preview point storage.
-    char_t                              sceneText[ARINC661_CONFIGURATION_MAX_SCENE_TEXT_BYTES];         ///< Preview text storage.
-    int32_t                             dragMode;                                                       ///< Scene drag in progress: none, move, or a resize corner.
-    uint32_t                            dragWindow;                                                     ///< Window being dragged.
-    float32_t                           dragStartX;                                                     ///< Mouse X at drag start.
-    float32_t                           dragStartY;                                                     ///< Mouse Y at drag start.
-    int64_t                             dragOriginX;                                                    ///< pixelArea.x at drag start.
-    int64_t                             dragOriginY;                                                    ///< pixelArea.y at drag start.
-    int64_t                             dragOriginWidth;                                                ///< pixelArea.width at drag start.
-    int64_t                             dragOriginHeight;                                               ///< pixelArea.height at drag start.
-    float32_t                           dragScale;                                                      ///< Screen pixels per screen pixel during the drag.
-    bool_t                              hasDragged;                                                     ///< TRUE once the drag moved the mouse.
-    Arinc661_Scene_Bounds_t             previewBounds[ARINC661_CONFIGURATION_MAX_PREVIEW_BOUNDS];        ///< Widget bounds of the previews drawn this frame.
-    uint32_t                            previewBoundsCount;                                             ///< Bounds recorded this frame.
-    uint32_t                            previewDocuments[ARINC661_CONFIGURATION_MAX_PREVIEW_BOUNDS];     ///< Definition File document slot of each bound.
-    int32_t                             status;                                                         ///< File browser status message.
-    uint32_t                            activeDocumentIndex;                                            ///< Selected document slot.
-    uint32_t                            requestedDocumentIndex;                                         ///< Tab to select after opening a file.
-    uint32_t                            pendingCloseDocumentIndex;                                      ///< Document awaiting close confirmation.
-    uint32_t                            pendingSaveDocumentIndex;                                       ///< Untitled document awaiting a filename.
-    bool_t                              isSaveAllPending;                                               ///< TRUE while Save All is naming untitled documents.
-    char_t                              folderPath[ARINC661_CONFIGURATION_MAX_FOLDER_PATH_BYTES];       ///< Folder containing XML files.
-    char_t                              saveFolderPath[ARINC661_CONFIGURATION_MAX_FOLDER_PATH_BYTES];   ///< Folder chosen in the save dialog.
-    char_t                              saveFileName[ARINC661_CONFIGURATION_MAX_XML_NAME_BYTES];        ///< Filename chosen in the save dialog.
-    uint32_t                            definitionFileCount;                                            ///< Definition Files offered for a user application's dFPath.
-    char_t                              definitionFiles[ARINC661_CONFIGURATION_MAX_DEFINITION_FILES][ARINC661_CONFIGURATION_MAX_XML_NAME_BYTES]; ///< Known Definition File names.
-    Arinc661_Configuration_Document_t   documents[ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS];           ///< Document slots and XML workspaces.
+    struct Arinc661_Context_s*        context;                                                                                                 ///< Shared application context, or NULL.
+    FACEOE_Gfx_DrawList_t             drawList;                                                                                                ///< Draw list for Definition File previews.
+    FACEOE_Gfx_Command_t              sceneCommands[ARINC661_CONFIGURATION_MAX_SCENE_COMMANDS];                                                ///< Preview command storage.
+    FACEOE_Gfx_Point_t                scenePoints[ARINC661_CONFIGURATION_MAX_SCENE_POINTS];                                                    ///< Preview point storage.
+    char_t                            sceneText[ARINC661_CONFIGURATION_MAX_SCENE_TEXT_BYTES];                                                  ///< Preview text storage.
+    int32_t                           dragMode;                                                                                                ///< Scene drag in progress: none, move, or a resize corner.
+    uint32_t                          dragWindow;                                                                                              ///< Window being dragged.
+    float32_t                         dragStartX;                                                                                              ///< Mouse X at drag start.
+    float32_t                         dragStartY;                                                                                              ///< Mouse Y at drag start.
+    int64_t                           dragOriginX;                                                                                             ///< pixelArea.x at drag start.
+    int64_t                           dragOriginY;                                                                                             ///< pixelArea.y at drag start.
+    int64_t                           dragOriginWidth;                                                                                         ///< pixelArea.width at drag start.
+    int64_t                           dragOriginHeight;                                                                                        ///< pixelArea.height at drag start.
+    float32_t                         dragScale;                                                                                               ///< Screen pixels per screen pixel during the drag.
+    bool_t                            hasDragged;                                                                                              ///< TRUE once the drag moved the mouse.
+    Arinc661_Scene_Bounds_t           previewBounds[ARINC661_CONFIGURATION_MAX_PREVIEW_BOUNDS];                                                ///< Widget bounds of the previews drawn this frame.
+    uint32_t                          previewBoundsCount;                                                                                      ///< Bounds recorded this frame.
+    uint32_t                          previewDocuments[ARINC661_CONFIGURATION_MAX_PREVIEW_BOUNDS];                                             ///< Definition File document slot of each bound.
+    int32_t                           status;                                                                                                  ///< File browser status message.
+    uint32_t                          activeDocumentIndex;                                                                                     ///< Selected document slot.
+    uint32_t                          requestedDocumentIndex;                                                                                  ///< Tab to select after opening a file.
+    uint32_t                          pendingCloseDocumentIndex;                                                                               ///< Document awaiting close confirmation.
+    uint32_t                          pendingSaveDocumentIndex;                                                                                ///< Untitled document awaiting a filename.
+    bool_t                            isSaveAllPending;                                                                                        ///< TRUE while Save All is naming untitled documents.
+    char_t                            folderPath[ARINC661_CONFIGURATION_MAX_FOLDER_PATH_BYTES];                                                ///< Folder containing XML files.
+    char_t                            saveFolderPath[ARINC661_CONFIGURATION_MAX_FOLDER_PATH_BYTES];                                            ///< Folder chosen in the save dialog.
+    char_t                            saveFileName[ARINC661_CONFIGURATION_MAX_XML_NAME_BYTES];                                                 ///< Filename chosen in the save dialog.
+    uint32_t                          definitionFileCount;                                                                                     ///< Definition Files offered for a user application's dFPath.
+    char_t                            definitionFiles[ARINC661_CONFIGURATION_MAX_DEFINITION_FILES][ARINC661_CONFIGURATION_MAX_XML_NAME_BYTES]; ///< Known Definition File names.
+    Arinc661_Configuration_Document_t documents[ARINC661_CONFIGURATION_MAX_OPEN_DOCUMENTS];                                                    ///< Document slots and XML workspaces.
 } Arinc661_Configuration_Editor_t;
 
 /*=================================================================================================

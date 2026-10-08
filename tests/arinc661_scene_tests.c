@@ -80,10 +80,10 @@ static uint32_t Widget(Arinc661_Definition_t* definition, const char_t* type, ui
     definition->widgetCount += 1;
     sprintf(number, "%u", (unsigned)ident);
     Prop(definition, index, "WidgetIdent", number);
-    assert(Arinc661_FindType(type, FALSE, &count));
+    assert(Arinc661_Definition_FindType(type, FALSE, &count));
     for (parameter_index = 0; parameter_index < count; ++parameter_index)
     {
-        assert(Arinc661_Parameter(type, FALSE, parameter_index, &parameter));
+        assert(Arinc661_Definition_GetParameter(type, FALSE, parameter_index, &parameter));
         if (0 == parameter.elementsPerEntry)
         {
             if (0 < parameter.valueCount)
@@ -370,23 +370,23 @@ void RunArinc661SceneTests(void)
     assert(0 == list.transformDepth);
 
     // Every widget type draws, records bounds, and leaves the stacks balanced
-    for (type_index = 0; type_index < Arinc661_TypeCount(FALSE); ++type_index)
+    for (type_index = 0; type_index < Arinc661_Definition_GetTypeCount(FALSE); ++type_index)
     {
         definition.widgetCount   = 0;
         definition.propertyCount = 0;
         panel                    = Widget(&definition, "A661_PANEL", UINT32_MAX, 1);
-        child                    = Widget(&definition, Arinc661_TypeName(FALSE, type_index), panel, 2);
-        if (0 == strcmp("A661_TABBED_PANEL_GROUP", Arinc661_TypeName(FALSE, type_index)))
+        child                    = Widget(&definition, Arinc661_Definition_GetTypeName(FALSE, type_index), panel, 2);
+        if (0 == strcmp("A661_TABBED_PANEL_GROUP", Arinc661_Definition_GetTypeName(FALSE, type_index)))
         {
             (void)Widget(&definition, "A661_TABBED_PANEL", child, 3);
             (void)Widget(&definition, "A661_TABBED_PANEL", child, 4);
         }
-        else if (0 == strcmp("A661_MENU_BAR", Arinc661_TypeName(FALSE, type_index)))
+        else if (0 == strcmp("A661_MENU_BAR", Arinc661_Definition_GetTypeName(FALSE, type_index)))
         {
             (void)Widget(&definition, "A661_PUSH_BUTTON", child, 3);
             (void)Widget(&definition, "A661_PUSH_BUTTON", child, 4);
         }
-        else if ((0 == strcmp("A661_MAPHORZ", Arinc661_TypeName(FALSE, type_index))))
+        else if ((0 == strcmp("A661_MAPHORZ", Arinc661_Definition_GetTypeName(FALSE, type_index))))
         {
             (void)Widget(&definition, "A661_MAP_GRID", child, 3);
             (void)Widget(&definition, "A661_MAP_BOUNDARY", child, 4);
@@ -397,7 +397,7 @@ void RunArinc661SceneTests(void)
         Arinc661_Scene_DrawLayer(&definition, 0, &list, &options);
         if (list.isOverflowed || (0 != list.transformDepth) || (0 != list.clipDepth) || (options.boundsCount < definition.widgetCount))
         {
-            fprintf(stderr, "scene failed for %s: overflow %d transforms %u clips %u bounds %u of %u\n", Arinc661_TypeName(FALSE, type_index), (int)list.isOverflowed, (unsigned)list.transformDepth, (unsigned)list.clipDepth, (unsigned)options.boundsCount, (unsigned)definition.widgetCount);
+            fprintf(stderr, "scene failed for %s: overflow %d transforms %u clips %u bounds %u of %u\n", Arinc661_Definition_GetTypeName(FALSE, type_index), (int)list.isOverflowed, (unsigned)list.transformDepth, (unsigned)list.clipDepth, (unsigned)options.boundsCount, (unsigned)definition.widgetCount);
             assert(FALSE);
         }
         assert(0 < CountKind(&list, FACEOE_GFX_COMMAND_FILL_POLYGON));

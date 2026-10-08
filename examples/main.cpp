@@ -452,81 +452,81 @@ typedef struct WglWindowData_s
  */
 typedef struct WindowThreadState_s
 {
-    HWND                   windowHandle;        ///< Main Win32 window.
-    HANDLE                 readyEvent;          ///< Signals when rendering setup is complete.
-    HANDLE                 presentStoppedEvent; ///< Signals when the presenter releases its device context.
-    HGLRC                  presentContext;      ///< OpenGL context used by the presenter thread.
-    Arinc661_Configuration_Editor_t* configurationEditor; ///< FACE display management configuration editor.
-    Arinc661_Definition_Editor_t*    definitionEditor;    ///< ARINC 661 Definition File editor.
-    Arinc661_Context_t*              context;             ///< Shared application context across both editors.
-    bool_t                           isHelpOpen;          ///< TRUE while the Help window is shown.
-    char_t                           helpFilter[MAX_HELP_FILTER_BYTES]; ///< Search text of the Help window.
-    char_t                           helpTopic[ARINC661_MAX_NAME_BYTES]; ///< Topic the Help window shows.
-    char_t                           saveNote[SAVED_WITH_ERRORS_BYTES];   ///< Note after a configuration save with errors, or empty.
-    bool                             panelOpen[PANEL_COUNT];              ///< Visibility of each dockable panel, in PANEL_ order.
-    bool_t                           hasLayout;                           ///< TRUE once the default dock layout was built.
-    bool_t                           resetsLayout;                        ///< TRUE to rebuild the layout preset next frame.
-    LayoutPreset_t                   layoutPreset;                        ///< Preset that Reset Layout rebuilds.
-    char_t                           paletteFilter[MAX_HELP_FILTER_BYTES]; ///< Palette filter text.
-    char_t                           logLines[LOG_CAPACITY][LOG_LINE_BYTES]; ///< Status history ring.
-    uint32_t                         logCount;                            ///< Lines written to the ring.
-    char_t                           lastStatus[LOG_LINE_BYTES];          ///< Last status text appended.
-    bool                             logAutoScroll;                       ///< TRUE to keep the log scrolled to the end.
-    float32_t                        uiScale;                             ///< Font scale chosen in the View menu.
-    bool_t                           isTimelinePlaying;                   ///< TRUE while the timeline advances with the clock.
-    bool_t                           isTimelineLooping;                   ///< TRUE to wrap at the end.
-    float32_t                        timelineTime;                        ///< Current animation time in seconds.
-    float32_t                        timelineLength;                      ///< End of the last animation in seconds.
-    bool_t                           isPaletteOpen;                       ///< TRUE while the command palette is shown.
-    char_t                           recentNames[RECENT_COUNT][MAX_FILE_PATH_BYTES]; ///< Most recently opened files as full paths, newest first.
-    char_t                           pendingOpenPath[MAX_FILE_PATH_BYTES]; ///< A path dropped on the window or given on the command line, opened next frame.
-    std::atomic<int32_t>             dialogState;                         ///< DIALOG_* state of the native picker running on its own thread.
-    std::atomic<int32_t>             updateState;                         ///< UPDATE_STATE_* of the updater thread.
-    Arinc661_Update_Result_t         updateResult;                        ///< Outcome of the last check or download, read once the state settles.
-    Arinc661_Update_Manifest_t       updateManifest;                      ///< What the update source offers.
-    char_t                           updateUrl[ARINC661_UPDATE_MAX_URL_BYTES]; ///< Manifest source, empty when not configured.
-    char_t                           updatePackagePath[MAX_FILE_PATH_BYTES]; ///< Downloaded package.
+    HWND                             windowHandle;                                         ///< Main Win32 window.
+    HANDLE                           readyEvent;                                           ///< Signals when rendering setup is complete.
+    HANDLE                           presentStoppedEvent;                                  ///< Signals when the presenter releases its device context.
+    HGLRC                            presentContext;                                       ///< OpenGL context used by the presenter thread.
+    Arinc661_Configuration_Editor_t* configurationEditor;                                  ///< FACE display management configuration editor.
+    Arinc661_Definition_Editor_t*    definitionEditor;                                     ///< ARINC 661 Definition File editor.
+    Arinc661_Context_t*              context;                                              ///< Shared application context across both editors.
+    bool_t                           isHelpOpen;                                           ///< TRUE while the Help window is shown.
+    char_t                           helpFilter[MAX_HELP_FILTER_BYTES];                    ///< Search text of the Help window.
+    char_t                           helpTopic[ARINC661_MAX_NAME_BYTES];                   ///< Topic the Help window shows.
+    char_t                           saveNote[SAVED_WITH_ERRORS_BYTES];                    ///< Note after a configuration save with errors, or empty.
+    bool                             panelOpen[PANEL_COUNT];                               ///< Visibility of each dockable panel, in PANEL_ order.
+    bool_t                           hasLayout;                                            ///< TRUE once the default dock layout was built.
+    bool_t                           resetsLayout;                                         ///< TRUE to rebuild the layout preset next frame.
+    LayoutPreset_t                   layoutPreset;                                         ///< Preset that Reset Layout rebuilds.
+    char_t                           paletteFilter[MAX_HELP_FILTER_BYTES];                 ///< Palette filter text.
+    char_t                           logLines[LOG_CAPACITY][LOG_LINE_BYTES];               ///< Status history ring.
+    uint32_t                         logCount;                                             ///< Lines written to the ring.
+    char_t                           lastStatus[LOG_LINE_BYTES];                           ///< Last status text appended.
+    bool                             logAutoScroll;                                        ///< TRUE to keep the log scrolled to the end.
+    float32_t                        uiScale;                                              ///< Font scale chosen in the View menu.
+    bool_t                           isTimelinePlaying;                                    ///< TRUE while the timeline advances with the clock.
+    bool_t                           isTimelineLooping;                                    ///< TRUE to wrap at the end.
+    float32_t                        timelineTime;                                         ///< Current animation time in seconds.
+    float32_t                        timelineLength;                                       ///< End of the last animation in seconds.
+    bool_t                           isPaletteOpen;                                        ///< TRUE while the command palette is shown.
+    char_t                           recentNames[RECENT_COUNT][MAX_FILE_PATH_BYTES];       ///< Most recently opened files as full paths, newest first.
+    char_t                           pendingOpenPath[MAX_FILE_PATH_BYTES];                 ///< A path dropped on the window or given on the command line, opened next frame.
+    std::atomic<int32_t>             dialogState;                                          ///< DIALOG_* state of the native picker running on its own thread.
+    std::atomic<int32_t>             updateState;                                          ///< UPDATE_STATE_* of the updater thread.
+    Arinc661_Update_Result_t         updateResult;                                         ///< Outcome of the last check or download, read once the state settles.
+    Arinc661_Update_Manifest_t       updateManifest;                                       ///< What the update source offers.
+    char_t                           updateUrl[ARINC661_UPDATE_MAX_URL_BYTES];             ///< Manifest source, empty when not configured.
+    char_t                           updatePackagePath[MAX_FILE_PATH_BYTES];               ///< Downloaded package.
     char_t                           updateSkipVersion[ARINC661_UPDATE_MAX_VERSION_BYTES]; ///< Version the user chose to skip.
-    float64_t                        updateCheckedAt;                     ///< Unix time of the last automatic check.
-    bool_t                           updateIsManual;                      ///< TRUE when the user asked, so every outcome is shown.
-    bool_t                           opensUpdatePopup;                    ///< TRUE to open the update pop-up this frame.
-    bool_t                           opensAboutPopup;                     ///< TRUE to open the About box this frame.
-    bool_t                           isApplyingUpdate;                    ///< TRUE once the installer has been started.
-    bool_t                           dialogIsFolder;                      ///< TRUE while the running picker picks a folder.
-    char_t                           dialogPath[MAX_FILE_PATH_BYTES];     ///< Path the picker chose, read once the state says picked.
-    char_t                           prefabNames[MAX_PREFABS][MAX_FILE_NAME_BYTES];  ///< Prefab files found by the last folder scan.
-    uint32_t                         prefabCount;                         ///< Entries in the prefab list.
-    bool_t                           opensPrefabPopup;                    ///< TRUE to open the save-prefab pop-up this frame.
-    char_t                           prefabName[MAX_FILE_NAME_BYTES];     ///< Name typed into the save-prefab pop-up.
-    bool_t                           recentIsDefinition[RECENT_COUNT];    ///< Kind of each recent file.
-    uint32_t                         recentCount;                         ///< Entries in the recent list.
-    char_t                           logFilter[MAX_HELP_FILTER_BYTES];    ///< Log text filter.
-    bool_t                           logShowsErrors;                      ///< TRUE to list error lines.
-    bool_t                           logShowsWarnings;                    ///< TRUE to list warning lines.
-    bool_t                           logShowsInfo;                        ///< TRUE to list the other lines.
-    char_t                           commandFilter[MAX_HELP_FILTER_BYTES]; ///< Command palette text.
-    bool_t                           isLightTheme;                        ///< TRUE for the light colour scheme.
-    bool_t                           preferencesDirty;                    ///< TRUE until the preferences file is written.
-    bool_t                           isDefinitionActive;  ///< TRUE while the Definition File section has the focus.
-    bool_t                           hasEditors;          ///< TRUE once both editors exist.
-    bool_t                           isFolderReadable;    ///< TRUE when the last scan could read the folder.
-    float64_t                        lastScanTime;        ///< ImGui time of the last folder scan.
-    uint32_t                         fileCount;           ///< Entries found by the last folder scan.
-    char_t                           folderPath[MAX_FOLDER_PATH_BYTES];                ///< Folder shared by both editors.
-    char_t                           fileNames[MAX_PAGE_FILES][MAX_FILE_NAME_BYTES];  ///< Names found by the last folder scan.
-    bool_t                           fileIsDefinition[MAX_PAGE_FILES];                  ///< TRUE for a Definition File, FALSE for a configuration.
-    uint64_t                         fileSizes[MAX_PAGE_FILES];                         ///< Bytes of each file.
-    uint64_t                         fileTimes[MAX_PAGE_FILES];                         ///< Last write time of each file as a FILETIME value.
-    uint32_t                         fileOrder[MAX_PAGE_FILES];                         ///< Display order after sorting.
-    float32_t              mainScale;           ///< Initial display scale.
-    SRWLOCK                presentLock;         ///< Protects geometry, drawing, and buffer swaps.
-    CONDITION_VARIABLE     presentCondition;    ///< Wakes the window thread after geometry is acknowledged.
-    RECT                   rcClient;            ///< Current client rectangle.
-    BOOL                   fPresentReady;       ///< TRUE after the first presented frame.
-    BOOL                   fFrameReady;         ///< TRUE when a new frame can be presented.
-    BOOL                   fGeometryPending;    ///< TRUE while geometry acknowledgement is pending.
-    bool_t                 isInitialized;       ///< TRUE when rendering setup succeeds.
-    std::atomic<bool_t>    isDone;              ///< TRUE after the main window is closed.
+    float64_t                        updateCheckedAt;                                      ///< Unix time of the last automatic check.
+    bool_t                           updateIsManual;                                       ///< TRUE when the user asked, so every outcome is shown.
+    bool_t                           opensUpdatePopup;                                     ///< TRUE to open the update pop-up this frame.
+    bool_t                           opensAboutPopup;                                      ///< TRUE to open the About box this frame.
+    bool_t                           isApplyingUpdate;                                     ///< TRUE once the installer has been started.
+    bool_t                           dialogIsFolder;                                       ///< TRUE while the running picker picks a folder.
+    char_t                           dialogPath[MAX_FILE_PATH_BYTES];                      ///< Path the picker chose, read once the state says picked.
+    char_t                           prefabNames[MAX_PREFABS][MAX_FILE_NAME_BYTES];        ///< Prefab files found by the last folder scan.
+    uint32_t                         prefabCount;                                          ///< Entries in the prefab list.
+    bool_t                           opensPrefabPopup;                                     ///< TRUE to open the save-prefab pop-up this frame.
+    char_t                           prefabName[MAX_FILE_NAME_BYTES];                      ///< Name typed into the save-prefab pop-up.
+    bool_t                           recentIsDefinition[RECENT_COUNT];                     ///< Kind of each recent file.
+    uint32_t                         recentCount;                                          ///< Entries in the recent list.
+    char_t                           logFilter[MAX_HELP_FILTER_BYTES];                     ///< Log text filter.
+    bool_t                           logShowsErrors;                                       ///< TRUE to list error lines.
+    bool_t                           logShowsWarnings;                                     ///< TRUE to list warning lines.
+    bool_t                           logShowsInfo;                                         ///< TRUE to list the other lines.
+    char_t                           commandFilter[MAX_HELP_FILTER_BYTES];                 ///< Command palette text.
+    bool_t                           isLightTheme;                                         ///< TRUE for the light colour scheme.
+    bool_t                           preferencesDirty;                                     ///< TRUE until the preferences file is written.
+    bool_t                           isDefinitionActive;                                   ///< TRUE while the Definition File section has the focus.
+    bool_t                           hasEditors;                                           ///< TRUE once both editors exist.
+    bool_t                           isFolderReadable;                                     ///< TRUE when the last scan could read the folder.
+    float64_t                        lastScanTime;                                         ///< ImGui time of the last folder scan.
+    uint32_t                         fileCount;                                            ///< Entries found by the last folder scan.
+    char_t                           folderPath[MAX_FOLDER_PATH_BYTES];                    ///< Folder shared by both editors.
+    char_t                           fileNames[MAX_PAGE_FILES][MAX_FILE_NAME_BYTES];       ///< Names found by the last folder scan.
+    bool_t                           fileIsDefinition[MAX_PAGE_FILES];                     ///< TRUE for a Definition File, FALSE for a configuration.
+    uint64_t                         fileSizes[MAX_PAGE_FILES];                            ///< Bytes of each file.
+    uint64_t                         fileTimes[MAX_PAGE_FILES];                            ///< Last write time of each file as a FILETIME value.
+    uint32_t                         fileOrder[MAX_PAGE_FILES];                            ///< Display order after sorting.
+    float32_t                        mainScale;                                            ///< Initial display scale.
+    SRWLOCK                          presentLock;                                          ///< Protects geometry, drawing, and buffer swaps.
+    CONDITION_VARIABLE               presentCondition;                                     ///< Wakes the window thread after geometry is acknowledged.
+    RECT                             rcClient;                                             ///< Current client rectangle.
+    BOOL                             fPresentReady;                                        ///< TRUE after the first presented frame.
+    BOOL                             fFrameReady;                                          ///< TRUE when a new frame can be presented.
+    BOOL                             fGeometryPending;                                     ///< TRUE while geometry acknowledgement is pending.
+    bool_t                           isInitialized;                                        ///< TRUE when rendering setup succeeds.
+    std::atomic<bool_t>              isDone;                                               ///< TRUE after the main window is closed.
 } WindowThreadState_t;
 
 /*************************************************************************************************/
@@ -1888,9 +1888,9 @@ static void DrawHelpWindow(WindowThreadState_t* window)
                 for (pass = 0; pass < 2; ++pass)
                 {
                     is_extension = (1 == pass);
-                    for (index = 0; index < Arinc661_TypeCount(is_extension); ++index)
+                    for (index = 0; index < Arinc661_Definition_GetTypeCount(is_extension); ++index)
                     {
-                        type_name = Arinc661_TypeName(is_extension, index);
+                        type_name = Arinc661_Definition_GetTypeName(is_extension, index);
                         for (character = 0; character < sizeof(upper_name); ++character)
                         {
                             upper_name[character] = (char_t)ImToUpper(type_name[character]);
@@ -1951,7 +1951,7 @@ static void DrawHelpWindow(WindowThreadState_t* window)
                             is_match = TRUE;
                         }
                     }
-                    if ((FALSE == is_match) && Arinc661_TypeHelp(window->helpTopic, &description, &categories, &restriction))
+                    if ((FALSE == is_match) && Arinc661_Definition_GetTypeHelp(window->helpTopic, &description, &categories, &restriction))
                     {
                         ImGui::SeparatorText(window->helpTopic);
                         ImGui::TextUnformatted(description);
@@ -1963,8 +1963,8 @@ static void DrawHelpWindow(WindowThreadState_t* window)
                         {
                             ImGui::TextDisabled("Restriction: %s", restriction);
                         }
-                        is_extension = !!(Arinc661_FindType(window->helpTopic, TRUE, &parameter_count));
-                        if (Arinc661_FindType(window->helpTopic, is_extension, &parameter_count))
+                        is_extension = !!(Arinc661_Definition_FindType(window->helpTopic, TRUE, &parameter_count));
+                        if (Arinc661_Definition_FindType(window->helpTopic, is_extension, &parameter_count))
                         {
                             ImGui::SeparatorText(HELP_PARAMETERS_LABEL);
                             if (ImGui::BeginTable("##parameters", 3, ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp))
@@ -1975,8 +1975,8 @@ static void DrawHelpWindow(WindowThreadState_t* window)
                                 ImGui::TableHeadersRow();
                                 for (index = 0; index < parameter_count; ++index)
                                 {
-                                    (void)Arinc661_Parameter(window->helpTopic, is_extension, index, &parameter);
-                                    parameter_description = Arinc661_ParameterHelp(window->helpTopic, parameter.name, &change);
+                                    (void)Arinc661_Definition_GetParameter(window->helpTopic, is_extension, index, &parameter);
+                                    parameter_description = Arinc661_Definition_GetParameterHelp(window->helpTopic, parameter.name, &change);
                                     ImGui::TableNextRow();
                                     ImGui::TableSetColumnIndex(0);
                                     ImGui::TextUnformatted(parameter.name);
@@ -3136,10 +3136,10 @@ static void DrawPalette(WindowThreadState_t* window)
         category     = c_categories[category_index];
         is_extension = (0 == strcmp(category, PALETTE_EXTENSIONS_CATEGORY));
         has_header   = FALSE;
-        for (type_index = 0; type_index < Arinc661_TypeCount(is_extension); ++type_index)
+        for (type_index = 0; type_index < Arinc661_Definition_GetTypeCount(is_extension); ++type_index)
         {
-            type_name = Arinc661_TypeName(is_extension, type_index);
-            (void)Arinc661_TypeHelp(type_name, &description, &categories, &restriction);
+            type_name = Arinc661_Definition_GetTypeName(is_extension, type_index);
+            (void)Arinc661_Definition_GetTypeHelp(type_name, &description, &categories, &restriction);
             if (is_extension)
             {
                 is_in_category = TRUE;

@@ -51,34 +51,34 @@ struct Arinc661_Definition_Editor_s;
 
 typedef struct Arinc661_Definition_Document_s
 {
-    struct Arinc661_Definition_Editor_s* owner;                                        ///< Editor holding this document.
-    void*                   undoStack[ARINC661_DEFINITION_MAX_HISTORY];               ///< Model snapshots older than the shadow, oldest first.
-    void*                   redoStack[ARINC661_DEFINITION_MAX_HISTORY];               ///< Model snapshots undone, oldest first.
-    void*                   shadow;                                                   ///< Snapshot of the model as last committed.
-    float32_t               viewZoom;                                                 ///< Scene zoom factor over the fitted scale; zero until first drawn.
-    float32_t               viewPanX;                                                 ///< Scene pan in screen pixels.
-    float32_t               viewPanY;                                                 ///< Scene pan in screen pixels.
-    uint32_t                undoCount;                                                ///< Snapshots on the undo stack.
-    uint32_t                redoCount;                                                ///< Snapshots on the redo stack.
-    int32_t                 status;                                                   ///< Current status message.
-    bool_t                  isLoaded;                                                 ///< TRUE after a successful read.
-    bool_t                  isDirty;                                                  ///< TRUE when the loaded document has unsaved changes.
-    bool_t                  isBinary;                                                 ///< TRUE when the document is saved in the binary form.
-    int32_t                 selectedKind;                                             ///< Selected entity type; the primary selection.
-    uint32_t                selectedIndex;                                            ///< Selected array index; the primary selection.
-    byte_t                  isSelected[ARINC661_DEFINITION_MAX_WIDGETS];              ///< Widgets in the multi-selection, primary included.
-    byte_t                  isHiddenInEditor[ARINC661_DEFINITION_MAX_WIDGETS];        ///< Widgets hidden from the scene by the author (editor only).
-    byte_t                  isLocked[ARINC661_DEFINITION_MAX_WIDGETS];                ///< Widgets the scene does not pick or move (editor only).
-    char_t                  documentName[ARINC661_DEFINITION_MAX_XML_NAME_BYTES];     ///< Filename shown on the tab.
-    char_t                  documentPath[ARINC661_DEFINITION_MAX_FILE_PATH_BYTES];    ///< Path of the loaded document.
-    byte_t                  inputBuffer[ARINC661_DEFINITION_MAX_DOCUMENT_BYTES + 1];  ///< Input file bytes.
-    byte_t                  outputBuffer[ARINC661_DEFINITION_MAX_DOCUMENT_BYTES];     ///< Built file bytes.
-    uint64_t                workspace[ARINC661_WORKSPACE_BYTES / sizeof(uint64_t)];   ///< XML conversion scratch space.
-    Arinc661_Layer_t        layers[ARINC661_DEFINITION_MAX_LAYERS];                   ///< Layer values.
-    Arinc661_Widget_t       widgets[ARINC661_DEFINITION_MAX_WIDGETS];                 ///< Widget and extension values.
-    Arinc661_Property_t     properties[ARINC661_DEFINITION_MAX_PROPERTIES];           ///< Property values.
-    byte_t                  blocks[ARINC661_DEFINITION_MAX_BLOCK_BYTES];              ///< Binary symbol, picture, and animation law blocks.
-    Arinc661_Definition_t   definition;                                               ///< Definition File values.
+    struct Arinc661_Definition_Editor_s* owner;                                                   ///< Editor holding this document.
+    void*                                undoStack[ARINC661_DEFINITION_MAX_HISTORY];              ///< Model snapshots older than the shadow, oldest first.
+    void*                                redoStack[ARINC661_DEFINITION_MAX_HISTORY];              ///< Model snapshots undone, oldest first.
+    void*                                shadow;                                                  ///< Snapshot of the model as last committed.
+    float32_t                            viewZoom;                                                ///< Scene zoom factor over the fitted scale; zero until first drawn.
+    float32_t                            viewPanX;                                                ///< Scene pan in screen pixels.
+    float32_t                            viewPanY;                                                ///< Scene pan in screen pixels.
+    uint32_t                             undoCount;                                               ///< Snapshots on the undo stack.
+    uint32_t                             redoCount;                                               ///< Snapshots on the redo stack.
+    int32_t                              status;                                                  ///< Current status message.
+    bool_t                               isLoaded;                                                ///< TRUE after a successful read.
+    bool_t                               isDirty;                                                 ///< TRUE when the loaded document has unsaved changes.
+    bool_t                               isBinary;                                                ///< TRUE when the document is saved in the binary form.
+    int32_t                              selectedKind;                                            ///< Selected entity type; the primary selection.
+    uint32_t                             selectedIndex;                                           ///< Selected array index; the primary selection.
+    byte_t                               isSelected[ARINC661_DEFINITION_MAX_WIDGETS];             ///< Widgets in the multi-selection, primary included.
+    byte_t                               isHiddenInEditor[ARINC661_DEFINITION_MAX_WIDGETS];       ///< Widgets hidden from the scene by the author (editor only).
+    byte_t                               isLocked[ARINC661_DEFINITION_MAX_WIDGETS];               ///< Widgets the scene does not pick or move (editor only).
+    char_t                               documentName[ARINC661_DEFINITION_MAX_XML_NAME_BYTES];    ///< Filename shown on the tab.
+    char_t                               documentPath[ARINC661_DEFINITION_MAX_FILE_PATH_BYTES];   ///< Path of the loaded document.
+    byte_t                               inputBuffer[ARINC661_DEFINITION_MAX_DOCUMENT_BYTES + 1]; ///< Input file bytes.
+    byte_t                               outputBuffer[ARINC661_DEFINITION_MAX_DOCUMENT_BYTES];    ///< Built file bytes.
+    uint64_t                             workspace[ARINC661_WORKSPACE_BYTES / sizeof(uint64_t)];  ///< XML conversion scratch space.
+    Arinc661_Layer_t                     layers[ARINC661_DEFINITION_MAX_LAYERS];                  ///< Layer values.
+    Arinc661_Widget_t                    widgets[ARINC661_DEFINITION_MAX_WIDGETS];                ///< Widget and extension values.
+    Arinc661_Property_t                  properties[ARINC661_DEFINITION_MAX_PROPERTIES];          ///< Property values.
+    byte_t                               blocks[ARINC661_DEFINITION_MAX_BLOCK_BYTES];             ///< Binary symbol, picture, and animation law blocks.
+    Arinc661_Definition_t                definition;                                              ///< Definition File values.
 } Arinc661_Definition_Document_t;
 
 /*************************************************************************************************/
@@ -89,72 +89,72 @@ struct Arinc661_Context_s;
 
 typedef struct Arinc661_Definition_Editor_s
 {
-    struct Arinc661_Context_s*       context;                                                     ///< Shared application context, or NULL.
-    FACEOE_Gfx_DrawList_t            drawList;                                                    ///< Scene draw list.
-    FACEOE_Gfx_Command_t             sceneCommands[ARINC661_DEFINITION_MAX_SCENE_COMMANDS];       ///< Scene command storage.
-    FACEOE_Gfx_Point_t               scenePoints[ARINC661_DEFINITION_MAX_SCENE_POINTS];           ///< Scene point storage.
-    char_t                           sceneText[ARINC661_DEFINITION_MAX_SCENE_TEXT_BYTES];         ///< Scene text storage.
-    Arinc661_Scene_Bounds_t          sceneBounds[ARINC661_DEFINITION_MAX_WIDGETS];                ///< Widget bounds of the last scene.
-    uint32_t                         sceneBoundsCount;                                            ///< Bounds recorded by the last scene.
-    int32_t                          dragMode;                                                    ///< Scene drag in progress: none, move, or a resize corner.
-    uint32_t                         dragWidget;                                                  ///< Widget being dragged.
-    float32_t                        dragStartX;                                                  ///< Mouse X at drag start.
-    float32_t                        dragStartY;                                                  ///< Mouse Y at drag start.
-    float32_t                        dragOriginX;                                                 ///< PosX at drag start.
-    float32_t                        dragOriginY;                                                 ///< PosY at drag start.
-    float32_t                        dragOriginWidth;                                             ///< SizeX at drag start.
-    float32_t                        dragOriginHeight;                                            ///< SizeY at drag start.
-    float32_t                        dragOriginAngle;                                             ///< RotationAngle at drag start.
-    float32_t                        dragCenterX;                                                 ///< Rotation pivot on screen at drag start.
-    float32_t                        dragCenterY;                                                 ///< Rotation pivot on screen at drag start.
-    float32_t                        dragScale;                                                   ///< Screen pixels per layer unit during the drag.
-    bool_t                           hasDragged;                                                  ///< TRUE once the drag moved the mouse.
-    bool_t                           isMarquee;                                                   ///< TRUE while a rubber-band selection is drawn.
-    bool_t                           zoomsToSelection;                                            ///< TRUE to fit the view to the selection next frame.
-    float32_t                        animationTime;                                               ///< Seconds into the animations shown, or negative for the rest state.
-    bool_t                           isPlaying;                                                   ///< TRUE while play mode holds snapshots of the documents.
-    void*                            playSnapshots[ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS];       ///< Document states to restore when play stops.
-    bool_t                           playWasDirty[ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS];        ///< Dirty flags to restore when play stops.
-    Arinc661_Widget_t                clipboardWidgets[ARINC661_DEFINITION_CLIPBOARD_WIDGETS];     ///< Copied subtrees; parent indices are relative to the clipboard.
-    Arinc661_Property_t              clipboardProperties[ARINC661_DEFINITION_CLIPBOARD_PROPERTIES]; ///< Their properties; ownerIndex is relative to the clipboard.
-    uint32_t                         clipboardWidgetCount;                                        ///< Widgets in the clipboard.
-    uint32_t                         clipboardPropertyCount;                                      ///< Properties in the clipboard.
-    uint32_t                         renamingWidget;                                              ///< Widget whose name is being edited inline, or UINT32_MAX.
-    char_t                           renameBuffer[ARINC661_MAX_NAME_BYTES];                       ///< Inline rename text.
-    char_t                           hierarchyFilter[ARINC661_DEFINITION_MAX_FILTER_BYTES];       ///< Hierarchy filter text.
-    char_t                           inspectorFilter[ARINC661_DEFINITION_MAX_FILTER_BYTES];       ///< Inspector parameter filter text.
-    float32_t                        marqueeStartX;                                               ///< Screen X where the marquee started.
-    float32_t                        marqueeStartY;                                               ///< Screen Y where the marquee started.
-    float32_t                        dragOrigins[ARINC661_DEFINITION_MAX_WIDGETS][2];              ///< PosX and PosY of every selected widget at drag start.
-    bool_t                           isSnapping;                                                  ///< TRUE to snap moves and sizes to whole millimetres.
-    bool_t                           showsGrid;                                                   ///< TRUE to draw a millimetre grid behind the layer.
-    uint32_t                         dropWidget;                                                  ///< Widget dropped onto a hierarchy node this frame, or UINT32_MAX.
-    uint32_t                         dropParent;                                                  ///< Node it was dropped on, or UINT32_MAX for the layer.
-    uint32_t                         dropLayer;                                                   ///< Layer of that node.
-    uint32_t                         createConfiguration;                                         ///< Configuration slot chosen for a new user application.
-    uint32_t                         createWindow;                                                ///< Window array index chosen for it.
-    char_t                           dropType[ARINC661_MAX_NAME_BYTES];                           ///< Palette type dropped on a hierarchy node this frame, or empty.
-    uint32_t                         dropTypeParent;                                              ///< Node it was dropped on, or UINT32_MAX for the layer.
-    uint32_t                         dropTypeLayer;                                               ///< Layer of that node.
-    char_t                           addFilter[ARINC661_DEFINITION_MAX_FILTER_BYTES];             ///< Type filter typed in the add pop-up.
-    uint32_t                         addLayer;                                                    ///< Layer the add pop-up targets.
-    uint32_t                         addParent;                                                   ///< Parent widget the add pop-up targets.
-    uint32_t                         addHit;                                                      ///< Widget under the cursor when the add pop-up opened.
-    float32_t                        addX;                                                        ///< Layer X where the add pop-up opened.
-    float32_t                        addY;                                                        ///< Layer Y where the add pop-up opened.
-    int32_t                          status;                                                      ///< File browser status message.
-    uint32_t                         activeDocumentIndex;                                         ///< Selected document slot.
-    uint32_t                         requestedDocumentIndex;                                      ///< Tab to select after opening a file.
-    uint32_t                         pendingCloseDocumentIndex;                                   ///< Document awaiting close confirmation.
-    uint32_t                         pendingSaveDocumentIndex;                                    ///< Untitled document awaiting a filename.
-    bool_t                           isSaveAllPending;                                            ///< TRUE while Save All is naming untitled documents.
-    char_t                           renamedFrom[ARINC661_DEFINITION_MAX_XML_NAME_BYTES];         ///< Name a document had before its last Save As, or empty.
-    char_t                           renamedTo[ARINC661_DEFINITION_MAX_XML_NAME_BYTES];           ///< Name it has now.
-    char_t                           statusNote[ARINC661_DEFINITION_MAX_XML_NAME_BYTES];          ///< Host note appended to the status text, or empty.
-    char_t                           folderPath[ARINC661_DEFINITION_MAX_FOLDER_PATH_BYTES];       ///< Folder containing Definition Files.
-    char_t                           saveFolderPath[ARINC661_DEFINITION_MAX_FOLDER_PATH_BYTES];   ///< Folder chosen in the save dialog.
-    char_t                           saveFileName[ARINC661_DEFINITION_MAX_XML_NAME_BYTES];        ///< Filename chosen in the save dialog.
-    Arinc661_Definition_Document_t   documents[ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS];           ///< Document slots and workspaces.
+    struct Arinc661_Context_s*     context;                                                       ///< Shared application context, or NULL.
+    FACEOE_Gfx_DrawList_t          drawList;                                                      ///< Scene draw list.
+    FACEOE_Gfx_Command_t           sceneCommands[ARINC661_DEFINITION_MAX_SCENE_COMMANDS];         ///< Scene command storage.
+    FACEOE_Gfx_Point_t             scenePoints[ARINC661_DEFINITION_MAX_SCENE_POINTS];             ///< Scene point storage.
+    char_t                         sceneText[ARINC661_DEFINITION_MAX_SCENE_TEXT_BYTES];           ///< Scene text storage.
+    Arinc661_Scene_Bounds_t        sceneBounds[ARINC661_DEFINITION_MAX_WIDGETS];                  ///< Widget bounds of the last scene.
+    uint32_t                       sceneBoundsCount;                                              ///< Bounds recorded by the last scene.
+    int32_t                        dragMode;                                                      ///< Scene drag in progress: none, move, or a resize corner.
+    uint32_t                       dragWidget;                                                    ///< Widget being dragged.
+    float32_t                      dragStartX;                                                    ///< Mouse X at drag start.
+    float32_t                      dragStartY;                                                    ///< Mouse Y at drag start.
+    float32_t                      dragOriginX;                                                   ///< PosX at drag start.
+    float32_t                      dragOriginY;                                                   ///< PosY at drag start.
+    float32_t                      dragOriginWidth;                                               ///< SizeX at drag start.
+    float32_t                      dragOriginHeight;                                              ///< SizeY at drag start.
+    float32_t                      dragOriginAngle;                                               ///< RotationAngle at drag start.
+    float32_t                      dragCenterX;                                                   ///< Rotation pivot on screen at drag start.
+    float32_t                      dragCenterY;                                                   ///< Rotation pivot on screen at drag start.
+    float32_t                      dragScale;                                                     ///< Screen pixels per layer unit during the drag.
+    bool_t                         hasDragged;                                                    ///< TRUE once the drag moved the mouse.
+    bool_t                         isMarquee;                                                     ///< TRUE while a rubber-band selection is drawn.
+    bool_t                         zoomsToSelection;                                              ///< TRUE to fit the view to the selection next frame.
+    float32_t                      animationTime;                                                 ///< Seconds into the animations shown, or negative for the rest state.
+    bool_t                         isPlaying;                                                     ///< TRUE while play mode holds snapshots of the documents.
+    void*                          playSnapshots[ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS];         ///< Document states to restore when play stops.
+    bool_t                         playWasDirty[ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS];          ///< Dirty flags to restore when play stops.
+    Arinc661_Widget_t              clipboardWidgets[ARINC661_DEFINITION_CLIPBOARD_WIDGETS];       ///< Copied subtrees; parent indices are relative to the clipboard.
+    Arinc661_Property_t            clipboardProperties[ARINC661_DEFINITION_CLIPBOARD_PROPERTIES]; ///< Their properties; ownerIndex is relative to the clipboard.
+    uint32_t                       clipboardWidgetCount;                                          ///< Widgets in the clipboard.
+    uint32_t                       clipboardPropertyCount;                                        ///< Properties in the clipboard.
+    uint32_t                       renamingWidget;                                                ///< Widget whose name is being edited inline, or UINT32_MAX.
+    char_t                         renameBuffer[ARINC661_MAX_NAME_BYTES];                         ///< Inline rename text.
+    char_t                         hierarchyFilter[ARINC661_DEFINITION_MAX_FILTER_BYTES];         ///< Hierarchy filter text.
+    char_t                         inspectorFilter[ARINC661_DEFINITION_MAX_FILTER_BYTES];         ///< Inspector parameter filter text.
+    float32_t                      marqueeStartX;                                                 ///< Screen X where the marquee started.
+    float32_t                      marqueeStartY;                                                 ///< Screen Y where the marquee started.
+    float32_t                      dragOrigins[ARINC661_DEFINITION_MAX_WIDGETS][2];               ///< PosX and PosY of every selected widget at drag start.
+    bool_t                         isSnapping;                                                    ///< TRUE to snap moves and sizes to whole millimetres.
+    bool_t                         showsGrid;                                                     ///< TRUE to draw a millimetre grid behind the layer.
+    uint32_t                       dropWidget;                                                    ///< Widget dropped onto a hierarchy node this frame, or UINT32_MAX.
+    uint32_t                       dropParent;                                                    ///< Node it was dropped on, or UINT32_MAX for the layer.
+    uint32_t                       dropLayer;                                                     ///< Layer of that node.
+    uint32_t                       createConfiguration;                                           ///< Configuration slot chosen for a new user application.
+    uint32_t                       createWindow;                                                  ///< Window array index chosen for it.
+    char_t                         dropType[ARINC661_MAX_NAME_BYTES];                             ///< Palette type dropped on a hierarchy node this frame, or empty.
+    uint32_t                       dropTypeParent;                                                ///< Node it was dropped on, or UINT32_MAX for the layer.
+    uint32_t                       dropTypeLayer;                                                 ///< Layer of that node.
+    char_t                         addFilter[ARINC661_DEFINITION_MAX_FILTER_BYTES];               ///< Type filter typed in the add pop-up.
+    uint32_t                       addLayer;                                                      ///< Layer the add pop-up targets.
+    uint32_t                       addParent;                                                     ///< Parent widget the add pop-up targets.
+    uint32_t                       addHit;                                                        ///< Widget under the cursor when the add pop-up opened.
+    float32_t                      addX;                                                          ///< Layer X where the add pop-up opened.
+    float32_t                      addY;                                                          ///< Layer Y where the add pop-up opened.
+    int32_t                        status;                                                        ///< File browser status message.
+    uint32_t                       activeDocumentIndex;                                           ///< Selected document slot.
+    uint32_t                       requestedDocumentIndex;                                        ///< Tab to select after opening a file.
+    uint32_t                       pendingCloseDocumentIndex;                                     ///< Document awaiting close confirmation.
+    uint32_t                       pendingSaveDocumentIndex;                                      ///< Untitled document awaiting a filename.
+    bool_t                         isSaveAllPending;                                              ///< TRUE while Save All is naming untitled documents.
+    char_t                         renamedFrom[ARINC661_DEFINITION_MAX_XML_NAME_BYTES];           ///< Name a document had before its last Save As, or empty.
+    char_t                         renamedTo[ARINC661_DEFINITION_MAX_XML_NAME_BYTES];             ///< Name it has now.
+    char_t                         statusNote[ARINC661_DEFINITION_MAX_XML_NAME_BYTES];            ///< Host note appended to the status text, or empty.
+    char_t                         folderPath[ARINC661_DEFINITION_MAX_FOLDER_PATH_BYTES];         ///< Folder containing Definition Files.
+    char_t                         saveFolderPath[ARINC661_DEFINITION_MAX_FOLDER_PATH_BYTES];     ///< Folder chosen in the save dialog.
+    char_t                         saveFileName[ARINC661_DEFINITION_MAX_XML_NAME_BYTES];          ///< Filename chosen in the save dialog.
+    Arinc661_Definition_Document_t documents[ARINC661_DEFINITION_MAX_OPEN_DOCUMENTS];             ///< Document slots and workspaces.
 } Arinc661_Definition_Editor_t;
 
 /*=================================================================================================

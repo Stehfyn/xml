@@ -91,11 +91,11 @@ typedef struct XmlWorkspace_s
 {
     FACEOE_Utl_Xml_Node_t*      nodes;          ///< Pointer to temporary XML node storage
     FACEOE_Utl_Xml_Attribute_t* attributes;     ///< Pointer to temporary XML attribute storage
-    byte_t*              text;           ///< Pointer to formatted attribute value storage
-    uint64_t             textCapacity;   ///< Available text bytes after the fixed workspace arrays
-    uint64_t             textByteCount;  ///< Text bytes used, including each string's zero terminator
-    uint32_t             nodeCount;      ///< XML node slots used while constructing output
-    uint32_t             attributeCount; ///< XML attribute slots used while constructing output
+    byte_t*                     text;           ///< Pointer to formatted attribute value storage
+    uint64_t                    textCapacity;   ///< Available text bytes after the fixed workspace arrays
+    uint64_t                    textByteCount;  ///< Text bytes used, including each string's zero terminator
+    uint32_t                    nodeCount;      ///< XML node slots used while constructing output
+    uint32_t                    attributeCount; ///< XML attribute slots used while constructing output
     FACEOE_Utl_Xml_Document_t   document;       ///< Temporary document with nodes in the workspace
 } XmlWorkspace_t;
 

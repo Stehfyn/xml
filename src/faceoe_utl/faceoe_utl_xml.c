@@ -101,16 +101,16 @@ typedef struct XmlCodePointRange_s
 typedef struct XmlReader_s
 {
     FACEOE_Utl_Xml_Document_t*  document;          ///< Document receiving parsed nodes.
-    byte_t*             bytes;             ///< Input with one writable terminating byte.
-    uint64_t            byteCount;         ///< Number of input bytes.
-    uint64_t            position;          ///< Offset of the next markup span.
+    byte_t*                     bytes;             ///< Input with one writable terminating byte.
+    uint64_t                    byteCount;         ///< Number of input bytes.
+    uint64_t                    position;          ///< Offset of the next markup span.
     FACEOE_Utl_Xml_Node_t*      nodes;             ///< Caller-owned node storage.
-    uint32_t            nodeCapacity;      ///< Number of nodes available.
-    uint32_t            nodeCount;         ///< Number of nodes used.
+    uint32_t                    nodeCapacity;      ///< Number of nodes available.
+    uint32_t                    nodeCount;         ///< Number of nodes used.
     FACEOE_Utl_Xml_Attribute_t* attributes;        ///< Caller-owned attribute storage.
-    uint32_t            attributeCapacity; ///< Number of attributes available.
-    uint32_t            attributeCount;    ///< Number of attributes used.
-    uint32_t            markupCount;       ///< Number of markup spans read across the document.
+    uint32_t                    attributeCapacity; ///< Number of attributes available.
+    uint32_t                    attributeCount;    ///< Number of attributes used.
+    uint32_t                    markupCount;       ///< Number of markup spans read across the document.
 } XmlReader_t;
 
 /*=================================================================================================

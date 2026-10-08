@@ -197,43 +197,43 @@ typedef struct FileRow_s
 /** Everything the wizard remembers between pages. */
 typedef struct Setup_s
 {
-    HINSTANCE module;                      ///< This program
-    HWND      frame;                       ///< The frame dialog
-    HWND      page;                        ///< The current page dialog
-    Page_t    pageId;                      ///< Which page is up
-    Mode_t    mode;                        ///< Install, repair, or remove
-    uint32_t  build;                       ///< Windows build number
-    uint32_t  dpi;                         ///< Dots per inch of the frame's monitor
-    bool_t    isDark;                      ///< TRUE when apps use the dark theme and Windows can draw it
-    bool_t    isElevated;                  ///< TRUE when running as administrator
-    bool_t    isInstalled;                 ///< TRUE when a copy is registered
-    bool_t    isAccepted;                  ///< TRUE once the license is accepted
-    bool_t    isCancelRequested;           ///< TRUE while the installer should stop
-    bool_t    isDone;                      ///< TRUE once the installer finished
-    uint32_t  options;                     ///< OPTION_* bits
-    uint32_t  result;                      ///< Windows Installer result
-    wchar_t   folder[MAX_PATH];            ///< Destination folder
-    wchar_t   packagePath[MAX_PATH];       ///< Extracted MSI
-    wchar_t   productCode[64];             ///< Installed product, when any
-    FileRow_t rows[MAX_FILE_ROWS];         ///< File rows
-    HTREEITEM folderItem;                  ///< Tree node of the destination folder, renamed as the folder box changes
-    SIZE      minimumFrame;                ///< Frame window size as the template made it
-    uint32_t  rowCount;                    ///< Rows filled
-    uint32_t  fileCount;                   ///< Rows that are files
-    uint64_t  totalBytes;                  ///< Bytes of the files
-    HICON     icon;                        ///< Product icon, drawn into the banner and the side panel
+    HINSTANCE  module;                     ///< This program
+    HWND       frame;                      ///< The frame dialog
+    HWND       page;                       ///< The current page dialog
+    Page_t     pageId;                     ///< Which page is up
+    Mode_t     mode;                       ///< Install, repair, or remove
+    uint32_t   build;                      ///< Windows build number
+    uint32_t   dpi;                        ///< Dots per inch of the frame's monitor
+    bool_t     isDark;                     ///< TRUE when apps use the dark theme and Windows can draw it
+    bool_t     isElevated;                 ///< TRUE when running as administrator
+    bool_t     isInstalled;                ///< TRUE when a copy is registered
+    bool_t     isAccepted;                 ///< TRUE once the license is accepted
+    bool_t     isCancelRequested;          ///< TRUE while the installer should stop
+    bool_t     isDone;                     ///< TRUE once the installer finished
+    uint32_t   options;                    ///< OPTION_* bits
+    uint32_t   result;                     ///< Windows Installer result
+    wchar_t    folder[MAX_PATH];           ///< Destination folder
+    wchar_t    packagePath[MAX_PATH];      ///< Extracted MSI
+    wchar_t    productCode[64];            ///< Installed product, when any
+    FileRow_t  rows[MAX_FILE_ROWS];        ///< File rows
+    HTREEITEM  folderItem;                 ///< Tree node of the destination folder, renamed as the folder box changes
+    SIZE       minimumFrame;               ///< Frame window size as the template made it
+    uint32_t   rowCount;                   ///< Rows filled
+    uint32_t   fileCount;                  ///< Rows that are files
+    uint64_t   totalBytes;                 ///< Bytes of the files
+    HICON      icon;                       ///< Product icon, drawn into the banner and the side panel
     HIMAGELIST treeImages;                 ///< Icons of the file tree, at the frame's DPI
-    HBRUSH    pageBrush;                   ///< Page background in dark mode
-    HBRUSH    wellBrush;                   ///< Edit and list background in dark mode
-    HFONT     headlineFont;                ///< Large page headline
-    HFONT     textFont;                    ///< The dialog font, for painting the header and group captions
-    HFONT     boldFont;                    ///< Section headings of the options page
-    HANDLE    thread;                      ///< Installer thread
-    int32_t   progressTotal;               ///< Ticks the installer announced
-    int32_t   progressDone;                ///< Ticks reported so far
-    int32_t   progressStep;                ///< Ticks per action data message
-    bool_t    progressForward;             ///< TRUE while progress counts up
-    bool_t    progressEnabled;             ///< TRUE while action data advances the bar
+    HBRUSH     pageBrush;                  ///< Page background in dark mode
+    HBRUSH     wellBrush;                  ///< Edit and list background in dark mode
+    HFONT      headlineFont;               ///< Large page headline
+    HFONT      textFont;                   ///< The dialog font, for painting the header and group captions
+    HFONT      boldFont;                   ///< Section headings of the options page
+    HANDLE     thread;                     ///< Installer thread
+    int32_t    progressTotal;              ///< Ticks the installer announced
+    int32_t    progressDone;               ///< Ticks reported so far
+    int32_t    progressStep;               ///< Ticks per action data message
+    bool_t     progressForward;            ///< TRUE while progress counts up
+    bool_t     progressEnabled;            ///< TRUE while action data advances the bar
 } Setup_t;
 
 /*=================================================================================================

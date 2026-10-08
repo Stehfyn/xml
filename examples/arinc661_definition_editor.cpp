@@ -456,8 +456,8 @@ typedef struct ReferenceParameter_s
 /** Where a widget type may sit (Part 1-7, section 3.2.3.1 and the Restriction clauses). */
 typedef struct ParentRule_s
 {
-    const char_t* child;      ///< Widget type
-    const char_t* parents[4]; ///< Allowed parent types; PARENT_LAYER_NAME for a direct layer child; NULL ends the list
+    const char_t* child;       ///< Widget type
+    const char_t* parents[4];  ///< Allowed parent types; PARENT_LAYER_NAME for a direct layer child; NULL ends the list
     bool_t        isForbidden; ///< TRUE when the listed parents are forbidden instead of allowed
 } ParentRule_t;
 
@@ -503,14 +503,14 @@ static const ParentRule_t c_parentRules[] =
  */
 typedef struct Snapshot_s
 {
-    uint32_t layerCount;        ///< Layers stored
-    uint32_t widgetCount;       ///< Widgets stored
-    uint32_t propertyCount;     ///< Properties stored
-    int32_t  selectedKind;      ///< Selection at the time
-    uint32_t selectedIndex;     ///< Selection index at the time
-    uint32_t libraryVersion;    ///< Definition File library version
-    uint32_t supplementVersion; ///< Definition File supplement version
-    uint32_t charsetEncoding;   ///< Definition File charset encoding
+    uint32_t layerCount;                    ///< Layers stored
+    uint32_t widgetCount;                   ///< Widgets stored
+    uint32_t propertyCount;                 ///< Properties stored
+    int32_t  selectedKind;                  ///< Selection at the time
+    uint32_t selectedIndex;                 ///< Selection index at the time
+    uint32_t libraryVersion;                ///< Definition File library version
+    uint32_t supplementVersion;             ///< Definition File supplement version
+    uint32_t charsetEncoding;               ///< Definition File charset encoding
     char_t   name[ARINC661_MAX_NAME_BYTES]; ///< Definition File name
     char_t   label[HISTORY_LABEL_BYTES];    ///< What changed to reach this state, for the history list
 } Snapshot_t;
@@ -521,10 +521,10 @@ typedef struct Snapshot_s
  */
 typedef struct WidgetArea_s
 {
-    float32_t x;      ///< Left edge in layer units, measured from the layer's left edge
-    float32_t y;      ///< Bottom edge in layer units, measured from the layer's bottom edge
-    float32_t width;  ///< Width in layer units
-    float32_t height; ///< Height in layer units
+    float32_t x;       ///< Left edge in layer units, measured from the layer's left edge
+    float32_t y;       ///< Bottom edge in layer units, measured from the layer's bottom edge
+    float32_t width;   ///< Width in layer units
+    float32_t height;  ///< Height in layer units
     bool_t    isValid; ///< TRUE when the widget and all its containers carry position and size properties
 } WidgetArea_t;
 
@@ -2094,11 +2094,11 @@ static void LoadDefinitionFile(Arinc661_Definition_Editor_t* editor, const char_
                 document->isBinary = !!((1 < document_byte_count) && (BINARY_MAGIC_HIGH == document->inputBuffer[0]) && (BINARY_MAGIC_LOW == document->inputBuffer[1]));
                 if (document->isBinary)
                 {
-                    is_definition = Arinc661_ReadDefinitionBinary(&document->definition, document->inputBuffer, (uint64_t)document_byte_count);
+                    is_definition = Arinc661_Definition_ReadBinary(&document->definition, document->inputBuffer, (uint64_t)document_byte_count);
                 }
                 else
                 {
-                    is_definition = Arinc661_ReadDefinition(&document->definition, document->inputBuffer, (uint64_t)document_byte_count, document->workspace, sizeof(document->workspace));
+                    is_definition = Arinc661_Definition_Read(&document->definition, document->inputBuffer, (uint64_t)document_byte_count, document->workspace, sizeof(document->workspace));
                 }
                 if (is_definition)
                 {
@@ -2181,11 +2181,11 @@ static void SaveLoadedDocument(Arinc661_Definition_Document_t* editor)
         editor->isBinary = HasExtension(editor->documentPath, BINARY_EXTENSION);
         if (editor->isBinary)
         {
-            output_byte_count = Arinc661_WriteDefinitionBinary(&editor->definition, editor->outputBuffer, sizeof(editor->outputBuffer));
+            output_byte_count = Arinc661_Definition_WriteBinary(&editor->definition, editor->outputBuffer, sizeof(editor->outputBuffer));
         }
         else
         {
-            output_byte_count = Arinc661_WriteDefinition(&editor->definition, editor->outputBuffer, sizeof(editor->outputBuffer), editor->workspace, sizeof(editor->workspace));
+            output_byte_count = Arinc661_Definition_Write(&editor->definition, editor->outputBuffer, sizeof(editor->outputBuffer), editor->workspace, sizeof(editor->workspace));
         }
         if (0 == output_byte_count)
         {
@@ -2547,11 +2547,11 @@ static bool_t IsParameterValueValid(const Arinc661_Parameter_t* parameter, const
         is_valid = !!((0 < consumed) && ('\0' == value[consumed]));
         if (FALSE == is_valid)
         {
-            for (constant_index = 0; constant_index < Arinc661_ConstantCount(); ++constant_index)
+            for (constant_index = 0; constant_index < Arinc661_Definition_GetConstantCount(); ++constant_index)
             {
-                if (0 == strcmp(value, Arinc661_ConstantName(constant_index)))
+                if (0 == strcmp(value, Arinc661_Definition_GetConstantName(constant_index)))
                 {
-                    integer_value = Arinc661_ConstantValue(constant_index);
+                    integer_value = Arinc661_Definition_GetConstantValue(constant_index);
                     is_valid      = TRUE;
                     break;
                 }
@@ -2632,7 +2632,7 @@ static bool_t ConformParameters(Arinc661_Definition_Document_t* document, uint32
 
     widget      = &document->widgets[widgetIndex];
     has_changed = FALSE;
-    is_known    = Arinc661_FindType(widget->type, widget->isExtension, &parameter_count);
+    is_known    = Arinc661_Definition_FindType(widget->type, widget->isExtension, &parameter_count);
     if (is_known)
     {
         property_index = 0;
@@ -2644,7 +2644,7 @@ static bool_t ConformParameters(Arinc661_Definition_Document_t* document, uint32
                 is_parameter = !!((FALSE == widget->isExtension) && (0 == strcmp(PROPERTY_WIDGET_IDENT, document->properties[property_index].name)));
                 for (parameter_index = 0; (FALSE == is_parameter) && (parameter_index < parameter_count); ++parameter_index)
                 {
-                    (void)Arinc661_Parameter(widget->type, widget->isExtension, parameter_index, &parameter);
+                    (void)Arinc661_Definition_GetParameter(widget->type, widget->isExtension, parameter_index, &parameter);
                     is_parameter = (0 == strcmp(parameter.name, document->properties[property_index].name));
                 }
             }
@@ -2660,7 +2660,7 @@ static bool_t ConformParameters(Arinc661_Definition_Document_t* document, uint32
         }
         for (parameter_index = 0; parameter_index < parameter_count; ++parameter_index)
         {
-            (void)Arinc661_Parameter(widget->type, widget->isExtension, parameter_index, &parameter);
+            (void)Arinc661_Definition_GetParameter(widget->type, widget->isExtension, parameter_index, &parameter);
             if (0 != parameter.elementsPerEntry)
             {
                 continue;
@@ -2681,7 +2681,7 @@ static bool_t ConformParameters(Arinc661_Definition_Document_t* document, uint32
         // Size every array to what its count parameter promises
         for (parameter_index = 0; parameter_index < parameter_count; ++parameter_index)
         {
-            (void)Arinc661_Parameter(widget->type, widget->isExtension, parameter_index, &parameter);
+            (void)Arinc661_Definition_GetParameter(widget->type, widget->isExtension, parameter_index, &parameter);
             if (0 != parameter.elementsPerEntry)
             {
                 has_changed = !!(SyncArrayLength(document, widgetIndex, &parameter) || has_changed);
@@ -2886,11 +2886,11 @@ static void AddWidget(Arinc661_Definition_Document_t* document, uint32_t layerIn
         {
             ImStrncpy(widget->type, DEFAULT_EXTENSION_TYPE, sizeof(widget->type));
             // Prefer an extension Table 8.4 allows on the parent
-            for (type_index = 0; (INVALID_HIERARCHY_INDEX != parentIndex) && (type_index < Arinc661_TypeCount(TRUE)); ++type_index)
+            for (type_index = 0; (INVALID_HIERARCHY_INDEX != parentIndex) && (type_index < Arinc661_Definition_GetTypeCount(TRUE)); ++type_index)
             {
-                if (Arinc661_ExtensionApplies(Arinc661_TypeName(TRUE, type_index), document->widgets[parentIndex].type))
+                if (Arinc661_Definition_ExtensionApplies(Arinc661_Definition_GetTypeName(TRUE, type_index), document->widgets[parentIndex].type))
                 {
-                    ImStrncpy(widget->type, Arinc661_TypeName(TRUE, type_index), sizeof(widget->type));
+                    ImStrncpy(widget->type, Arinc661_Definition_GetTypeName(TRUE, type_index), sizeof(widget->type));
                     break;
                 }
             }
@@ -3542,7 +3542,7 @@ static void AddTypedWidget(Arinc661_Definition_Document_t* document, uint32_t la
     uint32_t  new_index;
     bool_t    is_extension;
 
-    is_extension = (0 < Arinc661_FindType(type, TRUE, &new_index));
+    is_extension = (0 < Arinc661_Definition_FindType(type, TRUE, &new_index));
     if (is_extension)
     {
         if (INVALID_HIERARCHY_INDEX != parentIndex)
@@ -4054,7 +4054,7 @@ static void DrawTypeHelp(const char_t* type)
     const char_t* restriction;
     char_t        label[LABEL_FORMAT_BYTES + ARINC661_MAX_NAME_BYTES];
 
-    if (Arinc661_TypeHelp(type, &description, &categories, &restriction))
+    if (Arinc661_Definition_GetTypeHelp(type, &description, &categories, &restriction))
     {
         ImFormatString(label, sizeof(label), ABOUT_FORMAT, type);
         if (ImGui::CollapsingHeader(label, ImGuiTreeNodeFlags_DefaultOpen))
@@ -4093,7 +4093,7 @@ static void DrawParameterTooltip(const Arinc661_Definition_Document_t* document,
         {
             type = document->widgets[ownerIndex].type;
         }
-        description = Arinc661_ParameterHelp(type, propertyName, &change);
+        description = Arinc661_Definition_GetParameterHelp(type, propertyName, &change);
         if ('\0' != description[0])
         {
             ImGui::BeginTooltip();
@@ -4207,9 +4207,9 @@ static void DrawAddPopup(Arinc661_Definition_Document_t* document)
         }
         if (ImGui::BeginChild("##types", ImVec2(HELP_WRAP_WIDTH, ADD_LIST_HEIGHT), ImGuiChildFlags_Borders))
         {
-            for (type_index = 0; type_index < Arinc661_TypeCount(FALSE); ++type_index)
+            for (type_index = 0; type_index < Arinc661_Definition_GetTypeCount(FALSE); ++type_index)
             {
-                type_name = Arinc661_TypeName(FALSE, type_index);
+                type_name = Arinc661_Definition_GetTypeName(FALSE, type_index);
                 for (character = 0; character < sizeof(lower_type); ++character)
                 {
                     lower_type[character] = (char_t)ImToUpper(type_name[character]);
@@ -4253,7 +4253,7 @@ static void DrawAddPopup(Arinc661_Definition_Document_t* document)
                         }
                         ImGui::CloseCurrentPopup();
                     }
-                    if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) && Arinc661_TypeHelp(type_name, &description, &categories, &restriction))
+                    if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) && Arinc661_Definition_GetTypeHelp(type_name, &description, &categories, &restriction))
                     {
                         ImGui::BeginTooltip();
                         ImGui::PushTextWrapPos(HELP_WRAP_WIDTH);
@@ -5973,11 +5973,11 @@ static bool_t IsSchemaProperty(const Arinc661_Definition_Document_t* document, A
     {
         widget    = &document->widgets[ownerIndex];
         is_schema = !!((FALSE == widget->isExtension) && (0 == strcmp(PROPERTY_WIDGET_IDENT, name)));
-        if ((FALSE == is_schema) && Arinc661_FindType(widget->type, widget->isExtension, &parameter_count))
+        if ((FALSE == is_schema) && Arinc661_Definition_FindType(widget->type, widget->isExtension, &parameter_count))
         {
             for (parameter_index = 0; parameter_index < parameter_count; ++parameter_index)
             {
-                (void)Arinc661_Parameter(widget->type, widget->isExtension, parameter_index, &parameter);
+                (void)Arinc661_Definition_GetParameter(widget->type, widget->isExtension, parameter_index, &parameter);
                 if (0 == strcmp(parameter.name, name))
                 {
                     is_schema = TRUE;
@@ -6280,14 +6280,14 @@ static void DrawParameterTable(Arinc661_Definition_Document_t* document, uint32_
     uint32_t                 element_index;
 
     widget = &document->widgets[widgetIndex];
-    (void)Arinc661_FindType(widget->type, widget->isExtension, &parameter_count);
+    (void)Arinc661_Definition_FindType(widget->type, widget->isExtension, &parameter_count);
     ImGui::SetNextItemWidth(-1.0f);
     (void)ImGui::InputTextWithHint("##inspector filter", INSPECTOR_FILTER_HINT, document->owner->inspectorFilter, sizeof(document->owner->inspectorFilter));
     if (BeginPropertyTable(MODEL_TABLE_ID))
     {
         for (parameter_index = 0; parameter_index < parameter_count; ++parameter_index)
         {
-            (void)Arinc661_Parameter(widget->type, widget->isExtension, parameter_index, &parameter);
+            (void)Arinc661_Definition_GetParameter(widget->type, widget->isExtension, parameter_index, &parameter);
             if (('\0' != document->owner->inspectorFilter[0]) && (NULL == ImStristr(parameter.name, NULL, document->owner->inspectorFilter, NULL)))
             {
                 continue;
@@ -6332,11 +6332,11 @@ static bool_t DrawTypeField(const char_t* label, char_t* type, uint32_t capacity
     int      selected;
     bool_t   has_changed;
 
-    type_count = Arinc661_TypeCount(isExtension);
+    type_count = Arinc661_Definition_GetTypeCount(isExtension);
     selected   = -1;
     for (type_index = 0; type_index < type_count; ++type_index)
     {
-        if (0 == strcmp(type, Arinc661_TypeName(isExtension, type_index)))
+        if (0 == strcmp(type, Arinc661_Definition_GetTypeName(isExtension, type_index)))
         {
             selected = (int)type_index;
             break;
@@ -6359,15 +6359,15 @@ static bool_t DrawTypeField(const char_t* label, char_t* type, uint32_t capacity
         for (type_index = 0; type_index < type_count; ++type_index)
         {
             // Table 8.4: an extension the parent widget cannot take is shown greyed and not selectable
-            is_applicable = !!((FALSE == isExtension) || (NULL == parentType) || Arinc661_ExtensionApplies(Arinc661_TypeName(isExtension, type_index), parentType));
+            is_applicable = !!((FALSE == isExtension) || (NULL == parentType) || Arinc661_Definition_ExtensionApplies(Arinc661_Definition_GetTypeName(isExtension, type_index), parentType));
             ImGui::BeginDisabled(FALSE == is_applicable);
-            if (ImGui::Selectable(Arinc661_TypeName(isExtension, type_index), (int)type_index == selected))
+            if (ImGui::Selectable(Arinc661_Definition_GetTypeName(isExtension, type_index), (int)type_index == selected))
             {
-                ImStrncpy(type, Arinc661_TypeName(isExtension, type_index), capacity);
+                ImStrncpy(type, Arinc661_Definition_GetTypeName(isExtension, type_index), capacity);
                 has_changed = TRUE;
             }
             ImGui::EndDisabled();
-            if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) && Arinc661_TypeHelp(Arinc661_TypeName(isExtension, type_index), &description, &categories, &restriction))
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) && Arinc661_Definition_GetTypeHelp(Arinc661_Definition_GetTypeName(isExtension, type_index), &description, &categories, &restriction))
             {
                 ImGui::BeginTooltip();
                 ImGui::PushTextWrapPos(HELP_WRAP_WIDTH);
@@ -6729,7 +6729,7 @@ static void DrawWidgetInspector(Arinc661_Definition_Document_t* document)
         ImGui::TextUnformatted(parent_name);
         ImGui::EndTable();
     }
-    if (widget->isExtension && (NULL != parent_type) && (FALSE == Arinc661_ExtensionApplies(widget->type, parent_type)))
+    if (widget->isExtension && (NULL != parent_type) && (FALSE == Arinc661_Definition_ExtensionApplies(widget->type, parent_type)))
     {
         ImGui::PushStyleColor(ImGuiCol_Text, INVALID_VALUE_COLOR);
         ImGui::TextWrapped(EXTENSION_NOT_APPLICABLE_FORMAT, widget->type, parent_type);
@@ -6737,7 +6737,7 @@ static void DrawWidgetInspector(Arinc661_Definition_Document_t* document)
     }
     ImGui::Separator();
     DrawTypeHelp(widget->type);
-    if (Arinc661_FindType(widget->type, widget->isExtension, &parameter_count))
+    if (Arinc661_Definition_FindType(widget->type, widget->isExtension, &parameter_count))
     {
         ImGui::SeparatorText(MODEL_SECTION_LABEL);
         DrawParameterTable(document, document->selectedIndex);
@@ -8916,7 +8916,7 @@ bool_t Arinc661_Definition_ProblemAt(const Arinc661_Definition_Editor_t* editor,
         widget = &document->widgets[widget_slot];
         if (widget->isExtension)
         {
-            if ((INVALID_HIERARCHY_INDEX != widget->parentWidgetIndex) && (FALSE == Arinc661_ExtensionApplies(widget->type, document->widgets[widget->parentWidgetIndex].type)))
+            if ((INVALID_HIERARCHY_INDEX != widget->parentWidgetIndex) && (FALSE == Arinc661_Definition_ExtensionApplies(widget->type, document->widgets[widget->parentWidgetIndex].type)))
             {
                 if (seen == index)
                 {
@@ -9614,7 +9614,7 @@ bool_t Arinc661_Definition_ExportBinary(Arinc661_Definition_Editor_t* editor, ui
             }
             ImStrncpy(&path[strlen(path)], BINARY_EXTENSION, (int)(capacity - strlen(path)));
         }
-        byte_count = Arinc661_WriteDefinitionBinary(&document->definition, document->outputBuffer, sizeof(document->outputBuffer));
+        byte_count = Arinc661_Definition_WriteBinary(&document->definition, document->outputBuffer, sizeof(document->outputBuffer));
         if (0 < byte_count)
         {
             is_written = (0 <= OS_File_WriteFile(path, document->outputBuffer, (uint32_t)byte_count));
@@ -9687,7 +9687,7 @@ bool_t Arinc661_Definition_SavePrefab(Arinc661_Definition_Editor_t* editor, cons
     {
         editor->clipboardWidgets[widget_index].layerIndex = 0;
     }
-    byte_count = Arinc661_WriteDefinition(&prefab, document->outputBuffer, sizeof(document->outputBuffer), document->workspace, sizeof(document->workspace));
+    byte_count = Arinc661_Definition_Write(&prefab, document->outputBuffer, sizeof(document->outputBuffer), document->workspace, sizeof(document->workspace));
     if (0 < byte_count)
     {
         ImFormatString(file_name, sizeof(file_name), "%s%s", name, PREFAB_EXTENSION);
@@ -9732,7 +9732,7 @@ bool_t Arinc661_Definition_LoadPrefab(Arinc661_Definition_Editor_t* editor, cons
         prefab.widgetCapacity   = ARINC661_DEFINITION_CLIPBOARD_WIDGETS;
         prefab.properties       = editor->clipboardProperties;
         prefab.propertyCapacity = ARINC661_DEFINITION_CLIPBOARD_PROPERTIES;
-        is_loaded = Arinc661_ReadDefinition(&prefab, document->inputBuffer, (uint64_t)byte_count, document->workspace, sizeof(document->workspace));
+        is_loaded = Arinc661_Definition_Read(&prefab, document->inputBuffer, (uint64_t)byte_count, document->workspace, sizeof(document->workspace));
         if (is_loaded)
         {
             editor->clipboardWidgetCount   = prefab.widgetCount;

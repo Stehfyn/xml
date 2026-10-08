@@ -9,11 +9,11 @@
 /** Builds a message in caller-owned storage or emits it under a stream lock, without allocation. */
 typedef struct Os_MessageBuilder
 {
-    FILE*  stream;
+    FILE*   stream;
     char_t* buffer;
-    size_t capacity;
-    size_t length;
-    bool_t truncated;
+    size_t  capacity;
+    size_t  length;
+    bool_t  truncated;
 } Os_MessageBuilder_t;
 
 /*************************************************************************************************/

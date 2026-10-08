@@ -65,8 +65,8 @@ typedef enum FACEOE_DisplayManagement_Unit_e
  */
 typedef struct FACEOE_DisplayManagement_Size_s
 {
-    int64_t             width;  ///< Width in units
-    int64_t             height; ///< Height in units
+    int64_t                         width;  ///< Width in units
+    int64_t                         height; ///< Height in units
     FACEOE_DisplayManagement_Unit_t units;  ///< Unit of both dimensions
 } FACEOE_DisplayManagement_Size_t;
 
@@ -94,8 +94,8 @@ typedef struct FACEOE_DisplayManagement_Rectangle_s
  */
 typedef struct FACEOE_DisplayManagement_Scale_s
 {
-    float32_t           xScale;   ///< Horizontal scaling factor
-    float32_t           yScale;   ///< Vertical scaling factor
+    float32_t                       xScale;   ///< Horizontal scaling factor
+    float32_t                       yScale;   ///< Vertical scaling factor
     FACEOE_DisplayManagement_Unit_t baseUnit; ///< Units before scaling
     FACEOE_DisplayManagement_Unit_t perUnit;  ///< Units after scaling
 } FACEOE_DisplayManagement_Scale_t;
@@ -109,7 +109,7 @@ typedef struct FACEOE_DisplayManagement_Scale_s
  */
 typedef struct FACEOE_DisplayManagement_Screen_s
 {
-    int64_t             id;                 ///< Screen identifier
+    int64_t                         id;                 ///< Screen identifier
     FACEOE_DisplayManagement_Size_t pixelSize;          ///< Pixel dimensions
     FACEOE_DisplayManagement_Size_t physicalDimensions; ///< Physical dimensions
 } FACEOE_DisplayManagement_Screen_t;
@@ -136,12 +136,12 @@ typedef struct FACEOE_DisplayManagement_Layout_s
  */
 typedef struct FACEOE_DisplayManagement_Window_s
 {
-    int64_t                  id;                                              ///< Window identifier
-    char_t                   name[FACEOE_DISPLAYMANAGEMENT_MAX_NAME_BYTES];               ///< Zero-terminated optional window name
-    char_t                   description[FACEOE_DISPLAYMANAGEMENT_MAX_DESCRIPTION_BYTES]; ///< Zero-terminated window description
-    FACEOE_DisplayManagement_Rectangle_t pixelArea;                                       ///< Window pixel rectangle
-    FACEOE_DisplayManagement_Scale_t     scalingFactor;                                   ///< Window scaling factor
-    uint32_t                 layoutIndex;                                     ///< Array index of the owning layout, not its XML id
+    int64_t                              id;                                                          ///< Window identifier
+    char_t                               name[FACEOE_DISPLAYMANAGEMENT_MAX_NAME_BYTES];               ///< Zero-terminated optional window name
+    char_t                               description[FACEOE_DISPLAYMANAGEMENT_MAX_DESCRIPTION_BYTES]; ///< Zero-terminated window description
+    FACEOE_DisplayManagement_Rectangle_t pixelArea;                                                   ///< Window pixel rectangle
+    FACEOE_DisplayManagement_Scale_t     scalingFactor;                                               ///< Window scaling factor
+    uint32_t                             layoutIndex;                                                 ///< Array index of the owning layout, not its XML id
 } FACEOE_DisplayManagement_Window_t;
 
 /*************************************************************************************************/
@@ -153,12 +153,12 @@ typedef struct FACEOE_DisplayManagement_Window_s
  */
 typedef struct FACEOE_DisplayManagement_UserApplication_s
 {
-    int64_t applicationId;                              ///< ARINC application identifier
-    int64_t window;                                     ///< Destination window identifier
+    int64_t applicationId;                                          ///< ARINC application identifier
+    int64_t window;                                                 ///< Destination window identifier
     char_t  dFPath[FACEOE_DISPLAYMANAGEMENT_MAX_PATH_BYTES];        ///< Zero-terminated Definition File path
     char_t  styleFilePath[FACEOE_DISPLAYMANAGEMENT_MAX_PATH_BYTES]; ///< Zero-terminated optional style file path
-    bool_t  mapSourceLayer;                             ///< Map source layer setting
-    bool_t  visible;                                    ///< Initial visibility
+    bool_t  mapSourceLayer;                                         ///< Map source layer setting
+    bool_t  visible;                                                ///< Initial visibility
 } FACEOE_DisplayManagement_UserApplication_t;
 
 /*************************************************************************************************/
@@ -170,7 +170,7 @@ typedef struct FACEOE_DisplayManagement_UserApplication_s
  */
 typedef struct FACEOE_DisplayManagement_ExternalSource_s
 {
-    uint32_t id;                                ///< External source identifier
+    uint32_t id;                                            ///< External source identifier
     char_t   name[FACEOE_DISPLAYMANAGEMENT_MAX_NAME_BYTES]; ///< Zero-terminated optional source name
     char_t   type[FACEOE_DISPLAYMANAGEMENT_MAX_NAME_BYTES]; ///< Zero-terminated optional source type
 } FACEOE_DisplayManagement_ExternalSource_t;
@@ -184,24 +184,24 @@ typedef struct FACEOE_DisplayManagement_ExternalSource_s
  */
 typedef struct FACEOE_DisplayManagement_Configuration_s
 {
-    FACEOE_DisplayManagement_Screen_t*          screens;                 ///< Pointer to the caller's screen array
-    FACEOE_DisplayManagement_Layout_t*          layouts;                 ///< Pointer to the caller's layout array
-    FACEOE_DisplayManagement_Window_t*          windows;                 ///< Pointer to the caller's window array
-    FACEOE_DisplayManagement_UserApplication_t* userApplications;        ///< Pointer to the caller's user application array
-    FACEOE_DisplayManagement_ExternalSource_t*  externalSources;         ///< Pointer to the caller's external source array
-    uint32_t                        screenCapacity;          ///< Screen slots
-    uint32_t                        layoutCapacity;          ///< Layout slots
-    uint32_t                        windowCapacity;          ///< Window slots
-    uint32_t                        userApplicationCapacity; ///< User application slots
-    uint32_t                        externalSourceCapacity;  ///< External source slots
-    uint32_t                        screenCount;             ///< Screens in use
-    uint32_t                        layoutCount;             ///< Layouts in use
-    uint32_t                        windowCount;             ///< Windows in use
-    uint32_t                        userApplicationCount;    ///< User applications in use
-    uint32_t                        externalSourceCount;     ///< External sources in use
-    bool_t                          hasMetaData;             ///< TRUE when an empty metaData element is present
-    bool_t                          hasXmlDeclaration;       ///< TRUE to preserve or write the optional XML declaration
-    char_t                          schemaLocation[FACEOE_DISPLAYMANAGEMENT_MAX_PATH_BYTES]; ///< Zero-terminated no-namespace schema location; empty selects H3.xsd when writing
+    FACEOE_DisplayManagement_Screen_t*          screens;                                                 ///< Pointer to the caller's screen array
+    FACEOE_DisplayManagement_Layout_t*          layouts;                                                 ///< Pointer to the caller's layout array
+    FACEOE_DisplayManagement_Window_t*          windows;                                                 ///< Pointer to the caller's window array
+    FACEOE_DisplayManagement_UserApplication_t* userApplications;                                        ///< Pointer to the caller's user application array
+    FACEOE_DisplayManagement_ExternalSource_t*  externalSources;                                         ///< Pointer to the caller's external source array
+    uint32_t                                    screenCapacity;                                          ///< Screen slots
+    uint32_t                                    layoutCapacity;                                          ///< Layout slots
+    uint32_t                                    windowCapacity;                                          ///< Window slots
+    uint32_t                                    userApplicationCapacity;                                 ///< User application slots
+    uint32_t                                    externalSourceCapacity;                                  ///< External source slots
+    uint32_t                                    screenCount;                                             ///< Screens in use
+    uint32_t                                    layoutCount;                                             ///< Layouts in use
+    uint32_t                                    windowCount;                                             ///< Windows in use
+    uint32_t                                    userApplicationCount;                                    ///< User applications in use
+    uint32_t                                    externalSourceCount;                                     ///< External sources in use
+    bool_t                                      hasMetaData;                                             ///< TRUE when an empty metaData element is present
+    bool_t                                      hasXmlDeclaration;                                       ///< TRUE to preserve or write the optional XML declaration
+    char_t                                      schemaLocation[FACEOE_DISPLAYMANAGEMENT_MAX_PATH_BYTES]; ///< Zero-terminated no-namespace schema location; empty selects H3.xsd when writing
 } FACEOE_DisplayManagement_Configuration_t;
 
 /*=================================================================================================

@@ -39,10 +39,10 @@ typedef struct HelpParameter_s
 /** One widget or extension section. */
 typedef struct HelpWidget_s
 {
-    const char_t* code;        ///< A661_ type name
-    const char_t* categories;  ///< Categories, comma separated
-    const char_t* description; ///< Description paragraph
-    const char_t* restriction; ///< Restriction paragraph, or empty
+    const char_t* code;           ///< A661_ type name
+    const char_t* categories;     ///< Categories, comma separated
+    const char_t* description;    ///< Description paragraph
+    const char_t* restriction;    ///< Restriction paragraph, or empty
     uint32_t      firstParameter; ///< Index into c_helpParameters
     uint32_t      parameterCount; ///< Rows
 } HelpWidget_t;
@@ -1677,7 +1677,7 @@ static const HelpWidget_t* FindHelp(const char_t* type)
  * \par Details:
  *  Empty strings stand for sections the specification does not give.
  */
-bool_t Arinc661_TypeHelp(const char_t* type, const char_t** description, const char_t** categories, const char_t** restriction)
+bool_t Arinc661_Definition_GetTypeHelp(const char_t* type, const char_t** description, const char_t** categories, const char_t** restriction)
 {
     const HelpWidget_t* help;
 
@@ -1705,7 +1705,7 @@ bool_t Arinc661_TypeHelp(const char_t* type, const char_t** description, const c
  *  Looks the parameter up in the widget's own table first, then in any table, since the
  *  common parameters of section 3.1.3 are described once per widget.
  */
-const char_t* Arinc661_ParameterHelp(const char_t* type, const char_t* parameterName, const char_t** change)
+const char_t* Arinc661_Definition_GetParameterHelp(const char_t* type, const char_t* parameterName, const char_t** change)
 {
     const HelpWidget_t* help;
     const char_t*       description;

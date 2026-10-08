@@ -31,7 +31,7 @@ static void TestDefinition(void)
     definition.layerCapacity = 2;
     definition.widgetCapacity = 3;
     definition.propertyCapacity = 8;
-    is_valid = Arinc661_ReadDefinition(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
+    is_valid = Arinc661_Definition_Read(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
     assert(is_valid);
     assert(1 == definition.layerCount);
     assert(2 == definition.widgetCount);
@@ -39,10 +39,10 @@ static void TestDefinition(void)
     assert(UINT32_MAX == widgets[0].parentWidgetIndex);
     assert(0 == widgets[1].parentWidgetIndex);
 
-    output_byte_count = Arinc661_WriteDefinition(&definition, output, sizeof(output), c_workspace, sizeof(c_workspace));
+    output_byte_count = Arinc661_Definition_Write(&definition, output, sizeof(output), c_workspace, sizeof(c_workspace));
     assert(0 < output_byte_count);
     assert(0 == memcmp(output, "<a661_df ", sizeof("<a661_df ") - 1));
-    is_valid = Arinc661_ReadDefinition(&definition, output, output_byte_count, c_workspace, sizeof(c_workspace));
+    is_valid = Arinc661_Definition_Read(&definition, output, output_byte_count, c_workspace, sizeof(c_workspace));
     assert(is_valid);
     assert(1 == definition.layerCount);
     assert(2 == definition.widgetCount);
@@ -62,10 +62,10 @@ static void TestDefinitionWithoutDeclaration(void)
 
     memset(&definition, 0, sizeof(definition));
     definition.supplementVersion = 6;
-    byte_count = Arinc661_WriteDefinition(&definition, output, sizeof(output) - 1, c_workspace, sizeof(c_workspace));
+    byte_count = Arinc661_Definition_Write(&definition, output, sizeof(output) - 1, c_workspace, sizeof(c_workspace));
     assert(0 < byte_count);
     assert(0 == memcmp(output, "<a661_df ", sizeof("<a661_df ") - 1));
-    is_valid = Arinc661_ReadDefinition(&definition, output, byte_count, c_workspace, sizeof(c_workspace));
+    is_valid = Arinc661_Definition_Read(&definition, output, byte_count, c_workspace, sizeof(c_workspace));
     assert(is_valid);
     assert(6 == definition.supplementVersion);
 }
@@ -108,16 +108,16 @@ static void TestDefinitionBinary(void)
     definition.layerCapacity = 1;
     definition.widgetCapacity = 2;
     definition.propertyCapacity = 32;
-    is_valid = Arinc661_ReadDefinition(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
+    is_valid = Arinc661_Definition_Read(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
     assert(is_valid);
 
-    byte_count = Arinc661_WriteDefinitionBinary(&definition, output, sizeof(output));
+    byte_count = Arinc661_Definition_WriteBinary(&definition, output, sizeof(output));
     assert(sizeof(expected) == byte_count);
     assert(0 == memcmp(output, expected, sizeof(expected)));
     /* An output that does not fit is rejected */
-    assert(0 == Arinc661_WriteDefinitionBinary(&definition, output, sizeof(expected) - 1));
+    assert(0 == Arinc661_Definition_WriteBinary(&definition, output, sizeof(expected) - 1));
 
-    is_valid = Arinc661_ReadDefinitionBinary(&definition, expected, sizeof(expected));
+    is_valid = Arinc661_Definition_ReadBinary(&definition, expected, sizeof(expected));
     assert(is_valid);
     assert(1 == definition.libraryVersion);
     assert(4 == definition.supplementVersion);
@@ -140,7 +140,7 @@ static void TestDefinitionBinary(void)
     assert(0 == strcmp("YOU", properties[26].value));
 
     /* Values read from binary write the same bytes again */
-    byte_count = Arinc661_WriteDefinitionBinary(&definition, output, sizeof(output));
+    byte_count = Arinc661_Definition_WriteBinary(&definition, output, sizeof(output));
     assert(sizeof(expected) == byte_count);
     assert(0 == memcmp(output, expected, sizeof(expected)));
 
@@ -148,21 +148,21 @@ static void TestDefinitionBinary(void)
     for (index = 0; index < sizeof(expected); ++index)
     {
         memcpy(output, expected, index);
-        assert(FALSE == Arinc661_ReadDefinitionBinary(&definition, output, index));
+        assert(FALSE == Arinc661_Definition_ReadBinary(&definition, output, index));
         assert(0 == definition.layerCount);
     }
 
     /* A symbolic value without an ARINC 661 constant, an unknown property, and an unknown widget type are rejected */
-    is_valid = Arinc661_ReadDefinitionBinary(&definition, expected, sizeof(expected));
+    is_valid = Arinc661_Definition_ReadBinary(&definition, expected, sizeof(expected));
     assert(is_valid);
     strcpy(properties[10].value, "red");
-    assert(0 == Arinc661_WriteDefinitionBinary(&definition, output, sizeof(output)));
+    assert(0 == Arinc661_Definition_WriteBinary(&definition, output, sizeof(output)));
     strcpy(properties[10].value, "0");
     strcpy(properties[10].name, "Unknown");
-    assert(0 == Arinc661_WriteDefinitionBinary(&definition, output, sizeof(output)));
+    assert(0 == Arinc661_Definition_WriteBinary(&definition, output, sizeof(output)));
     strcpy(properties[10].name, "StyleSet");
     strcpy(widgets[1].type, "A661_SELECTOR");
-    assert(0 == Arinc661_WriteDefinitionBinary(&definition, output, sizeof(output)));
+    assert(0 == Arinc661_Definition_WriteBinary(&definition, output, sizeof(output)));
 }
 
 /*************************************************************************************************/
@@ -203,7 +203,7 @@ static void TestDefinitionBinaryLabelComplex(void)
     definition.layerCapacity = 1;
     definition.widgetCapacity = 2;
     definition.propertyCapacity = 32;
-    is_valid = Arinc661_ReadDefinitionBinary(&definition, expected, sizeof(expected));
+    is_valid = Arinc661_Definition_ReadBinary(&definition, expected, sizeof(expected));
     assert(is_valid);
     assert(2 == definition.widgetCount);
     assert(24 == definition.propertyCount);
@@ -216,15 +216,15 @@ static void TestDefinitionBinaryLabelComplex(void)
     assert(0 == strcmp("LabelString", properties[23].name));
     assert(30 == strlen(properties[23].value));
 
-    byte_count = Arinc661_WriteDefinitionBinary(&definition, output, sizeof(output));
+    byte_count = Arinc661_Definition_WriteBinary(&definition, output, sizeof(output));
     assert(sizeof(expected) == byte_count);
     assert(0 == memcmp(output, expected, sizeof(expected)));
 
     /* Bytes need two hexadecimal digits each */
     strcpy(properties[22].value, "1B42001B41001B43000000");
-    assert(0 == Arinc661_WriteDefinitionBinary(&definition, output, sizeof(output)));
+    assert(0 == Arinc661_Definition_WriteBinary(&definition, output, sizeof(output)));
     strcpy(properties[22].value, "1B42001B41001B430000000G");
-    assert(0 == Arinc661_WriteDefinitionBinary(&definition, output, sizeof(output)));
+    assert(0 == Arinc661_Definition_WriteBinary(&definition, output, sizeof(output)));
 }
 
 /*************************************************************************************************/
@@ -270,17 +270,17 @@ static void TestDefinitionBinaryArrays(void)
     definition.layerCapacity = 1;
     definition.widgetCapacity = 2;
     definition.propertyCapacity = 64;
-    is_valid = Arinc661_ReadDefinition(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
+    is_valid = Arinc661_Definition_Read(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
     assert(is_valid);
 
     /* Header, layer header, 20-byte format command, 72-byte tree command, layer end, and footer */
-    byte_count = Arinc661_WriteDefinitionBinary(&definition, output, sizeof(output));
+    byte_count = Arinc661_Definition_WriteBinary(&definition, output, sizeof(output));
     assert(116 == byte_count);
     assert(0 == memcmp(&output[16], expected_format, sizeof(expected_format)));
     assert((0x00 == output[38]) && (0x48 == output[39]));
     assert(0 == memcmp(&output[82], expected_arrays, sizeof(expected_arrays)));
 
-    is_valid = Arinc661_ReadDefinitionBinary(&definition, output, byte_count);
+    is_valid = Arinc661_Definition_ReadBinary(&definition, output, byte_count);
     assert(is_valid);
     assert(2 == definition.widgetCount);
     /* Three header properties, six for the format, and seventeen single plus fifteen array values for the tree */
@@ -293,19 +293,19 @@ static void TestDefinitionBinaryArrays(void)
     assert(0 == strcmp("LabelStringArray", properties[40].name));
     assert(0 == strcmp("", properties[40].value));
 
-    byte_count = Arinc661_WriteDefinitionBinary(&definition, copy, sizeof(copy));
+    byte_count = Arinc661_Definition_WriteBinary(&definition, copy, sizeof(copy));
     assert(116 == byte_count);
     assert(0 == memcmp(copy, output, 116));
 
     /* The count parameter must match the number of array properties */
     strcpy(properties[4].value, "3");
-    assert(0 == Arinc661_WriteDefinitionBinary(&definition, copy, sizeof(copy)));
+    assert(0 == Arinc661_Definition_WriteBinary(&definition, copy, sizeof(copy)));
     strcpy(properties[4].value, "1");
-    assert(0 == Arinc661_WriteDefinitionBinary(&definition, copy, sizeof(copy)));
+    assert(0 == Arinc661_Definition_WriteBinary(&definition, copy, sizeof(copy)));
 
     /* A count that promises more elements than the command holds is rejected */
     output[27] = 0x09;
-    assert(FALSE == Arinc661_ReadDefinitionBinary(&definition, output, 116));
+    assert(FALSE == Arinc661_Definition_ReadBinary(&definition, output, 116));
 }
 
 /*************************************************************************************************/
@@ -335,7 +335,7 @@ static void TestDefinitionArrayProperties(void)
     definition.layerCapacity = 1;
     definition.widgetCapacity = 2;
     definition.propertyCapacity = 16;
-    is_valid = Arinc661_ReadDefinition(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
+    is_valid = Arinc661_Definition_Read(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
     assert(is_valid);
     assert(11 == definition.propertyCount);
     assert(0 == strcmp("Vertices", properties[2].name));
@@ -349,7 +349,7 @@ static void TestDefinitionArrayProperties(void)
     assert(0 == strcmp("Single", properties[10].name));
 
     /* Repeated names are written as one arrayprop of entries; a single value stays a prop */
-    byte_count = Arinc661_WriteDefinition(&definition, output, sizeof(output) - 1, c_workspace, sizeof(c_workspace));
+    byte_count = Arinc661_Definition_Write(&definition, output, sizeof(output) - 1, c_workspace, sizeof(c_workspace));
     assert(0 < byte_count);
     output[byte_count] = '\0';
     assert(NULL != strstr((const char_t*)output, "<arrayprop name=\"Vertices\">"));
@@ -357,21 +357,21 @@ static void TestDefinitionArrayProperties(void)
     assert(NULL != strstr((const char_t*)output, "<entry value=\"A661_ENABLE\"/>"));
     assert(NULL != strstr((const char_t*)output, "<prop name=\"Single\" value=\"1\"/>"));
     assert(NULL == strstr((const char_t*)output, "xyentry"));
-    is_valid = Arinc661_ReadDefinition(&definition, output, byte_count, c_workspace, sizeof(c_workspace));
+    is_valid = Arinc661_Definition_Read(&definition, output, byte_count, c_workspace, sizeof(c_workspace));
     assert(is_valid);
     assert(11 == definition.propertyCount);
     assert(0 == strcmp("BufferStructure", properties[9].name));
     assert(0 == strcmp("A661_ENABLE", properties[9].value));
 
     /* Single names no BufferFormat parameter; without it the flat form converts to 40-byte polyline and 16-byte format commands */
-    assert(0 == Arinc661_WriteDefinitionBinary(&definition, output, sizeof(output)));
+    assert(0 == Arinc661_Definition_WriteBinary(&definition, output, sizeof(output)));
     definition.propertyCount = 10;
-    byte_count = Arinc661_WriteDefinitionBinary(&definition, output, sizeof(output));
+    byte_count = Arinc661_Definition_WriteBinary(&definition, output, sizeof(output));
     assert((8 + 8 + 40 + 16 + 4 + 4) == byte_count);
 
     /* Unsupported entry forms are rejected */
     memcpy(strstr((char_t*)input, "<entry value=\"1\"/>"), "<datum value=\"1\"/>", sizeof("<entry value=\"1\"/>") - 1);
-    is_valid = Arinc661_ReadDefinition(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
+    is_valid = Arinc661_Definition_Read(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
     assert(FALSE == is_valid);
 }
 
@@ -432,7 +432,7 @@ static void TestDefinitionBinaryExtensions(void)
     definition.layerCapacity = 1;
     definition.widgetCapacity = 8;
     definition.propertyCapacity = 64;
-    is_valid = Arinc661_ReadDefinition(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
+    is_valid = Arinc661_Definition_Read(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
     assert(is_valid);
     assert(6 == definition.widgetCount);
     assert(FALSE == widgets[0].isExtension);
@@ -441,7 +441,7 @@ static void TestDefinitionBinaryExtensions(void)
     assert(0 == strcmp("A661_LEGEND_ALIGN_EXTENSION", widgets[1].type));
 
     /* Header 8, layer header 8, push button command 40 (10 + 2 + 16 + 6 + 2 + "OK" + pad), then the extensions */
-    byte_count = Arinc661_WriteDefinitionBinary(&definition, output, sizeof(output));
+    byte_count = Arinc661_Definition_WriteBinary(&definition, output, sizeof(output));
     offset = 8 + 8 + 40;
     assert((offset + 8 + 12 + 40 + 36 + 20 + 4 + 4) == byte_count);
     assert(0 == memcmp(&output[offset], expected_legend, sizeof(expected_legend)));
@@ -454,7 +454,7 @@ static void TestDefinitionBinaryExtensions(void)
     offset += sizeof(expected_regions);
     assert(0 == memcmp(&output[offset], expected_buffers, sizeof(expected_buffers)));
 
-    is_valid = Arinc661_ReadDefinitionBinary(&definition, output, byte_count);
+    is_valid = Arinc661_Definition_ReadBinary(&definition, output, byte_count);
     assert(is_valid);
     assert(6 == definition.widgetCount);
     assert(TRUE == widgets[5].isExtension);
@@ -466,29 +466,29 @@ static void TestDefinitionBinaryExtensions(void)
     assert(0 == strcmp("", properties[definition.propertyCount - 1].value));
     assert(0 == strcmp("TicsFineArray", properties[definition.propertyCount - 9].name));
     assert(0 == strcmp("2", properties[definition.propertyCount - 9].value));
-    assert(0 == Arinc661_WriteDefinitionBinary(&definition, copy, 0));
-    assert(byte_count == Arinc661_WriteDefinitionBinary(&definition, copy, sizeof(copy)));
+    assert(0 == Arinc661_Definition_WriteBinary(&definition, copy, 0));
+    assert(byte_count == Arinc661_Definition_WriteBinary(&definition, copy, sizeof(copy)));
     assert(0 == memcmp(copy, output, byte_count));
 
     /* The XML form writes the extensions back as a661_extension elements */
-    byte_count = Arinc661_WriteDefinition(&definition, output, sizeof(output) - 1, c_workspace, sizeof(c_workspace));
+    byte_count = Arinc661_Definition_Write(&definition, output, sizeof(output) - 1, c_workspace, sizeof(c_workspace));
     assert(0 < byte_count);
     output[byte_count] = '\0';
     assert(NULL != strstr((const char_t*)output, "<a661_extension type=\"A661_LEGEND_ALIGN_EXTENSION\">"));
 
     /* An extension before any widget, a region of unknown type, and an extension on an extension are rejected */
     widgets[1].parentWidgetIndex = UINT32_MAX;
-    assert(0 == Arinc661_WriteDefinitionBinary(&definition, copy, sizeof(copy)));
+    assert(0 == Arinc661_Definition_WriteBinary(&definition, copy, sizeof(copy)));
     widgets[1].parentWidgetIndex = 0;
     strcpy(properties[definition.propertyCount - 4].value, "0004000000000000");
-    assert(0 == Arinc661_WriteDefinitionBinary(&definition, copy, sizeof(copy)));
+    assert(0 == Arinc661_Definition_WriteBinary(&definition, copy, sizeof(copy)));
     strcpy(properties[definition.propertyCount - 4].value, "01000000");
     widgets[2].parentWidgetIndex = 1;
-    assert(0 == Arinc661_WriteDefinitionBinary(&definition, copy, sizeof(copy)));
+    assert(0 == Arinc661_Definition_WriteBinary(&definition, copy, sizeof(copy)));
     widgets[2].parentWidgetIndex = 0;
-    assert(byte_count != Arinc661_WriteDefinitionBinary(&definition, copy, sizeof(copy)));
+    assert(byte_count != Arinc661_Definition_WriteBinary(&definition, copy, sizeof(copy)));
     memcpy(strstr((char_t*)input, "<a661_widget name=\"Button\""), "<a661_extensio", sizeof("<a661_extensio") - 1);
-    assert(FALSE == Arinc661_ReadDefinition(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace)));
+    assert(FALSE == Arinc661_Definition_Read(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace)));
 }
 
 /*************************************************************************************************/
@@ -533,23 +533,23 @@ static void TestDefinitionBinaryBlocks(void)
     definition.layerCapacity = 1;
     definition.propertyCapacity = 8;
     definition.blockCapacity = sizeof(blocks);
-    is_valid = Arinc661_ReadDefinitionBinary(&definition, expected, sizeof(expected));
+    is_valid = Arinc661_Definition_ReadBinary(&definition, expected, sizeof(expected));
     assert(is_valid);
     assert(2 == definition.charsetEncoding);
     assert(1 == definition.layerCount);
     assert((16 + 32 + 36 + 12) == definition.blockByteCount);
     assert(0 == memcmp(blocks, &expected[16], definition.blockByteCount));
 
-    byte_count = Arinc661_WriteDefinitionBinary(&definition, output, sizeof(output));
+    byte_count = Arinc661_Definition_WriteBinary(&definition, output, sizeof(output));
     assert(sizeof(expected) == byte_count);
     assert(0 == memcmp(output, expected, sizeof(expected)));
 
     /* The XML form carries the charset encoding and drops the binary-only blocks */
-    byte_count = Arinc661_WriteDefinition(&definition, output, sizeof(output) - 1, c_workspace, sizeof(c_workspace));
+    byte_count = Arinc661_Definition_Write(&definition, output, sizeof(output) - 1, c_workspace, sizeof(c_workspace));
     assert(0 < byte_count);
     output[byte_count] = '\0';
     assert(NULL != strstr((const char_t*)output, "<charset-encoding name=\"A661_UTF8\"/>"));
-    is_valid = Arinc661_ReadDefinition(&definition, output, byte_count, c_workspace, sizeof(c_workspace));
+    is_valid = Arinc661_Definition_Read(&definition, output, byte_count, c_workspace, sizeof(c_workspace));
     assert(is_valid);
     assert(2 == definition.charsetEncoding);
     assert(0 == definition.blockByteCount);
@@ -558,20 +558,20 @@ static void TestDefinitionBinaryBlocks(void)
     for (index = 0; index < sizeof(expected); ++index)
     {
         memcpy(output, expected, index);
-        assert(FALSE == Arinc661_ReadDefinitionBinary(&definition, output, index));
+        assert(FALSE == Arinc661_Definition_ReadBinary(&definition, output, index));
         assert(0 == definition.blockByteCount);
     }
 
     /* Too little block storage, an unknown pixel format, and a second charset block are rejected */
     definition.blockCapacity = 95;
-    assert(FALSE == Arinc661_ReadDefinitionBinary(&definition, expected, sizeof(expected)));
+    assert(FALSE == Arinc661_Definition_ReadBinary(&definition, expected, sizeof(expected)));
     definition.blockCapacity = sizeof(blocks);
     memcpy(output, expected, sizeof(expected));
     output[33] = 0xC9;
-    assert(FALSE == Arinc661_ReadDefinitionBinary(&definition, output, sizeof(expected)));
+    assert(FALSE == Arinc661_Definition_ReadBinary(&definition, output, sizeof(expected)));
     memcpy(output, expected, sizeof(expected));
     memcpy(&output[16], &expected[8], 8);
-    assert(FALSE == Arinc661_ReadDefinitionBinary(&definition, output, sizeof(expected)));
+    assert(FALSE == Arinc661_Definition_ReadBinary(&definition, output, sizeof(expected)));
 }
 
 /*************************************************************************************************/
@@ -605,11 +605,11 @@ static void TestDefinitionBinaryPrecision(void)
     definition.layerCapacity = 1;
     definition.widgetCapacity = 2;
     definition.propertyCapacity = 64;
-    is_valid = Arinc661_ReadDefinition(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
+    is_valid = Arinc661_Definition_Read(&definition, input, sizeof(input) - 1, c_workspace, sizeof(c_workspace));
     assert(is_valid);
-    byte_count = Arinc661_WriteDefinitionBinary(&definition, output, sizeof(output));
+    byte_count = Arinc661_Definition_WriteBinary(&definition, output, sizeof(output));
     assert(0 < byte_count);
-    is_valid = Arinc661_ReadDefinitionBinary(&definition, output, byte_count);
+    is_valid = Arinc661_Definition_ReadBinary(&definition, output, byte_count);
     assert(is_valid);
 
     /* Floats come back as the shortest decimal that is the same IEEE 754 single; 123456.7 is exactly 123456.703125 */
@@ -655,59 +655,59 @@ static void TestDefinitionSchema(void)
     uint32_t             type_index;
     uint32_t             found;
 
-    assert(100 == Arinc661_TypeCount(FALSE));
-    assert(20 == Arinc661_TypeCount(TRUE));
+    assert(100 == Arinc661_Definition_GetTypeCount(FALSE));
+    assert(20 == Arinc661_Definition_GetTypeCount(TRUE));
     found = 0;
-    for (type_index = 0; type_index < Arinc661_TypeCount(FALSE); ++type_index)
+    for (type_index = 0; type_index < Arinc661_Definition_GetTypeCount(FALSE); ++type_index)
     {
-        assert(Arinc661_FindType(Arinc661_TypeName(FALSE, type_index), FALSE, &parameter_count));
-        if (0 == strcmp("A661_LABEL", Arinc661_TypeName(FALSE, type_index)))
+        assert(Arinc661_Definition_FindType(Arinc661_Definition_GetTypeName(FALSE, type_index), FALSE, &parameter_count));
+        if (0 == strcmp("A661_LABEL", Arinc661_Definition_GetTypeName(FALSE, type_index)))
         {
             found += 1;
         }
     }
     assert(1 == found);
-    assert(FALSE == Arinc661_FindType("A661_SELECTOR", FALSE, &parameter_count));
-    assert(FALSE == Arinc661_FindType("A661_LABEL", TRUE, &parameter_count));
+    assert(FALSE == Arinc661_Definition_FindType("A661_SELECTOR", FALSE, &parameter_count));
+    assert(FALSE == Arinc661_Definition_FindType("A661_LABEL", TRUE, &parameter_count));
 
     /* Table 3.3.20-2: fourteen named parameters, Alignment listing nine constants */
-    assert(Arinc661_FindType("A661_LABEL", FALSE, &parameter_count));
+    assert(Arinc661_Definition_FindType("A661_LABEL", FALSE, &parameter_count));
     assert(14 == parameter_count);
-    assert(Arinc661_Parameter("A661_LABEL", FALSE, 12, &parameter));
+    assert(Arinc661_Definition_GetParameter("A661_LABEL", FALSE, 12, &parameter));
     assert(0 == strcmp("Alignment", parameter.name));
     assert(ARINC661_PARAMETER_UCHAR == parameter.kind);
     assert(9 == parameter.valueCount);
     assert(0 == strcmp("A661_BOTTOM_CENTER", parameter.values[0]));
-    assert(Arinc661_Parameter("A661_LABEL", FALSE, 13, &parameter));
+    assert(Arinc661_Definition_GetParameter("A661_LABEL", FALSE, 13, &parameter));
     assert(ARINC661_PARAMETER_STRING == parameter.kind);
     assert(0 == parameter.elementsPerEntry);
-    assert(FALSE == Arinc661_Parameter("A661_LABEL", FALSE, 14, &parameter));
+    assert(FALSE == Arinc661_Definition_GetParameter("A661_LABEL", FALSE, 14, &parameter));
 
     /* Table 3.3.27-2: Panel keeps its pad out of the count; Enable lists three constants */
-    assert(Arinc661_FindType("A661_PANEL", FALSE, &parameter_count));
+    assert(Arinc661_Definition_FindType("A661_PANEL", FALSE, &parameter_count));
     assert(8 == parameter_count);
-    assert(Arinc661_Parameter("A661_PANEL", FALSE, 0, &parameter));
+    assert(Arinc661_Definition_GetParameter("A661_PANEL", FALSE, 0, &parameter));
     assert(0 == strcmp("Enable", parameter.name));
     assert(3 == parameter.valueCount);
 
     /* Table 8.6.3-2: each tics array names its own count; Table 8.7.1-2 has no named parameter */
-    assert(Arinc661_FindType("A661_TICS_ARRAY_EXTENSION", TRUE, &parameter_count));
+    assert(Arinc661_Definition_FindType("A661_TICS_ARRAY_EXTENSION", TRUE, &parameter_count));
     assert(6 == parameter_count);
-    assert(Arinc661_Parameter("A661_TICS_ARRAY_EXTENSION", TRUE, 5, &parameter));
+    assert(Arinc661_Definition_GetParameter("A661_TICS_ARRAY_EXTENSION", TRUE, 5, &parameter));
     assert(0 == strcmp("TicsFineArray", parameter.name));
     assert(2 == parameter.elementsPerEntry);
     assert(0 == strcmp("NumberOfTicsFine", parameter.countName));
     assert(ARINC661_PARAMETER_FLOAT == parameter.kind);
-    assert(Arinc661_FindType("A661_REORDER_EXTENSION", TRUE, &parameter_count));
+    assert(Arinc661_Definition_FindType("A661_REORDER_EXTENSION", TRUE, &parameter_count));
     assert(0 == parameter_count);
 
-    assert(0 < Arinc661_ConstantCount());
+    assert(0 < Arinc661_Definition_GetConstantCount());
     found = 0;
-    for (type_index = 0; type_index < Arinc661_ConstantCount(); ++type_index)
+    for (type_index = 0; type_index < Arinc661_Definition_GetConstantCount(); ++type_index)
     {
-        if (0 == strcmp("A661_TRUE", Arinc661_ConstantName(type_index)))
+        if (0 == strcmp("A661_TRUE", Arinc661_Definition_GetConstantName(type_index)))
         {
-            assert(1 == Arinc661_ConstantValue(type_index));
+            assert(1 == Arinc661_Definition_GetConstantValue(type_index));
             found += 1;
         }
     }
@@ -728,13 +728,13 @@ static void TestDefinitionSchema(void)
  */
 static void TestExtensionApplicability(void)
 {
-    assert(Arinc661_ExtensionApplies("A661_STYLE_SET_EXTENSION", "A661_ACTIVE_AREA"));
-    assert(Arinc661_ExtensionApplies("A661_REORDER_EXTENSION", "A661_BASIC_CONTAINER"));
-    assert(Arinc661_ExtensionApplies("A661_STATIC_PARAM_BUFFER_EXTENSION", "A661_BUFFER_FORMAT"));
-    assert(FALSE == Arinc661_ExtensionApplies("A661_PICTURE_EXTENSION", "A661_BUFFER_FORMAT"));
-    assert(FALSE == Arinc661_ExtensionApplies("A661_WORD_WRAP_EXTENSION", "A661_GP_ARC_CIRCLE"));
-    assert(NULL != Arinc661_ExtensionTarget("A661_WORD_WRAP_EXTENSION", 0));
-    assert(NULL == Arinc661_ExtensionTarget("A661_NO_SUCH_EXTENSION", 0));
+    assert(Arinc661_Definition_ExtensionApplies("A661_STYLE_SET_EXTENSION", "A661_ACTIVE_AREA"));
+    assert(Arinc661_Definition_ExtensionApplies("A661_REORDER_EXTENSION", "A661_BASIC_CONTAINER"));
+    assert(Arinc661_Definition_ExtensionApplies("A661_STATIC_PARAM_BUFFER_EXTENSION", "A661_BUFFER_FORMAT"));
+    assert(FALSE == Arinc661_Definition_ExtensionApplies("A661_PICTURE_EXTENSION", "A661_BUFFER_FORMAT"));
+    assert(FALSE == Arinc661_Definition_ExtensionApplies("A661_WORD_WRAP_EXTENSION", "A661_GP_ARC_CIRCLE"));
+    assert(NULL != Arinc661_Definition_GetExtensionTarget("A661_WORD_WRAP_EXTENSION", 0));
+    assert(NULL == Arinc661_Definition_GetExtensionTarget("A661_NO_SUCH_EXTENSION", 0));
 }
 
 /*************************************************************************************************/

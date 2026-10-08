@@ -52,10 +52,10 @@ typedef enum FACEOE_Utl_Xml_NodeType_e
  */
 typedef struct FACEOE_Utl_Xml_Attribute_s
 {
-    const byte_t*               name;           ///< Pointer to UTF-8 XML name bytes
-    uint32_t                    nameByteCount;  ///< Number of name bytes.
-    const byte_t*               value;          ///< Pointer to UTF-8 XML value bytes
-    uint32_t                    valueByteCount; ///< Number of value bytes.
+    const byte_t*                      name;           ///< Pointer to UTF-8 XML name bytes
+    uint32_t                           nameByteCount;  ///< Number of name bytes.
+    const byte_t*                      value;          ///< Pointer to UTF-8 XML value bytes
+    uint32_t                           valueByteCount; ///< Number of value bytes.
     struct FACEOE_Utl_Xml_Attribute_s* next;           ///< Next attribute in insertion order, or NULL.
 } FACEOE_Utl_Xml_Attribute_t;
 
@@ -66,15 +66,15 @@ typedef struct FACEOE_Utl_Xml_Attribute_s
 typedef struct FACEOE_Utl_Xml_Node_s
 {
     FACEOE_Utl_Xml_NodeType_t     type;           ///< Kind of XML node.
-    const byte_t*          name;           ///< Pointer to the element name; NULL for the XML declaration
-    uint32_t               nameByteCount;  ///< Number of name bytes; zero when name is NULL.
+    const byte_t*                 name;           ///< Pointer to the element name; NULL for the XML declaration
+    uint32_t                      nameByteCount;  ///< Number of name bytes; zero when name is NULL.
     struct FACEOE_Utl_Xml_Node_s* parent;         ///< Parent set when appended, or NULL.
     struct FACEOE_Utl_Xml_Node_s* firstChild;     ///< First child of an element, or NULL.
     struct FACEOE_Utl_Xml_Node_s* lastChild;      ///< Last child of an element, or NULL.
     struct FACEOE_Utl_Xml_Node_s* nextSibling;    ///< Next node at the same level, or NULL.
     FACEOE_Utl_Xml_Attribute_t*   firstAttribute; ///< First attribute of an element, or NULL.
     FACEOE_Utl_Xml_Attribute_t*   lastAttribute;  ///< Last attribute of an element, or NULL.
-    uint32_t               attributeCount; ///< Number of linked attributes.
+    uint32_t                      attributeCount; ///< Number of linked attributes.
 } FACEOE_Utl_Xml_Node_t;
 
 /*************************************************************************************************/
