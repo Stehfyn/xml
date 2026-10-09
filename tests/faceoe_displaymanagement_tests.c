@@ -13,7 +13,7 @@ static uint64_t c_workspace[FACEOE_DISPLAYMANAGEMENT_WORKSPACE_BYTES / sizeof(ui
 /*************************************************************************************************/
 /**
  * \brief Checks reading, writing, and rereading every configuration element, exact scale round trips,
- *        an empty window name left out, and a scale with an exponent rejected.
+ *  an empty window name left out, and a scale with an exponent rejected.
  */
 static void TestConfiguration(void)
 {

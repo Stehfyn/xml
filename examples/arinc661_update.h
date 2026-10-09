@@ -103,15 +103,15 @@ int32_t Arinc661_Update_CompareVersions(const Arinc661_Update_Version_t* left, c
  *  drive path, or a path relative to the manifest), sha256 (optional, 64 hex digits), notes
  *  (optional). Other lines are ignored.
  *
- * \param[in]  text       Manifest text
- * \param[in]  byteCount  Bytes in text
- * \param[in]  baseUrl    Where the manifest came from, for a relative msi
- * \param[out] manifest   Parsed manifest
+ * \param[in]  text         Manifest text
+ * \param[in]  sizeOfText   Bytes in text
+ * \param[in]  baseUrl      Where the manifest came from, for a relative msi
+ * \param[out] manifest     Parsed manifest
  *
- * \retval     TRUE       if version and msi are present and valid, and any sha256 is valid.
- * \retval     FALSE      otherwise.
+ * \retval     TRUE         if version and msi are present and valid, and any sha256 is valid.
+ * \retval     FALSE        otherwise.
  */
-bool_t Arinc661_Update_ParseManifest(const char_t* text, uint32_t byteCount, const char_t* baseUrl, Arinc661_Update_Manifest_t* manifest);
+bool_t Arinc661_Update_ParseManifest(const char_t* text, uint32_t sizeOfText, const char_t* baseUrl, Arinc661_Update_Manifest_t* manifest);
 
 /*************************************************************************************************/
 /**
@@ -125,7 +125,7 @@ bool_t Arinc661_Update_ParseManifest(const char_t* text, uint32_t byteCount, con
  * \param[out] buffer     Bytes read
  * \param[in]  capacity   Bytes in buffer
  *
- * \retval     int32_t    Bytes read, or negative when the source could not be read or an http body did not fit.
+ * \retval     int32_t    Bytes read, or negative when the source could not be read or an http body filled the buffer.
  */
 int32_t Arinc661_Update_Fetch(const char_t* url, byte_t* buffer, uint32_t capacity);
 
@@ -173,14 +173,14 @@ bool_t Arinc661_Update_Apply(const char_t* packagePath, const char_t* relaunchPa
 /**
  * \brief Computes SHA-256 of a buffer.
  *
- * \param[in]  bytes       Data
- * \param[in]  byteCount   Bytes in bytes
- * \param[out] digest      ARINC661_UPDATE_SHA256_BYTES written
+ * \param[in]  bytes         Data to hash
+ * \param[in]  sizeOfBytes   Number of data bytes
+ * \param[out] digest        ARINC661_UPDATE_SHA256_BYTES written
  *
- * \retval     TRUE        if the digest was computed.
- * \retval     FALSE       otherwise.
+ * \retval     TRUE          if the digest was computed.
+ * \retval     FALSE         otherwise.
  */
-bool_t Arinc661_Update_Sha256(const byte_t* bytes, uint32_t byteCount, byte_t* digest);
+bool_t Arinc661_Update_Sha256(const byte_t* bytes, uint32_t sizeOfBytes, byte_t* digest);
 
 #ifdef __cplusplus
 }

@@ -47,8 +47,11 @@
 ** 3.4 Static global variables
 **===============================================================================================*/
 
-/** Segoe MDL2 Assets code point per icon, in Arinc661_Icon_t order; vertical variants reuse the
-    horizontal glyph, rotated. */
+/*************************************************************************************************/
+/**
+ * \brief Segoe MDL2 Assets code point per icon, in Arinc661_Icon_t order; vertical variants reuse
+ *  the horizontal glyph, rotated.
+ */
 static const ImWchar c_glyphs[] =
 {
     0xE8A5, /* NEW: Document */
@@ -121,7 +124,7 @@ static void DrawPrimitiveIcon(ImDrawList* drawList, Arinc661_Icon_t icon, ImVec2
 static void EncodeUtf8(ImWchar codePoint, char_t* text);
 
 /*=================================================================================================
-** 4. STATIC FUNCTIONS
+** 4. PRIVATE FUNCTIONS
 **===============================================================================================*/
 
 /*************************************************************************************************/
@@ -148,91 +151,6 @@ static void EncodeUtf8(ImWchar codePoint, char_t* text)
         text[1] = (char_t)(0x80 | ((codePoint >> 6) & 0x3F));
         text[2] = (char_t)(0x80 | (codePoint & 0x3F));
         text[3] = '\0';
-    }
-}
-
-/*=================================================================================================
-** 5. PUBLIC FUNCTIONS
-**===============================================================================================*/
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  The text font becomes the default; the icon font is merged at ICON_SCALE of the text size,
- *  one pixel lower so glyphs sit on the text baseline.
- */
-bool_t Arinc661_Icons_LoadFonts(float32_t textSize)
-{
-    static const ImWchar c_iconRanges[] = {ICON_GLYPH_FIRST, ICON_GLYPH_LAST, 0};
-    ImGuiIO*     io;
-    ImFontConfig text_config;
-    ImFontConfig icon_config;
-    ImFont*      text_font;
-    ImFont*      icon_font;
-
-    io = &ImGui::GetIO();
-    io->Fonts->Clear();
-    text_font = io->Fonts->AddFontFromFileTTF(SEGOE_TEXT_PATH, textSize, &text_config);
-    if (NULL == text_font)
-    {
-        text_font = io->Fonts->AddFontDefault();
-    }
-    icon_config.MergeMode   = true;
-    icon_config.GlyphOffset = ImVec2(0.0f, 1.0f);
-    icon_config.GlyphRanges = c_iconRanges;
-    icon_font = io->Fonts->AddFontFromFileTTF(SEGOE_ICON_PATH, textSize * ICON_SCALE, &icon_config, c_iconRanges);
-    s_hasIconFont = (NULL != icon_font);
-    io->FontDefault = text_font;
-
-    return s_hasIconFont;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  The glyph is centered in the box; vertical align and distribute icons reuse the horizontal
- *  glyph, rotated a quarter turn. Missing glyphs fall back to primitives.
- */
-void Arinc661_Icons_Draw(ImDrawList* drawList, Arinc661_Icon_t icon, ImVec2 minimum, ImVec2 maximum, ImU32 color)
-{
-    ImFont*   font;
-    char_t    text[4];
-    ImVec2    size;
-    ImVec2    position;
-    ImVec2    center;
-    float32_t font_size;
-    float32_t dx;
-    float32_t dy;
-    int32_t   vertex_start;
-    int32_t   vertex_index;
-    bool_t    is_rotated;
-
-    font = ImGui::GetFont();
-    if (s_hasIconFont && ((uint32_t)icon < COUNT_OF(c_glyphs)) && font->IsGlyphInFont(c_glyphs[icon]))
-    {
-        EncodeUtf8(c_glyphs[icon], text);
-        font_size    = ((maximum.y - minimum.y) * 1.45f);
-        size         = font->CalcTextSizeA(font_size, FLT_MAX, 0.0f, text);
-        center       = ImVec2((minimum.x + maximum.x) * 0.5f, (minimum.y + maximum.y) * 0.5f);
-        position     = ImVec2(center.x - (size.x * 0.5f), center.y - (size.y * 0.5f));
-        is_rotated   = !!((ARINC661_ICON_ALIGN_TOP == icon) || (ARINC661_ICON_ALIGN_BOTTOM == icon) || (ARINC661_ICON_ALIGN_CENTER_Y == icon) || (ARINC661_ICON_DISTRIBUTE_Y == icon));
-        vertex_start = drawList->VtxBuffer.Size;
-        drawList->AddText(font, font_size, position, color, text);
-        if (is_rotated)
-        {
-            // Quarter turn clockwise about the box center
-            for (vertex_index = vertex_start; vertex_index < drawList->VtxBuffer.Size; ++vertex_index)
-            {
-                dx = (drawList->VtxBuffer[vertex_index].pos.x - center.x);
-                dy = (drawList->VtxBuffer[vertex_index].pos.y - center.y);
-                drawList->VtxBuffer[vertex_index].pos.x = (center.x - dy);
-                drawList->VtxBuffer[vertex_index].pos.y = (center.y + dx);
-            }
-        }
-    }
-    else
-    {
-        DrawPrimitiveIcon(drawList, icon, minimum, maximum, color);
     }
 }
 
@@ -328,8 +246,8 @@ static void DrawPrimitiveIcon(ImDrawList* drawList, Arinc661_Icon_t icon, ImVec2
             drawList->AddLine(ImVec2(minimum.x, minimum.y + (2.0f * size.y / 3.0f)), ImVec2(maximum.x, minimum.y + (2.0f * size.y / 3.0f)), color);
             break;
         case ARINC661_ICON_SNAP:
-            // Magnet: a U with two pole caps
-            drawList->PathArcTo(ImVec2(center.x, center.y - unit), 3.0f * unit, 0.0f, 3.14159f, 12);
+            // Magnet: an arch whose two legs end in pole caps
+            drawList->PathArcTo(ImVec2(center.x, center.y - unit), 3.0f * unit, 3.14159f, 6.28318f, 12);
             drawList->PathStroke(color, 0, 2.5f);
             drawList->AddLine(ImVec2(center.x - (3.0f * unit), center.y - unit), ImVec2(center.x - (3.0f * unit), maximum.y), color, 2.5f);
             drawList->AddLine(ImVec2(center.x + (3.0f * unit), center.y - unit), ImVec2(center.x + (3.0f * unit), maximum.y), color, 2.5f);
@@ -488,14 +406,96 @@ static void DrawPrimitiveIcon(ImDrawList* drawList, Arinc661_Icon_t icon, ImVec2
     }
 }
 
+/*=================================================================================================
+** 5. PUBLIC FUNCTIONS
+**===============================================================================================*/
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The text font becomes the default; the icon font is merged at ICON_SCALE of the text size,
+ *  one pixel lower so glyphs sit on the text baseline.
+ */
+bool_t Arinc661_Icons_LoadFonts(float32_t textSize)
+{
+    static const ImWchar c_iconRanges[] = {ICON_GLYPH_FIRST, ICON_GLYPH_LAST, 0};
+    ImGuiIO*     io;
+    ImFontConfig text_config;
+    ImFontConfig icon_config;
+    ImFont*      text_font;
+    ImFont*      icon_font;
+
+    io = &ImGui::GetIO();
+    io->Fonts->Clear();
+    text_font = io->Fonts->AddFontFromFileTTF(SEGOE_TEXT_PATH, textSize, &text_config);
+    if (NULL == text_font)
+    {
+        text_font = io->Fonts->AddFontDefault();
+    }
+    icon_config.MergeMode   = true;
+    icon_config.GlyphOffset = ImVec2(0.0f, 1.0f);
+    icon_config.GlyphRanges = c_iconRanges;
+    icon_font = io->Fonts->AddFontFromFileTTF(SEGOE_ICON_PATH, textSize * ICON_SCALE, &icon_config, c_iconRanges);
+    s_hasIconFont = (NULL != icon_font);
+    io->FontDefault = text_font;
+
+    return s_hasIconFont;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The glyph is centered in the box; vertical align and distribute icons reuse the horizontal
+ *  glyph, rotated a quarter turn. Missing glyphs fall back to primitives.
+ */
+void Arinc661_Icons_Draw(ImDrawList* drawList, Arinc661_Icon_t icon, ImVec2 minimum, ImVec2 maximum, ImU32 color)
+{
+    ImFont*   font;
+    char_t    text[4];
+    ImVec2    size;
+    ImVec2    position;
+    ImVec2    center;
+    float32_t font_size;
+    float32_t dx;
+    float32_t dy;
+    int32_t   vertex_start;
+    int32_t   vertex_index;
+    bool_t    is_rotated;
+
+    font = ImGui::GetFont();
+    if (s_hasIconFont && ((uint32_t)icon < COUNT_OF(c_glyphs)) && font->IsGlyphInFont(c_glyphs[icon]))
+    {
+        EncodeUtf8(c_glyphs[icon], text);
+        font_size    = ((maximum.y - minimum.y) * 1.45f);
+        size         = font->CalcTextSizeA(font_size, FLT_MAX, 0.0f, text);
+        center       = ImVec2((minimum.x + maximum.x) * 0.5f, (minimum.y + maximum.y) * 0.5f);
+        position     = ImVec2(center.x - (size.x * 0.5f), center.y - (size.y * 0.5f));
+        is_rotated   = !!((ARINC661_ICON_ALIGN_TOP == icon) || (ARINC661_ICON_ALIGN_BOTTOM == icon) || (ARINC661_ICON_ALIGN_CENTER_Y == icon) || (ARINC661_ICON_DISTRIBUTE_Y == icon));
+        vertex_start = drawList->VtxBuffer.Size;
+        drawList->AddText(font, font_size, position, color, text);
+        if (is_rotated)
+        {
+            // Quarter turn clockwise about the box center
+            for (vertex_index = vertex_start; vertex_index < drawList->VtxBuffer.Size; ++vertex_index)
+            {
+                dx = (drawList->VtxBuffer[vertex_index].pos.x - center.x);
+                dy = (drawList->VtxBuffer[vertex_index].pos.y - center.y);
+                drawList->VtxBuffer[vertex_index].pos.x = (center.x - dy);
+                drawList->VtxBuffer[vertex_index].pos.y = (center.y + dx);
+            }
+        }
+    }
+    else
+    {
+        DrawPrimitiveIcon(drawList, icon, minimum, maximum, color);
+    }
+}
+
 /*************************************************************************************************/
 /**
  * \par Details:
  *  Wraps to a new row when the button does not fit. The tooltip shows the label and the
  *  shortcut, if any, also while disabled.
- *
- * \retval TRUE    if the button was pressed.
- * \retval FALSE   otherwise.
  */
 bool_t Arinc661_Icons_Button(Arinc661_Icon_t icon, const char_t* label, const char_t* shortcut, bool_t isEnabled, bool_t isActive)
 {

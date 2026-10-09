@@ -57,8 +57,8 @@ typedef struct Arinc661_DefinitionEditor_Document_s
     void*                               redoStack[ARINC661_DEFINITION_EDITOR_MAX_HISTORY];              ///< Model snapshots undone; the last is the next redo.
     void*                               shadow;                                                         ///< Snapshot of the model as last committed.
     float32_t                           viewZoom;                                                       ///< Scene zoom factor over the fitted scale; zero until first drawn.
-    float32_t                           viewPanX;                                                       ///< Scene pan in screen pixels.
-    float32_t                           viewPanY;                                                       ///< Scene pan in screen pixels.
+    float32_t                           viewPanX;                                                       ///< Horizontal scene pan in screen pixels.
+    float32_t                           viewPanY;                                                       ///< Vertical scene pan in screen pixels.
     uint32_t                            undoCount;                                                      ///< Snapshots on the undo stack.
     uint32_t                            redoCount;                                                      ///< Snapshots on the redo stack.
     int32_t                             status;                                                         ///< Document status message code.
@@ -106,8 +106,8 @@ typedef struct Arinc661_DefinitionEditor_s
     float32_t                            dragOriginWidth;                                                      ///< SizeX at drag start.
     float32_t                            dragOriginHeight;                                                     ///< SizeY at drag start.
     float32_t                            dragOriginAngle;                                                      ///< RotationAngle at drag start.
-    float32_t                            dragCenterX;                                                          ///< Rotation pivot on screen at drag start.
-    float32_t                            dragCenterY;                                                          ///< Rotation pivot on screen at drag start.
+    float32_t                            dragCenterX;                                                          ///< Screen X of the rotation pivot at drag start.
+    float32_t                            dragCenterY;                                                          ///< Screen Y of the rotation pivot at drag start.
     float32_t                            dragScale;                                                            ///< Screen pixels per layer unit during the drag.
     bool_t                               hasDragged;                                                           ///< TRUE once the mouse has moved during the drag.
     bool_t                               isMarquee;                                                            ///< TRUE while a rubber-band selection is drawn.
@@ -342,13 +342,13 @@ void Arinc661_DefinitionEditor_MeasurePanes(const Arinc661_DefinitionEditor_t* e
 /**
  * \brief Tells whether a file holds an ARINC 661 Definition File, in XML or binary form.
  *
- * \param[in] bytes       First bytes of the file
- * \param[in] byteCount   Number of bytes available
+ * \param[in] bytes         First bytes of the file
+ * \param[in] sizeOfBytes   Number of bytes available
  *
- * \retval    TRUE        if the bytes start a binary Definition File or an a661_df document.
- * \retval    FALSE       otherwise.
+ * \retval    TRUE          if the bytes start a binary Definition File or an a661_df document.
+ * \retval    FALSE         otherwise.
  */
-bool_t Arinc661_DefinitionEditor_IsDefinitionFile(const byte_t* bytes, uint64_t byteCount);
+bool_t Arinc661_DefinitionEditor_IsDefinitionFile(const byte_t* bytes, uint64_t sizeOfBytes);
 
 /*************************************************************************************************/
 /**
@@ -705,7 +705,8 @@ bool_t Arinc661_DefinitionEditor_LayerAt(const Arinc661_DefinitionEditor_t* edit
  *
  * \par Details:
  *  Problems are dangling identifier references, widgets under a parent the specification
- *  forbids, duplicate WidgetIdent values within a layer, and duplicate LayerId values.
+ *  forbids, extensions on a widget Table 8.4 does not list, duplicate WidgetIdent values
+ *  within a layer, and duplicate LayerId values.
  *
  * \param[in]  editor          Editor state
  * \param[in]  documentIndex   Document slot
@@ -941,7 +942,7 @@ bool_t Arinc661_DefinitionEditor_LoadPrefab(Arinc661_DefinitionEditor_t* editor,
  * \param[in]  editor         Editor state
  * \param[out] currentIndex   Index of the current state
  *
- * \retval     uint32_t       States, zero without a document.
+ * \retval     uint32_t       States, zero without an active document.
  */
 uint32_t Arinc661_DefinitionEditor_HistoryCount(const Arinc661_DefinitionEditor_t* editor, uint32_t* currentIndex);
 

@@ -103,7 +103,7 @@ void RunArinc661SceneTests(void)
     assert(Arinc661_Scene_Build(&scene, nodes, COUNT_OF(nodes), layers, TEST_LAYERS, widgets, TEST_WIDGETS, properties, TEST_PROPERTIES, omit_flags));
     assert(COUNT_OF(nodes) == scene.nodeCount);
 
-    // The root's model node holds the application's property, then come the layers
+    // The root's model node holds the definition's property, then come the layers
     assert(NULL == scene.root->item);
     assert(NULL == scene.root->firstChild->item);
     assert(&properties[0] == scene.root->firstChild->firstChild->item);

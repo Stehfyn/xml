@@ -54,7 +54,7 @@
  *  - 002 This function shall reject values outside the signed 64-bit range.
  *  - 003 This function shall leave v unchanged on failure.
  *
- * \param[in]  a   Non-NULL text, readable through the first non-digit or NUL
+ * \param[in]  a   Non-NULL text, readable through the first non-digit or zero terminator
  * \param[out] v   Non-NULL destination, written only on success
  *
  * \retval     -1             The prefix has no digits, is too long, or is out of range.
@@ -77,7 +77,7 @@ int32_t FACEOE_Utl_Scan_Int64(const char_t* a, int64_t* v);
  *  - 002 This function shall reject non-finite results and prefixes longer than FACEOE_UTL_SCAN_MAX_FLOAT_BYTES.
  *  - 003 This function shall leave v unchanged on failure.
  *
- * \param[in]  a   Non-NULL text, readable through the first non-decimal character or NUL
+ * \param[in]  a   Non-NULL text, readable through the first non-decimal character or zero terminator
  * \param[out] v   Non-NULL destination, written only on success
  *
  * \retval     -1             The prefix has no digits, is too long, or is out of range.

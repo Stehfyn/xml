@@ -140,39 +140,279 @@ static BOOL HasWordAt(const char* text, size_t count, size_t index, const char* 
  */
 static BOOL EditorPath(wchar_t* path, size_t capacity);
 
-/* IShellIconOverlayIdentifier */
+/*************************************************************************************************/
+/**
+ * \brief IUnknown::QueryInterface of the overlay handler.
+ *
+ * \param[in]  self     Overlay handler
+ * \param[in]  riid     Interface requested
+ * \param[out] object   Receives the interface, or NULL
+ *
+ * \retval     HRESULT   S_OK, E_NOINTERFACE, or E_POINTER for a NULL object.
+ */
 static HRESULT STDMETHODCALLTYPE Overlay_QueryInterface(IShellIconOverlayIdentifier* self, REFIID riid, void** object);
+
+/*************************************************************************************************/
+/**
+ * \brief IUnknown::AddRef of the overlay handler.
+ *
+ * \param[in] self   Overlay handler
+ *
+ * \retval    ULONG   New reference count.
+ */
 static ULONG STDMETHODCALLTYPE   Overlay_AddRef(IShellIconOverlayIdentifier* self);
+
+/*************************************************************************************************/
+/**
+ * \brief IUnknown::Release of the overlay handler.
+ *
+ * \param[in] self   Overlay handler
+ *
+ * \retval    ULONG   Remaining reference count; zero after the object is freed.
+ */
 static ULONG STDMETHODCALLTYPE   Overlay_Release(IShellIconOverlayIdentifier* self);
+
+/*************************************************************************************************/
+/**
+ * \brief IShellIconOverlayIdentifier::IsMemberOf: tells whether a file gets this handler's badge.
+ *
+ * \param[in] self         Overlay handler
+ * \param[in] path         File path
+ * \param[in] attributes   File attributes
+ *
+ * \retval    HRESULT      S_OK if the file is of the handler's kind, S_FALSE if not, E_POINTER for a NULL path.
+ */
 static HRESULT STDMETHODCALLTYPE Overlay_IsMemberOf(IShellIconOverlayIdentifier* self, PCWSTR path, DWORD attributes);
+
+/*************************************************************************************************/
+/**
+ * \brief IShellIconOverlayIdentifier::GetOverlayInfo: names this DLL and the badge icon index.
+ *
+ * \param[in]  self       Overlay handler
+ * \param[out] iconFile   Receives this DLL's path
+ * \param[in]  capacity   Characters in iconFile
+ * \param[out] index      Receives the badge icon index
+ * \param[out] flags      Receives ISIOI_ICONFILE and ISIOI_ICONINDEX
+ *
+ * \retval     HRESULT    S_OK, E_POINTER for a NULL output, or E_FAIL if the path cannot be read.
+ */
 static HRESULT STDMETHODCALLTYPE Overlay_GetOverlayInfo(IShellIconOverlayIdentifier* self, PWSTR iconFile, int capacity, int* index, DWORD* flags);
+
+/*************************************************************************************************/
+/**
+ * \brief IShellIconOverlayIdentifier::GetPriority.
+ *
+ * \param[in]  self       Overlay handler
+ * \param[out] priority   Receives 0, the highest priority
+ *
+ * \retval     HRESULT    S_OK, or E_POINTER for a NULL priority.
+ */
 static HRESULT STDMETHODCALLTYPE Overlay_GetPriority(IShellIconOverlayIdentifier* self, int* priority);
 
-/* IShellExtInit and IContextMenu of the context menu handler */
+/*************************************************************************************************/
+/**
+ * \brief IUnknown::QueryInterface through IShellExtInit.
+ *
+ * \param[in]  self     IShellExtInit of a context menu handler
+ * \param[in]  riid     Interface requested
+ * \param[out] object   Receives the interface, or NULL
+ *
+ * \retval     HRESULT   S_OK, E_NOINTERFACE, or E_POINTER for a NULL object.
+ */
 static HRESULT STDMETHODCALLTYPE Init_QueryInterface(IShellExtInit* self, REFIID riid, void** object);
+
+/*************************************************************************************************/
+/**
+ * \brief IUnknown::AddRef through IShellExtInit.
+ *
+ * \param[in] self   IShellExtInit of a context menu handler
+ *
+ * \retval    ULONG   New reference count.
+ */
 static ULONG STDMETHODCALLTYPE   Init_AddRef(IShellExtInit* self);
+
+/*************************************************************************************************/
+/**
+ * \brief IUnknown::Release through IShellExtInit.
+ *
+ * \param[in] self   IShellExtInit of a context menu handler
+ *
+ * \retval    ULONG   Remaining reference count; zero after the object is freed.
+ */
 static ULONG STDMETHODCALLTYPE   Init_Release(IShellExtInit* self);
+
+/*************************************************************************************************/
+/**
+ * \brief IShellExtInit::Initialize: takes the selected file and sniffs its kind.
+ *
+ * \param[in] self         IShellExtInit of a context menu handler
+ * \param[in] folder       Folder of the selection, unused
+ * \param[in] dataObject   Selection
+ * \param[in] key          File type key, unused
+ *
+ * \retval    HRESULT      S_OK for one selected file of ours; otherwise a failure, so the shell drops the handler.
+ */
 static HRESULT STDMETHODCALLTYPE Init_Initialize(IShellExtInit* self, PCIDLIST_ABSOLUTE folder, IDataObject* dataObject, HKEY key);
+
+/*************************************************************************************************/
+/**
+ * \brief IUnknown::QueryInterface through IContextMenu.
+ *
+ * \param[in]  self     IContextMenu of a context menu handler
+ * \param[in]  riid     Interface requested
+ * \param[out] object   Receives the interface, or NULL
+ *
+ * \retval     HRESULT   S_OK, E_NOINTERFACE, or E_POINTER for a NULL object.
+ */
 static HRESULT STDMETHODCALLTYPE Menu_QueryInterface(IContextMenu* self, REFIID riid, void** object);
+
+/*************************************************************************************************/
+/**
+ * \brief IUnknown::AddRef through IContextMenu.
+ *
+ * \param[in] self   IContextMenu of a context menu handler
+ *
+ * \retval    ULONG   New reference count.
+ */
 static ULONG STDMETHODCALLTYPE   Menu_AddRef(IContextMenu* self);
+
+/*************************************************************************************************/
+/**
+ * \brief IUnknown::Release through IContextMenu.
+ *
+ * \param[in] self   IContextMenu of a context menu handler
+ *
+ * \retval    ULONG   Remaining reference count; zero after the object is freed.
+ */
 static ULONG STDMETHODCALLTYPE   Menu_Release(IContextMenu* self);
+
+/*************************************************************************************************/
+/**
+ * \brief IContextMenu::QueryContextMenu: inserts the open item and a separator for a file of ours.
+ *
+ * \param[in] self           IContextMenu of a context menu handler
+ * \param[in] menu           Shell menu to insert into
+ * \param[in] index          Position to insert at
+ * \param[in] firstCommand   Command identifier for the item
+ * \param[in] lastCommand    Last identifier available, unused
+ * \param[in] flags          CMF_ flags
+ *
+ * \retval    HRESULT        Number of items added in the code field, or the insertion failure.
+ */
 static HRESULT STDMETHODCALLTYPE Menu_QueryContextMenu(IContextMenu* self, HMENU menu, UINT index, UINT firstCommand, UINT lastCommand, UINT flags);
+
+/*************************************************************************************************/
+/**
+ * \brief IContextMenu::InvokeCommand: opens the file in the editor.
+ *
+ * \param[in] self   IContextMenu of a context menu handler
+ * \param[in] info   Command by offset or verb, and the owner window
+ *
+ * \retval    HRESULT   S_OK, E_INVALIDARG for NULL info, E_FAIL for another command or a failed start, or HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND) without the editor.
+ */
 static HRESULT STDMETHODCALLTYPE Menu_InvokeCommand(IContextMenu* self, CMINVOKECOMMANDINFO* info);
+
+/*************************************************************************************************/
+/**
+ * \brief IContextMenu::GetCommandString: the open item's help text or verb.
+ *
+ * \param[in]  self       IContextMenu of a context menu handler
+ * \param[in]  command    Command offset; only 0 exists
+ * \param[in]  flags      GCS_ flag naming the string and its width
+ * \param[in]  reserved   Unused
+ * \param[out] name       Receives the string, wide or narrow per flags
+ * \param[in]  capacity   Characters in name
+ *
+ * \retval     HRESULT    The copy result, E_INVALIDARG for another command, or E_NOTIMPL for another string.
+ */
 static HRESULT STDMETHODCALLTYPE Menu_GetCommandString(IContextMenu* self, UINT_PTR command, UINT flags, UINT* reserved, CHAR* name, UINT capacity);
 
 /*************************************************************************************************/
 /**
- * \brief Shared QueryInterface, AddRef, and Release of the context menu object.
+ * \brief QueryInterface of the context menu handler, shared by its two interfaces.
+ *
+ * \param[in]  handler   Context menu handler
+ * \param[in]  riid      Interface requested
+ * \param[out] object    Receives the interface, or NULL
+ *
+ * \retval     HRESULT   S_OK, E_NOINTERFACE, or E_POINTER for a NULL object.
  */
 static HRESULT ContextMenu_Query(ContextMenuHandler_t* handler, REFIID riid, void** object);
+
+/*************************************************************************************************/
+/**
+ * \brief AddRef of the context menu handler, shared by its two interfaces.
+ *
+ * \param[in] handler   Context menu handler
+ *
+ * \retval    ULONG     New reference count.
+ */
 static ULONG   ContextMenu_AddRef(ContextMenuHandler_t* handler);
+
+/*************************************************************************************************/
+/**
+ * \brief Release of the context menu handler, shared by its two interfaces.
+ *
+ * \param[in] handler   Context menu handler
+ *
+ * \retval    ULONG     Remaining reference count; zero after the object is freed.
+ */
 static ULONG   ContextMenu_Release(ContextMenuHandler_t* handler);
 
-/* IClassFactory */
+/*************************************************************************************************/
+/**
+ * \brief IUnknown::QueryInterface of the class factory.
+ *
+ * \param[in]  self     Class factory
+ * \param[in]  riid     Interface requested
+ * \param[out] object   Receives the interface, or NULL
+ *
+ * \retval     HRESULT   S_OK, E_NOINTERFACE, or E_POINTER for a NULL object.
+ */
 static HRESULT STDMETHODCALLTYPE Factory_QueryInterface(IClassFactory* self, REFIID riid, void** object);
+
+/*************************************************************************************************/
+/**
+ * \brief IUnknown::AddRef of the class factory.
+ *
+ * \param[in] self   Class factory
+ *
+ * \retval    ULONG   New reference count.
+ */
 static ULONG STDMETHODCALLTYPE   Factory_AddRef(IClassFactory* self);
+
+/*************************************************************************************************/
+/**
+ * \brief IUnknown::Release of the class factory.
+ *
+ * \param[in] self   Class factory
+ *
+ * \retval    ULONG   Remaining reference count; zero after the object is freed.
+ */
 static ULONG STDMETHODCALLTYPE   Factory_Release(IClassFactory* self);
+
+/*************************************************************************************************/
+/**
+ * \brief IClassFactory::CreateInstance: makes the overlay or context menu handler of the factory's class.
+ *
+ * \param[in]  self     Class factory
+ * \param[in]  outer    Aggregating object; must be NULL
+ * \param[in]  riid     Interface requested
+ * \param[out] object   Receives the interface, or NULL
+ *
+ * \retval     HRESULT   The QueryInterface result, E_POINTER, CLASS_E_NOAGGREGATION, or E_OUTOFMEMORY.
+ */
 static HRESULT STDMETHODCALLTYPE Factory_CreateInstance(IClassFactory* self, IUnknown* outer, REFIID riid, void** object);
+
+/*************************************************************************************************/
+/**
+ * \brief IClassFactory::LockServer: a lock counts as a live object for DllCanUnloadNow.
+ *
+ * \param[in] self   Class factory
+ * \param[in] lock   TRUE to lock, FALSE to unlock
+ *
+ * \retval    HRESULT   S_OK.
+ */
 static HRESULT STDMETHODCALLTYPE Factory_LockServer(IClassFactory* self, BOOL lock);
 
 /*************************************************************************************************/
@@ -622,8 +862,8 @@ static ULONG STDMETHODCALLTYPE Init_Release(IShellExtInit* self)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  A single selected file is taken and sniffed once here; the menu and the verb use the result.
- *  Failing for other selections makes the shell drop the handler for them.
+ *  The selected file is sniffed once here; the menu and the verb use the result. Unless exactly
+ *  one file of ours is selected, the call fails so the shell drops the handler.
  */
 static HRESULT STDMETHODCALLTYPE Init_Initialize(IShellExtInit* self, PCIDLIST_ABSOLUTE folder, IDataObject* dataObject, HKEY key)
 {

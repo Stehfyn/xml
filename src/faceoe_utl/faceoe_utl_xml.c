@@ -51,7 +51,7 @@
 #define TAG_CLOSE            (">")  ///< STag and ETag closing delimiter.
 #define EMPTY_ELEM_TAG_CLOSE ("/>") ///< EmptyElemTag closing delimiter.
 
-#define TOKEN_MAX_BYTES (sizeof(VERSION_NAME)) ///< Longest supported token, including its zero terminator.
+#define TOKEN_MAX_BYTES (sizeof(VERSION_NAME)) ///< Bytes in the longest supported token, including its zero terminator.
 #define INDENT_SPACES_PER_LEVEL (4)
 
 /* UTF-8 leading-byte ranges and their payload bits. */
@@ -173,12 +173,12 @@ static const XmlCodePointRange_t c_xmlNameCharRanges[] =
 /**
  * \brief Checks whether a code point is in an inclusive range.
  *
- * \param[in] codePoint   Code point to check.
- * \param[in] first       Inclusive lower bound.
- * \param[in] last        Inclusive upper bound.
+ * \param[in] codePoint   Code point to check
+ * \param[in] first       Inclusive lower bound
+ * \param[in] last        Inclusive upper bound
  *
- * \retval    TRUE        if code point is within the range.
- * \retval    FALSE       otherwise
+ * \retval    TRUE        if the code point is within the range.
+ * \retval    FALSE       otherwise.
  */
 static bool_t InRange(uint32_t codePoint, uint32_t first, uint32_t last);
 
@@ -191,7 +191,7 @@ static bool_t InRange(uint32_t codePoint, uint32_t first, uint32_t last);
  * \param[in]     offset             Offset of the code point's first byte
  * \param[out]    decodedByteCount   Number of bytes decoded, or zero on failure
  *
- * \retval        0..0x10FFFF   decoded code point when decodedByteCount is nonzero; U+0000 is valid UTF-8.
+ * \retval        0..0x10FFFF   Decoded code point when decodedByteCount is nonzero; U+0000 is valid UTF-8.
  * \retval        0             if decoding fails; decodedByteCount is zero.
  */
 static uint32_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t offset, uint32_t* decodedByteCount);
@@ -207,7 +207,7 @@ static uint32_t DecodeUtf8(const byte_t* bytes, uint32_t numBytes, uint32_t offs
  * \param[in] codePoint   Decoded Unicode code point to classify
  *
  * \retval    TRUE        if the code point is a permitted XML 1.0 character.
- * \retval    FALSE       otherwise
+ * \retval    FALSE       otherwise.
  */
 static bool_t IsChar(uint32_t codePoint);
 
@@ -219,13 +219,13 @@ static bool_t IsChar(uint32_t codePoint);
  *  XML 1.0 (Fifth Edition), production [2] Char:
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-Char
  *
- * \param[in] utf8Text    Non-NULL UTF-8 byte span
- * \param[in] byteCount   Number of bytes in the span
+ * \param[in] utf8Text         Non-NULL UTF-8 byte span
+ * \param[in] sizeOfUtf8Text   Number of bytes in the span
  *
- * \retval    TRUE        if the span is valid UTF-8 and every code point is a Char.
- * \retval    FALSE       otherwise
+ * \retval    TRUE             if the span is valid UTF-8 and every code point is a Char.
+ * \retval    FALSE            otherwise.
  */
-static bool_t IsString(const byte_t* utf8Text, uint32_t byteCount);
+static bool_t IsString(const byte_t* utf8Text, uint32_t sizeOfUtf8Text);
 
 /*************************************************************************************************/
 /**
@@ -238,7 +238,7 @@ static bool_t IsString(const byte_t* utf8Text, uint32_t byteCount);
  * \param[in] codePoint   Code point or byte to classify
  *
  * \retval    TRUE        if the code point is space, tab, CR, or LF.
- * \retval    FALSE       otherwise
+ * \retval    FALSE       otherwise.
  */
 static bool_t IsWhitespace(uint32_t codePoint);
 
@@ -253,7 +253,7 @@ static bool_t IsWhitespace(uint32_t codePoint);
  * \param[in] codePoint   Decoded Unicode code point to classify
  *
  * \retval    TRUE        if the code point is a permitted XML 1.0 NameStartChar.
- * \retval    FALSE       otherwise
+ * \retval    FALSE       otherwise.
  */
 static bool_t IsNameStartChar(uint32_t codePoint);
 
@@ -268,7 +268,7 @@ static bool_t IsNameStartChar(uint32_t codePoint);
  * \param[in] codePoint   Decoded Unicode code point to classify
  *
  * \retval    TRUE        if the code point is a permitted XML 1.0 NameChar.
- * \retval    FALSE       otherwise
+ * \retval    FALSE       otherwise.
  */
 static bool_t IsNameChar(uint32_t codePoint);
 
@@ -280,13 +280,13 @@ static bool_t IsNameChar(uint32_t codePoint);
  *  XML 1.0 (Fifth Edition), production [5] Name:
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-Name
  *
- * \param[in] utf8Text    Non-NULL UTF-8 byte span
- * \param[in] byteCount   Number of bytes in the span, 1 to FACEOE_UTL_XML_MAX_NAME_BYTES
+ * \param[in] utf8Text         Non-NULL UTF-8 byte span
+ * \param[in] sizeOfUtf8Text   Number of bytes in the span, 1 to FACEOE_UTL_XML_MAX_NAME_BYTES
  *
- * \retval    TRUE        if the span is a permitted XML 1.0 Name.
- * \retval    FALSE       otherwise
+ * \retval    TRUE             if the span is a permitted XML 1.0 Name.
+ * \retval    FALSE            otherwise.
  */
-static bool_t IsName(const byte_t* utf8Text, uint32_t byteCount);
+static bool_t IsName(const byte_t* utf8Text, uint32_t sizeOfUtf8Text);
 
 /*************************************************************************************************/
 /**
@@ -300,7 +300,7 @@ static bool_t IsName(const byte_t* utf8Text, uint32_t byteCount);
  * \param[in] codePoint   Decoded Unicode code point to classify
  *
  * \retval    TRUE        if the code point is permitted literally in a double-quoted attribute value.
- * \retval    FALSE       otherwise
+ * \retval    FALSE       otherwise.
  */
 static bool_t IsAttributeValueChar(uint32_t codePoint);
 
@@ -313,7 +313,7 @@ static bool_t IsAttributeValueChar(uint32_t codePoint);
  * \param[in] name            Name bytes to find
  * \param[in] nameByteCount   Number of name bytes
  *
- * \retval    non-NULL   matching attribute.
+ * \retval    non-NULL   Matching attribute.
  * \retval    NULL       if the name is absent.
  */
 static const FACEOE_Utl_Xml_Attribute_t* FindAttribute(const FACEOE_Utl_Xml_Node_t* node, const FACEOE_Utl_Xml_Attribute_t* attribute, const byte_t* name, uint32_t nameByteCount);
@@ -325,7 +325,7 @@ static const FACEOE_Utl_Xml_Attribute_t* FindAttribute(const FACEOE_Utl_Xml_Node
  * \param[in] parent   Node whose parent chain is searched
  * \param[in] child    Node to find
  *
- * \retval    non-NULL   matching ancestor.
+ * \retval    non-NULL   Matching ancestor.
  * \retval    NULL       if child is absent from the ancestor chain.
  */
 static const FACEOE_Utl_Xml_Node_t* FindAncestor(const FACEOE_Utl_Xml_Node_t* parent, const FACEOE_Utl_Xml_Node_t* child);
@@ -337,7 +337,7 @@ static const FACEOE_Utl_Xml_Node_t* FindAncestor(const FACEOE_Utl_Xml_Node_t* pa
  * \param[in] document   Document to search
  * \param[in] type       Node type to find
  *
- * \retval    non-NULL   matching top-level node.
+ * \retval    non-NULL   Matching top-level node.
  * \retval    NULL       if no top-level node has the requested type.
  */
 static const FACEOE_Utl_Xml_Node_t* FindRootNode(const FACEOE_Utl_Xml_Document_t* document, FACEOE_Utl_Xml_NodeType_t type);
@@ -346,15 +346,15 @@ static const FACEOE_Utl_Xml_Node_t* FindRootNode(const FACEOE_Utl_Xml_Document_t
 /**
  * \brief Reads an XML 1.0 token when it is present.
  *
- * \param[in]     bytes       UTF-8 bytes
- * \param[in]     byteCount   Number of bytes
- * \param[in,out] position    Offset of the next unread byte
- * \param[in]     token       Zero-terminated token of fewer than TOKEN_MAX_BYTES bytes
+ * \param[in]     bytes         UTF-8 bytes
+ * \param[in]     sizeOfBytes   Number of bytes
+ * \param[in,out] position      Offset of the next unread byte
+ * \param[in]     token         Zero-terminated token of fewer than TOKEN_MAX_BYTES bytes
  *
- * \retval        TRUE        if the token was read.
- * \retval        FALSE       otherwise
+ * \retval        TRUE          if the token was read.
+ * \retval        FALSE         otherwise.
  */
-static bool_t ReadToken(const byte_t* bytes, uint64_t byteCount, uint64_t* position, const char_t* token);
+static bool_t ReadToken(const byte_t* bytes, uint64_t sizeOfBytes, uint64_t* position, const char_t* token);
 
 /*************************************************************************************************/
 /**
@@ -364,14 +364,14 @@ static bool_t ReadToken(const byte_t* bytes, uint64_t byteCount, uint64_t* posit
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-S
  *
  * \param[in]     bytes          UTF-8 bytes
- * \param[in]     byteCount      Number of bytes
+ * \param[in]     sizeOfBytes    Number of bytes
  * \param[in,out] position       Offset of the next unread byte
  * \param[in]     mustReachEnd   TRUE when only whitespace may remain
  *
- * \retval        TRUE           if position does not start beyond byteCount and mustReachEnd is satisfied.
- * \retval        FALSE          otherwise
+ * \retval        TRUE           if position does not start beyond sizeOfBytes and mustReachEnd is satisfied.
+ * \retval        FALSE          otherwise.
  */
-static bool_t ReadWhitespace(const byte_t* bytes, uint64_t byteCount, uint64_t* position, bool_t mustReachEnd);
+static bool_t ReadWhitespace(const byte_t* bytes, uint64_t sizeOfBytes, uint64_t* position, bool_t mustReachEnd);
 
 /*************************************************************************************************/
 /**
@@ -381,15 +381,15 @@ static bool_t ReadWhitespace(const byte_t* bytes, uint64_t byteCount, uint64_t* 
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-Name
  *
  * \param[in]     bytes           UTF-8 bytes
- * \param[in]     byteCount       Number of bytes
+ * \param[in]     sizeOfBytes     Number of bytes
  * \param[in,out] position        Offset of the next unread byte
  * \param[out]    name            Pointer to the name within bytes
  * \param[out]    nameByteCount   Number of name bytes
  *
  * \retval        TRUE            if the name is valid.
- * \retval        FALSE           otherwise
+ * \retval        FALSE           otherwise.
  */
-static bool_t ReadName(const byte_t* bytes, uint64_t byteCount, uint64_t* position, const byte_t** name, uint32_t* nameByteCount);
+static bool_t ReadName(const byte_t* bytes, uint64_t sizeOfBytes, uint64_t* position, const byte_t** name, uint32_t* nameByteCount);
 
 /*************************************************************************************************/
 /**
@@ -399,16 +399,16 @@ static bool_t ReadName(const byte_t* bytes, uint64_t byteCount, uint64_t* positi
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-Eq
  *  https://www.w3.org/TR/2008/REC-xml-20081126/#NT-AttValue
  *
- * \param[in]     bytes       UTF-8 bytes
- * \param[in]     byteCount   Number of bytes
- * \param[in,out] position    Offset of the =
- * \param[out]    value       Pointer to the value within bytes, without quotes
- * \param[out]    numBytes    Number of value bytes
+ * \param[in]     bytes         UTF-8 bytes
+ * \param[in]     sizeOfBytes   Number of bytes
+ * \param[in,out] position      Offset of the =
+ * \param[out]    value         Pointer to the value within bytes, without quotes
+ * \param[out]    numBytes      Number of value bytes
  *
- * \retval        TRUE        if the quoted value is valid.
- * \retval        FALSE       otherwise
+ * \retval        TRUE          if the quoted value is valid.
+ * \retval        FALSE         otherwise.
  */
-static bool_t ReadAttributeValue(const byte_t* bytes, uint64_t byteCount, uint64_t* position, const byte_t** value, uint32_t* numBytes);
+static bool_t ReadAttributeValue(const byte_t* bytes, uint64_t sizeOfBytes, uint64_t* position, const byte_t** value, uint32_t* numBytes);
 
 /*************************************************************************************************/
 /**
@@ -437,7 +437,7 @@ static bool_t ReadAttribute(const byte_t* markup, uint64_t markupByteCount, uint
  * \param[out]    node             Node storage to initialize
  *
  * \retval        TRUE             if the declaration is supported.
- * \retval        FALSE            otherwise
+ * \retval        FALSE            otherwise.
  */
 static bool_t ReadDeclaration(const byte_t* markup, uint64_t markupByteCount, uint64_t* position, FACEOE_Utl_Xml_Node_t* node);
 
@@ -459,7 +459,7 @@ static bool_t ReadDeclaration(const byte_t* markup, uint64_t markupByteCount, ui
  * \param[out]    isStartTag          TRUE for a start tag, FALSE for an empty-element tag
  *
  * \retval        TRUE                if the element tag is supported.
- * \retval        FALSE               otherwise
+ * \retval        FALSE               otherwise.
  */
 static bool_t ReadElementStart(const byte_t* markup, uint64_t markupByteCount, uint64_t* position, FACEOE_Utl_Xml_Node_t* node, FACEOE_Utl_Xml_Attribute_t* attributes, uint32_t attributeCapacity, uint32_t* attributeCount, bool_t* isStartTag);
 
@@ -473,7 +473,7 @@ static bool_t ReadElementStart(const byte_t* markup, uint64_t markupByteCount, u
  * \param[in]     node             Open element to match
  *
  * \retval        TRUE             if the end tag matches.
- * \retval        FALSE            otherwise
+ * \retval        FALSE            otherwise.
  */
 static bool_t ReadElementEnd(const byte_t* markup, uint64_t markupByteCount, uint64_t* position, const FACEOE_Utl_Xml_Node_t* node);
 
@@ -516,15 +516,15 @@ static bool_t ReadRootNode(XmlReader_t* reader);
 /**
  * \brief Writes a zero-terminated XML token without its terminator.
  *
- * \param[in,out] output      Caller-provided byte storage
- * \param[in]     capacity    Number of bytes in output
- * \param[in,out] byteCount   Number of bytes already written
- * \param[in]     token       Zero-terminated token of fewer than TOKEN_MAX_BYTES bytes
+ * \param[in,out] output     Caller-provided byte storage
+ * \param[in]     capacity   Number of bytes in output
+ * \param[in,out] offset     Number of bytes already written
+ * \param[in]     token      Zero-terminated token of fewer than TOKEN_MAX_BYTES bytes
  *
- * \retval        TRUE        if the token fits.
- * \retval        FALSE       otherwise
+ * \retval        TRUE       if the token fits.
+ * \retval        FALSE      otherwise.
  */
-static bool_t WriteToken(byte_t* output, uint64_t capacity, uint64_t* byteCount, const char_t* token);
+static bool_t WriteToken(byte_t* output, uint64_t capacity, uint64_t* offset, const char_t* token);
 
 /*************************************************************************************************/
 /**
@@ -535,13 +535,13 @@ static bool_t WriteToken(byte_t* output, uint64_t capacity, uint64_t* byteCount,
  *
  * \param[in,out] output     Caller-provided byte storage
  * \param[in]     capacity   Number of bytes in output
- * \param[in,out] byteCount  Number of bytes already written
+ * \param[in,out] offset     Number of bytes already written
  * \param[in]     node       XML declaration node to write
  *
  * \retval        TRUE       if the declaration is valid and fits.
- * \retval        FALSE      otherwise
+ * \retval        FALSE      otherwise.
  */
-static bool_t WriteDeclaration(byte_t* output, uint64_t capacity, uint64_t* byteCount, const FACEOE_Utl_Xml_Node_t* node);
+static bool_t WriteDeclaration(byte_t* output, uint64_t capacity, uint64_t* offset, const FACEOE_Utl_Xml_Node_t* node);
 
 /*************************************************************************************************/
 /**
@@ -553,13 +553,13 @@ static bool_t WriteDeclaration(byte_t* output, uint64_t capacity, uint64_t* byte
  *
  * \param[in,out] output     Caller-provided byte storage
  * \param[in]     capacity   Number of bytes in output
- * \param[in,out] byteCount  Number of bytes already written
+ * \param[in,out] offset     Number of bytes already written
  * \param[in]     node       Element to write
  *
  * \retval        TRUE       if the tag is valid and fits.
- * \retval        FALSE      otherwise
+ * \retval        FALSE      otherwise.
  */
-static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byteCount, const FACEOE_Utl_Xml_Node_t* node);
+static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* offset, const FACEOE_Utl_Xml_Node_t* node);
 
 /*************************************************************************************************/
 /**
@@ -570,13 +570,13 @@ static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byt
  *
  * \param[in,out] output     Caller-provided byte storage
  * \param[in]     capacity   Number of bytes in output
- * \param[in,out] byteCount  Number of bytes already written
+ * \param[in,out] offset     Number of bytes already written
  * \param[in]     node       Element to close
  *
  * \retval        TRUE       if the tag fits.
- * \retval        FALSE      otherwise
+ * \retval        FALSE      otherwise.
  */
-static bool_t WriteElementEnd(byte_t* output, uint64_t capacity, uint64_t* byteCount, const FACEOE_Utl_Xml_Node_t* node);
+static bool_t WriteElementEnd(byte_t* output, uint64_t capacity, uint64_t* offset, const FACEOE_Utl_Xml_Node_t* node);
 
 /*************************************************************************************************/
 /**
@@ -584,13 +584,13 @@ static bool_t WriteElementEnd(byte_t* output, uint64_t capacity, uint64_t* byteC
  *
  * \param[in,out] output     Caller-provided byte storage
  * \param[in]     capacity   Number of bytes in output
- * \param[in,out] byteCount  Number of bytes already written
+ * \param[in,out] offset     Number of bytes already written
  * \param[in]     root       Root element to write
  *
  * \retval        TRUE       if the subtree is valid, within the node and depth limits, and fits.
- * \retval        FALSE      otherwise
+ * \retval        FALSE      otherwise.
  */
-static bool_t WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCount, const FACEOE_Utl_Xml_Node_t* root);
+static bool_t WriteElement(byte_t* output, uint64_t capacity, uint64_t* offset, const FACEOE_Utl_Xml_Node_t* root);
 
 /*************************************************************************************************/
 /**
@@ -598,42 +598,42 @@ static bool_t WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCoun
  *
  * \param[in,out] output     Caller-provided byte storage
  * \param[in]     capacity   Number of bytes in output
- * \param[in,out] byteCount  Number of bytes already written
+ * \param[in,out] offset     Number of bytes already written
  * \param[in]     node       Node to write
  *
  * \retval        TRUE       if the node is valid and fits.
- * \retval        FALSE      otherwise
+ * \retval        FALSE      otherwise.
  */
-static bool_t WriteRootNode(byte_t* output, uint64_t capacity, uint64_t* byteCount, const FACEOE_Utl_Xml_Node_t* node);
+static bool_t WriteRootNode(byte_t* output, uint64_t capacity, uint64_t* offset, const FACEOE_Utl_Xml_Node_t* node);
 
 /*************************************************************************************************/
 /**
  * \brief Appends a byte span to the caller's output buffer.
  *
- * \param[in,out] output      Caller-provided byte storage
- * \param[in]     capacity    Number of bytes in output
- * \param[in,out] byteCount   Number of bytes already written
- * \param[in]     bytes       Bytes to append
- * \param[in]     numBytes    Nonzero number of bytes to append
+ * \param[in,out] output     Caller-provided byte storage
+ * \param[in]     capacity   Number of bytes in output
+ * \param[in,out] offset     Number of bytes already written
+ * \param[in]     bytes      Bytes to append
+ * \param[in]     numBytes   Nonzero number of bytes to append
  *
- * \retval        TRUE        if the bytes fit.
- * \retval        FALSE       otherwise
+ * \retval        TRUE       if the bytes fit.
+ * \retval        FALSE      otherwise.
  */
-static bool_t WriteBytes(byte_t* output, uint64_t capacity, uint64_t* byteCount, const byte_t* bytes, uint32_t numBytes);
+static bool_t WriteBytes(byte_t* output, uint64_t capacity, uint64_t* offset, const byte_t* bytes, uint32_t numBytes);
 
 /*************************************************************************************************/
 /**
  * \brief Appends one byte to the caller's output buffer.
  *
- * \param[in,out] output      Caller-provided byte storage
- * \param[in]     capacity    Number of bytes in output
- * \param[in,out] byteCount   Number of bytes already written
- * \param[in]     value       Byte to append
+ * \param[in,out] output     Caller-provided byte storage
+ * \param[in]     capacity   Number of bytes in output
+ * \param[in,out] offset     Number of bytes already written
+ * \param[in]     value      Byte to append
  *
- * \retval        TRUE        if the byte fits.
- * \retval        FALSE       otherwise
+ * \retval        TRUE       if the byte fits.
+ * \retval        FALSE      otherwise.
  */
-static bool_t WriteByte(byte_t* output, uint64_t capacity, uint64_t* byteCount, byte_t value);
+static bool_t WriteByte(byte_t* output, uint64_t capacity, uint64_t* offset, byte_t value);
 
 /*************************************************************************************************/
 /**
@@ -641,13 +641,13 @@ static bool_t WriteByte(byte_t* output, uint64_t capacity, uint64_t* byteCount, 
  *
  * \param[in,out] output             Caller-provided byte storage
  * \param[in]     capacity           Number of bytes in output
- * \param[in,out] byteCount          Number of bytes already written
+ * \param[in,out] offset             Number of bytes already written
  * \param[in]     indentSpaceCount   Number of spaces to write
  *
  * \retval        TRUE               if the indentation fits.
- * \retval        FALSE              otherwise
+ * \retval        FALSE              otherwise.
  */
-static bool_t WriteIndent(byte_t* output, uint64_t capacity, uint64_t* byteCount, uint32_t indentSpaceCount);
+static bool_t WriteIndent(byte_t* output, uint64_t capacity, uint64_t* offset, uint32_t indentSpaceCount);
 
 /*=================================================================================================
 ** 4. PRIVATE FUNCTIONS
@@ -828,7 +828,7 @@ static bool_t IsChar(uint32_t codePoint)
  * \par Details:
  *  An empty span is valid, since attribute values may be empty.
  */
-static bool_t IsString(const byte_t* utf8Text, uint32_t byteCount)
+static bool_t IsString(const byte_t* utf8Text, uint32_t sizeOfUtf8Text)
 {
     bool_t   is_xml_string;
     uint32_t byte_offset;
@@ -838,13 +838,13 @@ static bool_t IsString(const byte_t* utf8Text, uint32_t byteCount)
     bool_t   is_invalid_code_point;
 
     LOGASSERT(NULL != utf8Text);
-    LOGASSERT(FACEOE_UTL_XML_MAX_VALUE_BYTES >= byteCount);
+    LOGASSERT(FACEOE_UTL_XML_MAX_VALUE_BYTES >= sizeOfUtf8Text);
 
     is_xml_string = TRUE;
 
-    for (byte_offset = 0; byte_offset < byteCount; byte_offset += decoded_byte_count)
+    for (byte_offset = 0; byte_offset < sizeOfUtf8Text; byte_offset += decoded_byte_count)
     {
-        code_point = DecodeUtf8(utf8Text, byteCount, byte_offset, &decoded_byte_count);
+        code_point = DecodeUtf8(utf8Text, sizeOfUtf8Text, byte_offset, &decoded_byte_count);
 
         decode_failed         = (0 == decoded_byte_count);
         is_invalid_code_point = (FALSE == IsChar(code_point));
@@ -946,7 +946,7 @@ static bool_t IsNameChar(uint32_t codePoint)
  * \par Details:
  *  Uses XML 1.0 NameStartChar and NameChar after strict UTF-8 decoding.
  */
-static bool_t IsName(const byte_t* utf8Text, uint32_t byteCount)
+static bool_t IsName(const byte_t* utf8Text, uint32_t sizeOfUtf8Text)
 {
     bool_t   is_name;
     uint32_t byte_offset;
@@ -955,14 +955,14 @@ static bool_t IsName(const byte_t* utf8Text, uint32_t byteCount)
     bool_t   decode_failed;
 
     LOGASSERT(NULL != utf8Text);
-    LOGASSERT(0 < byteCount);
-    LOGASSERT(FACEOE_UTL_XML_MAX_NAME_BYTES >= byteCount);
+    LOGASSERT(0 < sizeOfUtf8Text);
+    LOGASSERT(FACEOE_UTL_XML_MAX_NAME_BYTES >= sizeOfUtf8Text);
 
     is_name = TRUE;
 
-    for (byte_offset = 0; byte_offset < byteCount; byte_offset += decoded_byte_count)
+    for (byte_offset = 0; byte_offset < sizeOfUtf8Text; byte_offset += decoded_byte_count)
     {
-        code_point = DecodeUtf8(utf8Text, byteCount, byte_offset, &decoded_byte_count);
+        code_point = DecodeUtf8(utf8Text, sizeOfUtf8Text, byte_offset, &decoded_byte_count);
 
         decode_failed = (0 == decoded_byte_count);
 
@@ -1147,7 +1147,7 @@ static const FACEOE_Utl_Xml_Node_t* FindRootNode(const FACEOE_Utl_Xml_Document_t
  * \verbatim
  * Byte index:   0 1 2 3 4 5 6 7
  * Input bytes:  < p a n e l / >
- * byteCount:    8
+ * sizeOfBytes:  8
  * token:        "/>"
  * position:     6 -> 8
  * Return:       TRUE
@@ -1157,11 +1157,11 @@ static const FACEOE_Utl_Xml_Node_t* FindRootNode(const FACEOE_Utl_Xml_Document_t
  *  unchanged, so the caller can try ">" at that offset.
  *
  *  The token's zero terminator must occur within TOKEN_MAX_BYTES and is not matched.
- *  Input is bounded by byteCount and needs no terminator. A mismatch, short input,
+ *  Input is bounded by sizeOfBytes and needs no terminator. A mismatch, short input,
  *  or missing token terminator returns FALSE with position unchanged, even after a
  *  partial match.
  */
-static bool_t ReadToken(const byte_t* bytes, uint64_t byteCount, uint64_t* position, const char_t* token)
+static bool_t ReadToken(const byte_t* bytes, uint64_t sizeOfBytes, uint64_t* position, const char_t* token)
 {
     uint32_t byte_index;
     byte_t   token_byte;
@@ -1183,14 +1183,14 @@ static bool_t ReadToken(const byte_t* bytes, uint64_t byteCount, uint64_t* posit
         token_byte = token[byte_index];
 
         // Validate the starting offset before subtracting it from the input size
-        is_position_valid = ((*position) < byteCount);
+        is_position_valid = ((*position) < sizeOfBytes);
 
         is_valid = is_position_valid;
 
         if (is_valid)
         {
             // Check the remaining input before forming the byte's absolute offset
-            is_token_byte_available = (byte_index < (byteCount - (*position)));
+            is_token_byte_available = (byte_index < (sizeOfBytes - (*position)));
 
             is_valid = is_token_byte_available;
         }
@@ -1232,7 +1232,7 @@ static bool_t ReadToken(const byte_t* bytes, uint64_t byteCount, uint64_t* posit
  *
  * \verbatim
  * Input bytes:       "\n    <button/>"  (\n represents one line-feed byte)
- * byteCount:         14
+ * sizeOfBytes:       14
  * Initial position:  0
  *
  * mustReachEnd   Return   Final position
@@ -1245,20 +1245,20 @@ static bool_t ReadToken(const byte_t* bytes, uint64_t byteCount, uint64_t* posit
  *  Position still advances past any whitespace when mustReachEnd rejects a
  *  following non-whitespace byte.
  *
- *  Whitespace is optional: starting at byteCount succeeds in either mode.
- *  Starting beyond byteCount returns FALSE without changing position.
+ *  Whitespace is optional: starting at sizeOfBytes succeeds in either mode.
+ *  Starting beyond sizeOfBytes returns FALSE without changing position.
  */
-static bool_t ReadWhitespace(const byte_t* bytes, uint64_t byteCount, uint64_t* position, bool_t mustReachEnd)
+static bool_t ReadWhitespace(const byte_t* bytes, uint64_t sizeOfBytes, uint64_t* position, bool_t mustReachEnd)
 {
     bool_t   is_valid;
     uint64_t byte_index;
 
     // Allow an empty remaining span, but reject an offset beyond the input
-    is_valid = ((*position) <= byteCount);
+    is_valid = ((*position) <= sizeOfBytes);
 
     if (is_valid)
     {
-        for (byte_index = (*position); byte_index < byteCount; ++byte_index)
+        for (byte_index = (*position); byte_index < sizeOfBytes; ++byte_index)
         {
             // Leave the first non-whitespace byte for the caller to read
             if (FALSE == IsWhitespace(bytes[byte_index]))
@@ -1273,7 +1273,7 @@ static bool_t ReadWhitespace(const byte_t* bytes, uint64_t byteCount, uint64_t* 
         if (mustReachEnd)
         {
             // Reject any remaining content when only trailing whitespace is allowed
-            is_valid = (byte_index == byteCount);
+            is_valid = (byte_index == sizeOfBytes);
         }
     }
 
@@ -1291,7 +1291,7 @@ static bool_t ReadWhitespace(const byte_t* bytes, uint64_t byteCount, uint64_t* 
  * \endcode
  *
  * \verbatim
- * byteCount: 20
+ * sizeOfBytes: 20
  *
  * Initial position   Name bytes   nameByteCount   Final position   Return
  * 1                  button       6               7 (space)        TRUE
@@ -1299,14 +1299,14 @@ static bool_t ReadWhitespace(const byte_t* bytes, uint64_t byteCount, uint64_t* 
  * \endverbatim
  *
  *  These are separate calls after the caller consumes the preceding delimiter
- *  or whitespace. The scan ends at XML whitespace, =, /, >, or byteCount and
+ *  or whitespace. The scan ends at XML whitespace, =, /, >, or sizeOfBytes and
  *  leaves any delimiter unread. Leading whitespace is not skipped.
  *
  *  The name must be nonempty, fit within FACEOE_UTL_XML_MAX_NAME_BYTES, and be a
  *  valid UTF-8 XML Name. On success, name points into bytes; nothing is copied.
  *  On failure, position, name, and nameByteCount are unchanged.
  */
-static bool_t ReadName(const byte_t* bytes, uint64_t byteCount, uint64_t* position, const byte_t** name, uint32_t* nameByteCount)
+static bool_t ReadName(const byte_t* bytes, uint64_t sizeOfBytes, uint64_t* position, const byte_t** name, uint32_t* nameByteCount)
 {
     const byte_t* parsed_name;
     uint64_t      byte_index;
@@ -1324,7 +1324,7 @@ static bool_t ReadName(const byte_t* bytes, uint64_t byteCount, uint64_t* positi
     parsed_name = bytes + (*position);
 
     // Find the candidate span before validating its UTF-8 code points
-    for (byte_index = (*position); byte_index < byteCount; ++byte_index)
+    for (byte_index = (*position); byte_index < sizeOfBytes; ++byte_index)
     {
         is_whitespace = IsWhitespace(bytes[byte_index]);
         is_equals     = (EQ == bytes[byte_index]);
@@ -1368,7 +1368,7 @@ static bool_t ReadName(const byte_t* bytes, uint64_t byteCount, uint64_t* positi
  *  Whitespace around = is rejected. The value's characters are not checked;
  *  ReadAttribute checks them before appending.
  */
-static bool_t ReadAttributeValue(const byte_t* bytes, uint64_t byteCount, uint64_t* position, const byte_t** value, uint32_t* numBytes)
+static bool_t ReadAttributeValue(const byte_t* bytes, uint64_t sizeOfBytes, uint64_t* position, const byte_t** value, uint32_t* numBytes)
 {
     const byte_t* parsed_value;
     uint64_t      byte_index;
@@ -1382,13 +1382,13 @@ static bool_t ReadAttributeValue(const byte_t* bytes, uint64_t byteCount, uint64
     bool_t        is_valid;
     bool_t        is_value_close;
 
-    is_position_valid = ((*position) < byteCount);
+    is_position_valid = ((*position) < sizeOfBytes);
 
     is_valid = is_position_valid;
 
     if (is_valid)
     {
-        has_delimiter_bytes = ((byteCount - (*position)) >= 2);
+        has_delimiter_bytes = ((sizeOfBytes - (*position)) >= 2);
 
         is_valid = has_delimiter_bytes;
     }
@@ -1410,7 +1410,7 @@ static bool_t ReadAttributeValue(const byte_t* bytes, uint64_t byteCount, uint64
 
         parsed_value = bytes + (*position);
 
-        for (byte_index = (*position); byte_index < byteCount; ++byte_index)
+        for (byte_index = (*position); byte_index < sizeOfBytes; ++byte_index)
         {
             is_value_close = (QUOTE_QUOT == bytes[byte_index]);
 
@@ -1421,7 +1421,7 @@ static bool_t ReadAttributeValue(const byte_t* bytes, uint64_t byteCount, uint64
         }
 
         span_byte_count   = byte_index - (*position);
-        has_closing_quote = (byte_index < byteCount);
+        has_closing_quote = (byte_index < sizeOfBytes);
 
         is_valid = has_closing_quote;
 
@@ -1904,7 +1904,7 @@ static bool_t ReadRootNode(XmlReader_t* reader)
  *  Writes bytes up to the token's zero terminator. Returns FALSE if the terminator
  *  is not found within TOKEN_MAX_BYTES or the output buffer runs out of space.
  */
-static bool_t WriteToken(byte_t* output, uint64_t capacity, uint64_t* byteCount, const char_t* token)
+static bool_t WriteToken(byte_t* output, uint64_t capacity, uint64_t* offset, const char_t* token)
 {
     uint32_t byte_index;
     bool_t   is_valid;
@@ -1920,7 +1920,7 @@ static bool_t WriteToken(byte_t* output, uint64_t capacity, uint64_t* byteCount,
             break;
         }
 
-        is_valid = WriteByte(output, capacity, byteCount, token[byte_index]);
+        is_valid = WriteByte(output, capacity, offset, token[byte_index]);
         if (FALSE == is_valid)
         {
             break;
@@ -1948,7 +1948,7 @@ static bool_t WriteToken(byte_t* output, uint64_t capacity, uint64_t* byteCount,
  *  Returns FALSE if the node has a name or a nonzero name byte count.
  *  FACEOE_Utl_Xml_WriteDocument appends the line feed after this declaration.
  */
-static bool_t WriteDeclaration(byte_t* output, uint64_t capacity, uint64_t* byteCount, const FACEOE_Utl_Xml_Node_t* node)
+static bool_t WriteDeclaration(byte_t* output, uint64_t capacity, uint64_t* offset, const FACEOE_Utl_Xml_Node_t* node)
 {
     bool_t has_no_name;
     bool_t has_no_name_bytes;
@@ -1961,35 +1961,35 @@ static bool_t WriteDeclaration(byte_t* output, uint64_t capacity, uint64_t* byte
 
     if (is_valid)
     {
-        is_valid = WriteToken(output, capacity, byteCount, DECL_OPEN);
+        is_valid = WriteToken(output, capacity, offset, DECL_OPEN);
     }
     if (is_valid)
     {
-        is_valid = WriteByte(output, capacity, byteCount, CHAR_SPACE);
+        is_valid = WriteByte(output, capacity, offset, CHAR_SPACE);
     }
     if (is_valid)
     {
-        is_valid = WriteToken(output, capacity, byteCount, VERSION_NAME);
+        is_valid = WriteToken(output, capacity, offset, VERSION_NAME);
     }
     if (is_valid)
     {
-        is_valid = WriteByte(output, capacity, byteCount, EQ);
+        is_valid = WriteByte(output, capacity, offset, EQ);
     }
     if (is_valid)
     {
-        is_valid = WriteByte(output, capacity, byteCount, QUOTE_QUOT);
+        is_valid = WriteByte(output, capacity, offset, QUOTE_QUOT);
     }
     if (is_valid)
     {
-        is_valid = WriteToken(output, capacity, byteCount, VERSION_1_0);
+        is_valid = WriteToken(output, capacity, offset, VERSION_1_0);
     }
     if (is_valid)
     {
-        is_valid = WriteByte(output, capacity, byteCount, QUOTE_QUOT);
+        is_valid = WriteByte(output, capacity, offset, QUOTE_QUOT);
     }
     if (is_valid)
     {
-        is_valid = WriteToken(output, capacity, byteCount, DECL_CLOSE);
+        is_valid = WriteToken(output, capacity, offset, DECL_CLOSE);
     }
 
     return is_valid;
@@ -2014,7 +2014,7 @@ static bool_t WriteDeclaration(byte_t* output, uint64_t capacity, uint64_t* byte
  *  keep their append order, with values copied literally inside double quotes.
  *  WriteElement supplies indentation, line feeds, and any descendants.
  */
-static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byteCount, const FACEOE_Utl_Xml_Node_t* node)
+static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* offset, const FACEOE_Utl_Xml_Node_t* node)
 {
     const FACEOE_Utl_Xml_Attribute_t* current_attribute;
     uint32_t                          attribute_index;
@@ -2027,7 +2027,7 @@ static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byt
     bool_t                            has_value_bytes;
     bool_t                            is_valid;
 
-    // Check storage pointers and limits before validating or writing the element name
+    // Check the name pointer and the limits before validating or writing the name
     has_name                        = (NULL != node->name);
     has_name_bytes                  = (0 < node->nameByteCount);
     is_name_within_limit            = (node->nameByteCount <= FACEOE_UTL_XML_MAX_NAME_BYTES);
@@ -2042,11 +2042,11 @@ static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byt
     if (is_valid)
     {
         // Begin the tag with < and the validated element name
-        is_valid = WriteToken(output, capacity, byteCount, STAG_OPEN);
+        is_valid = WriteToken(output, capacity, offset, STAG_OPEN);
     }
     if (is_valid)
     {
-        is_valid = WriteBytes(output, capacity, byteCount, node->name, node->nameByteCount);
+        is_valid = WriteBytes(output, capacity, offset, node->name, node->nameByteCount);
     }
 
     current_attribute = node->firstAttribute;
@@ -2084,19 +2084,19 @@ static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byt
         if (is_valid)
         {
             // Separate attributes with one space, then emit name="value"
-            is_valid = WriteByte(output, capacity, byteCount, CHAR_SPACE);
+            is_valid = WriteByte(output, capacity, offset, CHAR_SPACE);
         }
         if (is_valid)
         {
-            is_valid = WriteBytes(output, capacity, byteCount, current_attribute->name, current_attribute->nameByteCount);
+            is_valid = WriteBytes(output, capacity, offset, current_attribute->name, current_attribute->nameByteCount);
         }
         if (is_valid)
         {
-            is_valid = WriteByte(output, capacity, byteCount, EQ);
+            is_valid = WriteByte(output, capacity, offset, EQ);
         }
         if (is_valid)
         {
-            is_valid = WriteByte(output, capacity, byteCount, QUOTE_QUOT);
+            is_valid = WriteByte(output, capacity, offset, QUOTE_QUOT);
         }
         if (is_valid)
         {
@@ -2104,12 +2104,12 @@ static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byt
             has_value_bytes = (0 < current_attribute->valueByteCount);
             if (has_value_bytes)
             {
-                is_valid = WriteBytes(output, capacity, byteCount, current_attribute->value, current_attribute->valueByteCount);
+                is_valid = WriteBytes(output, capacity, offset, current_attribute->value, current_attribute->valueByteCount);
             }
         }
         if (is_valid)
         {
-            is_valid = WriteByte(output, capacity, byteCount, QUOTE_QUOT);
+            is_valid = WriteByte(output, capacity, offset, QUOTE_QUOT);
         }
 
         if (is_valid)
@@ -2134,11 +2134,11 @@ static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byt
         // Leaves close here; elements with children get their closing tag from WriteElement
         if (NULL == node->firstChild)
         {
-            is_valid = WriteToken(output, capacity, byteCount, EMPTY_ELEM_TAG_CLOSE);
+            is_valid = WriteToken(output, capacity, offset, EMPTY_ELEM_TAG_CLOSE);
         }
         else
         {
-            is_valid = WriteToken(output, capacity, byteCount, TAG_CLOSE);
+            is_valid = WriteToken(output, capacity, offset, TAG_CLOSE);
         }
     }
 
@@ -2157,20 +2157,20 @@ static bool_t WriteElementStart(byte_t* output, uint64_t capacity, uint64_t* byt
  *  Uses the same name as the opening tag. WriteElement supplies the preceding
  *  line feed and indentation; this function writes only the closing tag.
  */
-static bool_t WriteElementEnd(byte_t* output, uint64_t capacity, uint64_t* byteCount, const FACEOE_Utl_Xml_Node_t* node)
+static bool_t WriteElementEnd(byte_t* output, uint64_t capacity, uint64_t* offset, const FACEOE_Utl_Xml_Node_t* node)
 {
     bool_t is_valid;
 
     // Append the closing tag after the indentation already written by the caller
-    is_valid = WriteToken(output, capacity, byteCount, ETAG_OPEN);
+    is_valid = WriteToken(output, capacity, offset, ETAG_OPEN);
     if (is_valid)
     {
         // Reuse the name validated when the opening tag was written
-        is_valid = WriteBytes(output, capacity, byteCount, node->name, node->nameByteCount);
+        is_valid = WriteBytes(output, capacity, offset, node->name, node->nameByteCount);
     }
     if (is_valid)
     {
-        is_valid = WriteToken(output, capacity, byteCount, TAG_CLOSE);
+        is_valid = WriteToken(output, capacity, offset, TAG_CLOSE);
     }
 
     return is_valid;
@@ -2198,7 +2198,7 @@ static bool_t WriteElementEnd(byte_t* output, uint64_t capacity, uint64_t* byteC
  *  Uses four spaces per nesting level. Leaf elements such as button and label
  *  use empty-element tags. FACEOE_Utl_Xml_WriteDocument appends the final line feed.
  */
-static bool_t WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCount, const FACEOE_Utl_Xml_Node_t* root)
+static bool_t WriteElement(byte_t* output, uint64_t capacity, uint64_t* offset, const FACEOE_Utl_Xml_Node_t* root)
 {
     const FACEOE_Utl_Xml_Node_t* current_node;
     uint32_t                     depth;
@@ -2228,17 +2228,17 @@ static bool_t WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCoun
         // Start descendants on indented lines; the caller controls spacing before the root
         if (current_node != root)
         {
-            is_valid = WriteByte(output, capacity, byteCount, CHAR_LF);
+            is_valid = WriteByte(output, capacity, offset, CHAR_LF);
             if (is_valid)
             {
-                is_valid = WriteIndent(output, capacity, byteCount, depth * INDENT_SPACES_PER_LEVEL);
+                is_valid = WriteIndent(output, capacity, offset, depth * INDENT_SPACES_PER_LEVEL);
             }
         }
 
         if (is_valid)
         {
             // Leaves use empty-element tags and need no separate closing tag
-            is_valid = WriteElementStart(output, capacity, byteCount, current_node);
+            is_valid = WriteElementStart(output, capacity, offset, current_node);
         }
         // Stop on invalid content or insufficient output space, preserving the failure
         if (FALSE == is_valid)
@@ -2287,14 +2287,14 @@ static bool_t WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCoun
             --depth;
 
             // Align the closing tag with this ancestor's opening tag
-            is_valid = WriteByte(output, capacity, byteCount, CHAR_LF);
+            is_valid = WriteByte(output, capacity, offset, CHAR_LF);
             if (is_valid)
             {
-                is_valid = WriteIndent(output, capacity, byteCount, depth * INDENT_SPACES_PER_LEVEL);
+                is_valid = WriteIndent(output, capacity, offset, depth * INDENT_SPACES_PER_LEVEL);
             }
             if (is_valid)
             {
-                is_valid = WriteElementEnd(output, capacity, byteCount, current_node);
+                is_valid = WriteElementEnd(output, capacity, offset, current_node);
             }
             if (FALSE == is_valid)
             {
@@ -2346,7 +2346,7 @@ static bool_t WriteElement(byte_t* output, uint64_t capacity, uint64_t* byteCoun
  * \par Details:
  *  Dispatches on node type; an unknown type returns FALSE.
  */
-static bool_t WriteRootNode(byte_t* output, uint64_t capacity, uint64_t* byteCount, const FACEOE_Utl_Xml_Node_t* node)
+static bool_t WriteRootNode(byte_t* output, uint64_t capacity, uint64_t* offset, const FACEOE_Utl_Xml_Node_t* node)
 {
     bool_t is_valid;
 
@@ -2354,12 +2354,12 @@ static bool_t WriteRootNode(byte_t* output, uint64_t capacity, uint64_t* byteCou
     {
         case FACEOE_UTL_XML_NODE_XML_DECLARATION:
         {
-            is_valid = WriteDeclaration(output, capacity, byteCount, node);
+            is_valid = WriteDeclaration(output, capacity, offset, node);
             break;
         }
         case FACEOE_UTL_XML_NODE_ELEMENT:
         {
-            is_valid = WriteElement(output, capacity, byteCount, node);
+            is_valid = WriteElement(output, capacity, offset, node);
             break;
         }
         default:
@@ -2377,32 +2377,32 @@ static bool_t WriteRootNode(byte_t* output, uint64_t capacity, uint64_t* byteCou
  * \par Details:
  *  Checks the output bound before copying a nonempty span.
  */
-static bool_t WriteBytes(byte_t* output, uint64_t capacity, uint64_t* byteCount, const byte_t* bytes, uint32_t numBytes)
+static bool_t WriteBytes(byte_t* output, uint64_t capacity, uint64_t* offset, const byte_t* bytes, uint32_t numBytes)
 {
     bool_t is_byte_count_valid;
     bool_t has_capacity_for_bytes;
     bool_t is_valid;
 
     LOGASSERT(NULL != output);
-    LOGASSERT(NULL != byteCount);
+    LOGASSERT(NULL != offset);
     LOGASSERT(NULL != bytes);
     LOGASSERT(0 < numBytes);
 
-    is_byte_count_valid = ((*byteCount) <= capacity);
+    is_byte_count_valid = ((*offset) <= capacity);
 
     is_valid = is_byte_count_valid;
 
     if (is_valid)
     {
-        has_capacity_for_bytes = (numBytes <= (capacity - (*byteCount)));
+        has_capacity_for_bytes = (numBytes <= (capacity - (*offset)));
 
         is_valid = has_capacity_for_bytes;
     }
 
     if (is_valid)
     {
-        (void)memcpy(output + (*byteCount), bytes, numBytes);
-        (*byteCount) += numBytes;
+        (void)memcpy(output + (*offset), bytes, numBytes);
+        (*offset) += numBytes;
     }
 
     return is_valid;
@@ -2413,11 +2413,11 @@ static bool_t WriteBytes(byte_t* output, uint64_t capacity, uint64_t* byteCount,
  * \par Details:
  *  Writes through WriteBytes with a one-byte span.
  */
-static bool_t WriteByte(byte_t* output, uint64_t capacity, uint64_t* byteCount, byte_t value)
+static bool_t WriteByte(byte_t* output, uint64_t capacity, uint64_t* offset, byte_t value)
 {
     bool_t is_valid;
 
-    is_valid = WriteBytes(output, capacity, byteCount, &value, 1);
+    is_valid = WriteBytes(output, capacity, offset, &value, 1);
 
     return is_valid;
 }
@@ -2427,7 +2427,7 @@ static bool_t WriteByte(byte_t* output, uint64_t capacity, uint64_t* byteCount, 
  * \par Details:
  *  Writes only spaces; callers write line breaks separately.
  */
-static bool_t WriteIndent(byte_t* output, uint64_t capacity, uint64_t* byteCount, uint32_t indentSpaceCount)
+static bool_t WriteIndent(byte_t* output, uint64_t capacity, uint64_t* offset, uint32_t indentSpaceCount)
 {
     bool_t   is_valid;
     uint32_t space_index;
@@ -2436,7 +2436,7 @@ static bool_t WriteIndent(byte_t* output, uint64_t capacity, uint64_t* byteCount
 
     for (space_index = 0; space_index < indentSpaceCount; ++space_index)
     {
-        is_valid = WriteByte(output, capacity, byteCount, CHAR_SPACE);
+        is_valid = WriteByte(output, capacity, offset, CHAR_SPACE);
 
         if (FALSE == is_valid)
         {
@@ -2457,7 +2457,7 @@ static bool_t WriteIndent(byte_t* output, uint64_t capacity, uint64_t* byteCount
  *  Checks XML characters first, then excludes characters that cannot be written
  *  literally or would be changed by attribute-value normalization.
  */
-bool_t FACEOE_Utl_Xml_IsAttributeValue(const byte_t* utf8Text, uint32_t byteCount)
+bool_t FACEOE_Utl_Xml_IsAttributeValue(const byte_t* utf8Text, uint32_t sizeOfUtf8Text)
 {
     bool_t   is_attribute_value;
     bool_t   is_ascii;
@@ -2470,9 +2470,9 @@ bool_t FACEOE_Utl_Xml_IsAttributeValue(const byte_t* utf8Text, uint32_t byteCoun
 
     is_attribute_value = TRUE;
 
-    if (IsString(utf8Text, byteCount))
+    if (IsString(utf8Text, sizeOfUtf8Text))
     {
-        for (byte_index = 0; byte_index < byteCount; ++byte_index)
+        for (byte_index = 0; byte_index < sizeOfUtf8Text; ++byte_index)
         {
             value_byte = utf8Text[byte_index];
             is_ascii   = (value_byte <= UTF8_ASCII_MAX_BYTE);

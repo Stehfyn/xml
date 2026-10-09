@@ -195,8 +195,8 @@ extern "C"
 #define TOOL_ZOOM_IN_LABEL        ("Zoom in")
 #define TOOL_ZOOM_OUT_LABEL       ("Zoom out")
 #define TOOL_FIT_LABEL            ("Fit layer")
-#define TOOL_GRID_LABEL           ("Millimetre grid")
-#define TOOL_SNAP_LABEL           ("Snap to millimetre")
+#define TOOL_GRID_LABEL           ("Millimeter grid")
+#define TOOL_SNAP_LABEL           ("Snap to millimeter")
 #define TOOL_ADD_LAYER_LABEL      ("Add layer")
 #define TOOL_ADD_WIDGET_LABEL     ("Add widget to the selection")
 #define TOOL_ADD_EXTENSION_LABEL  ("Add extension to the selected widget")
@@ -206,8 +206,8 @@ extern "C"
 #define TOOL_ALIGN_RIGHT_LABEL    ("Align right edges")
 #define TOOL_ALIGN_TOP_LABEL      ("Align top edges")
 #define TOOL_ALIGN_BOTTOM_LABEL   ("Align bottom edges")
-#define TOOL_ALIGN_CENTER_X_LABEL ("Align horizontal centres")
-#define TOOL_ALIGN_CENTER_Y_LABEL ("Align vertical centres")
+#define TOOL_ALIGN_CENTER_X_LABEL ("Align horizontal centers")
+#define TOOL_ALIGN_CENTER_Y_LABEL ("Align vertical centers")
 #define TOOL_DISTRIBUTE_X_LABEL   ("Distribute horizontally")
 #define TOOL_DISTRIBUTE_Y_LABEL   ("Distribute vertically")
 #define TOOL_ZOOM_SELECTION_LABEL ("Zoom to selection")
@@ -559,7 +559,7 @@ static const char_t c_hexDigits[] = "0123456789ABCDEF";
 
 /*************************************************************************************************/
 /**
- * \brief Parameter kinds for the values outside the Creation Structures: ApplicationId, LayerId, ContextNumber, Width, Height, and WidgetIdent.
+ * \brief Parameter descriptions for the values Arinc661_Definition_GetParameter does not describe: ApplicationId, LayerId, ContextNumber, Width, Height, and WidgetIdent.
  */
 static const Arinc661_Parameter_t c_ucharParameter  = {NULL, ARINC661_PARAMETER_UCHAR,  0, 0, NULL, NULL, 0};
 static const Arinc661_Parameter_t c_ushortParameter = {NULL, ARINC661_PARAMETER_USHORT, 0, 0, NULL, NULL, 0};
@@ -1888,7 +1888,7 @@ static const char_t* EditorStatusToString(int32_t status)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Uses forward slashes in joined paths so either folder separator spelling compares equally.
+ *  Writes every separator as a forward slash, so paths joined from either spelling compare equal.
  */
 static void JoinFolderPath(const char_t* folderPath, const char_t* fileName, char_t* filePath, uint32_t capacity)
 {
@@ -2468,9 +2468,9 @@ static uint32_t FindOwnedPropertyAt(const Arinc661_DefinitionEditor_Document_t* 
 /**
  * \par Details:
  *  A661_TRUE when the parameter lists it, otherwise the first listed constant; an empty
- *  string for text and sized bytes; four zero bytes for a region or layer request; zero
- *  digits for fixed bytes; DEFAULT_LAYER_SIZE for SizeX and SizeY, so a new widget is
- *  visible; zero otherwise.
+ *  string for text and sized bytes; four zero bytes for a region or layer request;
+ *  sizeOfValue zero bytes for fixed bytes; DEFAULT_LAYER_SIZE for SizeX and SizeY, so a new
+ *  widget is visible; zero otherwise.
  */
 static void DefaultParameterValue(const Arinc661_Parameter_t* parameter, char_t* value, uint32_t capacity)
 {
@@ -2500,12 +2500,12 @@ static void DefaultParameterValue(const Arinc661_Parameter_t* parameter, char_t*
     }
     else if (ARINC661_PARAMETER_BYTES == parameter->kind)
     {
-        LOGASSERT((parameter->byteCount * 2U) < capacity);
-        for (digit_index = 0; digit_index < (parameter->byteCount * 2U); ++digit_index)
+        LOGASSERT((parameter->sizeOfValue * 2U) < capacity);
+        for (digit_index = 0; digit_index < (parameter->sizeOfValue * 2U); ++digit_index)
         {
             value[digit_index] = '0';
         }
-        value[parameter->byteCount * 2U] = '\0';
+        value[parameter->sizeOfValue * 2U] = '\0';
     }
     else if ((0 == strncmp(PROPERTY_SIZE_X, parameter->name, sizeof(PROPERTY_SIZE_X))) || (0 == strncmp(PROPERTY_SIZE_Y, parameter->name, sizeof(PROPERTY_SIZE_Y))))
     {
@@ -2616,7 +2616,7 @@ static bool_t IsParameterValueValid(const Arinc661_Parameter_t* parameter, const
     }
     else if (ARINC661_PARAMETER_BYTES == parameter->kind)
     {
-        is_valid = (parameter->byteCount == HexByteCount(value));
+        is_valid = (parameter->sizeOfValue == HexByteCount(value));
     }
     else if (ARINC661_PARAMETER_SIZED_BYTES == parameter->kind)
     {
@@ -3544,16 +3544,22 @@ static uint32_t DuplicateWidget(Arinc661_DefinitionEditor_Document_t* document, 
 /*************************************************************************************************/
 /**
  * \par Details:
- *  After a single widget, its parent widget is selected, or layer 0 for a direct layer
- *  child; after a multi-selection, layer 0; after a layer, the definition.
+ *  After a single widget, its parent widget is selected, or its layer for a direct layer
+ *  child; after a multi-selection, the primary widget's layer; after a layer, the definition.
  */
 static void RemoveSelection(Arinc661_DefinitionEditor_Document_t* document)
 {
     uint32_t parent_index;
+    uint32_t layer_index;
     uint32_t index;
     uint32_t count;
 
-    count = SelectedCount(document);
+    count       = SelectedCount(document);
+    layer_index = 0;
+    if ((SELECTION_WIDGET == document->selectedKind) && (document->selectedIndex < document->definition.widgetCount))
+    {
+        layer_index = document->widgets[document->selectedIndex].layerIndex;
+    }
     if ((SELECTION_WIDGET == document->selectedKind) && (1 < count))
     {
         // Remove the unlocked multi-selection from the end so earlier indices stay valid
@@ -3566,7 +3572,7 @@ static void RemoveSelection(Arinc661_DefinitionEditor_Document_t* document)
         }
         ClearSelectionFlags(document);
         document->selectedKind  = SELECTION_LAYER;
-        document->selectedIndex = 0;
+        document->selectedIndex = layer_index;
         document->isDirty       = TRUE;
         document->status        = STATUS_WIDGET_REMOVED;
         return;
@@ -3581,7 +3587,7 @@ static void RemoveSelection(Arinc661_DefinitionEditor_Document_t* document)
         }
         RemoveWidgetSubtree(document, document->selectedIndex);
         document->selectedKind  = SELECTION_LAYER;
-        document->selectedIndex = 0;
+        document->selectedIndex = layer_index;
         if (INVALID_HIERARCHY_INDEX != parent_index)
         {
             document->selectedKind  = SELECTION_WIDGET;
@@ -4635,7 +4641,7 @@ static bool_t DrawFlagButton(Arinc661_Icon_t icon, const char_t* tooltip, bool_t
  * \par Details:
  *  Each clipboard entry goes after its parent's subtree, in clipboard order; parents inside
  *  a copied subtree are remapped and every copied widget gets a fresh WidgetIdent. The first
- *  pasted root becomes the selection. Without room for the whole clipboard, nothing is
+ *  pasted root becomes the selection. Without room for every clipboard widget, nothing is
  *  pasted and STATUS_WIDGET_ADD_FAILED is set.
  */
 static uint32_t InsertClipboard(Arinc661_DefinitionEditor_Document_t* document, uint32_t layerIndex, uint32_t parentIndex)
@@ -4816,7 +4822,7 @@ static void ClearSelectionFlags(Arinc661_DefinitionEditor_Document_t* document)
 /**
  * \par Details:
  *  Works on absolute reference points and sizes so widgets in different containers line up
- *  on screen; each widget's PosX and PosY are shifted by the difference. Distribution
+ *  on screen; each widget's PosX or PosY is shifted by the difference. Distribution
  *  spaces the widgets' left edges or bottom edges evenly between the two outermost.
  *  Extensions and locked widgets are left out; fewer than two widgets change nothing.
  */
@@ -8312,29 +8318,29 @@ void Arinc661_DefinitionEditor_MeasurePanes(const Arinc661_DefinitionEditor_t* e
  *  A binary Definition File starts with A661_DF_MAGIC_NUMBER; an XML one has a661_df as its
  *  document element, found after any declaration, comments, and other text before it.
  */
-bool_t Arinc661_DefinitionEditor_IsDefinitionFile(const byte_t* bytes, uint64_t byteCount)
+bool_t Arinc661_DefinitionEditor_IsDefinitionFile(const byte_t* bytes, uint64_t sizeOfBytes)
 {
     const char_t* text;
     const char_t* element;
     uint64_t      index;
     bool_t        is_definition;
 
-    is_definition = !!((1 < byteCount) && (BINARY_MAGIC_HIGH == bytes[0]) && (BINARY_MAGIC_LOW == bytes[1]));
+    is_definition = !!((1 < sizeOfBytes) && (BINARY_MAGIC_HIGH == bytes[0]) && (BINARY_MAGIC_LOW == bytes[1]));
     if (FALSE == is_definition)
     {
         text  = (const char_t*)bytes;
         index = 0;
         // Skip the declaration, comments, and processing instructions to the first element
-        while (index < byteCount)
+        while (index < sizeOfBytes)
         {
             if ('<' != text[index])
             {
                 index += 1;
                 continue;
             }
-            if (((index + 1) < byteCount) && (('?' == text[index + 1]) || ('!' == text[index + 1])))
+            if (((index + 1) < sizeOfBytes) && (('?' == text[index + 1]) || ('!' == text[index + 1])))
             {
-                while (index < byteCount)
+                while (index < sizeOfBytes)
                 {
                     if ('>' == text[index])
                     {
@@ -8347,7 +8353,7 @@ bool_t Arinc661_DefinitionEditor_IsDefinitionFile(const byte_t* bytes, uint64_t 
             break;
         }
         element       = DEFINITION_ROOT_ELEMENT;
-        is_definition = !!(((index + ImStrlen(element)) < byteCount) && (0 == memcmp(&text[index], element, ImStrlen(element))));
+        is_definition = !!(((index + ImStrlen(element)) < sizeOfBytes) && (0 == memcmp(&text[index], element, ImStrlen(element))));
         if (is_definition)
         {
             // Require a complete element name
@@ -9286,7 +9292,8 @@ void Arinc661_DefinitionEditor_SetStatusNote(Arinc661_DefinitionEditor_t* editor
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Same placement rule as Arinc661_DefinitionEditor_AddWidget, with the type set.
+ *  Places the widget as Arinc661_DefinitionEditor_AddWidget does, except that a selected
+ *  container whose parent rules do not allow the type gets a sibling instead of a child.
  */
 void Arinc661_DefinitionEditor_AddWidgetOfType(Arinc661_DefinitionEditor_t* editor, const char_t* type)
 {

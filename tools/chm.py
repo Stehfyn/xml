@@ -53,7 +53,7 @@ for code in sorted(c for c in w if c.endswith('_EXTENSION')):
     hhc.append('<LI><OBJECT type="text/sitemap"><param name="Name" value="%s"><param name="Local" value="%s.htm"></OBJECT>' % (code, code))
 hhc.append('</UL></UL></BODY></HTML>')
 open(os.path.join(root, 'arinc661.hhc'), 'w', encoding='utf-8').write('\n'.join(hhc))
-# Index (.hhk): every FACE and widget topic, plus every parameter name linked to up to 40 widgets
+# Index (.hhk): every FACE, widget, and extension topic, plus each parameter name linked to up to 40 types that list it
 hhk = ['<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN"><HTML><BODY><UL>']
 for n, d in face:
     hhk.append('<LI><OBJECT type="text/sitemap"><param name="Name" value="%s"><param name="Local" value="%s.htm"></OBJECT>' % (n, n))

@@ -6,8 +6,8 @@
 **===============================================================================================*/
 
 /**
- * FACE Technical Standard, Edition 3.1, Appendix H.3, DisplayManagement.xsd:
- * https://www.vdl.afrl.af.mil/programs/arsenl/files/FACE%20Technical%20Standard%20v3.1.pdf
+ * FACE Technical Standard, Edition 3.2, Appendix H.3, DisplayManagement.xsd:
+ * https://publications.opengroup.org/c232
  */
 
 /*=================================================================================================
@@ -22,7 +22,7 @@
 ** 3.1 Macros
 **===============================================================================================*/
 
-/* Arbitrarily chosen string capacities; these are not limits imposed by the XML schemas. */
+/* Arbitrarily chosen string capacities; these are not limits imposed by the XML schema. */
 #define FACEOE_DISPLAYMANAGEMENT_MAX_NAME_BYTES        (128UL)      ///< Name or type string capacity in bytes, including the zero terminator
 #define FACEOE_DISPLAYMANAGEMENT_MAX_DESCRIPTION_BYTES (256UL)      ///< Description string capacity in bytes, including the zero terminator
 #define FACEOE_DISPLAYMANAGEMENT_MAX_PATH_BYTES        (512UL)      ///< File path string capacity in bytes, including the zero terminator
@@ -34,7 +34,7 @@
 /* Arbitrarily chosen default workspace size, with room for these XML arrays and formatted values. */
 #define FACEOE_DISPLAYMANAGEMENT_WORKSPACE_BYTES       (16777216UL) ///< Workspace buffer size for temporary XML arrays and formatted value strings
 
-/* FACE Edition 3.1, Appendix H.3, DisplayManagement.xsd, Units simpleType. */
+/* FACE Edition 3.2, Appendix H.3, DisplayManagement.xsd, Units simpleType. */
 #define FACEOE_DISPLAYMANAGEMENT_XML_UNIT_INCH   ("inch")   ///< XML spelling for FACEOE_DISPLAYMANAGEMENT_UNIT_INCH
 #define FACEOE_DISPLAYMANAGEMENT_XML_UNIT_MM     ("mm")     ///< XML spelling for FACEOE_DISPLAYMANAGEMENT_UNIT_MM
 #define FACEOE_DISPLAYMANAGEMENT_XML_UNIT_SCREEN ("screen") ///< XML spelling for FACEOE_DISPLAYMANAGEMENT_UNIT_SCREEN
@@ -46,7 +46,7 @@
 
 /*************************************************************************************************/
 /**
- * \brief Unit values in FACE Edition 3.1, Appendix H.3, Units simpleType.
+ * \brief Unit values in FACE Edition 3.2, Appendix H.3, Units simpleType.
  */
 typedef enum FACEOE_DisplayManagement_Unit_e
 {
@@ -61,7 +61,7 @@ typedef enum FACEOE_DisplayManagement_Unit_e
  * \brief FACE display management Size values.
  *
  * \par Details:
- *  FACE Edition 3.1, Appendix H.3, Size complexType; sections H.3.4 and H.3.5.
+ *  FACE Edition 3.2, Appendix H.3, Size complexType; sections H.3.4 and H.3.5.
  */
 typedef struct FACEOE_DisplayManagement_Size_s
 {
@@ -75,7 +75,7 @@ typedef struct FACEOE_DisplayManagement_Size_s
  * \brief FACE display management Rectangle values.
  *
  * \par Details:
- *  FACE Edition 3.1, Appendix H.3, Rectangle complexType, used by Window.pixelArea.
+ *  FACE Edition 3.2, Appendix H.3, Rectangle complexType, used by Window.pixelArea.
  */
 typedef struct FACEOE_DisplayManagement_Rectangle_s
 {
@@ -90,7 +90,7 @@ typedef struct FACEOE_DisplayManagement_Rectangle_s
  * \brief FACE display management Scale values.
  *
  * \par Details:
- *  FACE Edition 3.1, Appendix H.3, Scale complexType, used by Window.scalingFactor.
+ *  FACE Edition 3.2, Appendix H.3, Scale complexType, used by Window.scalingFactor.
  */
 typedef struct FACEOE_DisplayManagement_Scale_s
 {
@@ -105,7 +105,7 @@ typedef struct FACEOE_DisplayManagement_Scale_s
  * \brief FACE display management Screen values.
  *
  * \par Details:
- *  FACE Edition 3.1, Appendix H.3, Screen complexType and sections H.3.3 through H.3.5.
+ *  FACE Edition 3.2, Appendix H.3, Screen complexType and sections H.3.3 through H.3.5.
  */
 typedef struct FACEOE_DisplayManagement_Screen_s
 {
@@ -119,7 +119,7 @@ typedef struct FACEOE_DisplayManagement_Screen_s
  * \brief FACE display management layout values and their owning screen.
  *
  * \par Details:
- *  FACE Edition 3.1, Appendix H.3, Screen.layout element and section H.3.6.
+ *  FACE Edition 3.2, Appendix H.3, Screen.layout element and section H.3.6.
  */
 typedef struct FACEOE_DisplayManagement_Layout_s
 {
@@ -132,7 +132,7 @@ typedef struct FACEOE_DisplayManagement_Layout_s
  * \brief FACE display management Window values and their owning layout.
  *
  * \par Details:
- *  FACE Edition 3.1, Appendix H.3, Window complexType and section H.3.2.
+ *  FACE Edition 3.2, Appendix H.3, Window complexType and section H.3.2.
  */
 typedef struct FACEOE_DisplayManagement_Window_s
 {
@@ -149,15 +149,15 @@ typedef struct FACEOE_DisplayManagement_Window_s
  * \brief FACE display management UserApplication values.
  *
  * \par Details:
- *  FACE Edition 3.1, Appendix H.3, UserApplication complexType and section H.3.1.
+ *  FACE Edition 3.2, Appendix H.3, UserApplication complexType and section H.3.1.
  */
 typedef struct FACEOE_DisplayManagement_UserApplication_s
 {
-    int64_t applicationId;                                          ///< ARINC application identifier
+    int64_t applicationId;                                          ///< ARINC 661 application identifier
     int64_t window;                                                 ///< Destination window identifier
     char_t  dFPath[FACEOE_DISPLAYMANAGEMENT_MAX_PATH_BYTES];        ///< Zero-terminated Definition File path
     char_t  styleFilePath[FACEOE_DISPLAYMANAGEMENT_MAX_PATH_BYTES]; ///< Zero-terminated optional style file path
-    bool_t  mapSourceLayer;                                         ///< mapSourceLayer attribute; FALSE when absent
+    bool_t  mapSourceLayer;                                         ///< mapSourceLayer attribute, FALSE when absent; the context check expects it exactly when the definition has a MapHorz_Source or MapVert_Source widget
     bool_t  visible;                                                ///< TRUE when the definition is visible by default; FALSE when absent
 } FACEOE_DisplayManagement_UserApplication_t;
 
@@ -166,7 +166,7 @@ typedef struct FACEOE_DisplayManagement_UserApplication_s
  * \brief FACE display management ExternalSource attributes.
  *
  * \par Details:
- *  FACE Edition 3.1, Appendix H.3, ExternalSource complexType and section H.3.7.
+ *  FACE Edition 3.2, Appendix H.3, ExternalSource complexType and section H.3.7.
  */
 typedef struct FACEOE_DisplayManagement_ExternalSource_s
 {
@@ -180,7 +180,7 @@ typedef struct FACEOE_DisplayManagement_ExternalSource_s
  * \brief Caller-owned FACE display management configuration data.
  *
  * \par Details:
- *  FACE Edition 3.1, Appendix H.3, configuration root element.
+ *  FACE Edition 3.2, Appendix H.3, configuration root element.
  */
 typedef struct FACEOE_DisplayManagement_Configuration_s
 {
@@ -199,7 +199,7 @@ typedef struct FACEOE_DisplayManagement_Configuration_s
     uint32_t                                    windowCount;                                             ///< Windows in use
     uint32_t                                    userApplicationCount;                                    ///< User applications in use
     uint32_t                                    externalSourceCount;                                     ///< External sources in use
-    bool_t                                      hasMetaData;                                             ///< TRUE when an empty metaData element is present
+    bool_t                                      hasMetaData;                                             ///< TRUE when a metaData element is present; written as an empty element
     bool_t                                      hasXmlDeclaration;                                       ///< TRUE when the optional XML declaration was read or is to be written
     char_t                                      schemaLocation[FACEOE_DISPLAYMANAGEMENT_MAX_PATH_BYTES]; ///< Zero-terminated no-namespace schema location; empty selects H3.xsd when writing
 } FACEOE_DisplayManagement_Configuration_t;
@@ -221,10 +221,10 @@ typedef struct FACEOE_DisplayManagement_Configuration_s
  * \brief Reads a display management configuration from memory into caller-owned data.
  *
  * \par Details:
- *  FACE Technical Standard, Edition 3.1, Appendix H.3, DisplayManagement.xsd
- *  defines configuration and its screen, ua, and externalSource children;
+ *  FACE Technical Standard, Edition 3.2, Appendix H.3, DisplayManagement.xsd
+ *  defines configuration and its metaData, screen, ua, and externalSource children;
  *  sections H.3.1 through H.3.7 describe those values:
- *  https://www.vdl.afrl.af.mil/programs/arsenl/files/FACE%20Technical%20Standard%20v3.1.pdf
+ *  https://publications.opengroup.org/c232
  *  This function copies strings and typed values into the caller's arrays.
  *  The result retains no pointers into the input buffer or temporary workspace.
  *  The optional XML declaration is recorded in hasXmlDeclaration. A root
@@ -233,7 +233,7 @@ typedef struct FACEOE_DisplayManagement_Configuration_s
  *  The schema hint is retained as text without loading or validating an XSD.
  *  FACEOE_Utl_Xml_ReadDocument does not support text content, such as in
  *  metaData or description, and this function rejects externalSource children.
- *  The input buffer must have one writable byte after byteCount bytes; the XML
+ *  The input buffer must have one writable byte after sizeOfBuffer bytes; the XML
  *  reader writes a zero terminator there.
  *
  * \par Requirements:
@@ -246,23 +246,23 @@ typedef struct FACEOE_DisplayManagement_Configuration_s
  *
  * \param[in,out] configuration   Configuration with storage pointers and capacities initialized
  * \param[in,out] buffer          Input XML bytes, followed by one writable byte
- * \param[in]     byteCount       Number of input bytes, excluding the extra byte
+ * \param[in]     sizeOfBuffer    Number of input bytes, excluding the extra byte
  * \param[in,out] workspace       Eight-byte-aligned temporary storage
  * \param[in]     workspaceSize   Number of temporary bytes
  *
- * \retval        TRUE        if the supported configuration values were read.
- * \retval        FALSE       if the XML is invalid or unsupported, a value is invalid, or supplied storage is insufficient.
+ * \retval        TRUE            if the supported configuration values were read.
+ * \retval        FALSE           if the XML is invalid or unsupported, a value is invalid, or supplied storage is insufficient.
  */
-bool_t FACEOE_DisplayManagement_ReadConfiguration(FACEOE_DisplayManagement_Configuration_t* configuration, byte_t* buffer, uint64_t byteCount, void* workspace, uint64_t workspaceSize);
+bool_t FACEOE_DisplayManagement_ReadConfiguration(FACEOE_DisplayManagement_Configuration_t* configuration, byte_t* buffer, uint64_t sizeOfBuffer, void* workspace, uint64_t workspaceSize);
 
 /*************************************************************************************************/
 /**
  * \brief Writes caller-owned display management configuration data to memory.
  *
  * \par Details:
- *  Writes the FACE Edition 3.1, Appendix H.3, DisplayManagement.xsd
+ *  Writes the FACE Edition 3.2, Appendix H.3, DisplayManagement.xsd
  *  configuration element from typed values:
- *  https://www.vdl.afrl.af.mil/programs/arsenl/files/FACE%20Technical%20Standard%20v3.1.pdf
+ *  https://publications.opengroup.org/c232
  *  metaData (when hasMetaData is TRUE) and each window description are written
  *  as empty elements. FACEOE_Utl_Xml_WriteDocument cannot write text content, so
  *  a nonempty window description makes this function return zero.

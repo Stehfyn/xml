@@ -80,7 +80,8 @@ typedef struct Arinc661_Configuration_Document_s
 
 /*************************************************************************************************/
 /**
- * \brief File browser and fixed document slots for the editor.
+ * \brief Configuration editor state: the document slots, the file browser, the preview draw list
+ *  and bounds, and the scene drag.
  */
 struct Arinc661_Context_s;
 
@@ -132,7 +133,7 @@ typedef struct Arinc661_Configuration_Editor_s
 
 /*************************************************************************************************/
 /**
- * \brief Initializes every editor field and its owned array storage.
+ * \brief Initializes a zero-filled editor and its document slots.
  *
  * \param[in,out] editor   Editor state
  *
@@ -142,7 +143,8 @@ void Arinc661_Configuration_Initialize(Arinc661_Configuration_Editor_t* editor);
 
 /*************************************************************************************************/
 /**
- * \brief Draws the whole editor in one full-viewport ImGui window, then ends the frame.
+ * \brief Draws the whole editor in one full-viewport ImGui window, then commits the frame's changes
+ *  to the undo history.
  *
  * \param[in,out] editor   Editor state
  *
@@ -464,7 +466,8 @@ void Arinc661_Configuration_AddWindow(Arinc661_Configuration_Editor_t* editor);
 
 /*************************************************************************************************/
 /**
- * \brief Adds a user application to the active document, targeting the selected window.
+ * \brief Adds a user application to the active document, targeting the selected window, else the
+ *  first window.
  *
  * \param[in,out] editor   Editor state
  *
@@ -582,7 +585,7 @@ uint32_t Arinc661_Configuration_RepointDefinition(Arinc661_Configuration_Editor_
  * \brief Points one user application at a Definition File.
  *
  * \param[in,out] editor             Editor state
- * \param[in]     documentIndex      Configuration document slot
+ * \param[in]     documentIndex      Document slot
  * \param[in]     applicationIndex   User application array index
  * \param[in]     dFPath             Definition File name
  *

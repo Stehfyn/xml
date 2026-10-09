@@ -115,15 +115,15 @@ typedef struct FACEOE_Utl_Xml_Document_s
  * \par Requirements:
  *  - 001 This function shall accept an empty span and reject invalid UTF-8 or non-Char code points.
  *  - 002 This function shall return FALSE for <, &, double quote, tab, LF, and CR.
- *  - 003 This function shall fail an assertion if utf8Text is NULL or byteCount exceeds FACEOE_UTL_XML_MAX_VALUE_BYTES.
+ *  - 003 This function shall fail an assertion if utf8Text is NULL or sizeOfUtf8Text exceeds FACEOE_UTL_XML_MAX_VALUE_BYTES.
  *
- * \param[in] utf8Text    Non-NULL UTF-8 byte span
- * \param[in] byteCount   Number of bytes in the span
+ * \param[in] utf8Text         Non-NULL UTF-8 byte span
+ * \param[in] sizeOfUtf8Text   Number of bytes in the span
  *
- * \retval    TRUE        if the span can be written directly as an attribute value.
- * \retval    FALSE       otherwise
+ * \retval    TRUE             if the span can be written directly as an attribute value.
+ * \retval    FALSE            otherwise.
  */
-bool_t FACEOE_Utl_Xml_IsAttributeValue(const byte_t* utf8Text, uint32_t byteCount);
+bool_t FACEOE_Utl_Xml_IsAttributeValue(const byte_t* utf8Text, uint32_t sizeOfUtf8Text);
 
 /*************************************************************************************************/
 /**
@@ -189,7 +189,7 @@ void FACEOE_Utl_Xml_InitializeDocument(FACEOE_Utl_Xml_Document_t* document);
  * \par Requirements:
  *  - 001 This function shall fail an assertion unless the name is an XML Name of at most FACEOE_UTL_XML_MAX_NAME_BYTES and the value passes FACEOE_Utl_Xml_IsAttributeValue.
  *  - 002 This function shall fail an assertion if the element already has FACEOE_UTL_XML_NODE_MAX_ATTRIBUTES attributes.
- *  - 003 This function shall fail an assertion for NULL arguments, a NULL name or value, a non-element node, a duplicate name, or an already linked attribute.
+ *  - 003 This function shall fail an assertion for NULL arguments, a NULL name or value, a non-element node, a duplicate name, or an attribute with a next link.
  *
  * \param[in,out] node        Element receiving the attribute
  * \param[in,out] attribute   Initialized, unlinked caller-owned attribute

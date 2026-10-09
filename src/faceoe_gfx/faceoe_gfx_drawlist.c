@@ -24,7 +24,7 @@
 **===============================================================================================*/
 
 #define ARC_MAX_POINTS      (130)
-#define ARC_SEGMENT_RADIANS (0.0873f) /* about 5 degrees */
+#define ARC_SEGMENT_RADIANS (0.0873f) ///< About 5 degrees
 #define TWO_PI              (6.28318530718f)
 
 /*=================================================================================================
@@ -47,9 +47,9 @@
 /**
  * \brief Returns the top of the transform stack.
  *
- * \param drawList   Target draw list
+ * \param[in] drawList   Target draw list
  *
- * \retval FACEOE_Gfx_Transform_t*   Top of the transform stack.
+ * \retval    FACEOE_Gfx_Transform_t*   Top of the transform stack.
  */
 static FACEOE_Gfx_Transform_t* CurrentTransform(FACEOE_Gfx_DrawList_t* drawList);
 
@@ -57,12 +57,12 @@ static FACEOE_Gfx_Transform_t* CurrentTransform(FACEOE_Gfx_DrawList_t* drawList)
 /**
  * \brief Maps the points through the current transform and appends a zeroed command of that kind.
  *
- * \param drawList   Target draw list
- * \param kind       Command kind
- * \param points     Local points; may be NULL when count is 0
- * \param count      Number of points
+ * \param[in,out] drawList   Target draw list
+ * \param[in]     kind       Command kind
+ * \param[in]     points     Local points; may be NULL when count is 0
+ * \param[in]     count      Number of points
  *
- * \retval FACEOE_Gfx_Command_t*   New command, or NULL (with isOverflowed set) when storage is exhausted.
+ * \retval        FACEOE_Gfx_Command_t*   New command, or NULL (with isOverflowed set) when storage is exhausted.
  */
 static FACEOE_Gfx_Command_t* AppendCommand(FACEOE_Gfx_DrawList_t* drawList, FACEOE_Gfx_CommandKind_t kind, const FACEOE_Gfx_Point_t* points, uint32_t count);
 
@@ -70,16 +70,16 @@ static FACEOE_Gfx_Command_t* AppendCommand(FACEOE_Gfx_DrawList_t* drawList, FACE
 /**
  * \brief Samples an elliptical arc counter-clockwise from the start to the end angle.
  *
- * \param centerX        Local X of the center
- * \param centerY        Local Y of the center
- * \param radiusX        Local X radius
- * \param radiusY        Local Y radius
- * \param startRadians   Start angle
- * \param endRadians     End angle; a negative sweep gains one turn, and the sweep is capped at one turn
- * \param points         Receives the sampled points
- * \param capacity       Maximum number of points to write, at least 2
+ * \param[in]  centerX        Local X of the center
+ * \param[in]  centerY        Local Y of the center
+ * \param[in]  radiusX        Local X radius
+ * \param[in]  radiusY        Local Y radius
+ * \param[in]  startRadians   Start angle
+ * \param[in]  endRadians     End angle; a negative sweep gains one turn, and the sweep is capped at one turn
+ * \param[out] points         Receives the sampled points
+ * \param[in]  capacity       Maximum number of points to write, at least 2
  *
- * \retval uint32_t   Points written.
+ * \retval     uint32_t   Points written.
  */
 static uint32_t ArcPoints(float32_t centerX, float32_t centerY, float32_t radiusX, float32_t radiusY, float32_t startRadians, float32_t endRadians, FACEOE_Gfx_Point_t* points, uint32_t capacity);
 
@@ -87,13 +87,13 @@ static uint32_t ArcPoints(float32_t centerX, float32_t centerY, float32_t radius
 /**
  * \brief Writes the four corners of a local box, starting at (x, y).
  *
- * \param x        Local X of one corner
- * \param y        Local Y of that corner
- * \param width    Local width
- * \param height   Local height
- * \param points   Receives four points
+ * \param[in]  x        Local X of one corner
+ * \param[in]  y        Local Y of that corner
+ * \param[in]  width    Local width
+ * \param[in]  height   Local height
+ * \param[out] points   Receives four points
  *
- * \retval None
+ * \retval     None
  */
 static void BoxPoints(float32_t x, float32_t y, float32_t width, float32_t height, FACEOE_Gfx_Point_t* points);
 
@@ -101,14 +101,14 @@ static void BoxPoints(float32_t x, float32_t y, float32_t width, float32_t heigh
 /**
  * \brief Maps a local box and returns its axis-aligned bounds as two points.
  *
- * \param drawList   Target draw list
- * \param x          Local X of one corner
- * \param y          Local Y of that corner
- * \param width      Local width
- * \param height     Local height
- * \param box        Receives the minimum and maximum corners in output units
+ * \param[in]  drawList   Target draw list
+ * \param[in]  x          Local X of one corner
+ * \param[in]  y          Local Y of that corner
+ * \param[in]  width      Local width
+ * \param[in]  height     Local height
+ * \param[out] box        Receives the minimum and maximum corners in output units
  *
- * \retval None
+ * \retval     None
  */
 static void MappedBox(const FACEOE_Gfx_DrawList_t* drawList, float32_t x, float32_t y, float32_t width, float32_t height, FACEOE_Gfx_Point_t* box);
 
@@ -116,22 +116,23 @@ static void MappedBox(const FACEOE_Gfx_DrawList_t* drawList, float32_t x, float3
 /**
  * \brief Appends a zeroed command whose points are already in output units.
  *
- * \param drawList   Target draw list
- * \param kind       Command kind
- * \param points     Output points
- * \param count      Number of points
+ * \param[in,out] drawList   Target draw list
+ * \param[in]     kind       Command kind
+ * \param[in]     points     Output points
+ * \param[in]     count      Number of points
  *
- * \retval FACEOE_Gfx_Command_t*   New command, or NULL (with isOverflowed set) when storage is exhausted.
+ * \retval        FACEOE_Gfx_Command_t*   New command, or NULL (with isOverflowed set) when storage is exhausted.
  */
 static FACEOE_Gfx_Command_t* AppendMappedCommand(FACEOE_Gfx_DrawList_t* drawList, FACEOE_Gfx_CommandKind_t kind, const FACEOE_Gfx_Point_t* points, uint32_t count);
 
 /*=================================================================================================
-** 4. STATIC FUNCTIONS
+** 4. PRIVATE FUNCTIONS
 **===============================================================================================*/
 
 /*************************************************************************************************/
 /**
- * \brief Returns the top of the transform stack.
+ * \par Details:
+ *  None
  */
 static FACEOE_Gfx_Transform_t* CurrentTransform(FACEOE_Gfx_DrawList_t* drawList)
 {
@@ -140,9 +141,8 @@ static FACEOE_Gfx_Transform_t* CurrentTransform(FACEOE_Gfx_DrawList_t* drawList)
 
 /*************************************************************************************************/
 /**
- * \brief Maps the points through the current transform and appends a command.
- *
- * \retval FACEOE_Gfx_Command_t*   New command, or NULL when storage is exhausted.
+ * \par Details:
+ *  None
  */
 static FACEOE_Gfx_Command_t* AppendCommand(FACEOE_Gfx_DrawList_t* drawList, FACEOE_Gfx_CommandKind_t kind, const FACEOE_Gfx_Point_t* points, uint32_t count)
 {
@@ -174,9 +174,8 @@ static FACEOE_Gfx_Command_t* AppendCommand(FACEOE_Gfx_DrawList_t* drawList, FACE
 
 /*************************************************************************************************/
 /**
- * \brief Samples an elliptical arc counter-clockwise from the start to the end angle.
- *
- * \retval uint32_t   Points written.
+ * \par Details:
+ *  Uses one segment per ARC_SEGMENT_RADIANS of sweep, rounded up, at least one and at most capacity - 1.
  */
 static uint32_t ArcPoints(float32_t centerX, float32_t centerY, float32_t radiusX, float32_t radiusY, float32_t startRadians, float32_t endRadians, FACEOE_Gfx_Point_t* points, uint32_t capacity)
 {
@@ -215,7 +214,8 @@ static uint32_t ArcPoints(float32_t centerX, float32_t centerY, float32_t radius
 
 /*************************************************************************************************/
 /**
- * \brief Fills the four corners of a local box.
+ * \par Details:
+ *  None
  */
 static void BoxPoints(float32_t x, float32_t y, float32_t width, float32_t height, FACEOE_Gfx_Point_t* points)
 {

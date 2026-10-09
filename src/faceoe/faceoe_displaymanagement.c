@@ -3,8 +3,8 @@
 **===============================================================================================*/
 
 /**
- * FACE Technical Standard, Edition 3.1, Appendix H.3, DisplayManagement.xsd:
- * https://www.vdl.afrl.af.mil/programs/arsenl/files/FACE%20Technical%20Standard%20v3.1.pdf
+ * FACE Technical Standard, Edition 3.2, Appendix H.3, DisplayManagement.xsd:
+ * https://publications.opengroup.org/c232
  */
 
 /*=================================================================================================
@@ -33,7 +33,7 @@
 #define XML_DECIMAL_TEXT_BYTES (112UL)   ///< Fixed-point formatting buffer bytes, including the zero terminator
 #define XML_DECIMAL_MAX_PRECISION (60) ///< Most fractional digits tried; the smallest float32_t subnormal needs 45
 
-/* FACE Edition 3.1, Appendix H.3, DisplayManagement.xsd: configuration and child elements. */
+/* FACE Edition 3.2, Appendix H.3, DisplayManagement.xsd, element names. */
 #define DMC_ELEMENT_CONFIGURATION       ("configuration")
 #define DMC_ELEMENT_METADATA            ("metaData")
 #define DMC_ELEMENT_SCREEN              ("screen")
@@ -53,7 +53,7 @@
 #define XML_SCHEMA_INSTANCE_NAMESPACE ("http://www.w3.org/2001/XMLSchema-instance")
 #define DMC_DEFAULT_SCHEMA_LOCATION   ("H3.xsd")
 
-/* FACE Edition 3.1, Appendix H.3, attribute names. */
+/* FACE Edition 3.2, Appendix H.3, attribute names. */
 #define XML_ATTRIBUTE_ID                 ("id")
 #define XML_ATTRIBUTE_NAME               ("name")
 #define XML_ATTRIBUTE_WIDTH              ("width")
@@ -73,7 +73,7 @@
 #define XML_ATTRIBUTE_VISIBLE            ("visible")
 #define XML_ATTRIBUTE_TYPE               ("type")
 
-/* FACE Edition 3.1, Appendix H.3, UserApplication mapSourceLayer and visible (xs:boolean). */
+/* FACE Edition 3.2, Appendix H.3, UserApplication mapSourceLayer and visible (xs:boolean). */
 #define XML_BOOLEAN_TRUE  ("true")
 #define XML_BOOLEAN_FALSE ("false")
 #define XML_BOOLEAN_ONE   ("1")
@@ -115,14 +115,14 @@ typedef struct XmlWorkspace_s
 /**
  * \brief Divides caller-owned temporary bytes into XML reader and writer storage.
  *
- * \param[out] xml         Partitioned temporary storage
- * \param[in]  bytes       Eight-byte-aligned workspace bytes
- * \param[in]  byteCount   Workspace size
+ * \param[out] xml           Partitioned temporary storage
+ * \param[in]  bytes         Eight-byte-aligned workspace bytes
+ * \param[in]  sizeOfBytes   Workspace size
  *
- * \retval     TRUE        if the workspace is aligned and large enough.
- * \retval     FALSE       if the workspace is too small or misaligned.
+ * \retval     TRUE          if the workspace is aligned and large enough.
+ * \retval     FALSE         if the workspace is too small or misaligned.
  */
-static bool_t InitializeXmlWorkspace(XmlWorkspace_t* xml, void* bytes, uint64_t byteCount);
+static bool_t InitializeXmlWorkspace(XmlWorkspace_t* xml, void* bytes, uint64_t sizeOfBytes);
 
 /*************************************************************************************************/
 /**
@@ -229,7 +229,7 @@ static bool_t ReadDecimal(const FACEOE_Utl_Xml_Node_t* node, const char_t* name,
  * \brief Reads one FACE Units attribute.
  *
  * \par Details:
- *  FACE Edition 3.1, Appendix H.3, Units simpleType and Size/Scale defaults.
+ *  FACE Edition 3.2, Appendix H.3, Units simpleType and Size/Scale defaults.
  *
  * \param[in]  node          Element containing the attribute
  * \param[in]  name          Attribute name
@@ -246,7 +246,7 @@ static bool_t ReadUnit(const FACEOE_Utl_Xml_Node_t* node, const char_t* name, FA
  * \brief Reads an optional XML Schema boolean attribute.
  *
  * \par Details:
- *  FACE Edition 3.1, Appendix H.3, UserApplication mapSourceLayer and visible.
+ *  FACE Edition 3.2, Appendix H.3, UserApplication mapSourceLayer and visible.
  *
  * \param[in]  node    Element containing the attribute
  * \param[in]  name    Attribute name
@@ -279,7 +279,7 @@ static FACEOE_Utl_Xml_Node_t* AppendElement(XmlWorkspace_t* xml, const char_t* n
  * \param[in]     value   Attribute value
  *
  * \retval        TRUE        if the attribute was appended.
- * \retval        FALSE       if value is NULL, storage is exhausted, or the value cannot be written directly.
+ * \retval        FALSE       if value is NULL, storage is exhausted, or the value cannot be written literally.
  */
 static bool_t AppendAttribute(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* node, const char_t* name, const char_t* value);
 
@@ -292,7 +292,7 @@ static bool_t AppendAttribute(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* node, 
  * \param[in]     configuration   Configuration containing the schema location
  *
  * \retval        TRUE            if both root attributes were appended.
- * \retval        FALSE           if the location cannot be written directly or attribute storage is exhausted.
+ * \retval        FALSE           if the location cannot be written literally or attribute storage is exhausted.
  */
 static bool_t WriteConfigurationSchema(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* root, const FACEOE_DisplayManagement_Configuration_t* configuration);
 
@@ -364,13 +364,13 @@ static FACEOE_Utl_Xml_Node_t* FindDocumentElement(const FACEOE_Utl_Xml_Document_
  * \brief Reads a FACE Size element.
  *
  * \par Details:
- *  FACE Edition 3.1, Appendix H.3, Size complexType; sections H.3.4 and H.3.5.
+ *  FACE Edition 3.2, Appendix H.3, Size complexType; sections H.3.4 and H.3.5.
  *
  * \param[in]  node   Element with width, height, and optional units
  * \param[out] size   Parsed size
  *
- * \retval     TRUE        if required values are valid.
- * \retval     FALSE       if a required value is absent or invalid.
+ * \retval     TRUE        if all values are valid.
+ * \retval     FALSE       if a required value is absent or a value is invalid.
  */
 static bool_t ReadSize(const FACEOE_Utl_Xml_Node_t* node, FACEOE_DisplayManagement_Size_t* size);
 
@@ -379,7 +379,7 @@ static bool_t ReadSize(const FACEOE_Utl_Xml_Node_t* node, FACEOE_DisplayManageme
  * \brief Reads a FACE Rectangle element.
  *
  * \par Details:
- *  FACE Edition 3.1, Appendix H.3, Rectangle complexType (Window.pixelArea).
+ *  FACE Edition 3.2, Appendix H.3, Rectangle complexType (Window.pixelArea).
  *
  * \param[in]  node        Element with x, y, width, and height
  * \param[out] rectangle   Parsed rectangle
@@ -394,28 +394,28 @@ static bool_t ReadRectangle(const FACEOE_Utl_Xml_Node_t* node, FACEOE_DisplayMan
  * \brief Reads a FACE Scale element.
  *
  * \par Details:
- *  FACE Edition 3.1, Appendix H.3, Scale complexType (Window.scalingFactor).
+ *  FACE Edition 3.2, Appendix H.3, Scale complexType (Window.scalingFactor).
  *
  * \param[in]  node    Element with scale factors and optional units
  * \param[out] scale   Parsed scaling factor
  *
- * \retval     TRUE        if required values are valid.
- * \retval     FALSE       if a required value is absent or invalid.
+ * \retval     TRUE        if all values are valid.
+ * \retval     FALSE       if a required value is absent or a value is invalid.
  */
 static bool_t ReadScale(const FACEOE_Utl_Xml_Node_t* node, FACEOE_DisplayManagement_Scale_t* scale);
 
 /*************************************************************************************************/
 /**
- * \brief Reads one configuration screen and its child layouts and windows.
+ * \brief Reads one screen element with its layouts and their windows.
  *
  * \par Details:
- *  FACE Edition 3.1, Appendix H.3, Screen and Window types; sections H.3.2 through H.3.6.
+ *  FACE Edition 3.2, Appendix H.3, Screen and Window types; sections H.3.2 through H.3.6.
  *
  * \param[in,out] configuration   Caller-owned result arrays
  * \param[in]     element         Screen XML element
  *
  * \retval        TRUE        if the supported screen data fits and is valid.
- * \retval        FALSE       if a value is invalid or storage is exhausted.
+ * \retval        FALSE       if a required value is absent or invalid, a child element is unsupported, or storage is exhausted.
  */
 static bool_t ReadScreenHierarchy(FACEOE_DisplayManagement_Configuration_t* configuration, FACEOE_Utl_Xml_Node_t* element);
 
@@ -424,7 +424,7 @@ static bool_t ReadScreenHierarchy(FACEOE_DisplayManagement_Configuration_t* conf
  * \brief Reads a user application from the display management configuration.
  *
  * \par Details:
- *  FACE Edition 3.1, Appendix H.3, UserApplication type and section H.3.1.
+ *  FACE Edition 3.2, Appendix H.3, UserApplication type and section H.3.1.
  *
  * \param[in,out] configuration   Caller-owned result arrays
  * \param[in]     node            User application XML element
@@ -439,13 +439,13 @@ static bool_t ReadUserApplication(FACEOE_DisplayManagement_Configuration_t* conf
  * \brief Reads the standard attributes of an external source.
  *
  * \par Details:
- *  FACE Edition 3.1, Appendix H.3, ExternalSource type and section H.3.7.
+ *  FACE Edition 3.2, Appendix H.3, ExternalSource type and section H.3.7.
  *
  * \param[in,out] configuration   Caller-owned result arrays
  * \param[in]     node            External source XML element
  *
  * \retval        TRUE        if the external source was read.
- * \retval        FALSE       if a value is invalid, the element has children, or storage is exhausted.
+ * \retval        FALSE       if the id is absent or out of range, a string is too long, the element has children, or storage is exhausted.
  */
 static bool_t ReadExternalSource(FACEOE_DisplayManagement_Configuration_t* configuration, const FACEOE_Utl_Xml_Node_t* node);
 
@@ -454,7 +454,7 @@ static bool_t ReadExternalSource(FACEOE_DisplayManagement_Configuration_t* confi
  * \brief Returns the FACE XSD spelling of a unit.
  *
  * \par Details:
- *  FACE Edition 3.1, Appendix H.3, Units simpleType.
+ *  FACE Edition 3.2, Appendix H.3, Units simpleType.
  *
  * \param[in] unit   Unit value
  *
@@ -468,7 +468,7 @@ static const char_t* UnitName(FACEOE_DisplayManagement_Unit_t unit);
  * \brief Writes a FACE Size as an XML child of its owner.
  *
  * \par Details:
- *  FACE Edition 3.1, Appendix H.3, Size complexType.
+ *  FACE Edition 3.2, Appendix H.3, Size complexType.
  *
  * \param[in,out] xml      Temporary XML tree and value storage
  * \param[in,out] parent   Owning XML element
@@ -485,7 +485,7 @@ static bool_t WriteSize(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent, cons
  * \brief Writes a FACE Rectangle as an XML child of its owner.
  *
  * \par Details:
- *  FACE Edition 3.1, Appendix H.3, Rectangle complexType (Window.pixelArea).
+ *  FACE Edition 3.2, Appendix H.3, Rectangle complexType (Window.pixelArea).
  *
  * \param[in,out] xml         Temporary XML tree and value storage
  * \param[in,out] parent      Owning XML element
@@ -501,7 +501,7 @@ static bool_t WriteRectangle(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent,
  * \brief Writes a FACE Scale as an XML child of its owner.
  *
  * \par Details:
- *  FACE Edition 3.1, Appendix H.3, Scale complexType (Window.scalingFactor).
+ *  FACE Edition 3.2, Appendix H.3, Scale complexType (Window.scalingFactor).
  *
  * \param[in,out] xml      Temporary XML tree and value storage
  * \param[in,out] parent   Owning XML element
@@ -517,7 +517,7 @@ static bool_t WriteScale(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent, con
  * \brief Writes one user application as a child of the configuration element.
  *
  * \par Details:
- *  FACE Edition 3.1, Appendix H.3, UserApplication type and section H.3.1.
+ *  FACE Edition 3.2, Appendix H.3, UserApplication type and section H.3.1.
  *
  * \param[in,out] xml           Temporary XML tree and value storage
  * \param[in,out] parent        Configuration XML element
@@ -533,14 +533,14 @@ static bool_t WriteUserApplication(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* p
  * \brief Writes one external source with its standard attributes.
  *
  * \par Details:
- *  FACE Edition 3.1, Appendix H.3, ExternalSource type and section H.3.7.
+ *  FACE Edition 3.2, Appendix H.3, ExternalSource type and section H.3.7.
  *
  * \param[in,out] xml      Temporary XML tree and value storage
  * \param[in,out] parent   Configuration XML element
  * \param[in]     source   External source attributes
  *
  * \retval        TRUE        if the external source was appended.
- * \retval        FALSE       if its identifier exceeds UINT16_MAX, a string cannot be written directly, or storage is exhausted.
+ * \retval        FALSE       if its identifier exceeds UINT16_MAX, a string cannot be written literally, or storage is exhausted.
  */
 static bool_t WriteExternalSource(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent, const FACEOE_DisplayManagement_ExternalSource_t* source);
 
@@ -565,7 +565,7 @@ static bool_t WriteExternalSource(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* pa
  *  Successful initialization clears the counts and document links; array contents
  *  are initialized as entries are used.
  */
-static bool_t InitializeXmlWorkspace(XmlWorkspace_t* xml, void* bytes, uint64_t byteCount)
+static bool_t InitializeXmlWorkspace(XmlWorkspace_t* xml, void* bytes, uint64_t sizeOfBytes)
 {
     uint64_t node_bytes;
     uint64_t attribute_bytes;
@@ -578,14 +578,14 @@ static bool_t InitializeXmlWorkspace(XmlWorkspace_t* xml, void* bytes, uint64_t 
     attribute_bytes = (uint64_t)FACEOE_DISPLAYMANAGEMENT_XML_ATTRIBUTE_CAPACITY * sizeof(FACEOE_Utl_Xml_Attribute_t);
     reserved_bytes  = (node_bytes + attribute_bytes);
     is_aligned      = (0 == ((uintptr_t)bytes % sizeof(uint64_t)));
-    has_capacity    = (reserved_bytes < byteCount);
+    has_capacity    = (reserved_bytes < sizeOfBytes);
     if (is_aligned && has_capacity)
     {
         // Each region points into the supplied workspace; no separate allocation is made
         xml->nodes          = (FACEOE_Utl_Xml_Node_t*)bytes;
         xml->attributes     = (FACEOE_Utl_Xml_Attribute_t*)((byte_t*)bytes + node_bytes);
         xml->text           = (byte_t*)bytes + reserved_bytes;
-        xml->textCapacity   = byteCount - reserved_bytes;
+        xml->textCapacity   = sizeOfBytes - reserved_bytes;
         // Reset usage and document links without clearing the entire workspace
         xml->textByteCount  = 0;
         xml->nodeCount      = 0;
@@ -1685,7 +1685,7 @@ static bool_t ReadScreenHierarchy(FACEOE_DisplayManagement_Configuration_t* conf
  * <ua applicationId="1" dFPath="display.xml" window="7" visible="true"/>
  * \endcode
  *
- *  applicationId, window, and the dFPath attribute must be present. A missing
+ *  applicationId, window, and dFPath must be present. A missing
  *  styleFilePath becomes an empty string, and missing mapSourceLayer or visible
  *  attributes become FALSE. Paths are copied into the result arrays with zero
  *  terminators. userApplicationCount advances only when every value fits and
@@ -1944,7 +1944,7 @@ static bool_t WriteRectangle(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent,
  * <scalingFactor xScale="1.25" yScale="0.5" baseUnit="screen" perUnit="pixel"/>
  * \endcode
  *
- *  Nonfinite factors, unsupported units, and exhausted workspace storage cause
+ *  Nonfinite factors, unsupported units, and exhausted workspace storage return
  *  FALSE. The child is linked only on success; intermediate allocations remain
  *  in the temporary workspace if a later attribute fails.
  */
@@ -2157,7 +2157,7 @@ static bool_t WriteExternalSource(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* pa
  *  counts and hasMetaData are also cleared; partially written array entries are
  *  not erased. The input needs the writable extra byte required by the XML reader.
  */
-bool_t FACEOE_DisplayManagement_ReadConfiguration(FACEOE_DisplayManagement_Configuration_t* configuration, byte_t* buffer, uint64_t byteCount, void* workspace, uint64_t workspaceSize)
+bool_t FACEOE_DisplayManagement_ReadConfiguration(FACEOE_DisplayManagement_Configuration_t* configuration, byte_t* buffer, uint64_t sizeOfBuffer, void* workspace, uint64_t workspaceSize)
 {
     XmlWorkspace_t         xml;
     FACEOE_Utl_Xml_Node_t* root;
@@ -2184,7 +2184,7 @@ bool_t FACEOE_DisplayManagement_ReadConfiguration(FACEOE_DisplayManagement_Confi
     if (has_workspace)
     {
         // Parse into temporary workspace nodes before interpreting configuration values
-        is_valid = (0 < FACEOE_Utl_Xml_ReadDocument(&xml.document, buffer, byteCount, xml.nodes, FACEOE_DISPLAYMANAGEMENT_XML_NODE_CAPACITY, xml.attributes, FACEOE_DISPLAYMANAGEMENT_XML_ATTRIBUTE_CAPACITY));
+        is_valid = (0 < FACEOE_Utl_Xml_ReadDocument(&xml.document, buffer, sizeOfBuffer, xml.nodes, FACEOE_DISPLAYMANAGEMENT_XML_NODE_CAPACITY, xml.attributes, FACEOE_DISPLAYMANAGEMENT_XML_ATTRIBUTE_CAPACITY));
     }
     if (is_valid)
     {
@@ -2293,7 +2293,7 @@ bool_t FACEOE_DisplayManagement_ReadConfiguration(FACEOE_DisplayManagement_Confi
  *  entry whose parent is not written is omitted. Children are grouped in the
  *  order metaData, screens, applications, then external sources. Window
  *  descriptions must be empty because text content is unsupported. An empty
- *  window name, like an empty optional attribute elsewhere, is left out.
+ *  window name is left out.
  *
  *  Output uses four-space indentation and LF line endings, including the final
  *  LF, with no zero terminator. Zero indicates an invalid value or insufficient

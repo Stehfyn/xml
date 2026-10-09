@@ -136,7 +136,7 @@
 #define BINARY_FR_FULL_SCALE      (2147483648.0)  ///< Two raised to the number of fr() bits minus one
 #define BINARY_FR180_RANGE        (180.0)         ///< fr(180): degrees from -180 to 180
 #define BINARY_FR32768_RANGE      (32768.0)       ///< fr(32768): -32768 to 32768
-#define BINARY_FR_PRECISION       (10)            ///< Most fractional digits tried when formatting a fr() value; one fr(180) LSB is 8.4e-8
+#define BINARY_FR_PRECISION       (10)            ///< Most fractional digits tried when formatting an fr() value; one fr(180) LSB is 8.4e-8
 #define BINARY_FLOAT_PRECISION    (60)            ///< Most fractional digits tried when formatting a float; the smallest subnormal needs 45
 
 /* Widget and extension type names (Tables 4.6-7, 4.6-12, and 8.4). */
@@ -1329,7 +1329,7 @@ typedef struct BinaryLayerRequest_s
 
 /*************************************************************************************************/
 /**
- * \brief Header of an excluded region structure (Table 8.6.7-3); the region follows.
+ * \brief Header of an excluded region structure (Tables 8.6.7-4 to 8.6.7-7); the region follows.
  */
 #pragma pack(push, 1)
 typedef struct BinaryRegionHeader_s
@@ -4875,7 +4875,7 @@ static void ResetDefinition(Arinc661_Definition_t* definition);
  * \param[in]  workspace         Eight-byte-aligned caller storage
  * \param[in]  sizeOfWorkspace   Workspace size
  *
- * \retval     TRUE              if the workspace has enough bytes.
+ * \retval     TRUE              if the workspace is aligned and has enough bytes.
  * \retval     FALSE             if the workspace is too small or misaligned.
  */
 static bool_t InitializeXmlWorkspace(XmlWorkspace_t* xml, void* workspace, uint64_t sizeOfWorkspace);
@@ -5102,7 +5102,7 @@ static uint32_t FindSameNameProperty(const Arinc661_Definition_t* definition, ui
  * \param[in]     ownerIndex   Layer or widget index, or zero for the definition
  *
  * \retval        TRUE        if the model and its properties were appended.
- * \retval        FALSE       if storage or a property value is invalid.
+ * \retval        FALSE       if workspace storage is exhausted or a property value cannot be written literally.
  */
 static bool_t WriteProperties(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent, const Arinc661_Definition_t* definition, Arinc661_PropertyOwner_t owner, uint32_t ownerIndex);
 
@@ -5417,7 +5417,7 @@ static bool_t WriteBinaryRegion(byte_t* buffer, uint64_t capacity, uint64_t* off
  * \param[in,out] offset     Byte offset of the parameter, advanced past it
  * \param[in]     text       Hexadecimal digits of the property value
  *
- * \retval        TRUE       if the digits hold an entry whose CommandSize matches the request that follows.
+ * \retval        TRUE       if the digits hold an entry whose CommandSize is a multiple of four and matches the request that follows, and the entry fits the buffer.
  * \retval        FALSE      otherwise.
  */
 static bool_t WriteBinaryLayerRequest(byte_t* buffer, uint64_t capacity, uint64_t* offset, const char_t* text);
@@ -5566,7 +5566,7 @@ static uint32_t FormatReal(char_t* text, uint32_t capacity, float64_t value, int
 
 /*************************************************************************************************/
 /**
- * \brief Converts a value within a fr() range to its signed 32-bit LSB count.
+ * \brief Converts a value within an fr() range to its signed 32-bit LSB count.
  *
  * \param[in] value   Value between -range and range
  * \param[in] range   Half the full fr() range, 180 or 32768
@@ -5589,7 +5589,7 @@ static uint32_t FormatFloat32(char_t* text, uint32_t capacity, float32_t value);
 
 /*************************************************************************************************/
 /**
- * \brief Formats a fr() LSB count with the fewest fractional digits that encode back to the same count.
+ * \brief Formats an fr() LSB count with the fewest fractional digits that encode back to the same count.
  *
  * \param[out] text       Zero-terminated result
  * \param[in]  capacity   Result capacity in bytes
@@ -5981,13 +5981,13 @@ static bool_t InitializeXmlWorkspace(XmlWorkspace_t* xml, void* workspace, uint6
 /**
  * \par Details:
  *  Compares an element's counted UTF-8 name with a zero-terminated literal.
- *  For example, a node parsed from the following tag matches "screen":
+ *  For example, a node parsed from the following tag matches "a661_layer":
  *
  * \code{.xml}
- * <screen id="2"/>
+ * <a661_layer name="Main"/>
  * \endcode
  *
- *  The node name has six bytes and does not need a zero terminator. NULL nodes,
+ *  The node name has ten bytes and does not need a zero terminator. NULL nodes,
  *  non-element nodes, different lengths, and different byte contents return FALSE.
  *  The comparison is case-sensitive.
  */
@@ -6024,18 +6024,18 @@ static bool_t HasElementName(const FACEOE_Utl_Xml_Node_t* node, const char_t* na
 /**
  * \par Details:
  *  Searches only the parent's direct child list, in source order. For example,
- *  searching screen for "layout" returns its layout child in this fragment:
+ *  searching a661_layer for "model" returns its model child in this fragment:
  *
  * \code{.xml}
- * <screen id="2">
- *     <layout id="3">
- *         <window id="7"/>
- *     </layout>
- * </screen>
+ * <a661_layer name="Main">
+ *     <model>
+ *         <prop name="LayerId" value="1"/>
+ *     </model>
+ * </a661_layer>
  * \endcode
  *
- *  Searching the same screen for "window" returns NULL because descendants of
- *  layout are not visited. The first matching child is returned; a completed
+ *  Searching the same a661_layer for "prop" returns NULL because descendants of
+ *  model are not visited. The first matching child is returned; a completed
  *  unsuccessful search must reach the end of the sibling list within the bound.
  */
 static FACEOE_Utl_Xml_Node_t* FindChild(FACEOE_Utl_Xml_Node_t* parent, const char_t* name)
@@ -6074,10 +6074,10 @@ static FACEOE_Utl_Xml_Node_t* FindChild(FACEOE_Utl_Xml_Node_t* parent, const cha
 /**
  * \par Details:
  *  Finds the first attribute whose complete name matches the requested literal.
- *  In this tag, searching for "id" returns the attribute containing "7":
+ *  In this tag, searching for "value" returns the attribute containing "1":
  *
  * \code{.xml}
- * <window id="7" name="Main"/>
+ * <prop name="LayerId" value="1"/>
  * \endcode
  *
  *  Matching is case-sensitive and checks the byte count before the contents.
@@ -6130,7 +6130,7 @@ static const FACEOE_Utl_Xml_Attribute_t* FindAttribute(const FACEOE_Utl_Xml_Node
  *  a zero terminator. For example, copying "name" from this tag needs five bytes:
  *
  * \code{.xml}
- * <window name="Main"/>
+ * <a661_layer name="Main"/>
  * \endcode
  *
  * \verbatim
@@ -6172,11 +6172,11 @@ static bool_t CopyAttribute(const FACEOE_Utl_Xml_Node_t* node, const char_t* nam
  *  counted value. For example:
  *
  * \code{.xml}
- * <pixelArea x="-20"/>
+ * <a661_df supp_version="6"/>
  * \endcode
  *
- *  Reading "x" stores -20 and returns TRUE. A missing attribute or a value such as
- *  "-20px" returns FALSE; accepting only the numeric prefix would lose input.
+ *  Reading "supp_version" stores 6 and returns TRUE. A missing attribute or a value
+ *  such as "6a" returns FALSE; accepting only the numeric prefix would lose input.
  *  The output value changes only after the complete scan succeeds.
  */
 static bool_t ReadIntegerAttribute(const FACEOE_Utl_Xml_Node_t* node, const char_t* name, int64_t* value)
@@ -6207,10 +6207,10 @@ static bool_t ReadIntegerAttribute(const FACEOE_Utl_Xml_Node_t* node, const char
 /**
  * \par Details:
  *  Takes one node slot from the workspace and initializes an unlinked element.
- *  For example, requesting "screen" creates the node for this empty element:
+ *  For example, requesting "a661_layer" creates the node for this empty element:
  *
  * \code{.xml}
- * <screen/>
+ * <a661_layer/>
  * \endcode
  *
  *  The caller appends attributes and links the node to its parent or document.
@@ -6238,10 +6238,10 @@ static FACEOE_Utl_Xml_Node_t* AppendElement(XmlWorkspace_t* xml, const char_t* n
 /**
  * \par Details:
  *  Initializes and links one attribute using pointers to the supplied name and
- *  value. For example, appending name="Main" to a window produces:
+ *  value. For example, appending name="Main" to an a661_layer produces:
  *
  * \code{.xml}
- * <window name="Main"/>
+ * <a661_layer name="Main"/>
  * \endcode
  *
  *  A NULL value, exhausted attribute storage, or a value that cannot be written
@@ -6344,10 +6344,10 @@ static bool_t AppendIntegerAttribute(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t*
  *
  * \code{.xml}
  * <?xml version="1.0"?>
- * <configuration/>
+ * <a661_df/>
  * \endcode
  *
- *  The configuration node is returned. Descendants are not visited, and a
+ *  The a661_df node is returned. Descendants are not visited, and a
  *  document containing no element returns NULL. The root-node limit bounds this
  *  search independently of storage reserved for descendants.
  */
@@ -9284,7 +9284,7 @@ bool_t Arinc661_Definition_GetParameter(const char_t* typeName, bool_t isExtensi
             {
                 is_found                    = TRUE;
                 parameter->name             = field->name;
-                parameter->byteCount        = field->byteCount;
+                parameter->sizeOfValue      = field->byteCount;
                 parameter->values           = field->values;
                 parameter->valueCount       = field->valueCount;
                 if (NULL != field->array)
@@ -10025,8 +10025,8 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
  *  Writes the header, the charset encoding block when charsetEncoding is set,
  *  the retained symbol, picture, and animation law blocks unchanged, one layer
  *  block per layer, and the footer. Each layer block holds the commands of its
- *  widget array entries in array order, so a parent always precedes its
- *  children and an extension follows the widget it extends. For example, one
+ *  widget array entries in array order, which must place a parent before its
+ *  children and an extension after the widget it extends. For example, one
  *  layer with one panel:
  *
  * \verbatim

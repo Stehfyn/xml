@@ -82,7 +82,7 @@ int32_t FACEOE_Utl_Print_Uint64(char_t* a, uint32_t capacity, uint64_t v);
 
 /*************************************************************************************************/
 /**
- * \brief Prints a value as decimal text with a fixed number of fractional digits, the inverse of FACEOE_Utl_Scan_Float.
+ * \brief Prints a value as decimal text with a fixed number of fractional digits, the counterpart of FACEOE_Utl_Scan_Float.
  *
  * \par Details:
  *  The value is rounded to the given number of fractional digits; zero

@@ -28,7 +28,7 @@ typedef struct Os_MessageBuilder
 void Os_MessageBuilder_Begin(Os_MessageBuilder_t* pMessage, FILE* pStream);
 /*************************************************************************************************/
 /**
- * \brief Starts a message in a caller buffer, kept null-terminated; text that does not fit sets truncated.
+ * \brief Starts a message in a caller buffer, kept zero-terminated; text that does not fit sets truncated.
  *
  * \param[out] pMessage   Builder to start
  * \param[out] pBuffer    Destination buffer; may be NULL only when capacity is 0
@@ -53,7 +53,7 @@ void Os_MessageBuilder_End(Os_MessageBuilder_t* pMessage);
  * \brief Appends a string.
  *
  * \param[in,out] pMessage   Started builder
- * \param[in]     pString    Non-NULL null-terminated string
+ * \param[in]     pString    Non-NULL zero-terminated string
  *
  * \retval None
  */
@@ -63,7 +63,7 @@ void Os_MessageBuilder_AppendString(Os_MessageBuilder_t* pMessage, const char_t*
  * \brief Appends a wide string converted to UTF-8; invalid code points become U+FFFD.
  *
  * \param[in,out] pMessage   Started builder
- * \param[in]     pString    Non-NULL null-terminated UTF-16 or UTF-32 string
+ * \param[in]     pString    Non-NULL zero-terminated UTF-16 or UTF-32 string
  *
  * \retval None
  */
@@ -119,7 +119,7 @@ void Os_MessageBuilder_AppendPointer(Os_MessageBuilder_t* pMessage, const void* 
  * \brief Appends a float in scientific notation with up to nine significant digits, e.g. 1.5e+03.
  *
  * \param[in,out] pMessage   Started builder
- * \param[in]     value      Number to append; zero prints "0", non-finite values "nan" or "inf"
+ * \param[in]     value      Number to append; zero prints "0", NaN "nan", an infinity "inf"; a negative value, -0 and -inf included, gets a leading minus
  *
  * \retval None
  */

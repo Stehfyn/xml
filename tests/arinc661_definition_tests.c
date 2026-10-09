@@ -538,7 +538,7 @@ static void TestDefinitionBinaryBlocks(void)
  */
 static void TestDefinitionBinaryPrecision(void)
 {
-    /* Table 3.5.4-2 Slider holds floats; Table 3.3.20-2 Label holds a fr(180) angle */
+    /* Table 3.5.4-2 Slider holds floats; Table 3.3.20-2 Label holds an fr(180) angle */
     byte_t input[] = "<a661_df name=\"example\" library_version=\"0\" supp_version=\"7\"><model/><a661_layer name=\"Primary\"><model/>"
                      "<a661_widget name=\"Slide\" type=\"A661_SLIDER\"><model><prop name=\"WidgetIdent\" value=\"1\"/><prop name=\"MinValue\" value=\"0.1\"/><prop name=\"MaxValue\" value=\"123456.7\"/><prop name=\"Value\" value=\"100\"/></model></a661_widget>"
                      "<a661_widget name=\"Text\" type=\"A661_LABEL\"><model><prop name=\"WidgetIdent\" value=\"2\"/><prop name=\"RotationAngle\" value=\"0.0000001\"/></model></a661_widget></a661_layer></a661_df>";

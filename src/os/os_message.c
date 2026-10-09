@@ -99,7 +99,7 @@ void Os_MessageBuilder_BeginBuffer(Os_MessageBuilder_t* pMessage, char_t* pBuffe
 /*************************************************************************************************/
 /**
  * \par Details:
- *  A buffer message needs no action: every append keeps it null-terminated.
+ *  A buffer message needs no action: every append keeps it zero-terminated.
  */
 void Os_MessageBuilder_End(Os_MessageBuilder_t* pMessage)
 {

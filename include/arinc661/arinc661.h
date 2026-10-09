@@ -166,7 +166,7 @@ typedef struct Arinc661_Parameter_s
 {
     const char_t*            name;             ///< Parameter name, which is also the name of the property holding its value
     Arinc661_ParameterKind_t kind;             ///< Binary encoding
-    uint32_t                 byteCount;        ///< Bytes of an ARINC661_PARAMETER_BYTES value
+    uint32_t                 sizeOfValue;      ///< Bytes of an ARINC661_PARAMETER_BYTES value
     uint32_t                 elementsPerEntry; ///< Array elements per counted entry; zero for a single value
     const char_t*            countName;        ///< Name of the parameter holding an array's entry count, or NULL
     const char_t* const*     values;           ///< Constant names the Creation Structure table lists for the value, or NULL

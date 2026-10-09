@@ -45,7 +45,7 @@ extern "C"
 /**
  * \brief Replays one text command into an ImGui draw list.
  *
- * \param[in]     drawList   Draw list holding the command's text
+ * \param[in]     drawList   Draw list holding the command's box points and text
  * \param[in]     command    Text command
  * \param[in,out] target     ImGui draw list
  *
@@ -54,7 +54,7 @@ extern "C"
 static void RenderText(const FACEOE_Gfx_DrawList_t* drawList, const FACEOE_Gfx_Command_t* command, ImDrawList* target);
 
 /*=================================================================================================
-** 4. STATIC FUNCTIONS
+** 4. PRIVATE FUNCTIONS
 **===============================================================================================*/
 
 /*************************************************************************************************/

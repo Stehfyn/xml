@@ -129,7 +129,7 @@ extern "C"
 #define ADD_WINDOW_LABEL            ("Add Window")
 #define ADD_APPLICATION_LABEL       ("Add User Application")
 #define GRID_LABEL                  ("Grid")
-#define SNAP_LABEL                  ("Snap To Millimetre")
+#define SNAP_LABEL                  ("Snap To Millimeter")
 #define FIT_LABEL                   ("Fit Layer")
 #define HELP_WINDOW_LABEL           ("Help")
 #define HELP_CONTEXT_LABEL          ("Help On Selection")
@@ -164,8 +164,7 @@ extern "C"
 #define ICON_RESOURCE_ID            (1)
 #define ABOUT_LABEL                 ("About CDS Editor")
 #define ABOUT_POPUP_ID              ("About CDS Editor##about")
-// Unparenthesized so it stays a plain string literal
-#define ABOUT_DETAILS_FORMAT        "Version %s\nBuilt %s %s\nDear ImGui %s (docking)\nOpenGL %s\nInstalled in %s\n"
+#define ABOUT_DETAILS_FORMAT        ("Version %s\nBuilt %s %s\nDear ImGui %s (docking)\nOpenGL %s\nInstalled in %s\n")
 #define ABOUT_UPDATE_URL_FORMAT     ("Update source: %s")
 #define ABOUT_NO_UPDATE_URL_LABEL   ("Update source: not configured (set updateUrl in cds-editor.cfg or UpdateUrl in the registry)")
 #define ABOUT_COPY_LABEL            ("Copy Details")
@@ -590,7 +589,7 @@ static void OpenVerticalBlankEvent(HDC deviceContext, D3DKMT_WAITFORVERTICALBLAN
 /**
  * \brief Starts a new Dear ImGui frame.
  *
- * \retval        None
+ * \retval None
  */
 static void BeginFrame(void);
 
@@ -876,9 +875,9 @@ static void BeginPick(WindowThreadState_t* window, bool_t isFolder);
 /**
  * \brief Picker thread: shows the dialog and hands the result back through the window state.
  *
- * \param[in] parameter   Window and editor state
+ * \param[in,out] parameter   Window and editor state
  *
- * \retval    DWORD       Zero.
+ * \retval        DWORD       Zero.
  */
 static DWORD WINAPI PickThread(LPVOID parameter);
 
@@ -947,9 +946,9 @@ static void BeginUpdateCheck(WindowThreadState_t* window, bool_t isManual);
 /**
  * \brief Updater thread: checks, or downloads when asked to.
  *
- * \param[in] parameter   Window and editor state
+ * \param[in,out] parameter   Window and editor state
  *
- * \retval    DWORD       Zero.
+ * \retval        DWORD       Zero.
  */
 static DWORD WINAPI UpdateThread(LPVOID parameter);
 
@@ -1016,7 +1015,7 @@ static void TogglePlay(WindowThreadState_t* window);
 /*************************************************************************************************/
 /**
  * \brief Checks every document and writes the binary form of every open Definition File,
- *        logging the report.
+ *  logging the report.
  *
  * \param[in,out] window   Window and editor state
  *
@@ -1097,7 +1096,7 @@ static void DrawEditors(WindowThreadState_t* window);
 /*************************************************************************************************/
 /**
  * \brief Prepares the main or a platform window for OpenGL; the first call creates the shared
- *        context.
+ *  context.
  *
  * \param[in]     windowHandle   Win32 window handle
  * \param[in,out] windowData     Window rendering data
@@ -1717,7 +1716,7 @@ static const char_t* SelectionTopic(const WindowThreadState_t* window)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Opens the Help window on a topic; a NULL topic keeps the current one.
+ *  None
  */
 static void ShowHelp(WindowThreadState_t* window, const char_t* topic)
 {
@@ -1947,7 +1946,7 @@ static void DrawHelpWindow(WindowThreadState_t* window)
                     ImGui::SeparatorText(HELP_GETTING_STARTED);
                     ImGui::TextUnformatted("1. Configuration: File > New Configuration. Add a Screen (toolbar), then a Layout, then a Window; set the window's pixelArea and scalingFactor. Add a User Application, pick its Window and its DF Path from the Definition Files in the folder.");
                     ImGui::TextUnformatted("2. Definition File: File > New Definition File. Add a Layer, then right-click the scene to add widgets where you click, or use the toolbar. Containers (Panel, BasicContainer, ...) accept children: right-click a container or drag a node onto it in the hierarchy.");
-                    ImGui::TextUnformatted("3. Scene: drag widgets to move them, drag the corner handles to resize, arrow keys nudge, Delete removes, mouse wheel zooms, middle-drag or Space-drag pans, F fits, G toggles the grid, S toggles millimetre snapping.");
+                    ImGui::TextUnformatted("3. Scene: drag widgets to move them, drag the corner handles to resize, arrow keys nudge, Delete removes, mouse wheel zooms, middle-drag or Space-drag pans, F fits, G toggles the grid, S toggles millimeter snapping.");
                     ImGui::TextUnformatted("4. Inspector: every parameter row shows its specification description on hover; the About section explains the selected widget. Red values would not fit the binary form.");
                     ImGui::TextUnformatted("5. Link both: set the Definition File's ApplicationId (root node) to the user application's applicationId. The user application inspector checks it and previews the Definition File's layers inside the window; the Definition File root lists who references it.");
                     ImGui::TextUnformatted("6. Save with Ctrl+S; a .bin name saves the binary form of ARINC 661 Part 1-7, any other name the XML form. Undo with Ctrl+Z, redo with Ctrl+Y. F1 opens Windows Help on the selection; Shift+F1 opens this reference on it.");
@@ -3704,8 +3703,8 @@ static DWORD WINAPI UpdateThread(LPVOID parameter)
 /**
  * \par Details:
  *  An automatic check opens the pop-up only when a version the user has not skipped is
- *  available; a manual check reports every outcome. Installing starts msiexec and ends the
- *  session so files can be replaced; the installer relaunches the editor.
+ *  available; a manual check reports every outcome. Installing starts msiexec and closes the
+ *  editor so its files can be replaced; the editor restarts once the installer succeeds.
  */
 static void DrawUpdatePopup(WindowThreadState_t* window)
 {
@@ -3927,7 +3926,8 @@ static void DrawAboutPopup(WindowThreadState_t* window)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  HKCU first, then HKLM, where the installer writes UPDATEURL; the first value found wins.
+ *  HKCU first, then HKLM, where the installer writes its UPDATEURL property; the first value
+ *  found wins.
  */
 static void LoadUpdateSource(WindowThreadState_t* window)
 {
@@ -4773,7 +4773,7 @@ static void CleanupDeviceWGL(HWND windowHandle, WglWindowData_t* windowData)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Creates renderer data for an ImGui platform viewport.
+ *  None
  */
 static void HookRendererCreateWindow(ImGuiViewport* viewport)
 {
@@ -4788,7 +4788,7 @@ static void HookRendererCreateWindow(ImGuiViewport* viewport)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Releases renderer data for an ImGui platform viewport.
+ *  None
  */
 static void HookRendererDestroyWindow(ImGuiViewport* viewport)
 {
@@ -4806,7 +4806,7 @@ static void HookRendererDestroyWindow(ImGuiViewport* viewport)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Activates the shared OpenGL context for a platform viewport.
+ *  None
  */
 static void HookPlatformRenderWindow(ImGuiViewport* viewport, void* data)
 {
@@ -4823,7 +4823,7 @@ static void HookPlatformRenderWindow(ImGuiViewport* viewport, void* data)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Presents a platform viewport.
+ *  None
  */
 static void HookRendererSwapBuffers(ImGuiViewport* viewport, void* data)
 {
@@ -4840,7 +4840,7 @@ static void HookRendererSwapBuffers(ImGuiViewport* viewport, void* data)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Routes Win32 input and window events to ImGui and the renderer.
+ *  None
  */
 static LRESULT WINAPI WindowProcedure(HWND windowHandle, UINT message, WPARAM wordParameter, LPARAM longParameter)
 {

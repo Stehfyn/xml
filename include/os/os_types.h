@@ -45,7 +45,7 @@ typedef uint8_t byte_t;
 
 /*************************************************************************************************/
 /**
- * \brief Character type used for null-terminated UTF-8 strings.
+ * \brief Character type used for zero-terminated UTF-8 strings.
  */
 typedef char char_t;
 

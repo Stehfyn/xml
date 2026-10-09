@@ -6,7 +6,7 @@
 **===============================================================================================*/
 
 /**
- * FACE Technical Standard, Edition 3.1, Appendix H.3.1: a UserApplication names its window and
+ * FACE Technical Standard, Edition 3.2, Appendix H.3.1: a UserApplication names its window and
  * its Definition File (dFPath). ARINC 661 Part 1-7, Table 4.5.3.2-2 (AppliIdent) and the
  * section 6.5.1.2 example: the a661_df ApplicationId property identifies that User Application.
  */
@@ -334,7 +334,8 @@ uint32_t Arinc661_Context_DefinitionByApplicationId(const Arinc661_Context_t* co
 /*************************************************************************************************/
 /**
  * \brief Creates a complete application in one step: a window when the active configuration
- *  has none, a user application targeting it, and a Definition File with a window-sized layer.
+ *  has none, a user application targeting the selected or first window, and a Definition File
+ *  with a window-sized layer.
  *
  * \param[in,out] context   Context
  *

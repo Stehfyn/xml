@@ -211,7 +211,7 @@ void RunArinc661RendererTests(void)
     uint32_t                    panel;
     uint32_t                    child;
     uint32_t                    rotation;
-    uint32_t                    label;
+    uint32_t                    button;
     uint32_t                    type_index;
     uint32_t                    bounds_index;
     uint32_t                    width_index;
@@ -352,14 +352,14 @@ void RunArinc661RendererTests(void)
             strcpy(definition.properties[width_index].value, "0");
         }
     }
-    label = Widget(&definition, "A661_PUSH_BUTTON", rotation, 4);
+    button = Widget(&definition, "A661_PUSH_BUTTON", rotation, 4);
     for (width_index = 0; width_index < definition.propertyCount; ++width_index)
     {
-        if ((label == definition.properties[width_index].ownerIndex) && ((0 == strncmp("PosX", definition.properties[width_index].name, sizeof("PosX"))) || (0 == strncmp("PosY", definition.properties[width_index].name, sizeof("PosY")))))
+        if ((button == definition.properties[width_index].ownerIndex) && ((0 == strncmp("PosX", definition.properties[width_index].name, sizeof("PosX"))) || (0 == strncmp("PosY", definition.properties[width_index].name, sizeof("PosY")))))
         {
             strcpy(definition.properties[width_index].value, "500");
         }
-        if ((label == definition.properties[width_index].ownerIndex) && (0 == strncmp("SizeY", definition.properties[width_index].name, sizeof("SizeY"))))
+        if ((button == definition.properties[width_index].ownerIndex) && (0 == strncmp("SizeY", definition.properties[width_index].name, sizeof("SizeY"))))
         {
             strcpy(definition.properties[width_index].value, "200");
         }
@@ -371,7 +371,7 @@ void RunArinc661RendererTests(void)
     has_bounds = FALSE;
     for (bounds_index = 0; bounds_index < options.boundsCount; ++bounds_index)
     {
-        if (&definition.widgets[label] == options.bounds[bounds_index].widget)
+        if (&definition.widgets[button] == options.bounds[bounds_index].widget)
         {
             has_bounds = TRUE;
             assert((-70.5f < options.bounds[bounds_index].minimum.x) && (options.bounds[bounds_index].minimum.x < -69.5f));

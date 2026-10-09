@@ -3,7 +3,7 @@
 **===============================================================================================*/
 
 /**
- * FACE Technical Standard, Edition 3.1, Appendix H.3.1, UserApplication: applicationId, window,
+ * FACE Technical Standard, Edition 3.2, Appendix H.3.1, UserApplication: applicationId, window,
  * and dFPath. ARINC 661 Part 1-7, Table 4.5.3.2-2 (AppliIdent) and the section 6.5.1.2
  * example: ApplicationId property of a661_df.
  */
@@ -77,6 +77,47 @@ static bool_t FileExistsInFolder(const Arinc661_Context_t* context, const char_t
 /*=================================================================================================
 ** 4. PRIVATE FUNCTIONS
 **===============================================================================================*/
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  An error also counts toward errorCount.
+ */
+static void AddProblem(Arinc661_Context_t* context, bool_t isError, Arinc661_Context_Target_t target, uint32_t documentIndex, uint32_t itemIndex, const char_t* text)
+{
+    Arinc661_Context_Problem_t* problem;
+
+    if (context->problemCount < ARINC661_CONTEXT_MAX_PROBLEMS)
+    {
+        problem                = &context->problems[context->problemCount];
+        problem->target        = target;
+        problem->documentIndex = documentIndex;
+        problem->itemIndex     = itemIndex;
+        problem->isError       = isError;
+        strncpy_s(problem->text, sizeof(problem->text), text, _TRUNCATE);
+        context->problemCount += 1;
+        if (isError)
+        {
+            context->errorCount += 1;
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Any file system entry of that name counts, including a folder.
+ */
+static bool_t FileExistsInFolder(const Arinc661_Context_t* context, const char_t* fileName)
+{
+    char_t path[ARINC661_DEFINITION_EDITOR_MAX_FILE_PATH_BYTES];
+    DWORD  attributes;
+
+    (void)snprintf(path, sizeof(path), "%s\\%s", context->definitionEditor->folderPath, fileName);
+    attributes = GetFileAttributesA(path);
+
+    return !!(INVALID_FILE_ATTRIBUTES != attributes);
+}
 
 /*=================================================================================================
 ** 5. PUBLIC FUNCTIONS
@@ -258,46 +299,6 @@ bool_t Arinc661_Context_TakeFocusRequest(Arinc661_Context_t* context, bool_t* is
     context->hasFocusRequest = FALSE;
 
     return has_request;
-}
-
-/*************************************************************************************************/
-/**
- * \brief Appends a problem when the list has room.
- */
-static void AddProblem(Arinc661_Context_t* context, bool_t isError, Arinc661_Context_Target_t target, uint32_t documentIndex, uint32_t itemIndex, const char_t* text)
-{
-    Arinc661_Context_Problem_t* problem;
-
-    if (context->problemCount < ARINC661_CONTEXT_MAX_PROBLEMS)
-    {
-        problem                = &context->problems[context->problemCount];
-        problem->target        = target;
-        problem->documentIndex = documentIndex;
-        problem->itemIndex     = itemIndex;
-        problem->isError       = isError;
-        strncpy_s(problem->text, sizeof(problem->text), text, _TRUNCATE);
-        context->problemCount += 1;
-        if (isError)
-        {
-            context->errorCount += 1;
-        }
-    }
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Any file system entry of that name counts, including a folder.
- */
-static bool_t FileExistsInFolder(const Arinc661_Context_t* context, const char_t* fileName)
-{
-    char_t path[ARINC661_DEFINITION_EDITOR_MAX_FILE_PATH_BYTES];
-    DWORD  attributes;
-
-    (void)snprintf(path, sizeof(path), "%s\\%s", context->definitionEditor->folderPath, fileName);
-    attributes = GetFileAttributesA(path);
-
-    return !!(INVALID_FILE_ATTRIBUTES != attributes);
 }
 
 /*************************************************************************************************/
@@ -816,8 +817,8 @@ uint32_t Arinc661_Context_DefinitionByApplicationId(const Arinc661_Context_t* co
 /**
  * \par Details:
  *  Works on the active configuration: a window is added when none exists, a user application
- *  is added, and Arinc661_Context_CreateDefinitionFor creates its Definition File. Nothing is
- *  created when the configuration has no room for another user application.
+ *  is added, and Arinc661_Context_CreateDefinitionFor creates its Definition File. No
+ *  Definition File is created when the user application could not be added.
  */
 bool_t Arinc661_Context_NewApplication(Arinc661_Context_t* context)
 {

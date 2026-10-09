@@ -34,7 +34,7 @@ static char_t               s_text[4096];
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Checks that two floats differ by less than 0.001.
+ *  Checks whether two floats differ by less than 0.001.
  */
 static bool_t Near(float32_t a, float32_t b)
 {
@@ -78,7 +78,7 @@ void RunFACEOEGfxTests(void)
     FACEOE_Gfx_DrawList_Translate(&list, 1000.0f, 1000.0f);
     FACEOE_Gfx_DrawList_Rotate(&list, 0.0f, 0.0f, 1.5707963f);
     point = FACEOE_Gfx_DrawList_Map(&list, 100.0f, 0.0f);
-    // Local +X turns into local +Y, which is screen up: (1000, 1100) -> (200, 390)
+    // Local (100, 0) lands on layer (1000, 1100), since local +X now points along layer +Y (screen up): screen (200, 390)
     assert(Near(point.x, 200.0f) && Near(point.y, 390.0f));
     assert(Near(FACEOE_Gfx_DrawList_Angle(&list), -1.5707963f));
     FACEOE_Gfx_DrawList_PopTransform(&list);

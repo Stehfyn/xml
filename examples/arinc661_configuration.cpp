@@ -3,8 +3,8 @@
 **===============================================================================================*/
 
 /**
- * FACE Technical Standard, Appendix H.3, DisplayManagement.xsd:
- * https://www.vdl.afrl.af.mil/programs/arsenl/files/FACE%20Technical%20Standard%20v3.1.pdf
+ * FACE Technical Standard, Edition 3.2, Appendix H.3, DisplayManagement.xsd:
+ * https://publications.opengroup.org/c232
  */
 
 /*=================================================================================================
@@ -183,6 +183,7 @@ extern "C"
 #define SCREEN_CHOICE_FORMAT          ("Screen %" PRId64)
 #define LAYOUT_WINDOWS_LABEL          ("Windows In This Layout")
 #define LAYOUT_NO_WINDOWS_LABEL       ("No windows yet; add one below.")
+#define SCREEN_NO_LAYOUTS_LABEL       ("No layouts yet; add one below.")
 #define ADD_WINDOW_HERE_LABEL         ("Add window to this layout")
 #define LAYOUT_WINDOW_FORMAT          ("Window %" PRId64 " %s (%" PRId64 " x %" PRId64 " at %" PRId64 ", %" PRId64 ")")
 #define LAYOUT_CHOICE_FORMAT          ("Layout %" PRId64 " on screen %" PRId64)
@@ -552,7 +553,7 @@ static Status_t CheckIdentifierUniqueness(const Arinc661_Configuration_Document_
 /**
  * \brief Finds the largest screen identifier.
  *
- * \param[in]  editor   Document
+ * \param[in] editor    Document
  *
  * \retval    int64_t   Largest screen identifier, or NO_IDENTIFIER if there are no screens.
  */
@@ -562,10 +563,10 @@ static int64_t GetMaxScreenIdentifier(const Arinc661_Configuration_Document_t* e
 /**
  * \brief Finds the largest identifier within a screen's layouts.
  *
- * \param[in]  editor        Document
- * \param[in]  screenIndex   Owning screen index
+ * \param[in] editor        Document
+ * \param[in] screenIndex   Owning screen index
  *
- * \retval    int64_t   Largest layout identifier, or NO_IDENTIFIER if the screen has no layouts.
+ * \retval    int64_t       Largest layout identifier, or NO_IDENTIFIER if the screen has no layouts.
  */
 static int64_t GetMaxLayoutIdentifier(const Arinc661_Configuration_Document_t* editor, uint32_t screenIndex);
 
@@ -573,7 +574,7 @@ static int64_t GetMaxLayoutIdentifier(const Arinc661_Configuration_Document_t* e
 /**
  * \brief Finds the largest window identifier.
  *
- * \param[in]  editor   Document
+ * \param[in] editor    Document
  *
  * \retval    int64_t   Largest window identifier, or NO_IDENTIFIER if there are no windows.
  */
@@ -844,10 +845,10 @@ static bool_t DrawDefinitionChoiceField(const Arinc661_Configuration_Editor_t* e
 
 /*************************************************************************************************/
 /**
- * \brief Records an inspector edit as an unsaved document change.
+ * \brief Records an edit as an unsaved document change.
  *
  * \param[in,out] editor       Document
- * \param[in]     hasChanged   TRUE if a field changed
+ * \param[in]     hasChanged   TRUE if a value changed
  *
  * \retval        None
  */
@@ -3055,7 +3056,7 @@ static bool_t DrawUnitField(const char_t* label, FACEOE_DisplayManagement_Unit_t
 /*************************************************************************************************/
 /**
  * \par Details:
- *  A new field edit replaces any stale save or load message in the status bar.
+ *  An edit clears the document's stale save or load message.
  */
 static void MarkDocumentDirty(Arinc661_Configuration_Document_t* editor, bool_t hasChanged)
 {
@@ -3144,7 +3145,7 @@ static void DrawScreenInspector(Arinc661_Configuration_Document_t* editor)
     }
     if (0 == layout_count)
     {
-        ImGui::TextDisabled("%s", LAYOUT_NO_WINDOWS_LABEL);
+        ImGui::TextDisabled("%s", SCREEN_NO_LAYOUTS_LABEL);
     }
     if (ImGui::SmallButton(ADD_LAYOUT_HERE_LABEL))
     {
@@ -5205,7 +5206,7 @@ static void DrawSceneInteraction(Arinc661_Configuration_Editor_t* owner, Arinc66
 /*************************************************************************************************/
 /**
  * \par Details:
- *  FACE H.3.2: a window's scalingFactor relates baseUnit to perUnit; between pixels and
+ *  A window's scalingFactor (FACE H.3 Scale type) relates baseUnit to perUnit; between pixels and
  *  millimeters or inches, in either direction, it gives the pixel density directly. Otherwise
  *  the screen's pixelSize over its physicalDimensions gives it. With neither,
  *  SCENE_PIXELS_PER_MM_FALLBACK keeps the preview visible.
@@ -5858,7 +5859,7 @@ void Arinc661_Configuration_AddDefinitionFile(Arinc661_Configuration_Editor_t* e
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Stores the pointer; the inspector and scene consult it when drawing.
+ *  Stores the pointer; the hierarchy, inspector, and scene consult it when drawing.
  */
 void Arinc661_Configuration_SetContext(Arinc661_Configuration_Editor_t* editor, Arinc661_Context_t* context)
 {

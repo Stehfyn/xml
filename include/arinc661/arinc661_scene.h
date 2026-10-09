@@ -73,6 +73,10 @@ typedef FACEOE_Utl_Tree_t Arinc661_Scene_t;
 /**
  * \brief Builds a scene from layers, widgets, and properties, in caller-owned nodes.
  *
+ * \par Details:
+ *  The scene points into the arrays and the nodes; the caller keeps them unchanged while the
+ *  scene is used, and builds the scene again after changing them.
+ *
  * \par Requirements:
  *  - 001 This function shall place layers, widgets, and properties in array order.
  *  - 002 This function shall leave out a widget whose layerIndex is not below layerCount, or whose parent widget is not an earlier entry in the same layer, and every widget below it.
@@ -80,10 +84,6 @@ typedef FACEOE_Utl_Tree_t Arinc661_Scene_t;
  *  - 004 This function shall leave out a property whose owner is not in the arrays.
  *  - 005 This function shall return FALSE, with only the root in the scene, if nodeCapacity is less than ARINC661_SCENE_NODE_COUNT of the counts.
  *  - 006 This function shall fail an assertion if scene or nodes is NULL, nodeCapacity is zero, or an array is NULL with a non-zero count.
- *
- * \par Details:
- *  The scene points into the arrays and the nodes; the caller keeps them unchanged while the
- *  scene is used, and builds the scene again after changing them.
  *
  * \param[out] scene           Scene to build
  * \param[out] nodes           Caller-owned node storage for the scene's tree

@@ -62,9 +62,9 @@
 #define OPTION_DEFAULTS           (OPTION_STARTMENU | OPTION_OPENWITH | OPTION_SHELL | OPTION_LAUNCH)
 #define DWMWA_IMMERSIVE_DARK_MODE (20)
 #define DWMWA_IMMERSIVE_DARK_MODE_OLD (19)
-#define BUILD_DARK_MODE           (17763) /* Windows 10 1809: dark title bar (attribute 19) and DarkMode_Explorer */
-#define BUILD_DARK_MODE_ATTRIBUTE (19041) /* Windows 10 2004: the documented attribute 20 */
-#define BUILD_DARK_MODE_APP_MODE  (18362) /* Windows 10 1903: uxtheme ordinal 135 takes the PreferredAppMode enum */
+#define BUILD_DARK_MODE           (17763) ///< Windows 10 1809: dark title bar (attribute 19) and DarkMode_Explorer
+#define BUILD_DARK_MODE_ATTRIBUTE (19041) ///< Windows 10 2004: the documented attribute 20
+#define BUILD_DARK_MODE_APP_MODE  (18362) ///< Windows 10 1903: uxtheme ordinal 135 takes the PreferredAppMode enum
 #define UXTHEME_ORDINAL_APP_MODE  (135)
 #define UXTHEME_ORDINAL_FLUSH_MENUS (136)
 #define APP_MODE_FORCE_DARK       (2)
@@ -204,7 +204,7 @@ typedef struct Setup_s
     Mode_t     mode;                       ///< Install, repair, or remove
     uint32_t   build;                      ///< Windows build number
     uint32_t   dpi;                        ///< Dots per inch of the frame's monitor
-    bool_t     isDark;                     ///< TRUE when apps use the dark theme and Windows can draw it
+    bool_t     isDark;                     ///< TRUE for the dark theme: the app theme unless /light or /dark overrides it, and only where Windows can draw it
     bool_t     isElevated;                 ///< TRUE when running as administrator
     bool_t     isInstalled;                ///< TRUE when a copy is registered
     bool_t     isAccepted;                 ///< TRUE once the license is accepted
@@ -218,8 +218,7 @@ typedef struct Setup_s
     FileRow_t  rows[MAX_FILE_ROWS];        ///< Files of the package
     HTREEITEM  folderItem;                 ///< Tree node of the destination folder, renamed as the folder box changes
     SIZE       minimumFrame;               ///< Frame window size as the template made it
-    uint32_t   rowCount;                   ///< Rows filled
-    uint32_t   fileCount;                  ///< Files counted in the files group caption
+    uint32_t   rowCount;                   ///< Rows filled, one per package file
     uint64_t   totalBytes;                 ///< Bytes of the files
     HICON      icon;                       ///< Product icon, drawn into the banner and the side panel
     HIMAGELIST treeImages;                 ///< Icons of the file tree, at the frame's DPI
@@ -349,12 +348,26 @@ static void FormatSize(uint64_t bytes, wchar_t* text, uint32_t capacity);
 /*************************************************************************************************/
 /**
  * \brief Frame dialog procedure: navigation, theme colors, installer messages.
+ *
+ * \param[in] window          Frame dialog
+ * \param[in] message         Window message
+ * \param[in] wordParameter   Message WPARAM
+ * \param[in] longParameter   Message LPARAM
+ *
+ * \retval    INT_PTR         Brush for a WM_CTLCOLOR message, else nonzero if the message was handled.
  */
 static INT_PTR CALLBACK FrameProcedure(HWND window, UINT message, WPARAM wordParameter, LPARAM longParameter);
 
 /*************************************************************************************************/
 /**
  * \brief Page dialog procedure shared by every page; the page is told apart by its resource id.
+ *
+ * \param[in] window          Page dialog
+ * \param[in] message         Window message
+ * \param[in] wordParameter   Message WPARAM
+ * \param[in] longParameter   Message LPARAM
+ *
+ * \retval    INT_PTR         Brush for a WM_CTLCOLOR message, else nonzero if the message was handled.
  */
 static INT_PTR CALLBACK PageProcedure(HWND window, UINT message, WPARAM wordParameter, LPARAM longParameter);
 
@@ -408,7 +421,7 @@ static void UpdateButtons(void);
 
 /*************************************************************************************************/
 /**
- * \brief Applies the dark theme to a page's controls when the user runs dark.
+ * \brief Applies the dark theme to a page's controls; does nothing in the light theme.
  *
  * \param[in] page   Page dialog
  *
@@ -453,12 +466,30 @@ static LRESULT PaintCheckBoxLabel(const NMCUSTOMDRAW* draw);
 /*************************************************************************************************/
 /**
  * \brief Subclass of the list header: paints it dark with light column names.
+ *
+ * \param[in] window          List header
+ * \param[in] message         Window message
+ * \param[in] wordParameter   Message WPARAM
+ * \param[in] longParameter   Message LPARAM
+ * \param[in] subclassId      Subclass identifier, unused
+ * \param[in] reference       Subclass reference data, unused
+ *
+ * \retval    LRESULT         Message result.
  */
 static LRESULT CALLBACK HeaderProcedure(HWND window, UINT message, WPARAM wordParameter, LPARAM longParameter, UINT_PTR subclassId, DWORD_PTR reference);
 
 /*************************************************************************************************/
 /**
  * \brief Subclass of the tree, list, and edit: paints their non-client ring in the well color.
+ *
+ * \param[in] window          Tree, list, or edit control
+ * \param[in] message         Window message
+ * \param[in] wordParameter   Message WPARAM
+ * \param[in] longParameter   Message LPARAM
+ * \param[in] subclassId      Subclass identifier, unused
+ * \param[in] reference       Subclass reference data, unused
+ *
+ * \retval    LRESULT         Message result.
  */
 static LRESULT CALLBACK WellProcedure(HWND window, UINT message, WPARAM wordParameter, LPARAM longParameter, UINT_PTR subclassId, DWORD_PTR reference);
 
@@ -566,6 +597,12 @@ static DWORD WINAPI InstallThread(LPVOID parameter);
 /*************************************************************************************************/
 /**
  * \brief Windows Installer external UI handler: progress and actions go to the frame, errors to a message box.
+ *
+ * \param[in] context       Unused
+ * \param[in] messageType   INSTALLMESSAGE type combined with message box flags
+ * \param[in] record        Message record
+ *
+ * \retval    INT           IDOK if handled, IDCANCEL to cancel the installation, or 0 to leave the message to Windows Installer.
  */
 static INT CALLBACK InstallerHandler(LPVOID context, UINT messageType, MSIHANDLE record);
 
@@ -864,7 +901,6 @@ static void ReadFileRows(void)
     int       size;
 
     s_setup.rowCount   = 0;
-    s_setup.fileCount  = 0;
     s_setup.totalBytes = 0;
     database           = 0;
     if (ERROR_SUCCESS != MsiOpenDatabaseW(s_setup.packagePath, MSIDBOPEN_READONLY, &database))
@@ -907,7 +943,6 @@ static void ReadFileRows(void)
             }
             s_setup.totalBytes += (uint64_t)size;
             s_setup.rowCount   += 1;
-            s_setup.fileCount  += 1;
         }
         MsiCloseHandle(view);
     }
@@ -1132,7 +1167,7 @@ static INT_PTR CALLBACK FrameProcedure(HWND window, UINT message, WPARAM wordPar
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The page's resource id is the dialog's parameter; it picks the fill-in and the handlers.
+ *  The page's resource id is the dialog's parameter and selects how WM_INITDIALOG fills the page.
  */
 static INT_PTR CALLBACK PageProcedure(HWND window, UINT message, WPARAM wordParameter, LPARAM longParameter)
 {
@@ -2215,7 +2250,7 @@ static void FillFileTree(HWND page)
     (void)TreeView_Expand(tree, s_setup.folderItem, TVE_EXPAND);
     (void)TreeView_EnsureVisible(tree, s_setup.folderItem);
     FormatSize(s_setup.totalBytes, size_text, COUNT_OF(size_text));
-    (void)swprintf_s(group, COUNT_OF(group), GROUP_FILES_FORMAT, (unsigned)s_setup.fileCount, size_text);
+    (void)swprintf_s(group, COUNT_OF(group), GROUP_FILES_FORMAT, (unsigned)s_setup.rowCount, size_text);
     SetDlgItemTextW(page, IDC_GROUP_FILES, group);
 }
 

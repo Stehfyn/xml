@@ -37,11 +37,12 @@
 /**
  * \brief Initializes process-wide operating-system diagnostics.
  *
- * On Windows, suppresses error dialogs, routes CRT reports to stderr, makes invalid CRT
- * parameters and SIGABRT exit with EXIT_FAILURE, and logs unhandled exceptions with their
- * stack frames. Other platforms need no initialization.
+ * \par Details:
+ *  On Windows, suppresses error dialogs, routes CRT reports to stderr, makes invalid CRT
+ *  parameters and SIGABRT exit with EXIT_FAILURE, and logs unhandled exceptions with their
+ *  stack frames. Other platforms need no initialization.
  *
- * \retval        None
+ * \retval None
  */
 void Os_Diagnostics_Initialize(void);
 

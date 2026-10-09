@@ -106,7 +106,7 @@ bool_t Arinc661_Icons_LoadFonts(float32_t textSize);
 /*************************************************************************************************/
 /**
  * \brief Draws an icon into a box from its Segoe MDL2 Assets glyph, or from primitives when the
- *        glyph is unavailable.
+ *  glyph is unavailable.
  *
  * \param[in,out] drawList   Target draw list
  * \param[in]     icon       Icon to draw

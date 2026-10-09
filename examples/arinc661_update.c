@@ -69,7 +69,7 @@
  * \param[out] buffer     Bytes read
  * \param[in]  capacity   Bytes in buffer
  *
- * \retval     int32_t    Bytes read, or negative on any failure, a status other than 200, or a body that does not fit.
+ * \retval     int32_t    Bytes read, or negative on any failure, a status other than 200, or a body that fills the buffer.
  */
 static int32_t FetchHttp(const char_t* url, byte_t* buffer, uint32_t capacity);
 
@@ -214,7 +214,7 @@ static int32_t FetchHttp(const char_t* url, byte_t* buffer, uint32_t capacity)
                     }
                     if ((0 <= result) && (used >= capacity))
                     {
-                        // More data than the buffer holds is a failure, not a truncation
+                        // A full buffer may hide more data, so it is a failure, not a truncation
                         result = -1;
                     }
                     if (0 <= result)
@@ -490,7 +490,7 @@ int32_t Arinc661_Update_CompareVersions(const Arinc661_Update_Version_t* left, c
  * \par Details:
  *  None
  */
-bool_t Arinc661_Update_ParseManifest(const char_t* text, uint32_t byteCount, const char_t* baseUrl, Arinc661_Update_Manifest_t* manifest)
+bool_t Arinc661_Update_ParseManifest(const char_t* text, uint32_t sizeOfText, const char_t* baseUrl, Arinc661_Update_Manifest_t* manifest)
 {
     const char_t* line;
     const char_t* line_end;
@@ -506,7 +506,7 @@ bool_t Arinc661_Update_ParseManifest(const char_t* text, uint32_t byteCount, con
     has_version = FALSE;
     has_package = FALSE;
     line        = text;
-    end         = (text + byteCount);
+    end         = (text + sizeOfText);
     while (line < end)
     {
         line_end = line;
@@ -657,7 +657,7 @@ Arinc661_Update_Result_t Arinc661_Update_Download(const Arinc661_Update_Manifest
 /**
  * \par Details:
  *  cmd.exe runs the installer and, when it exits with zero, starts relaunchPath if given. The
- *  shell is detached so it outlives this process.
+ *  shell runs without a console and keeps running after this process exits.
  */
 bool_t Arinc661_Update_Apply(const char_t* packagePath, const char_t* relaunchPath)
 {
@@ -699,7 +699,7 @@ bool_t Arinc661_Update_Apply(const char_t* packagePath, const char_t* relaunchPa
  * \par Details:
  *  None
  */
-bool_t Arinc661_Update_Sha256(const byte_t* bytes, uint32_t byteCount, byte_t* digest)
+bool_t Arinc661_Update_Sha256(const byte_t* bytes, uint32_t sizeOfBytes, byte_t* digest)
 {
     BCRYPT_ALG_HANDLE  algorithm;
     BCRYPT_HASH_HANDLE hash;
@@ -717,7 +717,7 @@ bool_t Arinc661_Update_Sha256(const byte_t* bytes, uint32_t byteCount, byte_t* d
         status = BCryptCreateHash(algorithm, &hash, NULL, 0, NULL, 0, 0);
         if (NT_SUCCESS_STATUS(status))
         {
-            status = BCryptHashData(hash, (PUCHAR)bytes, (ULONG)byteCount, 0);
+            status = BCryptHashData(hash, (PUCHAR)bytes, (ULONG)sizeOfBytes, 0);
             if (NT_SUCCESS_STATUS(status))
             {
                 status  = BCryptFinishHash(hash, digest, ARINC661_UPDATE_SHA256_BYTES, 0);

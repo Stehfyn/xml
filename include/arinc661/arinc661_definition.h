@@ -168,7 +168,7 @@ bool_t Arinc661_Definition_GetParameter(const char_t* typeName, bool_t isExtensi
 /**
  * \brief Counts the section 4.6 constant names accepted as property values.
  *
- * \retval    uint32_t   Number of constants.
+ * \retval uint32_t   Number of constants.
  */
 uint32_t Arinc661_Definition_GetConstantCount(void);
 
