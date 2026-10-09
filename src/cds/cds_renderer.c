@@ -3183,7 +3183,7 @@ void CDS_Renderer_DrawLayer(const Arinc661_Scene_t* scene, uint32_t layerId, FAC
     const FACEOE_Utl_Node_t* layer;
     const FACEOE_Utl_Node_t* child;
     Renderer_t               renderer;
-    bool_t                   is_active;
+    bool_t                   is_drawn;
 
     LOGASSERT(NULL != scene);
     LOGASSERT(NULL != drawList);
@@ -3193,14 +3193,14 @@ void CDS_Renderer_DrawLayer(const Arinc661_Scene_t* scene, uint32_t layerId, FAC
     layer                = Arinc661_Scene_GetLayer(scene, layerId);
     if (NULL != layer)
     {
-        is_active = ((const Arinc661_Scene_Node_t*)layer->item)->active;
+        is_drawn = ((const Arinc661_Scene_Node_t*)layer->item)->active && ((const Arinc661_Scene_Node_t*)layer->item)->visible;
     }
     else
     {
-        is_active = FALSE;
+        is_drawn = FALSE;
     }
 
-    if (is_active)
+    if (is_drawn)
     {
         (void)memset(&renderer, 0, sizeof(renderer));
         renderer.drawList = drawList;

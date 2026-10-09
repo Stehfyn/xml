@@ -138,6 +138,7 @@ typedef enum Arinc661_ParameterKind_e
 {
     ARINC661_PARAMETER_UCHAR,        ///< Unsigned 8-bit integer; decimal or constant name
     ARINC661_PARAMETER_USHORT,       ///< Unsigned 16-bit integer; decimal or constant name
+    ARINC661_PARAMETER_SHORT,        ///< Signed 16-bit integer, set only at run time; decimal
     ARINC661_PARAMETER_LONG,         ///< Signed 32-bit integer; decimal or constant name
     ARINC661_PARAMETER_ULONG,        ///< Unsigned 32-bit integer; decimal or constant name
     ARINC661_PARAMETER_FLOAT,        ///< IEEE 754 single precision; decimal

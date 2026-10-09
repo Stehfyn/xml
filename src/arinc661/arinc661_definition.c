@@ -5856,6 +5856,20 @@ static bool_t ReadBinaryLayer(Arinc661_Definition_t* definition, const byte_t* b
 
 /*************************************************************************************************/
 /**
+ * \brief Reads the charset encoding block, which a file may hold once (Table 4.5.3.2-6).
+ *
+ * \param[in,out] definition           Caller-owned definition
+ * \param[in]     buffer               Input bytes
+ * \param[in]     sizeOfBinaryBuffer   Number of input bytes
+ * \param[in,out] offset               Byte offset of the block, advanced past it
+ *
+ * \retval        TRUE                 if the encoding was read.
+ * \retval        FALSE                if the block is malformed, a second one, or names an encoding Table 4.6-13 does not list.
+ */
+static bool_t ReadBinaryCharsetBlock(Arinc661_Definition_t* definition, const byte_t* buffer, uint64_t sizeOfBinaryBuffer, uint64_t* offset);
+
+/*************************************************************************************************/
+/**
  * \brief Moves past one picture of a picture block (Table 7-2).
  *
  * \param[in]     buffer               Input bytes
@@ -9109,6 +9123,58 @@ static bool_t ReadBinarySizedBlock(const byte_t* buffer, uint64_t sizeOfBinaryBu
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  Reads the block of Table 4.5.3.2-6, the inverse of WriteBinaryCharsetBlock, for example for
+ *  A661_UTF8:
+ *
+ * \verbatim
+ * C8        A661_BEGIN_CHARSET_ENCODING_BLOCK
+ * 00        UnusedPad
+ * 0002      Charset encoding    -> charsetEncoding A661_UTF8
+ * C9        A661_END_CHARSET_ENCODING_BLOCK
+ * 000000    UnusedPad
+ * \endverbatim
+ */
+static bool_t ReadBinaryCharsetBlock(Arinc661_Definition_t* definition, const byte_t* buffer, uint64_t sizeOfBinaryBuffer, uint64_t* offset)
+{
+    uint32_t encoding;
+    bool_t   has_block_bytes;
+    bool_t   has_end_code;
+    bool_t   is_first;
+    bool_t   is_standard_encoding;
+    bool_t   is_oem_encoding;
+    bool_t   is_valid;
+
+    has_block_bytes = (sizeof(BinaryCharsetBlock_t) <= (sizeOfBinaryBuffer - (*offset)));
+    if (has_block_bytes)
+    {
+        has_end_code = (BINARY_END_CHARSET_BLOCK == buffer[(*offset) + OFFSET_OF(BinaryCharsetBlock_t, endCode)]);
+    }
+    else
+    {
+        has_end_code = FALSE;
+    }
+
+    is_first = (ARINC661_CHARSET_ENCODING_NONE == definition->charsetEncoding);
+    is_valid = has_end_code && is_first;
+    if (is_valid)
+    {
+        encoding             = ReadUnsigned(buffer, (*offset) + OFFSET_OF(BinaryCharsetBlock_t, encoding), BINARY_USHORT_BYTES);
+        is_standard_encoding = (ARINC661_CHARSET_ENCODING_ASCII_EXTENDED <= encoding) && (ARINC661_CHARSET_ENCODING_GBK >= encoding);
+        is_oem_encoding      = (ARINC661_CHARSET_ENCODING_OEM_FIRST <= encoding) && (ARINC661_CHARSET_ENCODING_OEM_LAST >= encoding);
+        is_valid             = is_standard_encoding || is_oem_encoding;
+    }
+    if (is_valid)
+    {
+        definition->charsetEncoding = (Arinc661_CharsetEncoding_t)encoding;
+        (*offset)                  += sizeof(BinaryCharsetBlock_t);
+    }
+
+    return is_valid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Reads past the block with ReadBinaryPictureBlock, since picture blocks have no Block
  *  Size, or with ReadBinarySizedBlock, then appends the bytes it covered unchanged to the
  *  caller's block storage, so Arinc661_Definition_WriteBinary can emit them again.
@@ -9305,6 +9371,159 @@ bool_t Arinc661_Definition_GetParameter(const char_t* typeName, bool_t isExtensi
     }
 
     return is_found;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Shares the formatting of the binary readers, so a value set at run time reads like the same
+ *  value in a binary Definition File.
+ */
+bool_t Arinc661_Definition_ReadBinaryValue(Arinc661_ParameterKind_t kind, const byte_t* value, uint32_t sizeOfValue, char_t* text, uint32_t capacity)
+{
+    float32_t float_value;
+    uint32_t  encoded_value;
+    uint32_t  byte_count;
+    int64_t   integer_value;
+    int       printed_count;
+    bool_t    is_integer;
+    bool_t    is_valid;
+
+    LOGASSERT(NULL != value);
+    LOGASSERT(NULL != text);
+    LOGASSERT(ARINC661_MAX_PROPERTY_BYTES <= capacity);
+
+    text[0]       = '\0';
+    integer_value = 0;
+    is_integer    = FALSE;
+    switch (kind)
+    {
+        case ARINC661_PARAMETER_UCHAR:
+        {
+            is_valid = (BINARY_UCHAR_BYTES <= sizeOfValue);
+            if (is_valid)
+            {
+                integer_value = (int64_t)ReadUnsigned(value, 0, BINARY_UCHAR_BYTES);
+                is_integer    = TRUE;
+            }
+            break;
+        }
+        case ARINC661_PARAMETER_USHORT:
+        {
+            is_valid = (BINARY_USHORT_BYTES <= sizeOfValue);
+            if (is_valid)
+            {
+                integer_value = (int64_t)ReadUnsigned(value, 0, BINARY_USHORT_BYTES);
+                is_integer    = TRUE;
+            }
+            break;
+        }
+        case ARINC661_PARAMETER_SHORT:
+        {
+            is_valid = (BINARY_USHORT_BYTES <= sizeOfValue);
+            if (is_valid)
+            {
+                encoded_value = ReadUnsigned(value, 0, BINARY_USHORT_BYTES);
+                integer_value = (int64_t)encoded_value;
+                if ((uint32_t)INT16_MAX < encoded_value)
+                {
+                    // Two's complement: 0xFFFF is -1
+                    integer_value -= ((int64_t)UINT16_MAX + 1);
+                }
+                is_integer = TRUE;
+            }
+            break;
+        }
+        case ARINC661_PARAMETER_LONG:
+        {
+            is_valid = (BINARY_ULONG_BYTES <= sizeOfValue);
+            if (is_valid)
+            {
+                encoded_value = ReadUnsigned(value, 0, BINARY_ULONG_BYTES);
+                integer_value = ToSigned32(encoded_value);
+                is_integer    = TRUE;
+            }
+            break;
+        }
+        case ARINC661_PARAMETER_ULONG:
+        {
+            is_valid = (BINARY_ULONG_BYTES <= sizeOfValue);
+            if (is_valid)
+            {
+                integer_value = (int64_t)ReadUnsigned(value, 0, BINARY_ULONG_BYTES);
+                is_integer    = TRUE;
+            }
+            break;
+        }
+        case ARINC661_PARAMETER_FLOAT:
+        {
+            is_valid = (BINARY_ULONG_BYTES <= sizeOfValue);
+            if (is_valid)
+            {
+                encoded_value = ReadUnsigned(value, 0, BINARY_ULONG_BYTES);
+                (void)memcpy(&float_value, &encoded_value, sizeof(float_value));
+                // Reject infinities and NaN, which have no decimal property text
+                is_valid = (float_value <= FLT_MAX) && (float_value >= -FLT_MAX);
+            }
+            if (is_valid)
+            {
+                (void)FormatFloat32(text, capacity, float_value);
+            }
+            break;
+        }
+        case ARINC661_PARAMETER_FR180:
+        {
+            is_valid = (BINARY_ULONG_BYTES <= sizeOfValue);
+            if (is_valid)
+            {
+                encoded_value = ReadUnsigned(value, 0, BINARY_ULONG_BYTES);
+                (void)FormatFraction(text, capacity, ToSigned32(encoded_value), BINARY_FR180_RANGE);
+            }
+            break;
+        }
+        case ARINC661_PARAMETER_FR32768:
+        {
+            is_valid = (BINARY_ULONG_BYTES <= sizeOfValue);
+            if (is_valid)
+            {
+                encoded_value = ReadUnsigned(value, 0, BINARY_ULONG_BYTES);
+                (void)FormatFraction(text, capacity, ToSigned32(encoded_value), BINARY_FR32768_RANGE);
+            }
+            break;
+        }
+        case ARINC661_PARAMETER_STRING:
+        {
+            for (byte_count = 0; byte_count < sizeOfValue; ++byte_count)
+            {
+                if (0 == value[byte_count])
+                {
+                    break;
+                }
+            }
+            // The terminator must be inside the value, and the text must fit with it
+            is_valid = (byte_count < sizeOfValue) && (byte_count < capacity);
+            if (is_valid)
+            {
+                (void)memcpy(text, value, byte_count);
+                text[byte_count] = '\0';
+            }
+            break;
+        }
+        default:
+        {
+            // Byte strings, regions, and layer requests have no single binary value
+            is_valid = FALSE;
+            break;
+        }
+    }
+
+    if (is_integer)
+    {
+        printed_count = FACEOE_Utl_Print_Int64(text, capacity, integer_value);
+        LOGASSERT((0 < printed_count) && ((uint32_t)printed_count < capacity));
+    }
+
+    return is_valid;
 }
 
 /*************************************************************************************************/
@@ -9926,12 +10145,8 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
     uint64_t offset;
     uint64_t block_index;
     uint32_t block_code;
-    uint32_t encoding;
     bool_t   has_footer;
     bool_t   has_block_word;
-    bool_t   has_charset_bytes;
-    bool_t   is_standard_encoding;
-    bool_t   is_oem_encoding;
     bool_t   is_valid;
 
     LOGASSERT(NULL != definition);
@@ -9978,21 +10193,7 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
             }
             else if (BINARY_BEGIN_CHARSET_BLOCK == block_code)
             {
-                // Read the block as code, pad, encoding, end code, pad (Table 4.5.3.2-6) and allow one per file
-                has_charset_bytes = (sizeof(BinaryCharsetBlock_t) <= (sizeOfBinaryBuffer - offset));
-                is_valid          = has_charset_bytes && (BINARY_END_CHARSET_BLOCK == bufferToReadBinaryFrom[offset + OFFSET_OF(BinaryCharsetBlock_t, endCode)]) && (ARINC661_CHARSET_ENCODING_NONE == definition->charsetEncoding);
-                if (is_valid)
-                {
-                    encoding             = ReadUnsigned(bufferToReadBinaryFrom, offset + OFFSET_OF(BinaryCharsetBlock_t, encoding), BINARY_USHORT_BYTES);
-                    is_standard_encoding = (ARINC661_CHARSET_ENCODING_ASCII_EXTENDED <= encoding) && (ARINC661_CHARSET_ENCODING_GBK >= encoding);
-                    is_oem_encoding      = (ARINC661_CHARSET_ENCODING_OEM_FIRST <= encoding) && (ARINC661_CHARSET_ENCODING_OEM_LAST >= encoding);
-                    is_valid             = is_standard_encoding || is_oem_encoding;
-                }
-                if (is_valid)
-                {
-                    definition->charsetEncoding = (Arinc661_CharsetEncoding_t)encoding;
-                    offset                     += sizeof(BinaryCharsetBlock_t);
-                }
+                is_valid = ReadBinaryCharsetBlock(definition, bufferToReadBinaryFrom, sizeOfBinaryBuffer, &offset);
             }
             else if ((BINARY_BEGIN_SYMBOL_BLOCK == block_code) || (BINARY_BEGIN_PICTURE_BLOCK == block_code) || (BINARY_BEGIN_ANIMATION_BLOCK == block_code))
             {

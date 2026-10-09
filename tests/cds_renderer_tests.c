@@ -52,7 +52,8 @@ static CDS_Renderer_Bounds_t s_bounds[TEST_MAX_WIDGETS];
  */
 static void BuildScene(const Arinc661_Definition_t* definition, Arinc661_Scene_t* scene)
 {
-    Arinc661_Scene_Build(scene, s_sceneNodes, s_sceneItems, COUNT_OF(s_sceneNodes), definition->layers, definition->layerCount, definition->widgets, definition->widgetCount, definition->properties, definition->propertyCount, NULL);
+    Arinc661_Scene_Initialize(scene, s_sceneNodes, s_sceneItems, COUNT_OF(s_sceneNodes), NULL, 0, 0, NULL, 0);
+    Arinc661_Scene_Build(scene, definition->layers, definition->layerCount, definition->widgets, definition->widgetCount, definition->properties, definition->propertyCount, NULL);
 }
 
 /*************************************************************************************************/
@@ -445,14 +446,21 @@ void RunCDSRendererTests(void)
         assert(HasText(&list, "w2"));
     }
 
-    // An inactive layer records nothing, and draws again once active; a LayerId no layer holds records nothing
+    // An inactive layer records nothing; active again it stays invisible until shown, and a hidden layer records nothing
     FACEOE_Gfx_DrawList_Clear(&list);
     Arinc661_Scene_DisableLayer(&scene, TEST_LAYER_ID);
     CDS_Renderer_DrawLayer(&scene, TEST_LAYER_ID, &list, &options);
     assert((0 == list.commandCount) && (0 == options.boundsCount));
     Arinc661_Scene_EnableLayer(&scene, TEST_LAYER_ID);
     CDS_Renderer_DrawLayer(&scene, TEST_LAYER_ID, &list, &options);
+    assert((0 == list.commandCount) && (0 == options.boundsCount));
+    Arinc661_Scene_ShowLayer(&scene, TEST_LAYER_ID);
+    CDS_Renderer_DrawLayer(&scene, TEST_LAYER_ID, &list, &options);
     assert((0 < list.commandCount) && (definition.widgetCount <= options.boundsCount));
+    FACEOE_Gfx_DrawList_Clear(&list);
+    Arinc661_Scene_HideLayer(&scene, TEST_LAYER_ID);
+    CDS_Renderer_DrawLayer(&scene, TEST_LAYER_ID, &list, &options);
+    assert((0 == list.commandCount) && (0 == options.boundsCount));
     FACEOE_Gfx_DrawList_Clear(&list);
     CDS_Renderer_DrawLayer(&scene, 0, &list, &options);
     assert((0 == list.commandCount) && (0 == options.boundsCount));

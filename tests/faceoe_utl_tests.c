@@ -68,6 +68,14 @@ void RunCDSRendererTests(void);
 
 /*************************************************************************************************/
 /**
+ * \brief Runs the CDS run-time tests.
+ *
+ * \retval None
+ */
+void RunCDSRunTimeTests(void);
+
+/*************************************************************************************************/
+/**
  * \brief Runs the editor update tests.
  *
  * \retval None
@@ -742,6 +750,7 @@ int main(void)
     RunFACEOEGfxTests();
     RunArinc661SceneTests();
     RunCDSRendererTests();
+    RunCDSRunTimeTests();
     RunArinc661UpdateTests();
     return 0;
 }

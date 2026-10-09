@@ -166,6 +166,31 @@ bool_t Arinc661_Definition_GetParameter(const char_t* typeName, bool_t isExtensi
 
 /*************************************************************************************************/
 /**
+ * \brief Reads one binary value of a parameter kind as property text.
+ *
+ * \par Details:
+ *  The text is what Arinc661_Definition_ReadBinary gives the same bytes: a decimal integer,
+ *  the fewest decimal digits that reproduce a float or fr() value, or a string's characters.
+ *
+ * \par Requirements:
+ *  - 001 This function shall read a UCHAR from 1 byte, a USHORT or SHORT from 2, and a LONG, ULONG, FLOAT, FR180, or FR32768 from 4, most significant byte first.
+ *  - 002 This function shall copy a STRING up to its zero terminator, which must lie within sizeOfValue bytes.
+ *  - 003 This function shall return FALSE for any other kind, too few bytes, or a float that is not finite.
+ *  - 004 This function shall fail an assertion if value or text is NULL, or capacity is less than ARINC661_MAX_PROPERTY_BYTES.
+ *
+ * \param[in]  kind          Kind of the value
+ * \param[in]  value         Binary value
+ * \param[in]  sizeOfValue   Bytes readable at value
+ * \param[out] text          Zero-terminated property text; empty on failure
+ * \param[in]  capacity      Bytes available in text
+ *
+ * \retval     TRUE          if the value was formatted.
+ * \retval     FALSE         otherwise.
+ */
+bool_t Arinc661_Definition_ReadBinaryValue(Arinc661_ParameterKind_t kind, const byte_t* value, uint32_t sizeOfValue, char_t* text, uint32_t capacity);
+
+/*************************************************************************************************/
+/**
  * \brief Counts the section 4.6 constant names accepted as property values.
  *
  * \retval uint32_t   Number of constants.

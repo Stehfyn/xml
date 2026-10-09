@@ -113,7 +113,8 @@ void RunArinc661SceneTests(void)
     SetProperty(&properties[10], ARINC661_PROPERTY_LAYER, 2, "Width", "1");    // owner left out
     SetProperty(&properties[11], ARINC661_PROPERTY_LAYER, 4, "LayerId", "7x"); // not wholly a number: layers[4] is left out
 
-    Arinc661_Scene_Build(&scene, nodes, items, COUNT_OF(nodes), layers, TEST_LAYERS, widgets, TEST_WIDGETS, properties, TEST_PROPERTIES, omit_flags);
+    Arinc661_Scene_Initialize(&scene, nodes, items, COUNT_OF(nodes), NULL, 0, 0, NULL, 0);
+    Arinc661_Scene_Build(&scene, layers, TEST_LAYERS, widgets, TEST_WIDGETS, properties, TEST_PROPERTIES, omit_flags);
     assert((COUNT_OF(nodes) - (2 * TEST_LAYERS_OUT)) == scene.tree.nodeCount);
 
     // The root's model node holds the definition's property, then come the layers in LayerId order
@@ -170,7 +171,7 @@ void RunArinc661SceneTests(void)
     assert(((const Arinc661_Scene_Node_t*)layer->item)->active);
 
     // Without omit flags the omitted widget and its child come back
-    Arinc661_Scene_Build(&scene, nodes, items, COUNT_OF(nodes), layers, TEST_LAYERS, widgets, TEST_WIDGETS, properties, TEST_PROPERTIES, NULL);
+    Arinc661_Scene_Build(&scene, layers, TEST_LAYERS, widgets, TEST_WIDGETS, properties, TEST_PROPERTIES, NULL);
     child = Arinc661_Scene_GetLayer(&scene, TEST_SECOND_ID)->firstChild->nextSibling->firstChild->nextSibling->nextSibling->nextSibling;
     assert(&widgets[5] == ((const Arinc661_Scene_Node_t*)child->item)->data);
     assert(&widgets[6] == ((const Arinc661_Scene_Node_t*)child->firstChild->nextSibling->item)->data);

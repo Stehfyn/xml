@@ -80,7 +80,7 @@ typedef struct CDS_Renderer_Options_s
  *  The draw list's current transform maps layer units (0.01 mm, Y up) to output units; the
  *  caller sets it before the call. Widgets are recorded in scene order, children after their
  *  container, so later widgets overdraw earlier ones as in section 2.3.2.3. Nothing is
- *  recorded for an inactive layer, or for a LayerId no layer in the scene holds.
+ *  recorded for a layer that is inactive or invisible, or for a LayerId no layer holds.
  *
  * \param[in]     scene      Scene to draw
  * \param[in]     layerId    LayerId of the layer to draw, below ARINC661_SCENE_MAX_LAYER_IDS

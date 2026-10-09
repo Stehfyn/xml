@@ -66,9 +66,11 @@ target_include_directories(faceoe_gfx PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/includ
 
 add_library(arinc661 STATIC
     src/arinc661/arinc661_definition.c
+    src/arinc661/arinc661_runtime.c
     src/arinc661/arinc661_scene.c
     include/arinc661/arinc661.h
     include/arinc661/arinc661_definition.h
+    include/arinc661/arinc661_runtime.h
     include/arinc661/arinc661_scene.h)
 target_link_libraries(arinc661 PUBLIC faceoe_utl)
 target_include_directories(arinc661 PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
@@ -81,7 +83,9 @@ target_include_directories(faceoe PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 add_library(cds STATIC
     src/cds/cds_renderer.c
-    include/cds/cds_renderer.h)
+    src/cds/cds_runtime.c
+    include/cds/cds_renderer.h
+    include/cds/cds_runtime.h)
 target_link_libraries(cds PUBLIC arinc661 faceoe_gfx)
 target_include_directories(cds PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
@@ -93,6 +97,7 @@ add_executable(unit_tests
     tests/faceoe_displaymanagement_tests.c
     tests/arinc661_update_tests.c
     tests/cds_renderer_tests.c
+    tests/cds_runtime_tests.c
     examples/arinc661_update.c)
 target_include_directories(unit_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/examples")
 target_link_libraries(unit_tests PRIVATE faceoe_utl faceoe_gfx arinc661 faceoe cds winhttp bcrypt)

@@ -5257,7 +5257,8 @@ static void BuildScene(const Arinc661_DefinitionEditor_Document_t* document, boo
     {
         omit_flags = document->isHiddenInEditor;
     }
-    Arinc661_Scene_Build(scene, s_sceneNodes, s_sceneItems, COUNT_OF(s_sceneNodes), document->layers, document->definition.layerCount, document->widgets, document->definition.widgetCount, document->properties, document->definition.propertyCount, omit_flags);
+    Arinc661_Scene_Initialize(scene, s_sceneNodes, s_sceneItems, COUNT_OF(s_sceneNodes), NULL, 0, 0, NULL, 0);
+    Arinc661_Scene_Build(scene, document->layers, document->definition.layerCount, document->widgets, document->definition.widgetCount, document->properties, document->definition.propertyCount, omit_flags);
 }
 
 /*************************************************************************************************/
