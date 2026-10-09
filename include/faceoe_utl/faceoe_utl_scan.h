@@ -64,6 +64,29 @@ int32_t FACEOE_Utl_Scan_Int64(const char_t* a, int64_t* v);
 
 /*************************************************************************************************/
 /**
+ * \brief Scans a decimal or hexadecimal integer prefix into a signed 64-bit value.
+ *
+ * \par Details:
+ *  A hexadecimal integer is "0x" followed by uppercase digits, such as "0x6F12", the form
+ *  ARINC 661 Part 1-7 section 6.2.4.1 gives integral property values. Any other text is
+ *  scanned as by FACEOE_Utl_Scan_Int64.
+ *
+ * \par Requirements:
+ *  - 001 This function shall scan "0x" followed by one or more of the digits 0-9 and A-F as a hexadecimal value, and return the number of characters in that prefix.
+ *  - 002 This function shall scan any other text as FACEOE_Utl_Scan_Int64 does.
+ *  - 003 This function shall reject a hexadecimal value above INT64_MAX.
+ *  - 004 This function shall leave v unchanged on failure.
+ *
+ * \param[in]  a   Non-NULL text, readable through the first character after the prefix or the zero terminator
+ * \param[out] v   Non-NULL destination, written only on success
+ *
+ * \retval     -1             The prefix has no digits, is too long, or is out of range.
+ * \retval     1..INT32_MAX   Number of characters consumed.
+ */
+int32_t FACEOE_Utl_Scan_Integer(const char_t* a, int64_t* v);
+
+/*************************************************************************************************/
+/**
  * \brief Scans an XML Schema decimal prefix into a finite float64_t.
  *
  * \par Details:

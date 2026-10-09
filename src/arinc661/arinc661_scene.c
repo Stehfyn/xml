@@ -11,6 +11,7 @@
 **===============================================================================================*/
 
 #include "arinc661/arinc661_scene.h"
+#include "arinc661/arinc661_runtime.h"
 #include "faceoe_utl/faceoe_utl_scan.h"
 #include "os/os_assert.h"
 
@@ -59,13 +60,23 @@ static FACEOE_Utl_Node_t* AddSceneNode(Arinc661_Scene_t* scene, FACEOE_Utl_Node_
 
 /*************************************************************************************************/
 /**
+ * \brief Reads a property node's value as a number into its item.
+ *
+ * \param[in,out] item   Item of a property node
+ *
+ * \retval        None
+ */
+static void ReadSceneNumber(Arinc661_Scene_Node_t* item);
+
+/*************************************************************************************************/
+/**
  * \brief Reads a LayerId or WidgetIdent property value.
  *
  * \param[in]  text         Zero-terminated property value
  * \param[in]  identCount   Number of valid identifiers, counted from zero
  * \param[out] ident        Identifier, written only on success
  *
- * \retval     TRUE         if the text is wholly a decimal integer from 0 to identCount - 1.
+ * \retval     TRUE         if the text is wholly an integer from 0 to identCount - 1.
  * \retval     FALSE        otherwise.
  */
 static bool_t ParseIdent(const char_t* text, uint32_t identCount, uint32_t* ident);
@@ -184,9 +195,9 @@ static Arinc661_Property_t* GetSceneValue(Arinc661_Scene_t* scene, FACEOE_Utl_No
  * \param[in]     owner   The root, a layer node, or a widget node
  * \param[in]     name    Zero-terminated property name
  *
- * \retval        Arinc661_Property_t*   The new property, with an empty value.
+ * \retval        FACEOE_Utl_Node_t*   The new property's node; the property's value is empty.
  */
-static Arinc661_Property_t* AddSceneProperty(Arinc661_Scene_t* scene, const FACEOE_Utl_Node_t* owner, const char_t* name);
+static FACEOE_Utl_Node_t* AddSceneProperty(Arinc661_Scene_t* scene, const FACEOE_Utl_Node_t* owner, const char_t* name);
 
 /*=================================================================================================
 ** 4. PRIVATE FUNCTIONS
@@ -195,8 +206,9 @@ static Arinc661_Property_t* AddSceneProperty(Arinc661_Scene_t* scene, const FACE
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Every layer starts active and visible. A node left out of the scene still takes its place in
- *  the node array, so a widget's node stays at a fixed offset from its array index.
+ *  Every layer starts active and visible, and a property node's value is read as a number. A
+ *  node left out of the scene still takes its place in the node array, so a widget's node stays
+ *  at a fixed offset from its array index.
  */
 static FACEOE_Utl_Node_t* AddSceneNode(Arinc661_Scene_t* scene, FACEOE_Utl_Node_t* parent, Arinc661_Scene_NodeKind_t kind, const void* data)
 {
@@ -210,6 +222,12 @@ static FACEOE_Utl_Node_t* AddSceneNode(Arinc661_Scene_t* scene, FACEOE_Utl_Node_
     item->widgetNodes = NULL;
     item->active      = (ARINC661_SCENE_NODE_LAYER == kind);
     item->visible     = (ARINC661_SCENE_NODE_LAYER == kind);
+    item->number      = 0.0;
+    item->isNumber    = FALSE;
+    if (ARINC661_SCENE_NODE_PROPERTY == kind)
+    {
+        ReadSceneNumber(item);
+    }
 
     node = FACEOE_Utl_Tree_AddNode(&scene->tree, item);
     if (NULL != parent)
@@ -223,7 +241,81 @@ static FACEOE_Utl_Node_t* AddSceneNode(Arinc661_Scene_t* scene, FACEOE_Utl_Node_
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Uses FACEOE_Utl_Scan_Int64, so a sign is accepted and leading white space is not.
+ *  A value is a number if it is wholly a decimal, wholly a hexadecimal integer in the form of
+ *  ARINC 661 Part 1-7 section 6.2.4.1, or a constant name Arinc661_Runtime_GetConstantName
+ *  lists. It is read once each time it is set, never while the scene is drawn.
+ */
+static void ReadSceneNumber(Arinc661_Scene_Node_t* item)
+{
+    const Arinc661_Property_t* property;
+    const char_t*              constant_name;
+    float64_t                  real_value;
+    int64_t                    integer_value;
+    int32_t                    real_consumed;
+    int32_t                    integer_consumed;
+    uint32_t                   constant_count;
+    uint32_t                   constant_index;
+    uint32_t                   constant_value;
+    bool_t                     is_real;
+    bool_t                     is_integer;
+    bool_t                     names_match;
+
+    property         = (const Arinc661_Property_t*)item->data;
+    real_consumed    = FACEOE_Utl_Scan_Float(property->value, &real_value);
+    integer_consumed = FACEOE_Utl_Scan_Integer(property->value, &integer_value);
+    if (0 < real_consumed)
+    {
+        is_real = ('\0' == property->value[real_consumed]);
+    }
+    else
+    {
+        is_real = FALSE;
+    }
+    if (0 < integer_consumed)
+    {
+        is_integer = ('\0' == property->value[integer_consumed]);
+    }
+    else
+    {
+        is_integer = FALSE;
+    }
+
+    if (is_real)
+    {
+        item->number   = real_value;
+        item->isNumber = TRUE;
+    }
+    else if (is_integer)
+    {
+        // The hexadecimal form, which the decimal scan stops short of at the x
+        item->number   = (float64_t)integer_value;
+        item->isNumber = TRUE;
+    }
+    else
+    {
+        item->number   = 0.0;
+        item->isNumber = FALSE;
+        constant_count = Arinc661_Runtime_GetConstantCount();
+        for (constant_index = 0; constant_index < constant_count; ++constant_index)
+        {
+            constant_name = Arinc661_Runtime_GetConstantName(constant_index);
+            names_match   = (0 == strncmp(property->value, constant_name, ARINC661_MAX_PROPERTY_BYTES));
+            if (names_match)
+            {
+                constant_value = Arinc661_Runtime_GetConstantValue(constant_index);
+                item->number   = (float64_t)constant_value;
+                item->isNumber = TRUE;
+                break;
+            }
+        }
+    }
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Uses FACEOE_Utl_Scan_Integer, so a sign and the hexadecimal form "0x6F12" are accepted,
+ *  and leading white space is not.
  */
 static bool_t ParseIdent(const char_t* text, uint32_t identCount, uint32_t* ident)
 {
@@ -232,7 +324,7 @@ static bool_t ParseIdent(const char_t* text, uint32_t identCount, uint32_t* iden
     bool_t  is_number;
     bool_t  is_ident;
 
-    consumed = FACEOE_Utl_Scan_Int64(text, &value);
+    consumed = FACEOE_Utl_Scan_Integer(text, &value);
     if (0 < consumed)
     {
         is_number = ('\0' == text[consumed]);
@@ -695,10 +787,11 @@ static Arinc661_Property_t* GetSceneValue(Arinc661_Scene_t* scene, FACEOE_Utl_No
  * \par Details:
  *  The property's owner and ownerIndex name the owner as the definition's arrays do.
  */
-static Arinc661_Property_t* AddSceneProperty(Arinc661_Scene_t* scene, const FACEOE_Utl_Node_t* owner, const char_t* name)
+static FACEOE_Utl_Node_t* AddSceneProperty(Arinc661_Scene_t* scene, const FACEOE_Utl_Node_t* owner, const char_t* name)
 {
     const Arinc661_Scene_Node_t* owner_item;
     Arinc661_Property_t*         copy;
+    FACEOE_Utl_Node_t*           property_node;
     size_t                       name_bytes;
     bool_t                       fits;
     bool_t                       has_node_room;
@@ -729,9 +822,9 @@ static Arinc661_Property_t* AddSceneProperty(Arinc661_Scene_t* scene, const FACE
     }
     (void)memcpy(copy->name, name, name_bytes);
     copy->name[name_bytes] = '\0';
-    (void)AddSceneNode(scene, owner->firstChild, ARINC661_SCENE_NODE_PROPERTY, copy);
+    property_node = AddSceneNode(scene, owner->firstChild, ARINC661_SCENE_NODE_PROPERTY, copy);
 
-    return copy;
+    return property_node;
 }
 
 /*=================================================================================================
@@ -920,12 +1013,14 @@ void Arinc661_Scene_HideLayer(Arinc661_Scene_t* scene, uint32_t layerId)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The definition stays unchanged: a property is set through its copy in values.
+ *  The definition stays unchanged: a property is set through its copy in values, and its node
+ *  reads the new value as a number.
  */
 void Arinc661_Scene_SetValue(Arinc661_Scene_t* scene, const FACEOE_Utl_Node_t* owner, const char_t* name, uint32_t occurrence, const char_t* value)
 {
     const Arinc661_Scene_Node_t* owner_item;
     FACEOE_Utl_Node_t*           property;
+    Arinc661_Scene_Node_t*       property_item;
     Arinc661_Property_t*         copy;
     size_t                       value_bytes;
     uint32_t                     count;
@@ -946,17 +1041,16 @@ void Arinc661_Scene_SetValue(Arinc661_Scene_t* scene, const FACEOE_Utl_Node_t* o
     LOGASSERT(fits);
 
     property = FindSceneProperty(owner, name, occurrence, &count);
-    if (NULL != property)
-    {
-        copy = GetSceneValue(scene, property);
-    }
-    else
+    if (NULL == property)
     {
         // A new property can only follow the owner's last one of that name
         LOGASSERT(count == occurrence);
-        copy = AddSceneProperty(scene, owner, name);
+        property = AddSceneProperty(scene, owner, name);
     }
+    copy = GetSceneValue(scene, property);
 
     (void)memcpy(copy->value, value, value_bytes);
     copy->value[value_bytes] = '\0';
+    property_item            = (Arinc661_Scene_Node_t*)property->item;
+    ReadSceneNumber(property_item);
 }

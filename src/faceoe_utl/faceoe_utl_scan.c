@@ -26,6 +26,10 @@
 ** 3.1 Macros
 **===============================================================================================*/
 
+#define SCAN_HEX_PREFIX_BYTES (2U)  ///< Characters of the "0x" prefix
+#define SCAN_HEX_BASE         (16U) ///< Radix of a hexadecimal integer
+#define SCAN_HEX_LETTER_VALUE (10U) ///< Value of the digit A
+
 /*=================================================================================================
 ** 3.2 Types
 **===============================================================================================*/
@@ -127,6 +131,86 @@ int32_t FACEOE_Utl_Scan_Int64(const char_t* a, int64_t* v)
             (*v) = (int64_t)magnitude;
         }
         result = (int32_t)byte_index;
+    }
+
+    return result;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  The "0x" prefix is checked first, since the decimal scan would stop after its zero. "0x"
+ *  without a hexadecimal digit after it scans as the decimal 0.
+ */
+int32_t FACEOE_Utl_Scan_Integer(const char_t* a, int64_t* v)
+{
+    uint64_t magnitude;
+    uint64_t digit;
+    uint32_t byte_index;
+    char_t   current_byte;
+    int32_t  result;
+    bool_t   has_prefix;
+    bool_t   is_decimal_digit;
+    bool_t   is_letter_digit;
+    bool_t   has_digits;
+    bool_t   is_valid;
+
+    LOGASSERT(NULL != a);
+    LOGASSERT(NULL != v);
+
+    if ('0' == a[0])
+    {
+        has_prefix = ('x' == a[1]);
+    }
+    else
+    {
+        has_prefix = FALSE;
+    }
+
+    result     = -1;
+    magnitude  = 0;
+    has_digits = FALSE;
+    is_valid   = TRUE;
+    byte_index = SCAN_HEX_PREFIX_BYTES;
+    for (; has_prefix; ++byte_index)
+    {
+        current_byte     = a[byte_index];
+        is_decimal_digit = ('0' <= current_byte) && (current_byte <= '9');
+        is_letter_digit  = ('A' <= current_byte) && (current_byte <= 'F');
+        if (is_decimal_digit)
+        {
+            digit = (uint64_t)(current_byte - '0');
+        }
+        else if (is_letter_digit)
+        {
+            digit = (uint64_t)(current_byte - 'A') + SCAN_HEX_LETTER_VALUE;
+        }
+        else
+        {
+            break;
+        }
+
+        has_digits = TRUE;
+        if ((INT32_MAX == byte_index) || (magnitude > (((uint64_t)INT64_MAX - digit) / SCAN_HEX_BASE)))
+        {
+            is_valid = FALSE;
+            break;
+        }
+        magnitude = (magnitude * SCAN_HEX_BASE) + digit;
+    }
+
+    if (has_digits && is_valid)
+    {
+        (*v)   = (int64_t)magnitude;
+        result = (int32_t)byte_index;
+    }
+    else if (FALSE == has_digits)
+    {
+        result = FACEOE_Utl_Scan_Int64(a, v);
+    }
+    else
+    {
+        // A hexadecimal value above INT64_MAX
     }
 
     return result;

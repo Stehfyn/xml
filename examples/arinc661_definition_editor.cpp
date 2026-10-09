@@ -24,6 +24,7 @@
 
 extern "C"
 {
+#include "arinc661/arinc661_runtime.h"
 #include "os/os_assert.h"
 #include "os/os_file.h"
 #include "faceoe_utl/faceoe_utl_defines.h"
@@ -2605,15 +2606,15 @@ static bool_t IsParameterValueValid(const Arinc661_Parameter_t* parameter, const
             minimum = INT32_MIN;
             maximum = INT32_MAX;
         }
-        consumed = FACEOE_Utl_Scan_Int64(value, &integer_value);
+        consumed = FACEOE_Utl_Scan_Integer(value, &integer_value);
         is_valid = !!((0 < consumed) && ('\0' == value[consumed]));
         if (FALSE == is_valid)
         {
-            for (constant_index = 0; constant_index < Arinc661_Definition_GetConstantCount(); ++constant_index)
+            for (constant_index = 0; constant_index < Arinc661_Runtime_GetConstantCount(); ++constant_index)
             {
-                if (0 == strncmp(value, Arinc661_Definition_GetConstantName(constant_index), ARINC661_MAX_NAME_BYTES))
+                if (0 == strncmp(value, Arinc661_Runtime_GetConstantName(constant_index), ARINC661_MAX_NAME_BYTES))
                 {
-                    integer_value = Arinc661_Definition_GetConstantValue(constant_index);
+                    integer_value = Arinc661_Runtime_GetConstantValue(constant_index);
                     is_valid      = TRUE;
                     break;
                 }
@@ -3780,7 +3781,7 @@ static bool_t ResolveReference(const Arinc661_DefinitionEditor_Document_t* docum
     (*targetDocument) = INVALID_DOCUMENT_INDEX;
     (*targetIndex)    = INVALID_HIERARCHY_INDEX;
     ImStrncpy(label, REFERENCE_NONE_LABEL, (int)labelCapacity);
-    is_valid = (0 < FACEOE_Utl_Scan_Int64(value, &ident));
+    is_valid = (0 < FACEOE_Utl_Scan_Integer(value, &ident));
     if (is_valid && (0 == ident))
     {
         is_valid = TRUE;
@@ -6265,7 +6266,7 @@ static bool_t DrawParameterValue(const Arinc661_Parameter_t* parameter, char_t* 
     }
     else if ((ARINC661_PARAMETER_UCHAR == parameter->kind) || (ARINC661_PARAMETER_USHORT == parameter->kind) || (ARINC661_PARAMETER_LONG == parameter->kind) || (ARINC661_PARAMETER_ULONG == parameter->kind))
     {
-        consumed  = FACEOE_Utl_Scan_Int64(value, &integer_value);
+        consumed  = FACEOE_Utl_Scan_Integer(value, &integer_value);
         is_number = !!((0 < consumed) && ('\0' == value[consumed]));
         if (is_number)
         {
@@ -6763,7 +6764,7 @@ static void DrawContextReferences(Arinc661_DefinitionEditor_Document_t* document
         ImGui::Separator();
         ImGui::SeparatorText(REFERENCES_SECTION_LABEL);
         property_index     = FindOwnedProperty(document, ARINC661_PROPERTY_DEFINITION, 0, PROPERTY_APPLICATION_ID);
-        has_application_id = !!((INVALID_HIERARCHY_INDEX != property_index) && (0 < FACEOE_Utl_Scan_Int64(document->properties[property_index].value, &application_id)));
+        has_application_id = !!((INVALID_HIERARCHY_INDEX != property_index) && (0 < FACEOE_Utl_Scan_Integer(document->properties[property_index].value, &application_id)));
         reference_count    = 0;
         for (application_index = 0; Arinc661_Context_UserApplication(context, application_index, &application); ++application_index)
         {
@@ -8545,7 +8546,7 @@ bool_t Arinc661_DefinitionEditor_DocumentApplicationId(const Arinc661_Definition
         property_index = FindOwnedProperty(document, ARINC661_PROPERTY_DEFINITION, 0, PROPERTY_APPLICATION_ID);
         if (INVALID_HIERARCHY_INDEX != property_index)
         {
-            has_id = (0 < FACEOE_Utl_Scan_Int64(document->properties[property_index].value, applicationId));
+            has_id = (0 < FACEOE_Utl_Scan_Integer(document->properties[property_index].value, applicationId));
         }
     }
 

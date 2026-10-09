@@ -48,13 +48,13 @@
  * \brief Header of a run-time block (Table 4.5.4.1-1); its commands and end follow.
  */
 #pragma pack(push, 1)
-typedef struct RunTimeBlock_s
+typedef struct RuntimeBlock_s
 {
     byte_t   beginBlock;    ///< A661_BEGIN_BLOCK
     byte_t   layerIdent;    ///< LayerIdent
     uint16_t contextNumber; ///< ContextNumber
     uint32_t blockSize;     ///< Block Size, including this header and the block end
-} RunTimeBlock_t;
+} RuntimeBlock_t;
 #pragma pack(pop)
 
 /*************************************************************************************************/
@@ -62,11 +62,11 @@ typedef struct RunTimeBlock_s
  * \brief Header shared by every run-time command.
  */
 #pragma pack(push, 1)
-typedef struct RunTimeCommand_s
+typedef struct RuntimeCommand_s
 {
     uint16_t keyword;     ///< A661_CMD_SET_PARAMETER or A661_CMD_UA_REQUEST
     uint16_t commandSize; ///< CommandSize, including this header
-} RunTimeCommand_t;
+} RuntimeCommand_t;
 #pragma pack(pop)
 
 /*************************************************************************************************/
@@ -74,13 +74,13 @@ typedef struct RunTimeCommand_s
  * \brief Header of A661_CMD_SET_PARAMETER (Table 4.5.4.2-1); its parameter structures follow.
  */
 #pragma pack(push, 1)
-typedef struct RunTimeSetParameter_s
+typedef struct RuntimeSetParameter_s
 {
     uint16_t keyword;     ///< A661_CMD_SET_PARAMETER
     uint16_t commandSize; ///< CommandSize
     uint16_t widgetIdent; ///< WidgetIdent
     uint16_t unusedPad;   ///< 0
-} RunTimeSetParameter_t;
+} RuntimeSetParameter_t;
 #pragma pack(pop)
 
 /*************************************************************************************************/
@@ -88,13 +88,13 @@ typedef struct RunTimeSetParameter_s
  * \brief A661_CMD_UA_REQUEST holding a layer request (Tables 4.5.4.2-2 and 4.5.4.3-2, -3, -5).
  */
 #pragma pack(push, 1)
-typedef struct RunTimeLayerRequest_s
+typedef struct RuntimeLayerRequest_s
 {
     uint16_t keyword;     ///< A661_CMD_UA_REQUEST
     uint16_t commandSize; ///< CommandSize
     uint16_t request;     ///< A661_REQ_LAYER_ACTIVE, A661_REQ_LAYER_INACTIVE, or A661_REQ_LAYER_VISIBLE
     uint16_t unusedPad;   ///< 0
-} RunTimeLayerRequest_t;
+} RuntimeLayerRequest_t;
 #pragma pack(pop)
 
 /*************************************************************************************************/
@@ -102,12 +102,12 @@ typedef struct RunTimeLayerRequest_s
  * \brief A661_ParameterStructure_1Byte (Table 4.5.4.5.1).
  */
 #pragma pack(push, 1)
-typedef struct RunTimeParameter1Byte_s
+typedef struct RuntimeParameter1Byte_s
 {
     uint16_t parameterIdent; ///< ParameterIdent
     byte_t   value;          ///< ParameterValueBuffer
     byte_t   unusedPad;      ///< 0
-} RunTimeParameter1Byte_t;
+} RuntimeParameter1Byte_t;
 #pragma pack(pop)
 
 /*************************************************************************************************/
@@ -115,11 +115,11 @@ typedef struct RunTimeParameter1Byte_s
  * \brief A661_ParameterStructure_2Bytes (Table 4.5.4.5.2).
  */
 #pragma pack(push, 1)
-typedef struct RunTimeParameter2Bytes_s
+typedef struct RuntimeParameter2Bytes_s
 {
     uint16_t parameterIdent; ///< ParameterIdent
     uint16_t value;          ///< ParameterValueBuffer
-} RunTimeParameter2Bytes_t;
+} RuntimeParameter2Bytes_t;
 #pragma pack(pop)
 
 /*************************************************************************************************/
@@ -127,13 +127,13 @@ typedef struct RunTimeParameter2Bytes_s
  * \brief A661_ParameterStructure_4Bytes and A661_ParameterStructure_8Bytes (Tables 4.5.4.5.3 and 4.5.4.5.8).
  */
 #pragma pack(push, 1)
-typedef struct RunTimeParameter8Bytes_s
+typedef struct RuntimeParameter8Bytes_s
 {
     uint16_t parameterIdent; ///< ParameterIdent
     uint16_t unusedPad;      ///< 0
     uint32_t value;          ///< ParameterValueBuffer, or ParameterValue1
     uint32_t secondValue;    ///< ParameterValue2; absent from the 4-byte structure
-} RunTimeParameter8Bytes_t;
+} RuntimeParameter8Bytes_t;
 #pragma pack(pop)
 
 /*************************************************************************************************/
@@ -142,11 +142,11 @@ typedef struct RunTimeParameter8Bytes_s
  *  4.5.4.5.6); the string, padded to 32 bits, follows.
  */
 #pragma pack(push, 1)
-typedef struct RunTimeString_s
+typedef struct RuntimeString_s
 {
     uint16_t number;     ///< ParameterIdent, or the StringIndex of a cell
     uint16_t stringSize; ///< Bytes of the string, including its terminator
-} RunTimeString_t;
+} RuntimeString_t;
 #pragma pack(pop)
 
 /*************************************************************************************************/
@@ -154,11 +154,11 @@ typedef struct RunTimeString_s
  * \brief Header of A661_ParameterStructure_StringArray (Table 4.5.4.5.5); its cells follow.
  */
 #pragma pack(push, 1)
-typedef struct RunTimeStringArray_s
+typedef struct RuntimeStringArray_s
 {
     uint16_t parameterIdent; ///< ParameterIdent
     uint16_t stringCount;    ///< Number of Strings
-} RunTimeStringArray_t;
+} RuntimeStringArray_t;
 #pragma pack(pop)
 
 /*=================================================================================================
@@ -196,7 +196,7 @@ static uint32_t ReadUnsigned(const byte_t* buffer, uint64_t offset, uint32_t siz
  *
  * \retval     const FACEOE_Utl_Node_t*   The widget or extension node owning the parameter, or NULL.
  */
-static const FACEOE_Utl_Node_t* FindParameter(const FACEOE_Utl_Node_t* widget, uint32_t parameterIdent, Arinc661_RunTimeParameter_t* parameter);
+static const FACEOE_Utl_Node_t* FindParameter(const FACEOE_Utl_Node_t* widget, uint32_t parameterIdent, Arinc661_Runtime_Parameter_t* parameter);
 
 /*************************************************************************************************/
 /**
@@ -292,7 +292,7 @@ static uint32_t ReadUnsigned(const byte_t* buffer, uint64_t offset, uint32_t siz
  *  Section 8: an extension's run-time parameters are set through the WidgetIdent of the widget
  *  it extends. The widget's own type is tried first.
  */
-static const FACEOE_Utl_Node_t* FindParameter(const FACEOE_Utl_Node_t* widget, uint32_t parameterIdent, Arinc661_RunTimeParameter_t* parameter)
+static const FACEOE_Utl_Node_t* FindParameter(const FACEOE_Utl_Node_t* widget, uint32_t parameterIdent, Arinc661_Runtime_Parameter_t* parameter)
 {
     const Arinc661_Widget_t*     entry;
     const Arinc661_Scene_Node_t* item;
@@ -301,7 +301,7 @@ static const FACEOE_Utl_Node_t* FindParameter(const FACEOE_Utl_Node_t* widget, u
     bool_t                       is_found;
 
     entry    = (const Arinc661_Widget_t*)((const Arinc661_Scene_Node_t*)widget->item)->data;
-    is_found = Arinc661_RunTime_GetParameter(entry->type, parameterIdent, parameter);
+    is_found = Arinc661_Runtime_GetParameter(entry->type, parameterIdent, parameter);
     if (is_found)
     {
         owner = widget;
@@ -323,7 +323,7 @@ static const FACEOE_Utl_Node_t* FindParameter(const FACEOE_Utl_Node_t* widget, u
         entry = (const Arinc661_Widget_t*)item->data;
         if (entry->isExtension)
         {
-            is_found = Arinc661_RunTime_GetParameter(entry->type, parameterIdent, parameter);
+            is_found = Arinc661_Runtime_GetParameter(entry->type, parameterIdent, parameter);
         }
         else
         {
@@ -375,20 +375,20 @@ static bool_t SetBinaryValue(Arinc661_Scene_t* scene, const FACEOE_Utl_Node_t* o
  */
 static bool_t ApplyParameter(Arinc661_Scene_t* scene, const FACEOE_Utl_Node_t* widget, const byte_t* buffer, uint64_t offset, uint64_t endOffset, uint64_t* size)
 {
-    Arinc661_RunTimeParameter_t parameter;
-    const FACEOE_Utl_Node_t*    owner;
-    uint64_t                    remaining;
-    uint64_t                    cell_offset;
-    uint32_t                    parameter_ident;
-    uint32_t                    string_size;
-    uint32_t                    string_count;
-    uint32_t                    string_index;
-    uint32_t                    cell_index;
-    bool_t                      has_ident;
-    bool_t                      fits;
-    bool_t                      is_value_set;
-    bool_t                      is_second_set;
-    bool_t                      is_applied;
+    Arinc661_Runtime_Parameter_t parameter;
+    const FACEOE_Utl_Node_t*     owner;
+    uint64_t                     remaining;
+    uint64_t                     cell_offset;
+    uint32_t                     parameter_ident;
+    uint32_t                     string_size;
+    uint32_t                     string_count;
+    uint32_t                     string_index;
+    uint32_t                     cell_index;
+    bool_t                       has_ident;
+    bool_t                       fits;
+    bool_t                       is_value_set;
+    bool_t                       is_second_set;
+    bool_t                       is_applied;
 
     remaining = endOffset - offset;
     has_ident = (sizeof(uint16_t) <= remaining);
@@ -407,100 +407,100 @@ static bool_t ApplyParameter(Arinc661_Scene_t* scene, const FACEOE_Utl_Node_t* w
     {
         switch (parameter.structure)
         {
-            case ARINC661_RUNTIME_1BYTE:
+            case ARINC661_PARAMETER_STRUCTURE_1BYTE:
             {
-                fits = (sizeof(RunTimeParameter1Byte_t) <= remaining);
+                fits = (sizeof(RuntimeParameter1Byte_t) <= remaining);
                 if (fits)
                 {
-                    (*size)    = sizeof(RunTimeParameter1Byte_t);
-                    is_applied = SetBinaryValue(scene, owner, parameter.name, 0, parameter.kind, &buffer[offset + OFFSET_OF(RunTimeParameter1Byte_t, value)], sizeof(byte_t));
+                    (*size)    = sizeof(RuntimeParameter1Byte_t);
+                    is_applied = SetBinaryValue(scene, owner, parameter.name, 0, parameter.kind, &buffer[offset + OFFSET_OF(RuntimeParameter1Byte_t, value)], sizeof(byte_t));
                 }
                 is_applied = is_applied && fits;
                 break;
             }
-            case ARINC661_RUNTIME_2BYTES:
+            case ARINC661_PARAMETER_STRUCTURE_2BYTES:
             {
-                fits = (sizeof(RunTimeParameter2Bytes_t) <= remaining);
+                fits = (sizeof(RuntimeParameter2Bytes_t) <= remaining);
                 if (fits)
                 {
-                    (*size)    = sizeof(RunTimeParameter2Bytes_t);
-                    is_applied = SetBinaryValue(scene, owner, parameter.name, 0, parameter.kind, &buffer[offset + OFFSET_OF(RunTimeParameter2Bytes_t, value)], sizeof(uint16_t));
+                    (*size)    = sizeof(RuntimeParameter2Bytes_t);
+                    is_applied = SetBinaryValue(scene, owner, parameter.name, 0, parameter.kind, &buffer[offset + OFFSET_OF(RuntimeParameter2Bytes_t, value)], sizeof(uint16_t));
                 }
                 is_applied = is_applied && fits;
                 break;
             }
-            case ARINC661_RUNTIME_4BYTES:
+            case ARINC661_PARAMETER_STRUCTURE_4BYTES:
             {
-                fits = (OFFSET_OF(RunTimeParameter8Bytes_t, secondValue) <= remaining);
+                fits = (OFFSET_OF(RuntimeParameter8Bytes_t, secondValue) <= remaining);
                 if (fits)
                 {
-                    (*size)    = OFFSET_OF(RunTimeParameter8Bytes_t, secondValue);
-                    is_applied = SetBinaryValue(scene, owner, parameter.name, 0, parameter.kind, &buffer[offset + OFFSET_OF(RunTimeParameter8Bytes_t, value)], sizeof(uint32_t));
+                    (*size)    = OFFSET_OF(RuntimeParameter8Bytes_t, secondValue);
+                    is_applied = SetBinaryValue(scene, owner, parameter.name, 0, parameter.kind, &buffer[offset + OFFSET_OF(RuntimeParameter8Bytes_t, value)], sizeof(uint32_t));
                 }
                 is_applied = is_applied && fits;
                 break;
             }
-            case ARINC661_RUNTIME_8BYTES:
+            case ARINC661_PARAMETER_STRUCTURE_8BYTES:
             {
-                fits = (sizeof(RunTimeParameter8Bytes_t) <= remaining) && (NULL != parameter.secondName);
+                fits = (sizeof(RuntimeParameter8Bytes_t) <= remaining) && (NULL != parameter.secondName);
                 if (fits)
                 {
-                    (*size)       = sizeof(RunTimeParameter8Bytes_t);
-                    is_value_set  = SetBinaryValue(scene, owner, parameter.name, 0, parameter.kind, &buffer[offset + OFFSET_OF(RunTimeParameter8Bytes_t, value)], sizeof(uint32_t));
-                    is_second_set = SetBinaryValue(scene, owner, parameter.secondName, 0, parameter.secondKind, &buffer[offset + OFFSET_OF(RunTimeParameter8Bytes_t, secondValue)], sizeof(uint32_t));
+                    (*size)       = sizeof(RuntimeParameter8Bytes_t);
+                    is_value_set  = SetBinaryValue(scene, owner, parameter.name, 0, parameter.kind, &buffer[offset + OFFSET_OF(RuntimeParameter8Bytes_t, value)], sizeof(uint32_t));
+                    is_second_set = SetBinaryValue(scene, owner, parameter.secondName, 0, parameter.secondKind, &buffer[offset + OFFSET_OF(RuntimeParameter8Bytes_t, secondValue)], sizeof(uint32_t));
                     is_applied    = is_value_set && is_second_set;
                 }
                 is_applied = is_applied && fits;
                 break;
             }
-            case ARINC661_RUNTIME_STRING:
+            case ARINC661_PARAMETER_STRUCTURE_STRING:
             {
-                fits = (sizeof(RunTimeString_t) <= remaining);
+                fits = (sizeof(RuntimeString_t) <= remaining);
                 if (fits)
                 {
-                    string_size = ReadUnsigned(buffer, offset + OFFSET_OF(RunTimeString_t, stringSize), sizeof(uint16_t));
-                    fits        = ((sizeof(RunTimeString_t) + RUNTIME_PADDED((uint64_t)string_size)) <= remaining);
+                    string_size = ReadUnsigned(buffer, offset + OFFSET_OF(RuntimeString_t, stringSize), sizeof(uint16_t));
+                    fits        = ((sizeof(RuntimeString_t) + RUNTIME_PADDED((uint64_t)string_size)) <= remaining);
                 }
                 if (fits)
                 {
-                    (*size)    = sizeof(RunTimeString_t) + RUNTIME_PADDED((uint64_t)string_size);
-                    is_applied = SetBinaryValue(scene, owner, parameter.name, 0, ARINC661_PARAMETER_STRING, &buffer[offset + sizeof(RunTimeString_t)], string_size);
+                    (*size)    = sizeof(RuntimeString_t) + RUNTIME_PADDED((uint64_t)string_size);
+                    is_applied = SetBinaryValue(scene, owner, parameter.name, 0, ARINC661_PARAMETER_STRING, &buffer[offset + sizeof(RuntimeString_t)], string_size);
                 }
                 is_applied = is_applied && fits;
                 break;
             }
-            case ARINC661_RUNTIME_STRING_ARRAY:
+            case ARINC661_PARAMETER_STRUCTURE_STRING_ARRAY:
             {
-                fits = (sizeof(RunTimeStringArray_t) <= remaining);
+                fits = (sizeof(RuntimeStringArray_t) <= remaining);
                 if (fits)
                 {
-                    string_count = ReadUnsigned(buffer, offset + OFFSET_OF(RunTimeStringArray_t, stringCount), sizeof(uint16_t));
+                    string_count = ReadUnsigned(buffer, offset + OFFSET_OF(RuntimeStringArray_t, stringCount), sizeof(uint16_t));
                 }
                 else
                 {
                     string_count = 0;
                 }
 
-                cell_offset = offset + sizeof(RunTimeStringArray_t);
+                cell_offset = offset + sizeof(RuntimeStringArray_t);
                 for (cell_index = 0; cell_index < string_count; ++cell_index)
                 {
-                    fits = ((cell_offset + sizeof(RunTimeString_t)) <= endOffset);
+                    fits = ((cell_offset + sizeof(RuntimeString_t)) <= endOffset);
                     if (FALSE == fits)
                     {
                         break;
                     }
 
-                    string_index = ReadUnsigned(buffer, cell_offset + OFFSET_OF(RunTimeString_t, number), sizeof(uint16_t));
-                    string_size  = ReadUnsigned(buffer, cell_offset + OFFSET_OF(RunTimeString_t, stringSize), sizeof(uint16_t));
-                    fits         = ((cell_offset + sizeof(RunTimeString_t) + RUNTIME_PADDED((uint64_t)string_size)) <= endOffset);
+                    string_index = ReadUnsigned(buffer, cell_offset + OFFSET_OF(RuntimeString_t, number), sizeof(uint16_t));
+                    string_size  = ReadUnsigned(buffer, cell_offset + OFFSET_OF(RuntimeString_t, stringSize), sizeof(uint16_t));
+                    fits         = ((cell_offset + sizeof(RuntimeString_t) + RUNTIME_PADDED((uint64_t)string_size)) <= endOffset);
                     if (FALSE == fits)
                     {
                         break;
                     }
 
-                    is_value_set = SetBinaryValue(scene, owner, parameter.name, string_index, ARINC661_PARAMETER_STRING, &buffer[cell_offset + sizeof(RunTimeString_t)], string_size);
+                    is_value_set = SetBinaryValue(scene, owner, parameter.name, string_index, ARINC661_PARAMETER_STRING, &buffer[cell_offset + sizeof(RuntimeString_t)], string_size);
                     is_applied   = is_applied && is_value_set;
-                    cell_offset += sizeof(RunTimeString_t) + RUNTIME_PADDED((uint64_t)string_size);
+                    cell_offset += sizeof(RuntimeString_t) + RUNTIME_PADDED((uint64_t)string_size);
                 }
 
                 if (fits)
@@ -537,10 +537,10 @@ static bool_t ApplySetParameter(Arinc661_Scene_t* scene, uint32_t layerId, const
     bool_t                   is_applied;
     bool_t                   is_understood;
 
-    has_header = (sizeof(RunTimeSetParameter_t) <= commandSize);
+    has_header = (sizeof(RuntimeSetParameter_t) <= commandSize);
     if (has_header)
     {
-        widget_ident = ReadUnsigned(buffer, offset + OFFSET_OF(RunTimeSetParameter_t, widgetIdent), sizeof(uint16_t));
+        widget_ident = ReadUnsigned(buffer, offset + OFFSET_OF(RuntimeSetParameter_t, widgetIdent), sizeof(uint16_t));
         widget       = Arinc661_Scene_GetWidget(scene, layerId, widget_ident);
     }
     else
@@ -550,7 +550,7 @@ static bool_t ApplySetParameter(Arinc661_Scene_t* scene, uint32_t layerId, const
 
     is_applied       = (NULL != widget);
     end_offset       = offset + commandSize;
-    parameter_offset = offset + sizeof(RunTimeSetParameter_t);
+    parameter_offset = offset + sizeof(RuntimeSetParameter_t);
     for (; NULL != widget; parameter_offset += size)
     {
         if (parameter_offset >= end_offset)
@@ -583,10 +583,10 @@ static bool_t ApplyRequest(Arinc661_Scene_t* scene, uint32_t layerId, const byte
     bool_t   has_request;
     bool_t   is_applied;
 
-    has_request = (sizeof(RunTimeLayerRequest_t) <= commandSize);
+    has_request = (sizeof(RuntimeLayerRequest_t) <= commandSize);
     if (has_request)
     {
-        request = ReadUnsigned(buffer, offset + OFFSET_OF(RunTimeLayerRequest_t, request), sizeof(uint16_t));
+        request = ReadUnsigned(buffer, offset + OFFSET_OF(RuntimeLayerRequest_t, request), sizeof(uint16_t));
     }
     else
     {
@@ -640,7 +640,7 @@ static bool_t ApplyRequest(Arinc661_Scene_t* scene, uint32_t layerId, const byte
  *  Section 2.3.2.4: while the layer is inactive, only A661_REQ_LAYER_ACTIVE applies, so the
  *  ContextNumber and set-parameter commands of the block are passed over then.
  */
-bool_t CDS_RunTime_ApplyBlock(Arinc661_Scene_t* scene, const byte_t* block, uint64_t sizeOfBlock)
+bool_t CDS_Runtime_ApplyBlock(Arinc661_Scene_t* scene, const byte_t* block, uint64_t sizeOfBlock)
 {
     const FACEOE_Utl_Node_t*     layer;
     const Arinc661_Scene_Node_t* layer_item;
@@ -658,11 +658,11 @@ bool_t CDS_RunTime_ApplyBlock(Arinc661_Scene_t* scene, const byte_t* block, uint
     LOGASSERT(NULL != scene);
     LOGASSERT(NULL != block);
 
-    is_valid = ((sizeof(RunTimeBlock_t) + RUNTIME_END_BYTES) <= sizeOfBlock);
+    is_valid = ((sizeof(RuntimeBlock_t) + RUNTIME_END_BYTES) <= sizeOfBlock);
     if (is_valid)
     {
-        block_size = ReadUnsigned(block, OFFSET_OF(RunTimeBlock_t, blockSize), sizeof(uint32_t));
-        is_valid   = (RUNTIME_BEGIN_BLOCK == block[OFFSET_OF(RunTimeBlock_t, beginBlock)]) && ((sizeof(RunTimeBlock_t) + RUNTIME_END_BYTES) <= block_size) && (block_size <= sizeOfBlock);
+        block_size = ReadUnsigned(block, OFFSET_OF(RuntimeBlock_t, blockSize), sizeof(uint32_t));
+        is_valid   = (RUNTIME_BEGIN_BLOCK == block[OFFSET_OF(RuntimeBlock_t, beginBlock)]) && ((sizeof(RuntimeBlock_t) + RUNTIME_END_BYTES) <= block_size) && (block_size <= sizeOfBlock);
     }
     else
     {
@@ -681,7 +681,7 @@ bool_t CDS_RunTime_ApplyBlock(Arinc661_Scene_t* scene, const byte_t* block, uint
 
     if (is_valid)
     {
-        layer_id = block[OFFSET_OF(RunTimeBlock_t, layerIdent)];
+        layer_id = block[OFFSET_OF(RuntimeBlock_t, layerIdent)];
         layer    = Arinc661_Scene_GetLayer(scene, layer_id);
     }
     else
@@ -696,12 +696,12 @@ bool_t CDS_RunTime_ApplyBlock(Arinc661_Scene_t* scene, const byte_t* block, uint
         layer_item = (const Arinc661_Scene_Node_t*)layer->item;
         if (layer_item->active)
         {
-            is_applied = SetBinaryValue(scene, layer, RUNTIME_CONTEXT_NUMBER, 0, ARINC661_PARAMETER_USHORT, &block[OFFSET_OF(RunTimeBlock_t, contextNumber)], sizeof(uint16_t));
+            is_applied = SetBinaryValue(scene, layer, RUNTIME_CONTEXT_NUMBER, 0, ARINC661_PARAMETER_USHORT, &block[OFFSET_OF(RuntimeBlock_t, contextNumber)], sizeof(uint16_t));
         }
     }
 
     command_size = 0;
-    offset       = sizeof(RunTimeBlock_t);
+    offset       = sizeof(RuntimeBlock_t);
     for (; NULL != layer; offset += command_size)
     {
         if (offset >= end_offset)
@@ -709,12 +709,12 @@ bool_t CDS_RunTime_ApplyBlock(Arinc661_Scene_t* scene, const byte_t* block, uint
             break;
         }
 
-        is_command = ((offset + sizeof(RunTimeCommand_t)) <= end_offset);
+        is_command = ((offset + sizeof(RuntimeCommand_t)) <= end_offset);
         if (is_command)
         {
-            keyword      = ReadUnsigned(block, offset + OFFSET_OF(RunTimeCommand_t, keyword), sizeof(uint16_t));
-            command_size = ReadUnsigned(block, offset + OFFSET_OF(RunTimeCommand_t, commandSize), sizeof(uint16_t));
-            is_command   = (sizeof(RunTimeCommand_t) <= command_size) && ((offset + command_size) <= end_offset);
+            keyword      = ReadUnsigned(block, offset + OFFSET_OF(RuntimeCommand_t, keyword), sizeof(uint16_t));
+            command_size = ReadUnsigned(block, offset + OFFSET_OF(RuntimeCommand_t, commandSize), sizeof(uint16_t));
+            is_command   = (sizeof(RuntimeCommand_t) <= command_size) && ((offset + command_size) <= end_offset);
         }
         if (FALSE == is_command)
         {

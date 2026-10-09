@@ -45,7 +45,7 @@
  * \brief Applies one run-time block a UA sent to a scene.
  *
  * \par Details:
- *  Parameters carried by a structure that Arinc661_RunTime_GetParameter does not list, focus
+ *  Parameters carried by a structure that Arinc661_Runtime_GetParameter does not list, focus
  *  and cursor requests, and any other command are not applied.
  *
  * \par Requirements:
@@ -64,6 +64,6 @@
  * \retval        TRUE          if the whole block was applied.
  * \retval        FALSE         otherwise.
  */
-bool_t CDS_RunTime_ApplyBlock(Arinc661_Scene_t* scene, const byte_t* block, uint64_t sizeOfBlock);
+bool_t CDS_Runtime_ApplyBlock(Arinc661_Scene_t* scene, const byte_t* block, uint64_t sizeOfBlock);
 
 #endif /* CDS_RUNTIME_H */

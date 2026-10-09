@@ -106,7 +106,7 @@ void RunArinc661SceneTests(void)
     SetProperty(&properties[3], ARINC661_PROPERTY_WIDGET, 0, "Visible", "A661_TRUE");
     SetProperty(&properties[4], ARINC661_PROPERTY_WIDGET, 1, "WidgetIdent", "2");
     SetProperty(&properties[5], ARINC661_PROPERTY_WIDGET, TEST_WIDGETS, "WidgetIdent", "3"); // owner not in the arrays
-    SetProperty(&properties[6], ARINC661_PROPERTY_LAYER, 1, "LayerId", "3");
+    SetProperty(&properties[6], ARINC661_PROPERTY_LAYER, 1, "LayerId", "0x3");  // TEST_FIRST_ID, in hexadecimal
     SetProperty(&properties[7], ARINC661_PROPERTY_LAYER, 2, "LayerId", "9");   // an earlier layer has it: layers[2] is left out
     SetProperty(&properties[8], ARINC661_PROPERTY_LAYER, 3, "LayerId", "256"); // invalid: layers[3] is left out
     SetProperty(&properties[9], ARINC661_PROPERTY_LAYER, 0, "LayerId", "4");   // not the first: only a property of layers[0]
@@ -156,6 +156,11 @@ void RunArinc661SceneTests(void)
     assert(&properties[4] == ((const Arinc661_Scene_Node_t*)child->firstChild->firstChild->item)->data);
     assert(&widgets[2] == ((const Arinc661_Scene_Node_t*)child->nextSibling->item)->data);
     assert(NULL == child->nextSibling->nextSibling);
+
+    // Each property's value was read as a number: a decimal, a constant name, and a hexadecimal integer
+    assert(((const Arinc661_Scene_Node_t*)panel->firstChild->firstChild->item)->isNumber && (1.0 == ((const Arinc661_Scene_Node_t*)panel->firstChild->firstChild->item)->number));
+    assert(((const Arinc661_Scene_Node_t*)panel->firstChild->firstChild->nextSibling->item)->isNumber && ((float64_t)ARINC661_A661_TRUE == ((const Arinc661_Scene_Node_t*)panel->firstChild->firstChild->nextSibling->item)->number));
+    assert(3.0 == ((const Arinc661_Scene_Node_t*)Arinc661_Scene_GetLayer(&scene, TEST_FIRST_ID)->firstChild->firstChild->item)->number);
 
     // The layer with TEST_FIRST_ID holds its own widget
     assert(&widgets[3] == ((const Arinc661_Scene_Node_t*)Arinc661_Scene_GetLayer(&scene, TEST_FIRST_ID)->firstChild->nextSibling->item)->data);

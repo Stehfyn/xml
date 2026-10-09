@@ -1,5 +1,6 @@
 # Generates src/arinc661/arinc661_runtime.c from the ARINC 661 Part 1-7 text: every widget and
-# extension type's Runtime Modifiable Parameters table, joined with Table 4.6-8, Parameter Types.
+# extension type's Runtime Modifiable Parameters table, joined with Table 4.6-8, Parameter Types,
+# and the constant names of Tables 4.6-8, 4.6-10, 4.6-11, 4.6-13, 4.6-14, and 4.6-15 with their values.
 # Usage: pdftotext -raw ARINC_SPECIFICATION_661P1-7.pdf raw.txt, then, from the repository root,
 #        python tools/runtime.py raw.txt src/arinc661/arinc661_runtime.c
 # With --report in place of the output path, prints what was parsed and left out, and writes nothing.
@@ -35,13 +36,30 @@ for l in lines[start:start + 1200]:
     if l.startswith('Table 4.6-9'):
         break
 
+# Tables 4.6-8, 4.6-10, 4.6-11, 4.6-13, 4.6-14, and 4.6-15: every constant name a property value
+# may be, with its value, up to section 5. A661_ORIENTATION and A661_RANGE are ParameterIdents in
+# Table 4.6-8 and constants in Table 4.6-11; a property value means the Table 4.6-11 value, so a
+# later table's value replaces an earlier one's.
+CONSTANT_TABLES = ('4.6-8', '4.6-10', '4.6-11', '4.6-13', '4.6-14', '4.6-15')
+constants = {}
+constant_table = None
+for l in lines[start:]:
+    if l.startswith('5.0 '):
+        break
+    m = re.match(r'^Table (4\.6-\d+[a-z]?) ', l)
+    if m:
+        constant_table = m.group(1)
+    m = re.match(r'^(A661_\w+) 0x([0-9A-Fa-f]+)\b', l)
+    if m and (constant_table in CONSTANT_TABLES):
+        constants[m.group(1)] = '0x' + m.group(2).upper()
+
 STRUCTURES = {
-    'A661_ParameterStructure_1Byte': 'ARINC661_RUNTIME_1BYTE',
-    'A661_ParameterStructure_2Bytes': 'ARINC661_RUNTIME_2BYTES',
-    'A661_ParameterStructure_4Bytes': 'ARINC661_RUNTIME_4BYTES',
-    'A661_ParameterStructure_8Bytes': 'ARINC661_RUNTIME_8BYTES',
-    'A661_ParameterStructure_String': 'ARINC661_RUNTIME_STRING',
-    'A661_ParameterStructure_StringArray': 'ARINC661_RUNTIME_STRING_ARRAY',
+    'A661_ParameterStructure_1Byte': 'ARINC661_PARAMETER_STRUCTURE_1BYTE',
+    'A661_ParameterStructure_2Bytes': 'ARINC661_PARAMETER_STRUCTURE_2BYTES',
+    'A661_ParameterStructure_4Bytes': 'ARINC661_PARAMETER_STRUCTURE_4BYTES',
+    'A661_ParameterStructure_8Bytes': 'ARINC661_PARAMETER_STRUCTURE_8BYTES',
+    'A661_ParameterStructure_String': 'ARINC661_PARAMETER_STRUCTURE_STRING',
+    'A661_ParameterStructure_StringArray': 'ARINC661_PARAMETER_STRUCTURE_STRING_ARRAY',
 }
 
 KINDS = {
@@ -166,6 +184,7 @@ for title, type_name, rows in tables:
 
 if output_path == '--report':
     print('ParameterIdents in Table 4.6-8:', len(idents))
+    print('Constants:', len(constants))
     print('Types:', len(types_out), 'rows kept:', len(rows_out))
     print('Types without a table:', sorted(set(type_names) - {t[0] for t in types_out}))
     for entry in left_out:
@@ -189,6 +208,10 @@ row_lines = ['    ' + ' '.join(c[k].ljust(widths[k]) for k in range(6)) + ' ' + 
 type_cells = [('{"' + t[0] + '",', '%d,' % t[1], '%d},' % t[2]) for t in types_out]
 type_widths = [max(len(c[k]) for c in type_cells) for k in range(3)]
 type_lines = ['    ' + ' '.join(c[k].ljust(type_widths[k]) for k in range(3)).rstrip() for c in type_cells]
+constant_cells = [('{"' + name + '",', constants[name] + '},') for name in sorted(constants)]
+constant_width = max(len(c[0]) for c in constant_cells)
+constant_lines = ['    ' + c[0].ljust(constant_width) + ' ' + c[1] for c in constant_cells]
+constant_lines[-1] = constant_lines[-1].rstrip(',')
 
 out = '''/*=================================================================================================
 ** 1. References
@@ -196,9 +219,11 @@ out = '''/*=====================================================================
 
 /**
  * ARINC 661 Part 1-7, sections 3 and 8: the Runtime Modifiable Parameters table of every widget
- * and extension, and Table 4.6-8, Parameter Types. Generated from the specification text by
- * tools/runtime.py. Rows carried by a structure Arinc661_RunTimeStructure_t does not list, such
- * as arrays and buffers, and rows whose ParameterIdent Table 4.6-8 does not list, are left out.
+ * and extension, and Table 4.6-8, Parameter Types. Tables 4.6-8, 4.6-10, 4.6-11, 4.6-13, 4.6-14,
+ * and 4.6-15: the constant names a property value may be, and their values. Generated from the
+ * specification text by tools/runtime.py. Rows carried by a structure
+ * Arinc661_ParameterStructure_t does not list, such as arrays and buffers, and rows whose
+ * ParameterIdent Table 4.6-8 does not list, are left out.
  */
 
 /*=================================================================================================
@@ -222,23 +247,30 @@ out = '''/*=====================================================================
 **===============================================================================================*/
 
 /** One row of a Runtime Modifiable Parameters table. */
-typedef struct RunTimeRow_s
+typedef struct RuntimeRow_s
 {
-    uint32_t                    ident;      ///< ParameterIdent
-    Arinc661_RunTimeStructure_t structure;  ///< Structure carrying the value
-    Arinc661_ParameterKind_t    kind;       ///< Type of the value, or of the first value of a pair
-    const char_t*               name;       ///< Parameter set
-    Arinc661_ParameterKind_t    secondKind; ///< Type of the second value of a pair; unused otherwise
-    const char_t*               secondName; ///< Second parameter set by a pair, or NULL
-} RunTimeRow_t;
+    uint32_t                      ident;      ///< ParameterIdent
+    Arinc661_ParameterStructure_t structure;  ///< Structure carrying the value
+    Arinc661_ParameterKind_t      kind;       ///< Type of the value, or of the first value of a pair
+    const char_t*                 name;       ///< Parameter set
+    Arinc661_ParameterKind_t      secondKind; ///< Type of the second value of a pair; unused otherwise
+    const char_t*                 secondName; ///< Second parameter set by a pair, or NULL
+} RuntimeRow_t;
 
 /** One widget or extension type's table. */
-typedef struct RunTimeType_s
+typedef struct RuntimeType_s
 {
     const char_t* type;     ///< A661_ type name
-    uint32_t      firstRow; ///< Index of the type's first row in c_runTimeRows
+    uint32_t      firstRow; ///< Index of the type's first row in c_runtimeRows
     uint32_t      rowCount; ///< Number of the type's rows
-} RunTimeType_t;
+} RuntimeType_t;
+
+/** One constant name a property value may be. */
+typedef struct RuntimeConstant_s
+{
+    const char_t* name;  ///< Constant name, such as A661_TRUE
+    uint32_t      value; ///< Its value in Table 4.6-8, 4.6-10, 4.6-11, 4.6-13, 4.6-14, or 4.6-15
+} RuntimeConstant_t;
 
 /*=================================================================================================
 ** 3.3 External global variables
@@ -249,15 +281,21 @@ typedef struct RunTimeType_s
 **===============================================================================================*/
 
 /** Rows of every type, grouped by type, each group in table order. */
-static const RunTimeRow_t c_runTimeRows[] =
+static const RuntimeRow_t c_runtimeRows[] =
 {
 ''' + '\n'.join(row_lines) + '''
 };
 
 /** Types in name order, each with its group of rows. */
-static const RunTimeType_t c_runTimeTypes[] =
+static const RuntimeType_t c_runtimeTypes[] =
 {
 ''' + '\n'.join(type_lines) + '''
+};
+
+/** Constants in name order. A661_ORIENTATION and A661_RANGE have their Table 4.6-11 values, not their Table 4.6-8 ParameterIdents. */
+static const RuntimeConstant_t c_runtimeConstants[] =
+{
+''' + '\n'.join(constant_lines) + '''
 };
 
 /*=================================================================================================
@@ -278,10 +316,10 @@ static const RunTimeType_t c_runTimeTypes[] =
  *  Finds the type's table, then the row of the ParameterIdent in it. Compares at most
  *  ARINC661_MAX_NAME_BYTES characters of the type name.
  */
-bool_t Arinc661_RunTime_GetParameter(const char_t* typeName, uint32_t parameterIdent, Arinc661_RunTimeParameter_t* parameter)
+bool_t Arinc661_Runtime_GetParameter(const char_t* typeName, uint32_t parameterIdent, Arinc661_Runtime_Parameter_t* parameter)
 {
-    const RunTimeType_t* type;
-    const RunTimeRow_t*  row;
+    const RuntimeType_t* type;
+    const RuntimeRow_t*  row;
     uint32_t             index;
     bool_t               names_match;
     bool_t               is_found;
@@ -290,12 +328,12 @@ bool_t Arinc661_RunTime_GetParameter(const char_t* typeName, uint32_t parameterI
     LOGASSERT(NULL != parameter);
 
     type = NULL;
-    for (index = 0; index < COUNT_OF(c_runTimeTypes); ++index)
+    for (index = 0; index < COUNT_OF(c_runtimeTypes); ++index)
     {
-        names_match = (0 == strncmp(typeName, c_runTimeTypes[index].type, ARINC661_MAX_NAME_BYTES));
+        names_match = (0 == strncmp(typeName, c_runtimeTypes[index].type, ARINC661_MAX_NAME_BYTES));
         if (names_match)
         {
-            type = &c_runTimeTypes[index];
+            type = &c_runtimeTypes[index];
             break;
         }
     }
@@ -305,9 +343,9 @@ bool_t Arinc661_RunTime_GetParameter(const char_t* typeName, uint32_t parameterI
     {
         for (index = type->firstRow; index < (type->firstRow + type->rowCount); ++index)
         {
-            if (parameterIdent == c_runTimeRows[index].ident)
+            if (parameterIdent == c_runtimeRows[index].ident)
             {
-                row = &c_runTimeRows[index];
+                row = &c_runtimeRows[index];
                 break;
             }
         }
@@ -326,7 +364,41 @@ bool_t Arinc661_RunTime_GetParameter(const char_t* typeName, uint32_t parameterI
 
     return is_found;
 }
+
+/*************************************************************************************************/
+/**
+ * \\par Details:
+ *  None
+ */
+uint32_t Arinc661_Runtime_GetConstantCount(void)
+{
+    return (uint32_t)COUNT_OF(c_runtimeConstants);
+}
+
+/*************************************************************************************************/
+/**
+ * \\par Details:
+ *  Constants are in name order.
+ */
+const char_t* Arinc661_Runtime_GetConstantName(uint32_t constantIndex)
+{
+    LOGASSERT(constantIndex < COUNT_OF(c_runtimeConstants));
+
+    return c_runtimeConstants[constantIndex].name;
+}
+
+/*************************************************************************************************/
+/**
+ * \\par Details:
+ *  None
+ */
+uint32_t Arinc661_Runtime_GetConstantValue(uint32_t constantIndex)
+{
+    LOGASSERT(constantIndex < COUNT_OF(c_runtimeConstants));
+
+    return c_runtimeConstants[constantIndex].value;
+}
 '''
 with open(output_path, 'wb') as f:
     f.write(out.replace('\n', '\r\n').encode('utf-8'))
-print('wrote', output_path, len(types_out), 'types', len(rows_out), 'rows')
+print('wrote', output_path, len(types_out), 'types', len(rows_out), 'rows', len(constants), 'constants')

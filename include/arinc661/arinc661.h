@@ -10,7 +10,8 @@
  * https://saemobilus.sae.org/standards/arinc661-6-cockpit-display-system-interfaces-user-systems
  * J661-hosted Supplement 6 strict XML Definition File schema (a661Strict.xsd):
  * https://j661.sourceforge.net/articles/articles/resources/a661Strict.xsd
- * ARINC 661 Part 1, Supplement 7, Creation Structure tables, Table 3.3-1, and Table 4.6-13.
+ * ARINC 661 Part 1, Supplement 7, Creation Structure tables, Table 3.3-1, section 4.5.4.5,
+ * Tables 4.6-10 and 4.6-11, and Table 4.6-13.
  */
 
 /*=================================================================================================
@@ -26,10 +27,32 @@
 **===============================================================================================*/
 
 /* Arbitrarily chosen string capacities; these are not limits imposed by the XML schemas. */
-#define ARINC661_MAX_NAME_BYTES        (128UL)      ///< Name or type string capacity in bytes, including the zero terminator
-#define ARINC661_MAX_DESCRIPTION_BYTES (256UL)      ///< Description string capacity in bytes, including the zero terminator
-#define ARINC661_MAX_PROPERTY_BYTES    (256UL)      ///< Property value string capacity in bytes, including the zero terminator
-#define ARINC661_MAX_PATH_BYTES        (512UL)      ///< File path string capacity in bytes, including the zero terminator
+#define ARINC661_MAX_NAME_BYTES     (128UL) ///< Name or type string capacity in bytes, including the zero terminator
+#define ARINC661_MAX_PROPERTY_BYTES (256UL) ///< Property value string capacity in bytes, including the zero terminator
+
+/* Values of constants in Table 4.6-10, Boolean Constant Values, and Table 4.6-11, Integer Constant Values,
+   to compare a property's number with; Arinc661_Runtime_GetConstantValue gives every constant's value. */
+#define ARINC661_A661_FALSE         (0x00U) ///< A661_FALSE (Table 4.6-10)
+#define ARINC661_A661_TRUE          (0x01U) ///< A661_TRUE (Table 4.6-10)
+#define ARINC661_A661_SELECTED      (0x01U) ///< A661_SELECTED (Table 4.6-11)
+#define ARINC661_A661_HORZ_LINE     (0x02U) ///< A661_HORZ_LINE (Table 4.6-11)
+#define ARINC661_A661_VERT_LINE     (0x03U) ///< A661_VERT_LINE (Table 4.6-11)
+#define ARINC661_A661_ABSENT        (0x10U) ///< A661_ABSENT (Table 4.6-11)
+#define ARINC661_A661_TOP           (0x11U) ///< A661_TOP (Table 4.6-11)
+#define ARINC661_A661_BOTTOM        (0x12U) ///< A661_BOTTOM (Table 4.6-11)
+#define ARINC661_A661_LEFT          (0x13U) ///< A661_LEFT (Table 4.6-11)
+#define ARINC661_A661_RIGHT         (0x14U) ///< A661_RIGHT (Table 4.6-11)
+#define ARINC661_A661_OPEN_UP       (0x16U) ///< A661_OPEN_UP (Table 4.6-11)
+#define ARINC661_A661_OPEN_CENTERED (0x17U) ///< A661_OPEN_CENTERED (Table 4.6-11)
+#define ARINC661_A661_BOTTOM_CENTER (0x30U) ///< A661_BOTTOM_CENTER (Table 4.6-11)
+#define ARINC661_A661_BOTTOM_LEFT   (0x31U) ///< A661_BOTTOM_LEFT (Table 4.6-11)
+#define ARINC661_A661_BOTTOM_RIGHT  (0x32U) ///< A661_BOTTOM_RIGHT (Table 4.6-11)
+#define ARINC661_A661_TOP_CENTER    (0x33U) ///< A661_TOP_CENTER (Table 4.6-11)
+#define ARINC661_A661_TOP_LEFT      (0x34U) ///< A661_TOP_LEFT (Table 4.6-11)
+#define ARINC661_A661_TOP_RIGHT     (0x35U) ///< A661_TOP_RIGHT (Table 4.6-11)
+#define ARINC661_A661_BOTTOM_TO_TOP (0x40U) ///< A661_BOTTOM_TO_TOP (Table 4.6-11)
+#define ARINC661_A661_RIGHT_TO_LEFT (0x42U) ///< A661_RIGHT_TO_LEFT (Table 4.6-11)
+#define ARINC661_A661_TOP_TO_BOTTOM (0x43U) ///< A661_TOP_TO_BOTTOM (Table 4.6-11)
 
 /*=================================================================================================
 ** 3.2 Types
@@ -60,7 +83,8 @@ typedef enum Arinc661_PropertyOwner_e
  *  the values of its Creation Structure parameters, each named after the
  *  parameter that Arinc661_Parameter_t describes; an array parameter has one
  *  property per element, all with the array's name, in element order. XML form:
- *  a661Strict.xsd modelType/propType, with name and value attributes.
+ *  a661Strict.xsd modelType/propType, with name and value attributes, or one
+ *  value of an arrayprop.
  */
 typedef struct Arinc661_Property_s
 {
@@ -132,7 +156,7 @@ typedef enum Arinc661_CharsetEncoding_e
 
 /*************************************************************************************************/
 /**
- * \brief How a Creation Structure parameter is encoded in the binary form (Part 1-7, Table 3.3-1), and the text its property value holds.
+ * \brief How a Creation Structure or run-time parameter is encoded in the binary form (Part 1-7, Table 3.3-1), and the text its property value holds.
  */
 typedef enum Arinc661_ParameterKind_e
 {
@@ -153,6 +177,20 @@ typedef enum Arinc661_ParameterKind_e
 
 /*************************************************************************************************/
 /**
+ * \brief The parameter structure carrying a run-time value (Part 1-7, section 4.5.4.5).
+ */
+typedef enum Arinc661_ParameterStructure_e
+{
+    ARINC661_PARAMETER_STRUCTURE_1BYTE,       ///< A661_ParameterStructure_1Byte: ParameterIdent, a 1-byte value, a pad
+    ARINC661_PARAMETER_STRUCTURE_2BYTES,      ///< A661_ParameterStructure_2Bytes: ParameterIdent, a 2-byte value
+    ARINC661_PARAMETER_STRUCTURE_4BYTES,      ///< A661_ParameterStructure_4Bytes: ParameterIdent, a pad, a 4-byte value
+    ARINC661_PARAMETER_STRUCTURE_8BYTES,      ///< A661_ParameterStructure_8Bytes: ParameterIdent, a pad, two 4-byte values
+    ARINC661_PARAMETER_STRUCTURE_STRING,      ///< A661_ParameterStructure_String: ParameterIdent, a size, a padded string
+    ARINC661_PARAMETER_STRUCTURE_STRING_ARRAY ///< A661_ParameterStructure_StringArray: ParameterIdent, a count, indexed padded strings
+} Arinc661_ParameterStructure_t;
+
+/*************************************************************************************************/
+/**
  * \brief Description of one parameter of a widget or extension type's Creation Structure.
  *
  * \par Details:
@@ -167,7 +205,7 @@ typedef struct Arinc661_Parameter_s
 {
     const char_t*            name;             ///< Parameter name, which is also the name of the property holding its value
     Arinc661_ParameterKind_t kind;             ///< Binary encoding
-    uint32_t                 sizeOfValue;      ///< Bytes of an ARINC661_PARAMETER_BYTES value
+    uint32_t                 sizeOfValue;      ///< Encoded bytes of one value; zero when the value sizes itself
     uint32_t                 elementsPerEntry; ///< Array elements per counted entry; zero for a single value
     const char_t*            countName;        ///< Name of the parameter holding an array's entry count, or NULL
     const char_t* const*     values;           ///< Constant names the Creation Structure table lists for the value, or NULL

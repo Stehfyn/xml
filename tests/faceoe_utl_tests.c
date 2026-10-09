@@ -72,7 +72,7 @@ void RunCDSRendererTests(void);
  *
  * \retval None
  */
-void RunCDSRunTimeTests(void);
+void RunCDSRuntimeTests(void);
 
 /*************************************************************************************************/
 /**
@@ -601,6 +601,22 @@ static void TestNumberScanning(void)
     consumed = FACEOE_Utl_Scan_Float(non_ascii_digit, &fraction);
     assert(-1 == consumed);
     assert(0.0 < fraction);
+
+    // Integers in the hexadecimal form of ARINC 661 Part 1-7 section 6.2.4.1, or else decimal
+    consumed = FACEOE_Utl_Scan_Integer("0x6F12", &integer);
+    assert((6 == consumed) && (0x6F12 == integer));
+    consumed = FACEOE_Utl_Scan_Integer("0x7FFFFFFFFFFFFFFF", &integer);
+    assert((18 == consumed) && (INT64_MAX == integer));
+    integer  = 5;
+    consumed = FACEOE_Utl_Scan_Integer("0x8000000000000000", &integer);
+    assert((-1 == consumed) && (5 == integer));
+    // Lowercase letters are not hexadecimal digits, and "0x" alone is the decimal 0
+    consumed = FACEOE_Utl_Scan_Integer("0x6f12", &integer);
+    assert((3 == consumed) && (6 == integer));
+    consumed = FACEOE_Utl_Scan_Integer("0x", &integer);
+    assert((1 == consumed) && (0 == integer));
+    consumed = FACEOE_Utl_Scan_Integer("-42", &integer);
+    assert((3 == consumed) && (-42 == integer));
 }
 
 /*************************************************************************************************/
@@ -750,7 +766,7 @@ int main(void)
     RunFACEOEGfxTests();
     RunArinc661SceneTests();
     RunCDSRendererTests();
-    RunCDSRunTimeTests();
+    RunCDSRuntimeTests();
     RunArinc661UpdateTests();
     return 0;
 }

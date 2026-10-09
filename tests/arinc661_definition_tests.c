@@ -648,18 +648,6 @@ static void TestDefinitionSchema(void)
     assert(ARINC661_PARAMETER_FLOAT == parameter.kind);
     assert(Arinc661_Definition_FindType("A661_REORDER_EXTENSION", TRUE, &parameter_count));
     assert(0 == parameter_count);
-
-    assert(0 < Arinc661_Definition_GetConstantCount());
-    found = 0;
-    for (type_index = 0; type_index < Arinc661_Definition_GetConstantCount(); ++type_index)
-    {
-        if (0 == strncmp("A661_TRUE", Arinc661_Definition_GetConstantName(type_index), sizeof("A661_TRUE")))
-        {
-            assert(1 == Arinc661_Definition_GetConstantValue(type_index));
-            found += 1;
-        }
-    }
-    assert(1 == found);
 }
 
 /*************************************************************************************************/
@@ -715,6 +703,92 @@ static void TestDefinitionCharsetEncodings(void)
 
 /*************************************************************************************************/
 /**
+ * \brief Returns the number of constant names a type's Creation Structure lists for a parameter.
+ */
+static uint32_t CountValues(const char_t* typeName, bool_t isExtension, const char_t* parameterName)
+{
+    Arinc661_Parameter_t parameter;
+    uint32_t             parameter_count;
+    uint32_t             index;
+    uint32_t             value_count;
+
+    value_count = 0;
+    assert(Arinc661_Definition_FindType(typeName, isExtension, &parameter_count));
+    for (index = 0; index < parameter_count; ++index)
+    {
+        assert(Arinc661_Definition_GetParameter(typeName, isExtension, index, &parameter));
+        if (0 == strcmp(parameterName, parameter.name))
+        {
+            value_count = parameter.valueCount;
+            break;
+        }
+    }
+
+    return value_count;
+}
+
+/*************************************************************************************************/
+/**
+ * \brief Checks the hexadecimal integer form of section 6.2.4.1, the XML writer's parent rule, and
+ *  value lists of Creation Structure tables that list constants.
+ */
+static void TestDefinitionChecks(void)
+{
+    byte_t decimal_input[] = "<a661_df name=\"x\" library_version=\"1\" supp_version=\"4\"><model><prop name=\"ApplicationId\" value=\"26504\"/></model><a661_layer name=\"L\"><model><prop name=\"LayerId\" value=\"1\"/><prop name=\"ContextNumber\" value=\"0\"/></model><a661_widget name=\"P\" type=\"A661_PANEL\"><model><prop name=\"WidgetIdent\" value=\"4641\"/><prop name=\"SizeX\" value=\"10000\"/></model></a661_widget></a661_layer></a661_df>";
+    byte_t hex_input[]     = "<a661_df name=\"x\" library_version=\"1\" supp_version=\"4\"><model><prop name=\"ApplicationId\" value=\"0x6788\"/></model><a661_layer name=\"L\"><model><prop name=\"LayerId\" value=\"0x1\"/><prop name=\"ContextNumber\" value=\"0\"/></model><a661_widget name=\"P\" type=\"A661_PANEL\"><model><prop name=\"WidgetIdent\" value=\"0x1221\"/><prop name=\"SizeX\" value=\"0x2710\"/></model></a661_widget></a661_layer></a661_df>";
+    byte_t                decimal_output[256];
+    byte_t                hex_output[256];
+    byte_t                xml_output[1024];
+    Arinc661_Layer_t      layers[2];
+    Arinc661_Widget_t     widgets[3];
+    Arinc661_Property_t   properties[8];
+    Arinc661_Definition_t definition;
+    uint64_t              decimal_byte_count;
+    uint64_t              hex_byte_count;
+
+    // Integers written in hexadecimal give the same binary as in decimal
+    Arinc661_Definition_Initialize(&definition, layers, 2, widgets, 3, properties, 8, NULL, 0);
+    assert(Arinc661_Definition_Read(&definition, decimal_input, sizeof(decimal_input) - 1, c_workspace, sizeof(c_workspace)));
+    decimal_byte_count = Arinc661_Definition_WriteBinary(&definition, decimal_output, sizeof(decimal_output));
+    assert(Arinc661_Definition_Read(&definition, hex_input, sizeof(hex_input) - 1, c_workspace, sizeof(c_workspace)));
+    hex_byte_count = Arinc661_Definition_WriteBinary(&definition, hex_output, sizeof(hex_output));
+    assert((0 < decimal_byte_count) && (decimal_byte_count == hex_byte_count));
+    assert(0 == memcmp(decimal_output, hex_output, decimal_byte_count));
+
+    // A nested widget's parent must be an earlier widget of the same layer, and not an extension
+    Arinc661_Definition_Initialize(&definition, layers, 2, widgets, 3, properties, 8, NULL, 0);
+    memset(layers, 0, sizeof(layers));
+    memset(widgets, 0, sizeof(widgets));
+    definition.layerCount  = 2;
+    definition.widgetCount = 3;
+    strcpy(widgets[0].type, "A661_PANEL");
+    strcpy(widgets[1].type, "A661_BOUNDARY_CHECK_EXTENSION");
+    strcpy(widgets[2].type, "A661_PANEL");
+    widgets[0].layerIndex        = 0;
+    widgets[0].parentWidgetIndex = UINT32_MAX;
+    widgets[1].layerIndex        = 0;
+    widgets[1].parentWidgetIndex = 0;
+    widgets[1].isExtension       = TRUE;
+    widgets[2].layerIndex        = 0;
+    widgets[2].parentWidgetIndex = 0;
+    assert(0 < Arinc661_Definition_Write(&definition, xml_output, sizeof(xml_output), c_workspace, sizeof(c_workspace)));
+    widgets[2].layerIndex = 1;
+    assert(0 == Arinc661_Definition_Write(&definition, xml_output, sizeof(xml_output), c_workspace, sizeof(c_workspace)));
+    widgets[2].layerIndex        = 0;
+    widgets[2].parentWidgetIndex = 1;
+    assert(0 == Arinc661_Definition_Write(&definition, xml_output, sizeof(xml_output), c_workspace, sizeof(c_workspace)));
+
+    // Tables 3.6.1-5, 3.9.6-4, 3.9.17-3, 8.6.8-2, and 8.7.2-2 list these constants
+    assert(3 == CountValues("A661_EDIT_BOX_NUMERIC_BCD", FALSE, "ReportAllChanges"));
+    assert(2 == CountValues("A661_EDIT_BOX_NUMERIC_BCD", FALSE, "CyclicFlag"));
+    assert(5 == CountValues("A661_GESTURE_AREA", FALSE, "ReportMode"));
+    assert(2 == CountValues("A661_EVENT_HANDLER", FALSE, "EnableHandler"));
+    assert(3 == CountValues("A661_BOUNDARY_CHECK_EXTENSION", TRUE, "BoundaryCheckMode"));
+    assert(3 == CountValues("A661_WORD_WRAP_EXTENSION", TRUE, "WrapStyle"));
+}
+
+/*************************************************************************************************/
+/**
  * \par Details:
  *  Runs every ARINC 661 definition test.
  */
@@ -732,4 +806,5 @@ void RunArinc661Tests(void)
     TestDefinitionBinaryBlocks();
     TestDefinitionBinaryPrecision();
     TestDefinitionSchema();
+    TestDefinitionChecks();
 }

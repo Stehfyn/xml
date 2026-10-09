@@ -56,8 +56,10 @@ typedef struct Arinc661_Scene_Node_s
     Arinc661_Scene_NodeKind_t kind;        ///< What the node stands for, and so what data points to
     const void*               data;        ///< The Arinc661_Layer_t, Arinc661_Widget_t, or Arinc661_Property_t kind names, or the scene's copy of a property set at run time; NULL for the root or a model node
     FACEOE_Utl_Node_t**       widgetNodes; ///< Of a layer node, its row of the scene's widget table, indexed by WidgetIdent; NULL otherwise
+    float64_t                 number;      ///< Of a property node, its value as a number while isNumber is TRUE; 0 otherwise
     bool_t                    active;      ///< TRUE while the layer of a layer node is active; FALSE for other nodes
     bool_t                    visible;     ///< TRUE while the layer of a layer node is visible; FALSE for other nodes
+    bool_t                    isNumber;    ///< Of a property node, TRUE if its value is wholly a decimal, a hexadecimal integer such as "0x6F12", or a constant name such as A661_TRUE; FALSE otherwise
 } Arinc661_Scene_Node_t;
 
 /*************************************************************************************************/
@@ -144,7 +146,7 @@ void Arinc661_Scene_Initialize(Arinc661_Scene_t* scene, FACEOE_Utl_Node_t* nodes
  *
  * \par Details:
  *  A layer's LayerId is its first LayerId property, and a widget's WidgetIdent its first
- *  WidgetIdent property; each must be wholly a decimal integer. At most
+ *  WidgetIdent property; each must be wholly an integer, decimal or hexadecimal. At most
  *  ARINC661_SCENE_MAX_LAYER_IDS layers can have distinct LayerIds, so only that many array
  *  positions are considered.
  *  The scene takes at most 2 + (2 * layerCount) + (2 * widgetCount) + propertyCount nodes:
@@ -161,7 +163,8 @@ void Arinc661_Scene_Initialize(Arinc661_Scene_t* scene, FACEOE_Utl_Node_t* nodes
  *  - 005 This function shall leave out a property whose owner is not in the arrays or is a layer left out of the scene.
  *  - 006 This function shall make every layer in the scene active and visible.
  *  - 007 This function shall enter each widget in the scene, but not an extension, in its layer's row of the widget table at its WidgetIdent, the first widget winning a WidgetIdent.
- *  - 008 This function shall fail an assertion if scene is NULL, an array is NULL with a non-zero count, the nodes are fewer than 2 + (2 * layerCount) + (2 * widgetCount) + propertyCount, or the widget table has fewer than widgetIdentCount entries per layer in the scene.
+ *  - 008 This function shall read each property's value as a number into its node's number and isNumber.
+ *  - 009 This function shall fail an assertion if scene is NULL, an array is NULL with a non-zero count, the nodes are fewer than 2 + (2 * layerCount) + (2 * widgetCount) + propertyCount, or the widget table has fewer than widgetIdentCount entries per layer in the scene.
  *
  * \param[in,out] scene           Scene initialized by Arinc661_Scene_Initialize
  * \param[in]     layers          Layers
@@ -276,12 +279,14 @@ void Arinc661_Scene_HideLayer(Arinc661_Scene_t* scene, uint32_t layerId);
  * \par Details:
  *  The first time a property is set, its node's item is pointed at a copy in values, so the
  *  definition stays unchanged. A property the owner does not have yet, such as a parameter
- *  set only at run time, gets a new node from the nodes Arinc661_Scene_Build left over.
+ *  set only at run time, gets a new node from the nodes Arinc661_Scene_Build left over. The
+ *  value is read as a number here, once, so readers such as a renderer never scan its text.
  *
  * \par Requirements:
  *  - 001 This function shall set the value of the occurrence-th property of owner named name, counting from zero among the properties of that name.
  *  - 002 This function shall add the property after the owner's other properties when occurrence equals the number the owner has of that name.
- *  - 003 This function shall fail an assertion if scene, owner, name, or value is NULL, owner is not the root, a layer node, or a widget node, occurrence is greater than the number of properties of that name, name or value does not fit Arinc661_Property_t, or values or the nodes are full.
+ *  - 003 This function shall read the value as a number into the property node's number and isNumber.
+ *  - 004 This function shall fail an assertion if scene, owner, name, or value is NULL, owner is not the root, a layer node, or a widget node, occurrence is greater than the number of properties of that name, name or value does not fit Arinc661_Property_t, or values or the nodes are full.
  *
  * \param[in,out] scene        Scene built by Arinc661_Scene_Build
  * \param[in]     owner        The root, a layer node, or a widget node of scene

@@ -12,11 +12,8 @@
 **===============================================================================================*/
 
 #include "cds/cds_renderer.h"
-#include "arinc661/arinc661_definition.h"
 #include "faceoe_utl/faceoe_utl_defines.h"
 #include "faceoe_utl/faceoe_utl_print.h"
-
-#include "faceoe_utl/faceoe_utl_scan.h"
 #include "os/os_assert.h"
 
 #include <math.h>
@@ -268,6 +265,18 @@ static Kind_t KindOf(const char_t* type);
 
 /*************************************************************************************************/
 /**
+ * \brief Returns the item of a widget's n-th same-named property node, or NULL.
+ *
+ * \param[in] node         Widget node in the scene
+ * \param[in] name         Property name
+ * \param[in] occurrence   Index among same-named properties
+ *
+ * \retval    const Arinc661_Scene_Node_t*   Item of the property node, or NULL.
+ */
+static const Arinc661_Scene_Node_t* Property(const FACEOE_Utl_Node_t* node, const char_t* name, uint32_t occurrence);
+
+/*************************************************************************************************/
+/**
  * \brief Returns the n-th same-named property value of a widget, or NULL.
  *
  * \param[in] node         Widget node in the scene
@@ -302,25 +311,13 @@ static const char_t* Text(const FACEOE_Utl_Node_t* node, const char_t* name);
 
 /*************************************************************************************************/
 /**
- * \brief Reads a decimal or a constant name as a number.
- *
- * \param[in]  text     Text
- * \param[out] number   Receives the number
- *
- * \retval     TRUE    if the text is a decimal or a known constant.
- * \retval     FALSE   otherwise.
- */
-static bool_t ScanNumber(const char_t* text, float32_t* number);
-
-/*************************************************************************************************/
-/**
- * \brief Reads a widget's first same-named property as a number.
+ * \brief Reads the number the scene keeps for a widget's first same-named property.
  *
  * \param[in]  node     Widget node in the scene
  * \param[in]  name     Property name
  * \param[out] number   Receives the number
  *
- * \retval     TRUE    if the property exists and is numeric.
+ * \retval     TRUE    if the property exists and its value is a number.
  * \retval     FALSE   otherwise.
  */
 static bool_t Number(const FACEOE_Utl_Node_t* node, const char_t* name, float32_t* number);
@@ -339,7 +336,7 @@ static float32_t NumberOr(const FACEOE_Utl_Node_t* node, const char_t* name, flo
 
 /*************************************************************************************************/
 /**
- * \brief Reads the n-th same-named property as a number with a fallback.
+ * \brief Reads the number the scene keeps for the n-th same-named property, with a fallback.
  *
  * \param[in] node         Widget node in the scene
  * \param[in] name         Property name
@@ -354,28 +351,28 @@ static float32_t NumberAt(const FACEOE_Utl_Node_t* node, const char_t* name, uin
 /**
  * \brief Tests the first same-named property against a constant.
  *
- * \param[in] node           Widget node in the scene
- * \param[in] name           Property name
- * \param[in] constantName   Constant name
+ * \param[in] node       Widget node in the scene
+ * \param[in] name       Property name
+ * \param[in] constant   Constant value, such as ARINC661_A661_TRUE
  *
- * \retval    TRUE    if the property equals the constant.
+ * \retval    TRUE    if the property's number equals the constant.
  * \retval    FALSE   otherwise.
  */
-static bool_t Is(const FACEOE_Utl_Node_t* node, const char_t* name, const char_t* constantName);
+static bool_t Is(const FACEOE_Utl_Node_t* node, const char_t* name, uint32_t constant);
 
 /*************************************************************************************************/
 /**
- * \brief Tests whether a property equals a constant, by name or by value.
+ * \brief Tests the n-th same-named property against a constant.
  *
- * \param[in] node           Widget node in the scene
- * \param[in] name           Property name
- * \param[in] occurrence     Index among same-named properties
- * \param[in] constantName   Constant name
+ * \param[in] node         Widget node in the scene
+ * \param[in] name         Property name
+ * \param[in] occurrence   Index among same-named properties
+ * \param[in] constant     Constant value, such as ARINC661_A661_TRUE
  *
- * \retval    TRUE    if the property equals the constant.
+ * \retval    TRUE    if the property's number equals the constant.
  * \retval    FALSE   otherwise.
  */
-static bool_t IsAt(const FACEOE_Utl_Node_t* node, const char_t* name, uint32_t occurrence, const char_t* constantName);
+static bool_t IsAt(const FACEOE_Utl_Node_t* node, const char_t* name, uint32_t occurrence, uint32_t constant);
 
 /*************************************************************************************************/
 /**
@@ -888,27 +885,54 @@ static Kind_t KindOf(const char_t* type)
  * \par Details:
  *  None
  */
-static const char_t* Value(const FACEOE_Utl_Node_t* node, const char_t* name, uint32_t occurrence)
+static const Arinc661_Scene_Node_t* Property(const FACEOE_Utl_Node_t* node, const char_t* name, uint32_t occurrence)
 {
-    const FACEOE_Utl_Node_t*   entry;
-    const Arinc661_Property_t* property;
-    const char_t*              value;
-    uint32_t                   seen;
+    const FACEOE_Utl_Node_t*     entry;
+    const Arinc661_Scene_Node_t* item;
+    const Arinc661_Scene_Node_t* found;
+    const Arinc661_Property_t*   property;
+    uint32_t                     seen;
 
-    value = NULL;
+    found = NULL;
     seen  = 0;
     for (entry = GetFirstProperty(node); NULL != entry; entry = entry->nextSibling)
     {
-        property = (const Arinc661_Property_t*)((const Arinc661_Scene_Node_t*)entry->item)->data;
+        item     = (const Arinc661_Scene_Node_t*)entry->item;
+        property = (const Arinc661_Property_t*)item->data;
         if (0 == strncmp(name, property->name, sizeof(property->name)))
         {
             if (seen == occurrence)
             {
-                value = property->value;
+                found = item;
                 break;
             }
             seen += 1;
         }
+    }
+
+    return found;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  None
+ */
+static const char_t* Value(const FACEOE_Utl_Node_t* node, const char_t* name, uint32_t occurrence)
+{
+    const Arinc661_Scene_Node_t* item;
+    const Arinc661_Property_t*   property;
+    const char_t*                value;
+
+    item = Property(node, name, occurrence);
+    if (NULL != item)
+    {
+        property = (const Arinc661_Property_t*)item->data;
+        value    = property->value;
+    }
+    else
+    {
+        value = NULL;
     }
 
     return value;
@@ -959,53 +983,25 @@ static const char_t* Text(const FACEOE_Utl_Node_t* node, const char_t* name)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
- */
-static bool_t ScanNumber(const char_t* text, float32_t* number)
-{
-    float64_t real_value;
-    int32_t   consumed;
-    uint32_t  constant_index;
-    bool_t    is_number;
-
-    is_number = FALSE;
-    consumed  = FACEOE_Utl_Scan_Float(text, &real_value);
-    if ((0 < consumed) && ('\0' == text[consumed]))
-    {
-        (*number) = (float32_t)real_value;
-        is_number = TRUE;
-    }
-    else
-    {
-        for (constant_index = 0; constant_index < Arinc661_Definition_GetConstantCount(); ++constant_index)
-        {
-            if (0 == strncmp(text, Arinc661_Definition_GetConstantName(constant_index), ARINC661_MAX_NAME_BYTES))
-            {
-                (*number) = (float32_t)Arinc661_Definition_GetConstantValue(constant_index);
-                is_number = TRUE;
-                break;
-            }
-        }
-    }
-
-    return is_number;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  None
+ *  The scene read the value as a number when it was set, so no text is scanned while drawing.
  */
 static bool_t Number(const FACEOE_Utl_Node_t* node, const char_t* name, float32_t* number)
 {
-    const char_t* value;
-    bool_t        is_number;
+    const Arinc661_Scene_Node_t* item;
+    bool_t                       is_number;
 
-    is_number = FALSE;
-    value     = Value(node, name, 0);
-    if (NULL != value)
+    item = Property(node, name, 0);
+    if (NULL != item)
     {
-        is_number = ScanNumber(value, number);
+        is_number = item->isNumber;
+    }
+    else
+    {
+        is_number = FALSE;
+    }
+    if (is_number)
+    {
+        (*number) = (float32_t)item->number;
     }
 
     return is_number;
@@ -1033,14 +1029,26 @@ static float32_t NumberOr(const FACEOE_Utl_Node_t* node, const char_t* name, flo
  */
 static float32_t NumberAt(const FACEOE_Utl_Node_t* node, const char_t* name, uint32_t occurrence, float32_t fallback)
 {
-    const char_t* value;
-    float32_t     number;
+    const Arinc661_Scene_Node_t* item;
+    float32_t                    number;
+    bool_t                       is_number;
 
-    number = fallback;
-    value  = Value(node, name, occurrence);
-    if (NULL != value)
+    item = Property(node, name, occurrence);
+    if (NULL != item)
     {
-        (void)ScanNumber(value, &number);
+        is_number = item->isNumber;
+    }
+    else
+    {
+        is_number = FALSE;
+    }
+    if (is_number)
+    {
+        number = (float32_t)item->number;
+    }
+    else
+    {
+        number = fallback;
     }
 
     return number;
@@ -1049,27 +1057,30 @@ static float32_t NumberAt(const FACEOE_Utl_Node_t* node, const char_t* name, uin
 /*************************************************************************************************/
 /**
  * \par Details:
- *  None
+ *  A constant name and a decimal of the same value are equal, as the scene read both as numbers.
  */
-static bool_t IsAt(const FACEOE_Utl_Node_t* node, const char_t* name, uint32_t occurrence, const char_t* constantName)
+static bool_t IsAt(const FACEOE_Utl_Node_t* node, const char_t* name, uint32_t occurrence, uint32_t constant)
 {
-    const char_t* value;
-    float32_t     number;
-    float32_t     constant;
-    bool_t        is_equal;
+    const Arinc661_Scene_Node_t* item;
+    bool_t                       is_number;
+    bool_t                       is_equal;
 
-    is_equal = FALSE;
-    value    = Value(node, name, occurrence);
-    if (NULL != value)
+    item = Property(node, name, occurrence);
+    if (NULL != item)
     {
-        if (0 == strncmp(value, constantName, ARINC661_MAX_NAME_BYTES))
-        {
-            is_equal = TRUE;
-        }
-        else if (ScanNumber(value, &number) && ScanNumber(constantName, &constant))
-        {
-            is_equal = (number == constant);
-        }
+        is_number = item->isNumber;
+    }
+    else
+    {
+        is_number = FALSE;
+    }
+    if (is_number)
+    {
+        is_equal = ((float64_t)constant == item->number);
+    }
+    else
+    {
+        is_equal = FALSE;
     }
 
     return is_equal;
@@ -1080,9 +1091,9 @@ static bool_t IsAt(const FACEOE_Utl_Node_t* node, const char_t* name, uint32_t o
  * \par Details:
  *  None
  */
-static bool_t Is(const FACEOE_Utl_Node_t* node, const char_t* name, const char_t* constantName)
+static bool_t Is(const FACEOE_Utl_Node_t* node, const char_t* name, uint32_t constant)
 {
-    return IsAt(node, name, 0, constantName);
+    return IsAt(node, name, 0, constant);
 }
 
 /*************************************************************************************************/
@@ -1241,19 +1252,19 @@ static void AlignOf(const FACEOE_Utl_Node_t* node, const char_t* name, FACEOE_Gf
 {
     (*horizontal) = FACEOE_GFX_ALIGN_CENTER;
     (*vertical)   = FACEOE_GFX_ALIGN_CENTER;
-    if (Is(node, name, "A661_LEFT") || Is(node, name, "A661_TOP_LEFT") || Is(node, name, "A661_BOTTOM_LEFT"))
+    if (Is(node, name, ARINC661_A661_LEFT) || Is(node, name, ARINC661_A661_TOP_LEFT) || Is(node, name, ARINC661_A661_BOTTOM_LEFT))
     {
         (*horizontal) = FACEOE_GFX_ALIGN_START;
     }
-    else if (Is(node, name, "A661_RIGHT") || Is(node, name, "A661_TOP_RIGHT") || Is(node, name, "A661_BOTTOM_RIGHT"))
+    else if (Is(node, name, ARINC661_A661_RIGHT) || Is(node, name, ARINC661_A661_TOP_RIGHT) || Is(node, name, ARINC661_A661_BOTTOM_RIGHT))
     {
         (*horizontal) = FACEOE_GFX_ALIGN_END;
     }
-    if (Is(node, name, "A661_TOP") || Is(node, name, "A661_TOP_LEFT") || Is(node, name, "A661_TOP_CENTER") || Is(node, name, "A661_TOP_RIGHT"))
+    if (Is(node, name, ARINC661_A661_TOP) || Is(node, name, ARINC661_A661_TOP_LEFT) || Is(node, name, ARINC661_A661_TOP_CENTER) || Is(node, name, ARINC661_A661_TOP_RIGHT))
     {
         (*vertical) = FACEOE_GFX_ALIGN_START;
     }
-    else if (Is(node, name, "A661_BOTTOM") || Is(node, name, "A661_BOTTOM_LEFT") || Is(node, name, "A661_BOTTOM_CENTER") || Is(node, name, "A661_BOTTOM_RIGHT"))
+    else if (Is(node, name, ARINC661_A661_BOTTOM) || Is(node, name, ARINC661_A661_BOTTOM_LEFT) || Is(node, name, ARINC661_A661_BOTTOM_CENTER) || Is(node, name, ARINC661_A661_BOTTOM_RIGHT))
     {
         (*vertical) = FACEOE_GFX_ALIGN_END;
     }
@@ -1350,24 +1361,24 @@ static void Scrollbar(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node,
     bar_y       = y;
     bar_width   = width;
     bar_height  = thickness;
-    if (Is(node, name, "A661_LEFT"))
+    if (Is(node, name, ARINC661_A661_LEFT))
     {
         is_vertical = TRUE;
         bar_width   = thickness;
         bar_height  = height;
     }
-    else if (Is(node, name, "A661_RIGHT"))
+    else if (Is(node, name, ARINC661_A661_RIGHT))
     {
         is_vertical = TRUE;
         bar_x       = (x + width - thickness);
         bar_width   = thickness;
         bar_height  = height;
     }
-    else if (Is(node, name, "A661_TOP"))
+    else if (Is(node, name, ARINC661_A661_TOP))
     {
         bar_y = (y + height - thickness);
     }
-    else if (FALSE == Is(node, name, "A661_BOTTOM"))
+    else if (FALSE == Is(node, name, ARINC661_A661_BOTTOM))
     {
         is_present = FALSE;
     }
@@ -1545,23 +1556,23 @@ static void Button(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, co
         }
         icon_size *= 0.6f;
         (void)snprintf(caption, sizeof(caption), "%s", Text(node, iconName));
-        if (Is(node, iconPosition, "A661_LEFT"))
+        if (Is(node, iconPosition, ARINC661_A661_LEFT))
         {
             Placeholder(renderer, (*x) + RENDERER_PAD, (*y) + (((*height) - icon_size) * 0.5f), icon_size, icon_size, caption, alpha, bounds);
             label_x += (icon_size + (2.0f * RENDERER_PAD));
             label_width -= (icon_size + (2.0f * RENDERER_PAD));
         }
-        else if (Is(node, iconPosition, "A661_RIGHT"))
+        else if (Is(node, iconPosition, ARINC661_A661_RIGHT))
         {
             Placeholder(renderer, (*x) + (*width) - icon_size - RENDERER_PAD, (*y) + (((*height) - icon_size) * 0.5f), icon_size, icon_size, caption, alpha, bounds);
             label_width -= (icon_size + (2.0f * RENDERER_PAD));
         }
-        else if (Is(node, iconPosition, "A661_TOP"))
+        else if (Is(node, iconPosition, ARINC661_A661_TOP))
         {
             Placeholder(renderer, (*x) + (((*width) - icon_size) * 0.5f), (*y) + (*height) - icon_size - RENDERER_PAD, icon_size, icon_size, caption, alpha, bounds);
             label_height -= (icon_size + (2.0f * RENDERER_PAD));
         }
-        else if (Is(node, iconPosition, "A661_BOTTOM"))
+        else if (Is(node, iconPosition, ARINC661_A661_BOTTOM))
         {
             Placeholder(renderer, (*x) + (((*width) - icon_size) * 0.5f), (*y) + RENDERER_PAD, icon_size, icon_size, caption, alpha, bounds);
             label_y += (icon_size + (2.0f * RENDERER_PAD));
@@ -1616,7 +1627,7 @@ static void EntryRows(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node,
             text = "";
         }
         row_alpha = alpha;
-        if ((NULL != enableName) && IsAt(node, enableName, entry, "A661_FALSE"))
+        if ((NULL != enableName) && IsAt(node, enableName, entry, ARINC661_A661_FALSE))
         {
             row_alpha *= RENDERER_DISABLED_ALPHA;
         }
@@ -1669,7 +1680,7 @@ static void NumericBox(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node
     }
     CDS_Renderer_FormatNumber(format, (float64_t)NumberOr(node, "Value", 0.0f), text, sizeof(text));
     legend     = Value(node, "LegendString", 0);
-    has_legend = ((NULL != legend) && ('\0' != legend[0]) && (FALSE == Is(node, "LegendRemoved", "A661_TRUE")));
+    has_legend = ((NULL != legend) && ('\0' != legend[0]) && (FALSE == Is(node, "LegendRemoved", ARINC661_A661_TRUE)));
     field_x      = x;
     field_y      = y;
     field_width  = width;
@@ -1683,17 +1694,17 @@ static void NumericBox(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node
         {
             legend_height = (height * 0.5f);
         }
-        if (Is(node, "LegendPosition", "A661_RIGHT"))
+        if (Is(node, "LegendPosition", ARINC661_A661_RIGHT))
         {
             field_width -= legend_size;
             BoxText(renderer, x + width - legend_size, y, legend_size, height, legend, FACEOE_GFX_ALIGN_CENTER, FACEOE_GFX_ALIGN_CENTER, 0.0f, Fade(COLOR_TEXT, alpha));
         }
-        else if (Is(node, "LegendPosition", "A661_TOP"))
+        else if (Is(node, "LegendPosition", ARINC661_A661_TOP))
         {
             field_height -= legend_height;
             BoxText(renderer, x, y + height - legend_height, width, legend_height, legend, FACEOE_GFX_ALIGN_CENTER, FACEOE_GFX_ALIGN_CENTER, 0.0f, Fade(COLOR_TEXT, alpha));
         }
-        else if (Is(node, "LegendPosition", "A661_BOTTOM"))
+        else if (Is(node, "LegendPosition", ARINC661_A661_BOTTOM))
         {
             field_y += legend_height;
             field_height -= legend_height;
@@ -1740,8 +1751,8 @@ static void DrawGp(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, Ki
 
     color     = IndexColor(node, alpha);
     halo      = Fade(FACEOE_GFX_RGBA(0, 0, 0, 255), alpha);
-    is_filled = Is(node, "Filled", "A661_TRUE");
-    has_halo  = (FALSE == Is(node, "Halo", "A661_FALSE")) && (NULL != Value(node, "Halo", 0));
+    is_filled = Is(node, "Filled", ARINC661_A661_TRUE);
+    has_halo  = (FALSE == Is(node, "Halo", ARINC661_A661_FALSE)) && (NULL != Value(node, "Halo", 0));
     thickness = RENDERER_THICK;
     x         = NumberOr(node, "PosX", 0.0f);
     y         = NumberOr(node, "PosY", 0.0f);
@@ -1869,9 +1880,9 @@ static void DrawGp(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, Ki
             {
                 if (has_halo)
                 {
-                    FACEOE_Gfx_DrawList_StrokePolyline(renderer->drawList, points, count, Is(node, "Closed", "A661_TRUE"), halo, thickness + 2.0f);
+                    FACEOE_Gfx_DrawList_StrokePolyline(renderer->drawList, points, count, Is(node, "Closed", ARINC661_A661_TRUE), halo, thickness + 2.0f);
                 }
-                FACEOE_Gfx_DrawList_StrokePolyline(renderer->drawList, points, count, Is(node, "Closed", "A661_TRUE"), color, thickness);
+                FACEOE_Gfx_DrawList_StrokePolyline(renderer->drawList, points, count, Is(node, "Closed", ARINC661_A661_TRUE), color, thickness);
             }
             else
             {
@@ -1954,20 +1965,20 @@ static void DrawSlider(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node
     interval       = NumberOr(node, "MajorTickInterval", 0.0f);
     reference      = NumberOr(node, "MajorTickReference", minimum);
     minor_multiple = NumberOr(node, "MinorTickMultiple", 0.0f);
-    shows_labels   = Is(node, "ShowMajorLabels", "A661_TRUE");
-    is_vertical    = (Is(node, "Orientation", "A661_BOTTOM_TO_TOP") || Is(node, "Orientation", "A661_TOP_TO_BOTTOM"));
-    is_reversed    = (Is(node, "Orientation", "A661_RIGHT_TO_LEFT") || Is(node, "Orientation", "A661_TOP_TO_BOTTOM"));
+    shows_labels   = Is(node, "ShowMajorLabels", ARINC661_A661_TRUE);
+    is_vertical    = (Is(node, "Orientation", ARINC661_A661_BOTTOM_TO_TOP) || Is(node, "Orientation", ARINC661_A661_TOP_TO_BOTTOM));
+    is_reversed    = (Is(node, "Orientation", ARINC661_A661_RIGHT_TO_LEFT) || Is(node, "Orientation", ARINC661_A661_TOP_TO_BOTTOM));
     if (maximum <= minimum)
     {
         maximum = (minimum + 1.0f);
     }
     // Put ticks and labels on the side the Alignment names; give the track the rest
     side = 0.0f;
-    if (Is(node, "Alignment", "A661_LEFT") || Is(node, "Alignment", "A661_BOTTOM"))
+    if (Is(node, "Alignment", ARINC661_A661_LEFT) || Is(node, "Alignment", ARINC661_A661_BOTTOM))
     {
         side = -1.0f;
     }
-    else if (Is(node, "Alignment", "A661_RIGHT") || Is(node, "Alignment", "A661_TOP"))
+    else if (Is(node, "Alignment", ARINC661_A661_RIGHT) || Is(node, "Alignment", ARINC661_A661_TOP))
     {
         side = 1.0f;
     }
@@ -2170,7 +2181,7 @@ static void DrawTree(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, 
                 break;
             }
             depth += 1;
-            if (IsAt(node, "OpenArray", parent - 1, "A661_FALSE"))
+            if (IsAt(node, "OpenArray", parent - 1, ARINC661_A661_FALSE))
             {
                 is_shown = FALSE;
             }
@@ -2191,7 +2202,7 @@ static void DrawTree(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, 
                     }
                 }
                 row_alpha = alpha;
-                if (IsAt(node, "EnableArray", entry, "A661_FALSE"))
+                if (IsAt(node, "EnableArray", entry, ARINC661_A661_FALSE))
                 {
                     row_alpha *= RENDERER_DISABLED_ALPHA;
                 }
@@ -2201,7 +2212,7 @@ static void DrawTree(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node, 
                 }
                 if (has_children)
                 {
-                    if (IsAt(node, "OpenArray", entry, "A661_FALSE"))
+                    if (IsAt(node, "OpenArray", entry, ARINC661_A661_FALSE))
                     {
                         text = "+";
                     }
@@ -2256,8 +2267,8 @@ static void DrawMapBoundary(const Renderer_t* renderer, const FACEOE_Utl_Node_t*
         begin         = NumberAt(node, "BeginAngleArray", section, 0.0f);
         next          = NumberAt(node, "BeginAngleArray", (section + 1) % count, 0.0f);
         distance      = NumberAt(node, "DistanceArray", section, 0.0f);
-        is_vertical   = IsAt(node, "AlgorithmArray", section, "A661_VERT_LINE");
-        is_horizontal = IsAt(node, "AlgorithmArray", section, "A661_HORZ_LINE");
+        is_vertical   = IsAt(node, "AlgorithmArray", section, ARINC661_A661_VERT_LINE);
+        is_horizontal = IsAt(node, "AlgorithmArray", section, ARINC661_A661_HORZ_LINE);
         sweep         = (next - begin);
         if (sweep <= 0.0f)
         {
@@ -2381,19 +2392,19 @@ static void DrawTabbedGroup(const Renderer_t* renderer, const FACEOE_Utl_Node_t*
     }
     // Encode the tab position as 0 bottom, 1 top, 2 left, 3 right, -1 absent
     position = 1;
-    if (Is(node, "TabPosition", "A661_BOTTOM"))
+    if (Is(node, "TabPosition", ARINC661_A661_BOTTOM))
     {
         position = 0;
     }
-    else if (Is(node, "TabPosition", "A661_LEFT"))
+    else if (Is(node, "TabPosition", ARINC661_A661_LEFT))
     {
         position = 2;
     }
-    else if (Is(node, "TabPosition", "A661_RIGHT"))
+    else if (Is(node, "TabPosition", ARINC661_A661_RIGHT))
     {
         position = 3;
     }
-    else if (Is(node, "TabPosition", "A661_ABSENT"))
+    else if (Is(node, "TabPosition", ARINC661_A661_ABSENT))
     {
         position = -1;
     }
@@ -2424,7 +2435,7 @@ static void DrawTabbedGroup(const Renderer_t* renderer, const FACEOE_Utl_Node_t*
     }
     if (0 <= position)
     {
-        is_automatic = Is(node, "AutomaticInsetSizeFlag", "A661_TRUE");
+        is_automatic = Is(node, "AutomaticInsetSizeFlag", ARINC661_A661_TRUE);
         tab_count    = 0;
         for (child = GetFirstChild(node); NULL != child; child = child->nextSibling)
         {
@@ -2609,7 +2620,7 @@ static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, floa
     widget = WidgetOf(node);
     kind   = KindOf(widget->type);
     // Propagate Visible and Enable to children; skip hidden subtrees unless they are shown faded
-    is_visible = (FALSE == Is(node, "Visible", "A661_FALSE"));
+    is_visible = (FALSE == Is(node, "Visible", ARINC661_A661_FALSE));
     is_drawn   = TRUE;
     if (FALSE == is_visible)
     {
@@ -2622,7 +2633,7 @@ static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, floa
             is_drawn = FALSE;
         }
     }
-    if (is_drawn && Is(node, "Enable", "A661_FALSE"))
+    if (is_drawn && Is(node, "Enable", ARINC661_A661_FALSE))
     {
         alpha *= RENDERER_DISABLED_ALPHA;
     }
@@ -2649,7 +2660,7 @@ static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, floa
             case KIND_PAGING_CONTAINER:
                 Rect(node, layout, &x, &y, &width, &height);
                 Frame(renderer, x, y, width, height, COLOR_CONTAINER, COLOR_BORDER, alpha, &bounds);
-                if (FALSE == Is(node, "PagingControlPosition", "A661_ABSENT"))
+                if (FALSE == Is(node, "PagingControlPosition", ARINC661_A661_ABSENT))
                 {
                     // Draw the paging control as a small strip of page marks at the named position
                     AlignOf(node, "PagingControlPosition", &horizontal, &vertical);
@@ -2731,7 +2742,7 @@ static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, floa
                 x                       = NumberOr(node, "PosX", 0.0f);
                 y                       = NumberOr(node, "PosY", 0.0f);
                 children.mode           = CHILD_MENU_BAR;
-                children.isHorizontal   = (FALSE == Is(node, "Horizontal", "A661_FALSE"));
+                children.isHorizontal   = (FALSE == Is(node, "Horizontal", ARINC661_A661_FALSE));
                 children.buttonPosition = NumberOr(node, "ButtonPos", 0.0f);
                 children.buttonSize     = NumberOr(node, "ButtonSize", 0.0f);
                 Marker(renderer, x, y, 0.0f, COLOR_BORDER, alpha * 0.6f, &bounds);
@@ -2789,7 +2800,7 @@ static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, floa
                 break;
             case KIND_INK_AREA:
                 Rect(node, layout, &x, &y, &width, &height);
-                if (Is(node, "Filled", "A661_TRUE"))
+                if (Is(node, "Filled", ARINC661_A661_TRUE))
                 {
                     FACEOE_Gfx_DrawList_FillRectangle(renderer->drawList, x, y, width, height, IndexColor(node, alpha * 0.5f));
                 }
@@ -2886,7 +2897,7 @@ static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, floa
             case KIND_SYMBOL_TOGGLE_BUTTON:
                 // Show the alternate label of a selected toggle with AlternateFlag set
                 text = Value(node, "LabelString", 0);
-                if (Is(node, "ToggleState", "A661_SELECTED") && Is(node, "AlternateFlag", "A661_TRUE") && (NULL != Value(node, "AlternateLabelString", 0)))
+                if (Is(node, "ToggleState", ARINC661_A661_SELECTED) && Is(node, "AlternateFlag", ARINC661_A661_TRUE) && (NULL != Value(node, "AlternateLabelString", 0)))
                 {
                     text = Value(node, "AlternateLabelString", 0);
                 }
@@ -2902,7 +2913,7 @@ static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, floa
                 {
                     Button(renderer, node, layout, text, NULL, NULL, alpha, &bounds, &x, &y, &width, &height);
                 }
-                if (Is(node, "ToggleState", "A661_SELECTED"))
+                if (Is(node, "ToggleState", ARINC661_A661_SELECTED))
                 {
                     FACEOE_Gfx_DrawList_FillRectangle(renderer->drawList, x, y, width, height, Fade(COLOR_ROW_SELECTED, alpha * 0.6f));
                 }
@@ -2922,7 +2933,7 @@ static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, floa
                     box = width;
                 }
                 // Put the check box on the side PicturePosition names and the label beside it
-                if (Is(node, "PicturePosition", "A661_RIGHT"))
+                if (Is(node, "PicturePosition", ARINC661_A661_RIGHT))
                 {
                     area_x = (x + width - box - RENDERER_PAD);
                     BoxText(renderer, x + RENDERER_PAD, y, width - box - (3.0f * RENDERER_PAD), height, Text(node, "LabelString"), FACEOE_GFX_ALIGN_START, FACEOE_GFX_ALIGN_CENTER, 0.0f, Fade(COLOR_TEXT, alpha));
@@ -2933,7 +2944,7 @@ static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, floa
                     BoxText(renderer, x + box + (2.0f * RENDERER_PAD), y, width - box - (3.0f * RENDERER_PAD), height, Text(node, "LabelString"), FACEOE_GFX_ALIGN_START, FACEOE_GFX_ALIGN_CENTER, 0.0f, Fade(COLOR_TEXT, alpha));
                 }
                 FACEOE_Gfx_DrawList_StrokeRectangle(renderer->drawList, area_x, y + ((height - box) * 0.5f), box, box, Fade(COLOR_BUTTON_BORDER, alpha), RENDERER_THIN);
-                if (Is(node, "CheckButtonState", "A661_SELECTED"))
+                if (Is(node, "CheckButtonState", ARINC661_A661_SELECTED))
                 {
                     FACEOE_Gfx_DrawList_FillRectangle(renderer->drawList, area_x + (box * 0.2f), y + ((height - box) * 0.5f) + (box * 0.2f), box * 0.6f, box * 0.6f, Fade(COLOR_BUTTON_BORDER, alpha));
                 }
@@ -2972,11 +2983,11 @@ static void DrawWidget(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, floa
                     area_height = NumberOr(node, "SelectingAreaHeight", height * 3.0f);
                     area_x      = x;
                     area_y      = (y - area_height);
-                    if (Is(node, "OpeningMode", "A661_OPEN_UP"))
+                    if (Is(node, "OpeningMode", ARINC661_A661_OPEN_UP))
                     {
                         area_y = (y + height);
                     }
-                    else if (Is(node, "OpeningMode", "A661_OPEN_CENTERED"))
+                    else if (Is(node, "OpeningMode", ARINC661_A661_OPEN_CENTERED))
                     {
                         area_y = (y + (height * 0.5f) - (area_height * 0.5f));
                     }
@@ -3507,13 +3518,13 @@ void CDS_Renderer_FormatNumber(const char_t* format, float64_t value, char_t* te
  */
 void CDS_Renderer_GetLayerSize(const Arinc661_Scene_t* scene, uint32_t layerId, float32_t* width, float32_t* height)
 {
-    const FACEOE_Utl_Node_t*   layer;
-    const FACEOE_Utl_Node_t*   entry;
-    const Arinc661_Property_t* property;
-    float32_t                  number;
-    bool_t                     is_width;
-    bool_t                     is_height;
-    bool_t                     is_size;
+    const FACEOE_Utl_Node_t*     layer;
+    const FACEOE_Utl_Node_t*     entry;
+    const Arinc661_Scene_Node_t* item;
+    const Arinc661_Property_t*   property;
+    bool_t                       is_width;
+    bool_t                       is_height;
+    bool_t                       is_size;
 
     LOGASSERT(NULL != scene);
     LOGASSERT(NULL != width);
@@ -3526,17 +3537,25 @@ void CDS_Renderer_GetLayerSize(const Arinc661_Scene_t* scene, uint32_t layerId, 
     {
         for (entry = GetFirstProperty(layer); NULL != entry; entry = entry->nextSibling)
         {
-            property  = (const Arinc661_Property_t*)((const Arinc661_Scene_Node_t*)entry->item)->data;
+            item      = (const Arinc661_Scene_Node_t*)entry->item;
+            property  = (const Arinc661_Property_t*)item->data;
             is_width  = (0 == strncmp("Width", property->name, sizeof("Width")));
             is_height = (0 == strncmp("Height", property->name, sizeof("Height")));
-            is_size   = ScanNumber(property->value, &number) && (1.0f <= number);
+            if (item->isNumber)
+            {
+                is_size = (1.0 <= item->number);
+            }
+            else
+            {
+                is_size = FALSE;
+            }
             if (is_width && is_size)
             {
-                (*width) = number;
+                (*width) = (float32_t)item->number;
             }
             else if (is_height && is_size)
             {
-                (*height) = number;
+                (*height) = (float32_t)item->number;
             }
             else
             {

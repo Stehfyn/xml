@@ -21,6 +21,7 @@
 **===============================================================================================*/
 
 #include "arinc661/arinc661_definition.h"
+#include "arinc661/arinc661_runtime.h"
 #include "faceoe_utl/faceoe_utl_defines.h"
 #include "faceoe_utl/faceoe_utl_math.h"
 #include "faceoe_utl/faceoe_utl_print.h"
@@ -557,218 +558,36 @@
 #define PARAMETER_WRAPPING_TYPE                 ("WrappingType")
 #define PARAMETER_WRAP_STYLE                    ("WrapStyle")
 
-/* Constant names of section 4.6, for c_binaryConstants and the value lists. */
-#define CONSTANT_A661_ABORT                               ("A661_ABORT")
-#define CONSTANT_A661_ABORTED                             ("A661_ABORTED")
+/* Constant names of section 4.6, for the value lists. */
 #define CONSTANT_A661_ABSENT                              ("A661_ABSENT")
-#define CONSTANT_A661_ACTIVE_TABBED_PANEL                 ("A661_ACTIVE_TABBED_PANEL")
-#define CONSTANT_A661_AC_LAT                              ("A661_AC_LAT")
-#define CONSTANT_A661_AC_LAT_LONG                         ("A661_AC_LAT_LONG")
-#define CONSTANT_A661_AC_LONG                             ("A661_AC_LONG")
-#define CONSTANT_A661_AC_ORIENTATION                      ("A661_AC_ORIENTATION")
-#define CONSTANT_A661_ALIGNMENT                           ("A661_ALIGNMENT")
-#define CONSTANT_A661_ALLOW_CHANGE                        ("A661_ALLOW_CHANGE")
-#define CONSTANT_A661_ALPHA_MASK                          ("A661_ALPHA_MASK")
-#define CONSTANT_A661_ALTERNATE_FLAG                      ("A661_ALTERNATE_FLAG")
-#define CONSTANT_A661_ALTERN_PICTURE_REFERENCE            ("A661_ALTERN_PICTURE_REFERENCE")
-#define CONSTANT_A661_ALTERN_SYMBOL_REFERENCE             ("A661_ALTERN_SYMBOL_REFERENCE")
-#define CONSTANT_A661_ANIMATION_DELAY                     ("A661_ANIMATION_DELAY")
-#define CONSTANT_A661_ANIMATION_DURATION                  ("A661_ANIMATION_DURATION")
-#define CONSTANT_A661_ANIMATION_FLAG                      ("A661_ANIMATION_FLAG")
-#define CONSTANT_A661_ANIMATION_LAW_REF                   ("A661_ANIMATION_LAW_REF")
-#define CONSTANT_A661_ANIMATION_REPETITION                ("A661_ANIMATION_REPETITION")
-#define CONSTANT_A661_ANIMATION_STATE                     ("A661_ANIMATION_STATE")
-#define CONSTANT_A661_ANIMATION_TYPE                      ("A661_ANIMATION_TYPE")
-#define CONSTANT_A661_APP_DATA                            ("A661_APP_DATA")
 #define CONSTANT_A661_ARC                                 ("A661_ARC")
 #define CONSTANT_A661_ASCII_EXTENDED                      ("A661_ASCII_EXTENDED")
-#define CONSTANT_A661_AUTO_CLOSURE                        ("A661_AUTO_CLOSURE")
-#define CONSTANT_A661_AUTO_FOCUS_MOTION                   ("A661_AUTO_FOCUS_MOTION")
-#define CONSTANT_A661_BLINKING_TYPE                       ("A661_BLINKING_TYPE")
-#define CONSTANT_A661_BLOCKED_BUFFER_OF_MAPITEM           ("A661_BLOCKED_BUFFER_OF_MAPITEM")
-#define CONSTANT_A661_BLOCKED_BUFFER_OF_MAPVERT_ITEMS     ("A661_BLOCKED_BUFFER_OF_MAPVERT_ITEMS")
 #define CONSTANT_A661_BOTH_CLAMPED                        ("A661_BOTH_CLAMPED")
 #define CONSTANT_A661_BOTTOM                              ("A661_BOTTOM")
 #define CONSTANT_A661_BOTTOM_CENTER                       ("A661_BOTTOM_CENTER")
 #define CONSTANT_A661_BOTTOM_LEFT                         ("A661_BOTTOM_LEFT")
 #define CONSTANT_A661_BOTTOM_RIGHT                        ("A661_BOTTOM_RIGHT")
 #define CONSTANT_A661_BOTTOM_TO_TOP                       ("A661_BOTTOM_TO_TOP")
-#define CONSTANT_A661_BOUNDARY_ARRAY                      ("A661_BOUNDARY_ARRAY")
-#define CONSTANT_A661_BOUNDARY_CHECK                      ("A661_BOUNDARY_CHECK")
-#define CONSTANT_A661_BOUNDARY_CHECK_MODE                 ("A661_BOUNDARY_CHECK_MODE")
-#define CONSTANT_A661_BOUND_SIZE_X                        ("A661_BOUND_SIZE_X")
-#define CONSTANT_A661_BOUND_SIZE_XY                       ("A661_BOUND_SIZE_XY")
-#define CONSTANT_A661_BOUND_SIZE_Y                        ("A661_BOUND_SIZE_Y")
-#define CONSTANT_A661_BOUND_X                             ("A661_BOUND_X")
-#define CONSTANT_A661_BOUND_XY                            ("A661_BOUND_XY")
-#define CONSTANT_A661_BOUND_Y                             ("A661_BOUND_Y")
-#define CONSTANT_A661_BROADCAST_DATA                      ("A661_BROADCAST_DATA")
-#define CONSTANT_A661_BUFFER_OF_FILL_STYLES               ("A661_BUFFER_OF_FILL_STYLES")
-#define CONSTANT_A661_BUFFER_OF_MAPITEM                   ("A661_BUFFER_OF_MAPITEM")
-#define CONSTANT_A661_BUFFER_OF_MAPVERT_ITEMS             ("A661_BUFFER_OF_MAPVERT_ITEMS")
-#define CONSTANT_A661_BUFFER_OF_PARAM                     ("A661_BUFFER_OF_PARAM")
-#define CONSTANT_A661_BUTTON_POS                          ("A661_BUTTON_POS")
-#define CONSTANT_A661_BUTTON_SIZE                         ("A661_BUTTON_SIZE")
-#define CONSTANT_A661_CACHING_ENABLE                      ("A661_CACHING_ENABLE")
 #define CONSTANT_A661_CDS_DEPENDENT                       ("A661_CDS_DEPENDENT")
 #define CONSTANT_A661_CENTER                              ("A661_CENTER")
-#define CONSTANT_A661_CENTER_X                            ("A661_CENTER_X")
-#define CONSTANT_A661_CENTER_XY                           ("A661_CENTER_XY")
-#define CONSTANT_A661_CENTER_Y                            ("A661_CENTER_Y")
-#define CONSTANT_A661_CIRCULAR                            ("A661_CIRCULAR")
-#define CONSTANT_A661_CLAMPING                            ("A661_CLAMPING")
-#define CONSTANT_A661_CLEAR                               ("A661_CLEAR")
 #define CONSTANT_A661_CLOCKWISE                           ("A661_CLOCKWISE")
-#define CONSTANT_A661_CLOSED                              ("A661_CLOSED")
-#define CONSTANT_A661_COARSE_PAGE_DELTA                   ("A661_COARSE_PAGE_DELTA")
-#define CONSTANT_A661_COLOR_INDEX                         ("A661_COLOR_INDEX")
-#define CONSTANT_A661_COMPLETED                           ("A661_COMPLETED")
 #define CONSTANT_A661_COUNTER_CLOCKWISE                   ("A661_COUNTER_CLOCKWISE")
-#define CONSTANT_A661_CRP_LAT                             ("A661_CRP_LAT")
-#define CONSTANT_A661_CRP_LAT_LONG                        ("A661_CRP_LAT_LONG")
-#define CONSTANT_A661_CRP_LONG                            ("A661_CRP_LONG")
-#define CONSTANT_A661_CURSOR_CLICKED                      ("A661_CURSOR_CLICKED")
-#define CONSTANT_A661_CURSOR_DOUBLE_CLICKED               ("A661_CURSOR_DOUBLE_CLICKED")
-#define CONSTANT_A661_CURSOR_INDEX                        ("A661_CURSOR_INDEX")
-#define CONSTANT_A661_CURSOR_POS                          ("A661_CURSOR_POS")
-#define CONSTANT_A661_CURSOR_POS_BYTE                     ("A661_CURSOR_POS_BYTE")
-#define CONSTANT_A661_CURSOR_PRESSED                      ("A661_CURSOR_PRESSED")
-#define CONSTANT_A661_CURSOR_RELEASED                     ("A661_CURSOR_RELEASED")
-#define CONSTANT_A661_CURSOR_RIGHT_CLICKED                ("A661_CURSOR_RIGHT_CLICKED")
-#define CONSTANT_A661_DEACTIVATE                          ("A661_DEACTIVATE")
-#define CONSTANT_A661_DIRECTION                           ("A661_DIRECTION")
 #define CONSTANT_A661_DONT_RUN                            ("A661_DONT_RUN")
-#define CONSTANT_A661_DOWN                                ("A661_DOWN")
-#define CONSTANT_A661_DRAW_LINE_TO_CURSOR                 ("A661_DRAW_LINE_TO_CURSOR")
-#define CONSTANT_A661_EASING_IN                           ("A661_EASING_IN")
-#define CONSTANT_A661_EASING_INOUT                        ("A661_EASING_INOUT")
-#define CONSTANT_A661_EASING_OUT                          ("A661_EASING_OUT")
 #define CONSTANT_A661_EDB_ALL_CHANGE                      ("A661_EDB_ALL_CHANGE")
 #define CONSTANT_A661_EDB_CHANGE_CONFIRMED                ("A661_EDB_CHANGE_CONFIRMED")
 #define CONSTANT_A661_EDB_OPEN_CLOSE                      ("A661_EDB_OPEN_CLOSE")
-#define CONSTANT_A661_EDITING                             ("A661_EDITING")
-#define CONSTANT_A661_EFFECTIVITY_ARRAY                   ("A661_EFFECTIVITY_ARRAY")
-#define CONSTANT_A661_ENABLE                              ("A661_ENABLE")
-#define CONSTANT_A661_ENABLE_ENTRY_ARRAY                  ("A661_ENABLE_ENTRY_ARRAY")
-#define CONSTANT_A661_ENABLE_HANDLER                      ("A661_ENABLE_HANDLER")
-#define CONSTANT_A661_END                                 ("A661_END")
-#define CONSTANT_A661_END_ANGLE                           ("A661_END_ANGLE")
-#define CONSTANT_A661_END_SCALED_VALUE                    ("A661_END_SCALED_VALUE")
-#define CONSTANT_A661_END_VALUE                           ("A661_END_VALUE")
-#define CONSTANT_A661_ENTRY_ARRAY                         ("A661_ENTRY_ARRAY")
-#define CONSTANT_A661_ENTRY_POP_UP_ARRAY                  ("A661_ENTRY_POP_UP_ARRAY")
-#define CONSTANT_A661_ENTRY_VALID                         ("A661_ENTRY_VALID")
-#define CONSTANT_A661_ERROR                               ("A661_ERROR")
-#define CONSTANT_A661_EVENT_FLAG                          ("A661_EVENT_FLAG")
 #define CONSTANT_A661_EVENT_NONE                          ("A661_EVENT_NONE")
-#define CONSTANT_A661_EXCLUDED_CIRCLE                     ("A661_EXCLUDED_CIRCLE")
-#define CONSTANT_A661_EXCLUDED_RECTANGLE                  ("A661_EXCLUDED_RECTANGLE")
-#define CONSTANT_A661_EXCLUDED_REGIONS_LIST               ("A661_EXCLUDED_REGIONS_LIST")
-#define CONSTANT_A661_EXCLUDED_TRIANGLE                   ("A661_EXCLUDED_TRIANGLE")
 #define CONSTANT_A661_FALSE                               ("A661_FALSE")
-#define CONSTANT_A661_FILLED                              ("A661_FILLED")
-#define CONSTANT_A661_FILLED_POLY_START                   ("A661_FILLED_POLY_START")
-#define CONSTANT_A661_FILLED_POLY_START_INTERACTIVE       ("A661_FILLED_POLY_START_INTERACTIVE")
-#define CONSTANT_A661_FILL_INDEX                          ("A661_FILL_INDEX")
-#define CONSTANT_A661_FINE_PAGE_DELTA                     ("A661_FINE_PAGE_DELTA")
-#define CONSTANT_A661_FIRST_ACCESS_ENTRY                  ("A661_FIRST_ACCESS_ENTRY")
-#define CONSTANT_A661_FIRST_ACCESS_UA_ENTRY               ("A661_FIRST_ACCESS_UA_ENTRY")
-#define CONSTANT_A661_FIRST_VISIBLE_ENTRY                 ("A661_FIRST_VISIBLE_ENTRY")
-#define CONSTANT_A661_FONT                                ("A661_FONT")
-#define CONSTANT_A661_FORMAT_STRING                       ("A661_FORMAT_STRING")
-#define CONSTANT_A661_FRAME_X                             ("A661_FRAME_X")
-#define CONSTANT_A661_FRAME_XY                            ("A661_FRAME_XY")
-#define CONSTANT_A661_FRAME_Y                             ("A661_FRAME_Y")
-#define CONSTANT_A661_FROM                                ("A661_FROM")
-#define CONSTANT_A661_FROM_ANGLE                          ("A661_FROM_ANGLE")
-#define CONSTANT_A661_FROM_SCALE_X                        ("A661_FROM_SCALE_X")
-#define CONSTANT_A661_FROM_SCALE_XY                       ("A661_FROM_SCALE_XY")
-#define CONSTANT_A661_FROM_SCALE_Y                        ("A661_FROM_SCALE_Y")
-#define CONSTANT_A661_FROM_VALUE                          ("A661_FROM_VALUE")
-#define CONSTANT_A661_FROM_VALUE_X                        ("A661_FROM_VALUE_X")
-#define CONSTANT_A661_FROM_VALUE_XY                       ("A661_FROM_VALUE_XY")
-#define CONSTANT_A661_FROM_VALUE_Y                        ("A661_FROM_VALUE_Y")
 #define CONSTANT_A661_GBK                                 ("A661_GBK")
-#define CONSTANT_A661_GESTURE_ABORT                       ("A661_GESTURE_ABORT")
-#define CONSTANT_A661_GESTURE_CANDIDATE                   ("A661_GESTURE_CANDIDATE")
-#define CONSTANT_A661_GESTURE_DOUBLE_TAP                  ("A661_GESTURE_DOUBLE_TAP")
-#define CONSTANT_A661_GESTURE_DRAG                        ("A661_GESTURE_DRAG")
-#define CONSTANT_A661_GESTURE_END                         ("A661_GESTURE_END")
-#define CONSTANT_A661_GESTURE_FLICK                       ("A661_GESTURE_FLICK")
-#define CONSTANT_A661_GESTURE_FLICK_DOWN                  ("A661_GESTURE_FLICK_DOWN")
-#define CONSTANT_A661_GESTURE_FLICK_LEFT                  ("A661_GESTURE_FLICK_LEFT")
-#define CONSTANT_A661_GESTURE_FLICK_RIGHT                 ("A661_GESTURE_FLICK_RIGHT")
-#define CONSTANT_A661_GESTURE_FLICK_UP                    ("A661_GESTURE_FLICK_UP")
-#define CONSTANT_A661_GESTURE_HOLD                        ("A661_GESTURE_HOLD")
-#define CONSTANT_A661_GESTURE_PINCH                       ("A661_GESTURE_PINCH")
-#define CONSTANT_A661_GESTURE_PRESS_AND_HOLD              ("A661_GESTURE_PRESS_AND_HOLD")
-#define CONSTANT_A661_GESTURE_ROTATE                      ("A661_GESTURE_ROTATE")
-#define CONSTANT_A661_GESTURE_START                       ("A661_GESTURE_START")
-#define CONSTANT_A661_GESTURE_TAP                         ("A661_GESTURE_TAP")
-#define CONSTANT_A661_GESTURE_UPDATE                      ("A661_GESTURE_UPDATE")
-#define CONSTANT_A661_GRID                                ("A661_GRID")
-#define CONSTANT_A661_HALO                                ("A661_HALO")
-#define CONSTANT_A661_HIGHLIGHT_ONLY                      ("A661_HIGHLIGHT_ONLY")
-#define CONSTANT_A661_HOME_X                              ("A661_HOME_X")
-#define CONSTANT_A661_HOME_Y                              ("A661_HOME_Y")
-#define CONSTANT_A661_HORIZONTAL                          ("A661_HORIZONTAL")
-#define CONSTANT_A661_HORIZONTAL_SCROLL                   ("A661_HORIZONTAL_SCROLL")
 #define CONSTANT_A661_HORZ_LINE                           ("A661_HORZ_LINE")
 #define CONSTANT_A661_HYPHENATE                           ("A661_HYPHENATE")
-#define CONSTANT_A661_INDEX_OF_FREQUENCY                  ("A661_INDEX_OF_FREQUENCY")
-#define CONSTANT_A661_INITIAL_FOCUS                       ("A661_INITIAL_FOCUS")
-#define CONSTANT_A661_INNER_RADIUS                        ("A661_INNER_RADIUS")
-#define CONSTANT_A661_INNER_STATE_CHECK                   ("A661_INNER_STATE_CHECK")
-#define CONSTANT_A661_INNER_STATE_TOGGLE                  ("A661_INNER_STATE_TOGGLE")
-#define CONSTANT_A661_INSET_SIZE                          ("A661_INSET_SIZE")
 #define CONSTANT_A661_IN_BOUNDS                           ("A661_IN_BOUNDS")
-#define CONSTANT_A661_ITEM_SPACING                        ("A661_ITEM_SPACING")
-#define CONSTANT_A661_ITEM_STYLE                          ("A661_ITEM_STYLE")
-#define CONSTANT_A661_ITEM_SYNCHRONIZATION                ("A661_ITEM_SYNCHRONIZATION")
-#define CONSTANT_A661_KEY_ARRAY                           ("A661_KEY_ARRAY")
-#define CONSTANT_A661_LAYOUT                              ("A661_LAYOUT")
 #define CONSTANT_A661_LEFT                                ("A661_LEFT")
 #define CONSTANT_A661_LEFT_TO_RIGHT                       ("A661_LEFT_TO_RIGHT")
-#define CONSTANT_A661_LEGEND                              ("A661_LEGEND")
-#define CONSTANT_A661_LEGEND_ALIGNMENT                    ("A661_LEGEND_ALIGNMENT")
-#define CONSTANT_A661_LEGEND_ANCHOR                       ("A661_LEGEND_ANCHOR")
-#define CONSTANT_A661_LEGEND_ANCHOR_ROTATED               ("A661_LEGEND_ANCHOR_ROTATED")
-#define CONSTANT_A661_LEGEND_AND_HIGHLIGHT                ("A661_LEGEND_AND_HIGHLIGHT")
-#define CONSTANT_A661_LEGEND_AND_POPUP                    ("A661_LEGEND_AND_POPUP")
-#define CONSTANT_A661_LEGEND_AND_POPUP_AND_HIGHLIGHT      ("A661_LEGEND_AND_POPUP_AND_HIGHLIGHT")
-#define CONSTANT_A661_LEGEND_AREA_SIZE_X                  ("A661_LEGEND_AREA_SIZE_X")
-#define CONSTANT_A661_LEGEND_COMBO                        ("A661_LEGEND_COMBO")
-#define CONSTANT_A661_LEGEND_HIGHLIGHT                    ("A661_LEGEND_HIGHLIGHT")
-#define CONSTANT_A661_LEGEND_ONLY                         ("A661_LEGEND_ONLY")
-#define CONSTANT_A661_LEGEND_POP_UP                       ("A661_LEGEND_POP_UP")
-#define CONSTANT_A661_LEGEND_POSITION                     ("A661_LEGEND_POSITION")
-#define CONSTANT_A661_LEGEND_READOUT                      ("A661_LEGEND_READOUT")
-#define CONSTANT_A661_LEGEND_READOUT_COMBO                ("A661_LEGEND_READOUT_COMBO")
-#define CONSTANT_A661_LEGEND_READOUT_FORMAT_STRING        ("A661_LEGEND_READOUT_FORMAT_STRING")
-#define CONSTANT_A661_LEGEND_REMOVED                      ("A661_LEGEND_REMOVED")
-#define CONSTANT_A661_LINEAR                              ("A661_LINEAR")
-#define CONSTANT_A661_LINE_ARC                            ("A661_LINE_ARC")
-#define CONSTANT_A661_LINE_ARC_INTERACTIVE                ("A661_LINE_ARC_INTERACTIVE")
-#define CONSTANT_A661_LINE_DELTA_X                        ("A661_LINE_DELTA_X")
-#define CONSTANT_A661_LINE_DELTA_Y                        ("A661_LINE_DELTA_Y")
-#define CONSTANT_A661_LINE_LENGTH                         ("A661_LINE_LENGTH")
-#define CONSTANT_A661_LINE_SEGMENT                        ("A661_LINE_SEGMENT")
-#define CONSTANT_A661_LINE_SEGMENT_INTERACTIVE            ("A661_LINE_SEGMENT_INTERACTIVE")
-#define CONSTANT_A661_LINE_START                          ("A661_LINE_START")
-#define CONSTANT_A661_LINE_START_INTERACTIVE              ("A661_LINE_START_INTERACTIVE")
 #define CONSTANT_A661_LOOP_FORWARD                        ("A661_LOOP_FORWARD")
 #define CONSTANT_A661_LOOP_FORWARD_AND_BACKWARD_AND_BLANK ("A661_LOOP_FORWARD_AND_BACKWARD_AND_BLANK")
 #define CONSTANT_A661_LOOP_FORWARD_AND_BLANK              ("A661_LOOP_FORWARD_AND_BLANK")
 #define CONSTANT_A661_LOOP_FORWARD_AND_RESET              ("A661_LOOP_FORWARD_AND_RESET")
-#define CONSTANT_A661_LSB_MULTIPLE                        ("A661_LSB_MULTIPLE")
-#define CONSTANT_A661_MAJOR_TICK_INTERVAL                 ("A661_MAJOR_TICK_INTERVAL")
-#define CONSTANT_A661_MAJOR_TICK_REFERENCE                ("A661_MAJOR_TICK_REFERENCE")
-#define CONSTANT_A661_MAPGRID_CELLSIZE                    ("A661_MAPGRID_CELLSIZE")
-#define CONSTANT_A661_MAPGRID_OFFSET                      ("A661_MAPGRID_OFFSET")
-#define CONSTANT_A661_MAP_SYNCHRONIZATION_NUMBER          ("A661_MAP_SYNCHRONIZATION_NUMBER")
-#define CONSTANT_A661_MASK_ENABLED                        ("A661_MASK_ENABLED")
-#define CONSTANT_A661_MASK_REFERENCE                      ("A661_MASK_REFERENCE")
-#define CONSTANT_A661_MAX_VALUE                           ("A661_MAX_VALUE")
 #define CONSTANT_A661_MDF_ABSOLUTE                        ("A661_MDF_ABSOLUTE")
 #define CONSTANT_A661_MDF_BRG_DIST_ACHDG                  ("A661_MDF_BRG_DIST_ACHDG")
 #define CONSTANT_A661_MDF_DIST_DIST                       ("A661_MDF_DIST_DIST")
@@ -778,282 +597,48 @@
 #define CONSTANT_A661_MDF_RELATIVE                        ("A661_MDF_RELATIVE")
 #define CONSTANT_A661_MDF_X_DIST                          ("A661_MDF_X_DIST")
 #define CONSTANT_A661_MDF_Y_ALT                           ("A661_MDF_Y_ALT")
-#define CONSTANT_A661_MENU_HORIZONTAL                     ("A661_MENU_HORIZONTAL")
 #define CONSTANT_A661_MINIMUM_SIZE                        ("A661_MINIMUM_SIZE")
-#define CONSTANT_A661_MINMAX_VALUES                       ("A661_MINMAX_VALUES")
-#define CONSTANT_A661_MINOR_TICK_MULTIPLE                 ("A661_MINOR_TICK_MULTIPLE")
-#define CONSTANT_A661_MIN_VALUE                           ("A661_MIN_VALUE")
-#define CONSTANT_A661_MULTI_STATE_VALUE                   ("A661_MULTI_STATE_VALUE")
-#define CONSTANT_A661_NEGATIVE_STRING                     ("A661_NEGATIVE_STRING")
-#define CONSTANT_A661_NEXT_FOCUSED_WIDGET                 ("A661_NEXT_FOCUSED_WIDGET")
-#define CONSTANT_A661_NEXT_FOCUS_IN_APP_ID                ("A661_NEXT_FOCUS_IN_APP_ID")
-#define CONSTANT_A661_NEXT_FOCUS_IN_ID                    ("A661_NEXT_FOCUS_IN_ID")
-#define CONSTANT_A661_NEXT_FOCUS_IN_LAYER_ID              ("A661_NEXT_FOCUS_IN_LAYER_ID")
-#define CONSTANT_A661_NORMAL                              ("A661_NORMAL")
 #define CONSTANT_A661_NOT_CLAMPED                         ("A661_NOT_CLAMPED")
-#define CONSTANT_A661_NOT_USED                            ("A661_NOT_USED")
 #define CONSTANT_A661_NO_SHUFFLE                          ("A661_NO_SHUFFLE")
-#define CONSTANT_A661_NO_SIZING                           ("A661_NO_SIZING")
-#define CONSTANT_A661_NUMBER_OF_ENTRIES                   ("A661_NUMBER_OF_ENTRIES")
-#define CONSTANT_A661_NUMBER_OF_KEYS                      ("A661_NUMBER_OF_KEYS")
-#define CONSTANT_A661_NUMBER_OF_PICTURES                  ("A661_NUMBER_OF_PICTURES")
-#define CONSTANT_A661_NUMBER_OF_STATES                    ("A661_NUMBER_OF_STATES")
-#define CONSTANT_A661_NUMBER_OF_SYMBOLS                   ("A661_NUMBER_OF_SYMBOLS")
-#define CONSTANT_A661_NUMBER_OF_TICS_COARSE               ("A661_NUMBER_OF_TICS_COARSE")
-#define CONSTANT_A661_NUMBER_OF_TICS_FINE                 ("A661_NUMBER_OF_TICS_FINE")
-#define CONSTANT_A661_NUMBER_OF_TOUCH_POINTS              ("A661_NUMBER_OF_TOUCH_POINTS")
-#define CONSTANT_A661_NUMBER_OF_TURNS                     ("A661_NUMBER_OF_TURNS")
-#define CONSTANT_A661_NUMBER_OF_UA_ENTRIES                ("A661_NUMBER_OF_UA_ENTRIES")
-#define CONSTANT_A661_NUMBER_OF_VISIBLE_CHILDREN          ("A661_NUMBER_OF_VISIBLE_CHILDREN")
-#define CONSTANT_A661_NUMERIC_MASK                        ("A661_NUMERIC_MASK")
-#define CONSTANT_A661_OPENING_ENTRY                       ("A661_OPENING_ENTRY")
-#define CONSTANT_A661_OPENING_MODE                        ("A661_OPENING_MODE")
 #define CONSTANT_A661_OPEN_CENTERED                       ("A661_OPEN_CENTERED")
 #define CONSTANT_A661_OPEN_DOWN                           ("A661_OPEN_DOWN")
-#define CONSTANT_A661_OPEN_ENTRY_ARRAY                    ("A661_OPEN_ENTRY_ARRAY")
 #define CONSTANT_A661_OPEN_UP                             ("A661_OPEN_UP")
-#define CONSTANT_A661_OPERATOR_ADD_ASSIGN_ARG             ("A661_OPERATOR_ADD_ASSIGN_ARG")
-#define CONSTANT_A661_OPERATOR_ADD_ASSIGN_SRC             ("A661_OPERATOR_ADD_ASSIGN_SRC")
-#define CONSTANT_A661_OPERATOR_ASSIGNMENT                 ("A661_OPERATOR_ASSIGNMENT")
-#define CONSTANT_A661_OPERATOR_CONSTANT                   ("A661_OPERATOR_CONSTANT")
-#define CONSTANT_A661_OPERATOR_INVERSE                    ("A661_OPERATOR_INVERSE")
-#define CONSTANT_A661_OPERATOR_LOGICAL_AND                ("A661_OPERATOR_LOGICAL_AND")
-#define CONSTANT_A661_OPERATOR_LOGICAL_OR                 ("A661_OPERATOR_LOGICAL_OR")
-#define CONSTANT_A661_OPERATOR_PRODUCT                    ("A661_OPERATOR_PRODUCT")
-#define CONSTANT_A661_OPERATOR_PROD_ASSIGN_ARG            ("A661_OPERATOR_PROD_ASSIGN_ARG")
-#define CONSTANT_A661_OPERATOR_PROD_ASSIGN_SRC            ("A661_OPERATOR_PROD_ASSIGN_SRC")
-#define CONSTANT_A661_OPERATOR_SUB_ASSIGN_ARG             ("A661_OPERATOR_SUB_ASSIGN_ARG")
-#define CONSTANT_A661_OPERATOR_SUB_ASSIGN_SRC             ("A661_OPERATOR_SUB_ASSIGN_SRC")
-#define CONSTANT_A661_OPERATOR_SUM                        ("A661_OPERATOR_SUM")
-#define CONSTANT_A661_ORIENTATION                         ("A661_ORIENTATION")
-#define CONSTANT_A661_OUTER_RADIUS                        ("A661_OUTER_RADIUS")
 #define CONSTANT_A661_OUT_OF_BOUNDS                       ("A661_OUT_OF_BOUNDS")
-#define CONSTANT_A661_PAGE_CONTROL_POSITION               ("A661_PAGE_CONTROL_POSITION")
-#define CONSTANT_A661_PAGE_DELTA_X                        ("A661_PAGE_DELTA_X")
-#define CONSTANT_A661_PAGE_DELTA_Y                        ("A661_PAGE_DELTA_Y")
-#define CONSTANT_A661_PAGE_WRAP_TYPE                      ("A661_PAGE_WRAP_TYPE")
-#define CONSTANT_A661_PARALLEL                            ("A661_PARALLEL")
-#define CONSTANT_A661_PARAM_BUFFER_INDEX                  ("A661_PARAM_BUFFER_INDEX")
-#define CONSTANT_A661_PARENT_ENTRY_ARRAY                  ("A661_PARENT_ENTRY_ARRAY")
-#define CONSTANT_A661_PARKING_LINE_END                    ("A661_PARKING_LINE_END")
-#define CONSTANT_A661_PARKING_LINE_START                  ("A661_PARKING_LINE_START")
-#define CONSTANT_A661_PICTURE_ARRAY                       ("A661_PICTURE_ARRAY")
-#define CONSTANT_A661_PICTURE_ENTRY_ARRAY                 ("A661_PICTURE_ENTRY_ARRAY")
-#define CONSTANT_A661_PICTURE_POSITION                    ("A661_PICTURE_POSITION")
-#define CONSTANT_A661_PICTURE_REFERENCE                   ("A661_PICTURE_REFERENCE")
-#define CONSTANT_A661_PIX_FMT_COLOR_INDEXED_8             ("A661_PIX_FMT_COLOR_INDEXED_8")
-#define CONSTANT_A661_PIX_FMT_LUMINANCE_ALPHA_8           ("A661_PIX_FMT_LUMINANCE_ALPHA_8")
-#define CONSTANT_A661_PIX_FMT_RGBA_8                      ("A661_PIX_FMT_RGBA_8")
-#define CONSTANT_A661_PLAY                                ("A661_PLAY")
-#define CONSTANT_A661_POPUP_AND_HIGHLIGHT                 ("A661_POPUP_AND_HIGHLIGHT")
-#define CONSTANT_A661_POPUP_ONLY                          ("A661_POPUP_ONLY")
-#define CONSTANT_A661_POPUP_POS_X                         ("A661_POPUP_POS_X")
-#define CONSTANT_A661_POPUP_POS_Y                         ("A661_POPUP_POS_Y")
-#define CONSTANT_A661_POPUP_SIZE_X                        ("A661_POPUP_SIZE_X")
-#define CONSTANT_A661_POPUP_SIZE_Y                        ("A661_POPUP_SIZE_Y")
-#define CONSTANT_A661_POSITIVE_STRING                     ("A661_POSITIVE_STRING")
-#define CONSTANT_A661_POS_X                               ("A661_POS_X")
-#define CONSTANT_A661_POS_X2                              ("A661_POS_X2")
-#define CONSTANT_A661_POS_X3                              ("A661_POS_X3")
-#define CONSTANT_A661_POS_XY                              ("A661_POS_XY")
-#define CONSTANT_A661_POS_XY2                             ("A661_POS_XY2")
-#define CONSTANT_A661_POS_XY3                             ("A661_POS_XY3")
-#define CONSTANT_A661_POS_Y                               ("A661_POS_Y")
-#define CONSTANT_A661_POS_Y2                              ("A661_POS_Y2")
-#define CONSTANT_A661_POS_Y3                              ("A661_POS_Y3")
 #define CONSTANT_A661_PRESERVE_CHARACTER                  ("A661_PRESERVE_CHARACTER")
 #define CONSTANT_A661_PRESERVE_WORD                       ("A661_PRESERVE_WORD")
-#define CONSTANT_A661_PROJECTION_REFERENCE                ("A661_PROJECTION_REFERENCE")
-#define CONSTANT_A661_PRP_LAT                             ("A661_PRP_LAT")
-#define CONSTANT_A661_PRP_LAT_LONG                        ("A661_PRP_LAT_LONG")
-#define CONSTANT_A661_PRP_LONG                            ("A661_PRP_LONG")
-#define CONSTANT_A661_PRP_SCREEN_X                        ("A661_PRP_SCREEN_X")
-#define CONSTANT_A661_PRP_SCREEN_XY                       ("A661_PRP_SCREEN_XY")
-#define CONSTANT_A661_PRP_SCREEN_Y                        ("A661_PRP_SCREEN_Y")
-#define CONSTANT_A661_PRP_X                               ("A661_PRP_X")
-#define CONSTANT_A661_PRP_XY                              ("A661_PRP_XY")
-#define CONSTANT_A661_PRP_Y                               ("A661_PRP_Y")
-#define CONSTANT_A661_RADIUS                              ("A661_RADIUS")
-#define CONSTANT_A661_RANGE                               ("A661_RANGE")
-#define CONSTANT_A661_RANGE_X                             ("A661_RANGE_X")
-#define CONSTANT_A661_RANGE_XY                            ("A661_RANGE_XY")
-#define CONSTANT_A661_RANGE_Y                             ("A661_RANGE_Y")
-#define CONSTANT_A661_REFRESH                             ("A661_REFRESH")
-#define CONSTANT_A661_REF_POS_X                           ("A661_REF_POS_X")
-#define CONSTANT_A661_REF_POS_XY                          ("A661_REF_POS_XY")
-#define CONSTANT_A661_REF_POS_Y                           ("A661_REF_POS_Y")
-#define CONSTANT_A661_REORDER                             ("A661_REORDER")
 #define CONSTANT_A661_REPORT_ALL                          ("A661_REPORT_ALL")
 #define CONSTANT_A661_REPORT_ALL_WITH_CANDIDATE           ("A661_REPORT_ALL_WITH_CANDIDATE")
 #define CONSTANT_A661_REPORT_ON_CDS                       ("A661_REPORT_ON_CDS")
 #define CONSTANT_A661_REPORT_ON_COMPLETION                ("A661_REPORT_ON_COMPLETION")
 #define CONSTANT_A661_REPORT_ON_TRANSITION                ("A661_REPORT_ON_TRANSITION")
 #define CONSTANT_A661_REPORT_ON_TRANSITION_WITH_CANDIDATE ("A661_REPORT_ON_TRANSITION_WITH_CANDIDATE")
-#define CONSTANT_A661_REP_DEFAULT                         ("A661_REP_DEFAULT")
-#define CONSTANT_A661_REP_FOCUS                           ("A661_REP_FOCUS")
-#define CONSTANT_A661_REP_HIGHLIGHT                       ("A661_REP_HIGHLIGHT")
-#define CONSTANT_A661_REP_STANDARD                        ("A661_REP_STANDARD")
 #define CONSTANT_A661_RIGHT                               ("A661_RIGHT")
 #define CONSTANT_A661_RIGHT_TO_LEFT                       ("A661_RIGHT_TO_LEFT")
-#define CONSTANT_A661_ROTATION_ANGLE                      ("A661_ROTATION_ANGLE")
 #define CONSTANT_A661_RUN                                 ("A661_RUN")
 #define CONSTANT_A661_RUN_ONCE                            ("A661_RUN_ONCE")
 #define CONSTANT_A661_SAME_LEVEL                          ("A661_SAME_LEVEL")
-#define CONSTANT_A661_SCALE_X                             ("A661_SCALE_X")
-#define CONSTANT_A661_SCALE_XY                            ("A661_SCALE_XY")
-#define CONSTANT_A661_SCALE_Y                             ("A661_SCALE_Y")
-#define CONSTANT_A661_SCREEN_RANGE                        ("A661_SCREEN_RANGE")
 #define CONSTANT_A661_SELECTED                            ("A661_SELECTED")
-#define CONSTANT_A661_SELECTED_ENTRY                      ("A661_SELECTED_ENTRY")
-#define CONSTANT_A661_SELECTED_ENTRY_ARRAY                ("A661_SELECTED_ENTRY_ARRAY")
-#define CONSTANT_A661_SELECTING_HEIGHT                    ("A661_SELECTING_HEIGHT")
-#define CONSTANT_A661_SELECTING_WIDTH                     ("A661_SELECTING_WIDTH")
-#define CONSTANT_A661_SELECT_ALL                          ("A661_SELECT_ALL")
-#define CONSTANT_A661_SEQUENTIAL                          ("A661_SEQUENTIAL")
-#define CONSTANT_A661_SEQUENTIAL_FROM                     ("A661_SEQUENTIAL_FROM")
-#define CONSTANT_A661_SHEET_SIZE_X                        ("A661_SHEET_SIZE_X")
-#define CONSTANT_A661_SHEET_SIZE_Y                        ("A661_SHEET_SIZE_Y")
-#define CONSTANT_A661_SHIFT_FIRST_VISIBLE_ENTRY           ("A661_SHIFT_FIRST_VISIBLE_ENTRY")
-#define CONSTANT_A661_SHOW_FAIL                           ("A661_SHOW_FAIL")
-#define CONSTANT_A661_SHOW_MAJOR_TICKS                    ("A661_SHOW_MAJOR_TICKS")
 #define CONSTANT_A661_SHUFFLE_DOWN                        ("A661_SHUFFLE_DOWN")
 #define CONSTANT_A661_SHUFFLE_LEFT                        ("A661_SHUFFLE_LEFT")
 #define CONSTANT_A661_SHUFFLE_RIGHT                       ("A661_SHUFFLE_RIGHT")
-#define CONSTANT_A661_SHUFFLE_TO_FIT_MODE                 ("A661_SHUFFLE_TO_FIT_MODE")
 #define CONSTANT_A661_SHUFFLE_UP                          ("A661_SHUFFLE_UP")
-#define CONSTANT_A661_SIZE_BOTTOM_UP                      ("A661_SIZE_BOTTOM_UP")
-#define CONSTANT_A661_SIZE_LEFT_TO_RIGHT                  ("A661_SIZE_LEFT_TO_RIGHT")
-#define CONSTANT_A661_SIZE_RIGHT_TO_LEFT                  ("A661_SIZE_RIGHT_TO_LEFT")
-#define CONSTANT_A661_SIZE_TOP_DOWN                       ("A661_SIZE_TOP_DOWN")
-#define CONSTANT_A661_SIZE_TO_FIT_MODE                    ("A661_SIZE_TO_FIT_MODE")
-#define CONSTANT_A661_SIZE_X                              ("A661_SIZE_X")
-#define CONSTANT_A661_SIZE_XY                             ("A661_SIZE_XY")
-#define CONSTANT_A661_SIZE_Y                              ("A661_SIZE_Y")
-#define CONSTANT_A661_SOURCE_DX                           ("A661_SOURCE_DX")
-#define CONSTANT_A661_SOURCE_DXDY                         ("A661_SOURCE_DXDY")
-#define CONSTANT_A661_SOURCE_DY                           ("A661_SOURCE_DY")
-#define CONSTANT_A661_SOURCE_REF                          ("A661_SOURCE_REF")
-#define CONSTANT_A661_SOURCE_WIDGET_PARAM                 ("A661_SOURCE_WIDGET_PARAM")
-#define CONSTANT_A661_SOURCE_X                            ("A661_SOURCE_X")
-#define CONSTANT_A661_SOURCE_XY                           ("A661_SOURCE_XY")
-#define CONSTANT_A661_SOURCE_Y                            ("A661_SOURCE_Y")
-#define CONSTANT_A661_STAR                                ("A661_STAR")
-#define CONSTANT_A661_START_ANGLE                         ("A661_START_ANGLE")
-#define CONSTANT_A661_START_SCALED_VALUE                  ("A661_START_SCALED_VALUE")
-#define CONSTANT_A661_START_VALUE                         ("A661_START_VALUE")
-#define CONSTANT_A661_STOP_BACKWARD                       ("A661_STOP_BACKWARD")
-#define CONSTANT_A661_STOP_FORWARD                        ("A661_STOP_FORWARD")
-#define CONSTANT_A661_STRING                              ("A661_STRING")
-#define CONSTANT_A661_STRING_ALTERNATE                    ("A661_STRING_ALTERNATE")
-#define CONSTANT_A661_STRING_ARRAY                        ("A661_STRING_ARRAY")
-#define CONSTANT_A661_STYLE_SET                           ("A661_STYLE_SET")
-#define CONSTANT_A661_STYLE_SET_ARRAY                     ("A661_STYLE_SET_ARRAY")
-#define CONSTANT_A661_STYLE_SET_ARRAY_SIZE                ("A661_STYLE_SET_ARRAY_SIZE")
-#define CONSTANT_A661_STYLE_SET_DEFAULT                   ("A661_STYLE_SET_DEFAULT")
-#define CONSTANT_A661_SYMBOL_CIRCLE                       ("A661_SYMBOL_CIRCLE")
-#define CONSTANT_A661_SYMBOL_CIRCLE_INTERACTIVE           ("A661_SYMBOL_CIRCLE_INTERACTIVE")
-#define CONSTANT_A661_SYMBOL_ENTRY_ARRAY                  ("A661_SYMBOL_ENTRY_ARRAY")
-#define CONSTANT_A661_SYMBOL_GENERIC                      ("A661_SYMBOL_GENERIC")
-#define CONSTANT_A661_SYMBOL_GENERIC_INTERACTIVE          ("A661_SYMBOL_GENERIC_INTERACTIVE")
-#define CONSTANT_A661_SYMBOL_OVAL                         ("A661_SYMBOL_OVAL")
-#define CONSTANT_A661_SYMBOL_OVAL_INTERACTIVE             ("A661_SYMBOL_OVAL_INTERACTIVE")
-#define CONSTANT_A661_SYMBOL_PARKABLE                     ("A661_SYMBOL_PARKABLE")
-#define CONSTANT_A661_SYMBOL_PARKABLE_INTERACTIVE         ("A661_SYMBOL_PARKABLE_INTERACTIVE")
-#define CONSTANT_A661_SYMBOL_POSITION                     ("A661_SYMBOL_POSITION")
-#define CONSTANT_A661_SYMBOL_RECTANGLE                    ("A661_SYMBOL_RECTANGLE")
-#define CONSTANT_A661_SYMBOL_RECTANGLE_INTERACTIVE        ("A661_SYMBOL_RECTANGLE_INTERACTIVE")
-#define CONSTANT_A661_SYMBOL_REFERENCE                    ("A661_SYMBOL_REFERENCE")
-#define CONSTANT_A661_SYMBOL_ROTATED                      ("A661_SYMBOL_ROTATED")
-#define CONSTANT_A661_SYMBOL_ROTATED_INTERACTIVE          ("A661_SYMBOL_ROTATED_INTERACTIVE")
-#define CONSTANT_A661_SYMBOL_ROTATED_PARKABLE             ("A661_SYMBOL_ROTATED_PARKABLE")
-#define CONSTANT_A661_SYMBOL_ROTATED_PARKABLE_INTERACTIVE ("A661_SYMBOL_ROTATED_PARKABLE_INTERACTIVE")
-#define CONSTANT_A661_SYMBOL_RUNWAY                       ("A661_SYMBOL_RUNWAY")
-#define CONSTANT_A661_SYMBOL_RUNWAY_INTERACTIVE           ("A661_SYMBOL_RUNWAY_INTERACTIVE")
-#define CONSTANT_A661_SYMBOL_TARGET                       ("A661_SYMBOL_TARGET")
-#define CONSTANT_A661_SYMBOL_TARGET_INTERACTIVE           ("A661_SYMBOL_TARGET_INTERACTIVE")
-#define CONSTANT_A661_SYMBOL_TARGET_PARKABLE              ("A661_SYMBOL_TARGET_PARKABLE")
-#define CONSTANT_A661_SYMBOL_TARGET_PARKABLE_INTERACTIVE  ("A661_SYMBOL_TARGET_PARKABLE_INTERACTIVE")
-#define CONSTANT_A661_SYNC_FRAME                          ("A661_SYNC_FRAME")
-#define CONSTANT_A661_TAB_DIRECTION_WIDGET_ID_ARRAY       ("A661_TAB_DIRECTION_WIDGET_ID_ARRAY")
-#define CONSTANT_A661_TAB_POSITION                        ("A661_TAB_POSITION")
-#define CONSTANT_A661_TARGET_WIDGET_ID                    ("A661_TARGET_WIDGET_ID")
-#define CONSTANT_A661_TICS_COARSE                         ("A661_TICS_COARSE")
-#define CONSTANT_A661_TICS_COARSE_8BYTE                   ("A661_TICS_COARSE_8BYTE")
-#define CONSTANT_A661_TICS_COARSE_ARRAY                   ("A661_TICS_COARSE_ARRAY")
-#define CONSTANT_A661_TICS_FINE                           ("A661_TICS_FINE")
-#define CONSTANT_A661_TICS_FINE_8BYTE                     ("A661_TICS_FINE_8BYTE")
-#define CONSTANT_A661_TICS_FINE_ARRAY                     ("A661_TICS_FINE_ARRAY")
-#define CONSTANT_A661_TO                                  ("A661_TO")
 #define CONSTANT_A661_TOP                                 ("A661_TOP")
 #define CONSTANT_A661_TOP_CENTER                          ("A661_TOP_CENTER")
 #define CONSTANT_A661_TOP_LEFT                            ("A661_TOP_LEFT")
 #define CONSTANT_A661_TOP_RIGHT                           ("A661_TOP_RIGHT")
 #define CONSTANT_A661_TOP_TO_BOTTOM                       ("A661_TOP_TO_BOTTOM")
-#define CONSTANT_A661_TOUCH_ABORT                         ("A661_TOUCH_ABORT")
-#define CONSTANT_A661_TOUCH_DOWN                          ("A661_TOUCH_DOWN")
-#define CONSTANT_A661_TOUCH_MOVE                          ("A661_TOUCH_MOVE")
-#define CONSTANT_A661_TOUCH_MOVE_OUTSIDE                  ("A661_TOUCH_MOVE_OUTSIDE")
-#define CONSTANT_A661_TOUCH_UP                            ("A661_TOUCH_UP")
-#define CONSTANT_A661_TO_ANGLE                            ("A661_TO_ANGLE")
-#define CONSTANT_A661_TO_BACK                             ("A661_TO_BACK")
-#define CONSTANT_A661_TO_FRONT                            ("A661_TO_FRONT")
-#define CONSTANT_A661_TO_SCALE_X                          ("A661_TO_SCALE_X")
-#define CONSTANT_A661_TO_SCALE_XY                         ("A661_TO_SCALE_XY")
-#define CONSTANT_A661_TO_SCALE_Y                          ("A661_TO_SCALE_Y")
-#define CONSTANT_A661_TO_VALUE                            ("A661_TO_VALUE")
-#define CONSTANT_A661_TO_VALUE_X                          ("A661_TO_VALUE_X")
-#define CONSTANT_A661_TO_VALUE_XY                         ("A661_TO_VALUE_XY")
-#define CONSTANT_A661_TO_VALUE_Y                          ("A661_TO_VALUE_Y")
-#define CONSTANT_A661_TRANSLATION_X                       ("A661_TRANSLATION_X")
-#define CONSTANT_A661_TRANSLATION_XY                      ("A661_TRANSLATION_XY")
-#define CONSTANT_A661_TRANSLATION_Y                       ("A661_TRANSLATION_Y")
-#define CONSTANT_A661_TREE_NODE_STYLE_ARRAY               ("A661_TREE_NODE_STYLE_ARRAY")
-#define CONSTANT_A661_TRIANGLE_END                        ("A661_TRIANGLE_END")
-#define CONSTANT_A661_TRIANGLE_END_DOUBLE                 ("A661_TRIANGLE_END_DOUBLE")
-#define CONSTANT_A661_TRIANGLE_END_DOUBLE_INTERACTIVE     ("A661_TRIANGLE_END_DOUBLE_INTERACTIVE")
-#define CONSTANT_A661_TRIANGLE_END_INTERACTIVE            ("A661_TRIANGLE_END_INTERACTIVE")
-#define CONSTANT_A661_TRIANGLE_FAN_START                  ("A661_TRIANGLE_FAN_START")
-#define CONSTANT_A661_TRIANGLE_FAN_START_INTERACTIVE      ("A661_TRIANGLE_FAN_START_INTERACTIVE")
-#define CONSTANT_A661_TRIANGLE_SEGMENT                    ("A661_TRIANGLE_SEGMENT")
-#define CONSTANT_A661_TRIANGLE_SEGMENT_DOUBLE             ("A661_TRIANGLE_SEGMENT_DOUBLE")
-#define CONSTANT_A661_TRIANGLE_SEGMENT_DOUBLE_INTERACTIVE ("A661_TRIANGLE_SEGMENT_DOUBLE_INTERACTIVE")
-#define CONSTANT_A661_TRIANGLE_SEGMENT_INTERACTIVE        ("A661_TRIANGLE_SEGMENT_INTERACTIVE")
-#define CONSTANT_A661_TRIANGLE_STRIP_START                ("A661_TRIANGLE_STRIP_START")
-#define CONSTANT_A661_TRIANGLE_STRIP_START_INTERACTIVE    ("A661_TRIANGLE_STRIP_START_INTERACTIVE")
 #define CONSTANT_A661_TRUE                                ("A661_TRUE")
 #define CONSTANT_A661_TRUE_WITH_VALIDATION                ("A661_TRUE_WITH_VALIDATION")
-#define CONSTANT_A661_UA_POSITION_FLAG                    ("A661_UA_POSITION_FLAG")
 #define CONSTANT_A661_UNSELECTED                          ("A661_UNSELECTED")
-#define CONSTANT_A661_UNSELECT_ALL                        ("A661_UNSELECT_ALL")
-#define CONSTANT_A661_UP                                  ("A661_UP")
 #define CONSTANT_A661_UTF8                                ("A661_UTF8")
 #define CONSTANT_A661_VALIDATION                          ("A661_VALIDATION")
 #define CONSTANT_A661_VALIDATION_AND_WHEEL                ("A661_VALIDATION_AND_WHEEL")
-#define CONSTANT_A661_VALUE                               ("A661_VALUE")
-#define CONSTANT_A661_VALUE_8BYTE                         ("A661_VALUE_8BYTE")
-#define CONSTANT_A661_VERTEX_RENDER_END                   ("A661_VERTEX_RENDER_END")
-#define CONSTANT_A661_VERTEX_RENDER_LINES                 ("A661_VERTEX_RENDER_LINES")
-#define CONSTANT_A661_VERTEX_RENDER_LINE_LOOP             ("A661_VERTEX_RENDER_LINE_LOOP")
-#define CONSTANT_A661_VERTEX_RENDER_POLYLINE              ("A661_VERTEX_RENDER_POLYLINE")
-#define CONSTANT_A661_VERTEX_RENDER_SEGMENT               ("A661_VERTEX_RENDER_SEGMENT")
-#define CONSTANT_A661_VERTEX_RENDER_START                 ("A661_VERTEX_RENDER_START")
-#define CONSTANT_A661_VERTEX_RENDER_TRIANGLE              ("A661_VERTEX_RENDER_TRIANGLE")
-#define CONSTANT_A661_VERTEX_RENDER_TRIANGLE_FAN          ("A661_VERTEX_RENDER_TRIANGLE_FAN")
-#define CONSTANT_A661_VERTEX_RENDER_TRIANGLE_STRIP        ("A661_VERTEX_RENDER_TRIANGLE_STRIP")
-#define CONSTANT_A661_VERTICAL                            ("A661_VERTICAL")
-#define CONSTANT_A661_VERTICAL_SCROLL                     ("A661_VERTICAL_SCROLL")
-#define CONSTANT_A661_VERTICES_ARRAY                      ("A661_VERTICES_ARRAY")
 #define CONSTANT_A661_VERT_LINE                           ("A661_VERT_LINE")
-#define CONSTANT_A661_VISIBLE                             ("A661_VISIBLE")
-#define CONSTANT_A661_VISIBLE_CHILD                       ("A661_VISIBLE_CHILD")
-#define CONSTANT_A661_VISIBLE_CHILD_INDEX                 ("A661_VISIBLE_CHILD_INDEX")
 #define CONSTANT_A661_WHEEL                               ("A661_WHEEL")
-#define CONSTANT_A661_WORD_WRAP                           ("A661_WORD_WRAP")
 #define CONSTANT_A661_WRAP_BOTH                           ("A661_WRAP_BOTH")
 #define CONSTANT_A661_WRAP_FIRST_TO_LAST                  ("A661_WRAP_FIRST_TO_LAST")
 #define CONSTANT_A661_WRAP_LAST_TO_FIRST                  ("A661_WRAP_LAST_TO_FIRST")
 #define CONSTANT_A661_WRAP_NONE                           ("A661_WRAP_NONE")
-#define CONSTANT_A661_WRAP_STYLE                          ("A661_WRAP_STYLE")
 
 /*=================================================================================================
 ** 3.2 Types
@@ -1155,16 +740,6 @@ typedef struct BinaryWidget_s
     const BinaryField_t* fields;     ///< Creation Structure parameters after ParentIdent or ExtensionType, including unused pads and alignment
     uint32_t             fieldCount; ///< Number of parameters
 } BinaryWidget_t;
-
-/*************************************************************************************************/
-/**
- * \brief Symbolic property value and its number.
- */
-typedef struct BinaryConstant_s
-{
-    const char_t* name;  ///< Constant name, for example A661_TRUE
-    uint32_t      value; ///< Value in Tables 4.6-8, 4.6-10, 4.6-11, 4.6-13, 4.6-14, and 4.6-15
-} BinaryConstant_t;
 
 /*************************************************************************************************/
 /**
@@ -1381,7 +956,7 @@ static const uint32_t c_pixelFormatBytes[] = {4, 2, 1};
  *  A661_TRUE_WITH_VALIDATION. A field points at its list through values and
  *  valueCount; fields whose lists match in content and order share one array.
  *  Only Arinc661_Definition_GetParameter hands the lists out. The numbers behind
- *  the names come from c_binaryConstants.
+ *  the names come from Arinc661_Runtime_GetConstantValue.
  */
 static const char_t* const c_enableValues[] =
 {
@@ -1660,13 +1235,31 @@ static const char_t* const c_tabPositionValues[] =
 
 static const char_t* const c_boundaryCheckModeValues[] =
 {
-    CONSTANT_A661_OUT_OF_BOUNDS
+    CONSTANT_A661_OUT_OF_BOUNDS,
+    CONSTANT_A661_IN_BOUNDS,
+    CONSTANT_A661_MINIMUM_SIZE
 };
 
 static const char_t* const c_coordSystemReportModeValues[] =
 {
     CONSTANT_A661_REPORT_ON_CDS,
     CONSTANT_A661_REPORT_ALL
+};
+
+static const char_t* const c_wrapStyleValues[] =
+{
+    CONSTANT_A661_PRESERVE_WORD,
+    CONSTANT_A661_PRESERVE_CHARACTER,
+    CONSTANT_A661_HYPHENATE
+};
+
+static const char_t* const c_gestureReportModeValues[] =
+{
+    CONSTANT_A661_REPORT_ON_COMPLETION,
+    CONSTANT_A661_REPORT_ON_TRANSITION,
+    CONSTANT_A661_REPORT_ALL,
+    CONSTANT_A661_REPORT_ON_TRANSITION_WITH_CANDIDATE,
+    CONSTANT_A661_REPORT_ALL_WITH_CANDIDATE
 };
 
 /*************************************************************************************************/
@@ -2147,40 +1740,40 @@ static const BinaryField_t c_editBoxNumericFields[] =
  */
 static const BinaryField_t c_editBoxNumericBcdFields[] =
 {
-    {PARAMETER_ENABLE,                   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,     NULL,                   NULL, 0},
-    {PARAMETER_VISIBLE,                  BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,     NULL,                   NULL, 0},
-    {PARAMETER_POS_X,                    BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,     NULL,                   NULL, 0},
-    {PARAMETER_POS_Y,                    BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,     NULL,                   NULL, 0},
-    {PARAMETER_SIZE_X,                   BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,     NULL,                   NULL, 0},
-    {PARAMETER_SIZE_Y,                   BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,     NULL,                   NULL, 0},
-    {PARAMETER_LEGEND_AREA_SIZE_X,       BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,     NULL,                   NULL, 0},
-    {PARAMETER_STYLE_SET,                BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,    NULL,                   NULL, 0},
-    {PARAMETER_NEXT_FOCUSED_WIDGET,      BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,    NULL,                   NULL, 0},
-    {PARAMETER_VALUE,                    BINARY_FIELD_BYTES,  BINARY_BCD_VALUE_BYTES, NULL,                   NULL, 0},
-    {PARAMETER_MIN_VALUE,                BINARY_FIELD_BYTES,  BINARY_BCD_VALUE_BYTES, NULL,                   NULL, 0},
-    {PARAMETER_MAX_VALUE,                BINARY_FIELD_BYTES,  BINARY_BCD_VALUE_BYTES, NULL,                   NULL, 0},
-    {PARAMETER_MIN_FIELDS_VALUES,        BINARY_FIELD_BYTES,  BINARY_BCD_VALUE_BYTES, NULL,                   NULL, 0},
-    {PARAMETER_MAX_FIELDS_VALUES,        BINARY_FIELD_BYTES,  BINARY_BCD_VALUE_BYTES, NULL,                   NULL, 0},
-    {PARAMETER_TICS_COARSE,              BINARY_FIELD_BYTES,  BINARY_BCD_VALUE_BYTES, NULL,                   NULL, 0},
-    {PARAMETER_TICS_FINE,                BINARY_FIELD_BYTES,  BINARY_BCD_VALUE_BYTES, NULL,                   NULL, 0},
-    {PARAMETER_NUMBER_OF_FIELDS,         BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,     NULL,                   NULL, 0},
-    {PARAMETER_ALIGNMENT,                BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,     NULL,                   NULL, 0},
-    {PARAMETER_LEGEND_POSITION,          BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,     NULL,                   NULL, 0},
-    {PARAMETER_LEGEND_REMOVED,           BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,     NULL,                   NULL, 0},
-    {PARAMETER_MAX_FORMAT_STRING_LENGTH, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,     NULL,                   NULL, 0},
-    {PARAMETER_MAX_LEGEND_STRING_LENGTH, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,     NULL,                   NULL, 0},
-    {PARAMETER_POSITIVE_STRING_LENGTH,   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,     NULL,                   NULL, 0},
-    {PARAMETER_NEGATIVE_STRING_LENGTH,   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,     NULL,                   NULL, 0},
-    {PARAMETER_AUTOMATIC_FOCUS_MOTION,   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,     NULL,                   NULL, 0},
-    {PARAMETER_REPORT_ALL_CHANGES,       BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,     NULL,                   NULL, 0},
-    {PARAMETER_NUMERIC_KEY_FLAG,         BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,     NULL,                   NULL, 0},
-    {PARAMETER_CYCLIC_FLAG,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,     NULL,                   NULL, 0},
-    {PARAMETER_SIZE_OF_FIELDS,           BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,     &c_numberOfFieldsArray, NULL, 0},
-    {NULL,                               BINARY_FIELD_ALIGN,  BINARY_VARIABLE_BYTES,  NULL,                   NULL, 0},
-    {PARAMETER_FORMAT_STRING,            BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES,  NULL,                   NULL, 0},
-    {PARAMETER_LEGEND_STRING,            BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES,  NULL,                   NULL, 0},
-    {PARAMETER_POSITIVE_STRING,          BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES,  NULL,                   NULL, 0},
-    {PARAMETER_NEGATIVE_STRING,          BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES,  NULL,                   NULL, 0}
+    {PARAMETER_ENABLE,                   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,     NULL,                   c_enableValues,                  COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,                  BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,     NULL,                   c_booleanValues,                 COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,                    BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,     NULL,                   NULL,                            0},
+    {PARAMETER_POS_Y,                    BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,     NULL,                   NULL,                            0},
+    {PARAMETER_SIZE_X,                   BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,     NULL,                   NULL,                            0},
+    {PARAMETER_SIZE_Y,                   BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,     NULL,                   NULL,                            0},
+    {PARAMETER_LEGEND_AREA_SIZE_X,       BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,     NULL,                   NULL,                            0},
+    {PARAMETER_STYLE_SET,                BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,    NULL,                   NULL,                            0},
+    {PARAMETER_NEXT_FOCUSED_WIDGET,      BINARY_FIELD_USHORT, BINARY_USHORT_BYTES,    NULL,                   NULL,                            0},
+    {PARAMETER_VALUE,                    BINARY_FIELD_BYTES,  BINARY_BCD_VALUE_BYTES, NULL,                   NULL,                            0},
+    {PARAMETER_MIN_VALUE,                BINARY_FIELD_BYTES,  BINARY_BCD_VALUE_BYTES, NULL,                   NULL,                            0},
+    {PARAMETER_MAX_VALUE,                BINARY_FIELD_BYTES,  BINARY_BCD_VALUE_BYTES, NULL,                   NULL,                            0},
+    {PARAMETER_MIN_FIELDS_VALUES,        BINARY_FIELD_BYTES,  BINARY_BCD_VALUE_BYTES, NULL,                   NULL,                            0},
+    {PARAMETER_MAX_FIELDS_VALUES,        BINARY_FIELD_BYTES,  BINARY_BCD_VALUE_BYTES, NULL,                   NULL,                            0},
+    {PARAMETER_TICS_COARSE,              BINARY_FIELD_BYTES,  BINARY_BCD_VALUE_BYTES, NULL,                   NULL,                            0},
+    {PARAMETER_TICS_FINE,                BINARY_FIELD_BYTES,  BINARY_BCD_VALUE_BYTES, NULL,                   NULL,                            0},
+    {PARAMETER_NUMBER_OF_FIELDS,         BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,     NULL,                   NULL,                            0},
+    {PARAMETER_ALIGNMENT,                BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,     NULL,                   c_editBoxAlignmentValues,        COUNT_OF(c_editBoxAlignmentValues)},
+    {PARAMETER_LEGEND_POSITION,          BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,     NULL,                   c_legendPositionValues,          COUNT_OF(c_legendPositionValues)},
+    {PARAMETER_LEGEND_REMOVED,           BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,     NULL,                   c_booleanValues,                 COUNT_OF(c_booleanValues)},
+    {PARAMETER_MAX_FORMAT_STRING_LENGTH, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,     NULL,                   NULL,                            0},
+    {PARAMETER_MAX_LEGEND_STRING_LENGTH, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,     NULL,                   NULL,                            0},
+    {PARAMETER_POSITIVE_STRING_LENGTH,   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,     NULL,                   NULL,                            0},
+    {PARAMETER_NEGATIVE_STRING_LENGTH,   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,     NULL,                   NULL,                            0},
+    {PARAMETER_AUTOMATIC_FOCUS_MOTION,   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,     NULL,                   c_booleanValues,                 COUNT_OF(c_booleanValues)},
+    {PARAMETER_REPORT_ALL_CHANGES,       BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,     NULL,                   c_editBoxReportAllChangesValues, COUNT_OF(c_editBoxReportAllChangesValues)},
+    {PARAMETER_NUMERIC_KEY_FLAG,         BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,     NULL,                   c_booleanValues,                 COUNT_OF(c_booleanValues)},
+    {PARAMETER_CYCLIC_FLAG,              BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,     NULL,                   c_booleanValues,                 COUNT_OF(c_booleanValues)},
+    {PARAMETER_SIZE_OF_FIELDS,           BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,     &c_numberOfFieldsArray, NULL,                            0},
+    {NULL,                               BINARY_FIELD_ALIGN,  BINARY_VARIABLE_BYTES,  NULL,                   NULL,                            0},
+    {PARAMETER_FORMAT_STRING,            BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES,  NULL,                   NULL,                            0},
+    {PARAMETER_LEGEND_STRING,            BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES,  NULL,                   NULL,                            0},
+    {PARAMETER_POSITIVE_STRING,          BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES,  NULL,                   NULL,                            0},
+    {PARAMETER_NEGATIVE_STRING,          BINARY_FIELD_STRING, BINARY_VARIABLE_BYTES,  NULL,                   NULL,                            0}
 };
 
 /*************************************************************************************************/
@@ -2212,15 +1805,15 @@ static const BinaryField_t c_editBoxTextFields[] =
  */
 static const BinaryField_t c_eventHandlerFields[] =
 {
-    {PARAMETER_ENABLE_HANDLER,            BINARY_FIELD_UCHAR,         BINARY_UCHAR_BYTES,               NULL,                          NULL, 0},
-    {PARAMETER_TRIGGER_LAYER_IDENT,       BINARY_FIELD_UCHAR,         BINARY_UCHAR_BYTES,               NULL,                          NULL, 0},
-    {PARAMETER_TRIGGER_WIDGET_IDENT,      BINARY_FIELD_USHORT,        BINARY_USHORT_BYTES,              NULL,                          NULL, 0},
-    {PARAMETER_TRIGGER_EVENT,             BINARY_FIELD_USHORT,        BINARY_USHORT_BYTES,              NULL,                          NULL, 0},
-    {NULL,                                BINARY_FIELD_PAD,           2,                                NULL,                          NULL, 0},
-    {PARAMETER_NUM_WIDGET_PARAM_RESULTS,  BINARY_FIELD_UCHAR,         BINARY_UCHAR_BYTES,               NULL,                          NULL, 0},
-    {PARAMETER_NUM_LAYER_REQ_RESULTS,     BINARY_FIELD_UCHAR,         BINARY_UCHAR_BYTES,               NULL,                          NULL, 0},
-    {PARAMETER_WIDGET_PARAM_RESULT_ARRAY, BINARY_FIELD_BYTES,         BINARY_WIDGET_PARAM_RESULT_BYTES, &c_numWidgetParamResultsArray, NULL, 0},
-    {PARAMETER_LAYER_REQ_RESULT_ARRAY,    BINARY_FIELD_LAYER_REQUEST, BINARY_VARIABLE_BYTES,            &c_numLayerReqResultsArray,    NULL, 0}
+    {PARAMETER_ENABLE_HANDLER,            BINARY_FIELD_UCHAR,         BINARY_UCHAR_BYTES,               NULL,                          c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_TRIGGER_LAYER_IDENT,       BINARY_FIELD_UCHAR,         BINARY_UCHAR_BYTES,               NULL,                          NULL,            0},
+    {PARAMETER_TRIGGER_WIDGET_IDENT,      BINARY_FIELD_USHORT,        BINARY_USHORT_BYTES,              NULL,                          NULL,            0},
+    {PARAMETER_TRIGGER_EVENT,             BINARY_FIELD_USHORT,        BINARY_USHORT_BYTES,              NULL,                          NULL,            0},
+    {NULL,                                BINARY_FIELD_PAD,           2,                                NULL,                          NULL,            0},
+    {PARAMETER_NUM_WIDGET_PARAM_RESULTS,  BINARY_FIELD_UCHAR,         BINARY_UCHAR_BYTES,               NULL,                          NULL,            0},
+    {PARAMETER_NUM_LAYER_REQ_RESULTS,     BINARY_FIELD_UCHAR,         BINARY_UCHAR_BYTES,               NULL,                          NULL,            0},
+    {PARAMETER_WIDGET_PARAM_RESULT_ARRAY, BINARY_FIELD_BYTES,         BINARY_WIDGET_PARAM_RESULT_BYTES, &c_numWidgetParamResultsArray, NULL,            0},
+    {PARAMETER_LAYER_REQ_RESULT_ARRAY,    BINARY_FIELD_LAYER_REQUEST, BINARY_VARIABLE_BYTES,            &c_numLayerReqResultsArray,    NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -2296,19 +1889,19 @@ static const BinaryField_t c_framingRefreshContainerFields[] =
  */
 static const BinaryField_t c_gestureAreaFields[] =
 {
-    {PARAMETER_ENABLE,           BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  NULL,                   NULL, 0},
-    {PARAMETER_VISIBLE,          BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  NULL,                   NULL, 0},
-    {PARAMETER_STYLE_SET,        BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, NULL,                   NULL, 0},
-    {NULL,                       BINARY_FIELD_PAD,    2,                   NULL,                   NULL, 0},
-    {PARAMETER_POS_X,            BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  NULL,                   NULL, 0},
-    {PARAMETER_POS_Y,            BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  NULL,                   NULL, 0},
-    {PARAMETER_SIZE_X,           BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  NULL,                   NULL, 0},
-    {PARAMETER_SIZE_Y,           BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  NULL,                   NULL, 0},
-    {PARAMETER_REPORT_MODE,      BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  NULL,                   NULL, 0},
-    {PARAMETER_ALLOW_OUTSIDE,    BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  NULL,                   NULL, 0},
-    {PARAMETER_NUMBER_OF_EVENTS, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  NULL,                   NULL, 0},
-    {NULL,                       BINARY_FIELD_PAD,    1,                   NULL,                   NULL, 0},
-    {PARAMETER_EVENT_ID_ARRAY,   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  &c_numberOfEventsArray, NULL, 0}
+    {PARAMETER_ENABLE,           BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  NULL,                   c_enableValues,            COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,          BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  NULL,                   c_booleanValues,           COUNT_OF(c_booleanValues)},
+    {PARAMETER_STYLE_SET,        BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, NULL,                   NULL,                      0},
+    {NULL,                       BINARY_FIELD_PAD,    2,                   NULL,                   NULL,                      0},
+    {PARAMETER_POS_X,            BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  NULL,                   NULL,                      0},
+    {PARAMETER_POS_Y,            BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  NULL,                   NULL,                      0},
+    {PARAMETER_SIZE_X,           BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  NULL,                   NULL,                      0},
+    {PARAMETER_SIZE_Y,           BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  NULL,                   NULL,                      0},
+    {PARAMETER_REPORT_MODE,      BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  NULL,                   c_gestureReportModeValues, COUNT_OF(c_gestureReportModeValues)},
+    {PARAMETER_ALLOW_OUTSIDE,    BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  NULL,                   c_booleanValues,           COUNT_OF(c_booleanValues)},
+    {PARAMETER_NUMBER_OF_EVENTS, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  NULL,                   NULL,                      0},
+    {NULL,                       BINARY_FIELD_PAD,    1,                   NULL,                   NULL,                      0},
+    {PARAMETER_EVENT_ID_ARRAY,   BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  &c_numberOfEventsArray, NULL,                      0}
 };
 
 /*************************************************************************************************/
@@ -2536,15 +2129,15 @@ static const BinaryField_t c_inkAreaFields[] =
  */
 static const BinaryField_t c_keyboardAreaFields[] =
 {
-    {PARAMETER_ENABLE,             BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  NULL,                 NULL, 0},
-    {PARAMETER_NUMBER_OF_KEYS,     BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  NULL,                 NULL, 0},
-    {PARAMETER_MAX_NUMBER_OF_KEYS, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  NULL,                 NULL, 0},
-    {NULL,                         BINARY_FIELD_PAD,    3,                   NULL,                 NULL, 0},
-    {PARAMETER_POS_X,              BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  NULL,                 NULL, 0},
-    {PARAMETER_POS_Y,              BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  NULL,                 NULL, 0},
-    {PARAMETER_SIZE_X,             BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  NULL,                 NULL, 0},
-    {PARAMETER_SIZE_Y,             BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  NULL,                 NULL, 0},
-    {PARAMETER_KEY_ARRAY,          BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, &c_numberOfKeysArray, NULL, 0}
+    {PARAMETER_ENABLE,             BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  NULL,                 c_enableValues, COUNT_OF(c_enableValues)},
+    {PARAMETER_NUMBER_OF_KEYS,     BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  NULL,                 NULL,           0},
+    {PARAMETER_MAX_NUMBER_OF_KEYS, BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  NULL,                 NULL,           0},
+    {NULL,                         BINARY_FIELD_PAD,    3,                   NULL,                 NULL,           0},
+    {PARAMETER_POS_X,              BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  NULL,                 NULL,           0},
+    {PARAMETER_POS_Y,              BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  NULL,                 NULL,           0},
+    {PARAMETER_SIZE_X,             BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  NULL,                 NULL,           0},
+    {PARAMETER_SIZE_Y,             BINARY_FIELD_ULONG,  BINARY_ULONG_BYTES,  NULL,                 NULL,           0},
+    {PARAMETER_KEY_ARRAY,          BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, &c_numberOfKeysArray, NULL,           0}
 };
 
 /*************************************************************************************************/
@@ -2843,12 +2436,12 @@ static const BinaryField_t c_multiStateButtonFields[] =
  */
 static const BinaryField_t c_mutuallyExclusiveContainerFields[] =
 {
-    {PARAMETER_ENABLE,        BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  NULL, NULL, 0},
-    {PARAMETER_VISIBLE,       BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  NULL, NULL, 0},
-    {PARAMETER_POS_X,         BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  NULL, NULL, 0},
-    {PARAMETER_POS_Y,         BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  NULL, NULL, 0},
-    {PARAMETER_VISIBLE_CHILD, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, NULL, NULL, 0},
-    {NULL,                    BINARY_FIELD_PAD,    2,                   NULL, NULL, 0}
+    {PARAMETER_ENABLE,        BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  NULL, c_enableValues,  COUNT_OF(c_enableValues)},
+    {PARAMETER_VISIBLE,       BINARY_FIELD_UCHAR,  BINARY_UCHAR_BYTES,  NULL, c_booleanValues, COUNT_OF(c_booleanValues)},
+    {PARAMETER_POS_X,         BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  NULL, NULL,            0},
+    {PARAMETER_POS_Y,         BINARY_FIELD_LONG,   BINARY_ULONG_BYTES,  NULL, NULL,            0},
+    {PARAMETER_VISIBLE_CHILD, BINARY_FIELD_USHORT, BINARY_USHORT_BYTES, NULL, NULL,            0},
+    {NULL,                    BINARY_FIELD_PAD,    2,                   NULL, NULL,            0}
 };
 
 /*************************************************************************************************/
@@ -3249,12 +2842,12 @@ static const BinaryField_t c_scrollPanelFields[] =
  */
 static const BinaryField_t c_scrollWheelAreaFields[] =
 {
-    {PARAMETER_ENABLE, BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, NULL, NULL, 0},
-    {NULL,             BINARY_FIELD_PAD,   1,                  NULL, NULL, 0},
-    {PARAMETER_POS_X,  BINARY_FIELD_LONG,  BINARY_ULONG_BYTES, NULL, NULL, 0},
-    {PARAMETER_POS_Y,  BINARY_FIELD_LONG,  BINARY_ULONG_BYTES, NULL, NULL, 0},
-    {PARAMETER_SIZE_X, BINARY_FIELD_ULONG, BINARY_ULONG_BYTES, NULL, NULL, 0},
-    {PARAMETER_SIZE_Y, BINARY_FIELD_ULONG, BINARY_ULONG_BYTES, NULL, NULL, 0}
+    {PARAMETER_ENABLE, BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, NULL, c_enableValues, COUNT_OF(c_enableValues)},
+    {NULL,             BINARY_FIELD_PAD,   1,                  NULL, NULL,           0},
+    {PARAMETER_POS_X,  BINARY_FIELD_LONG,  BINARY_ULONG_BYTES, NULL, NULL,           0},
+    {PARAMETER_POS_Y,  BINARY_FIELD_LONG,  BINARY_ULONG_BYTES, NULL, NULL,           0},
+    {PARAMETER_SIZE_X, BINARY_FIELD_ULONG, BINARY_ULONG_BYTES, NULL, NULL,           0},
+    {PARAMETER_SIZE_Y, BINARY_FIELD_ULONG, BINARY_ULONG_BYTES, NULL, NULL,           0}
 };
 
 /*************************************************************************************************/
@@ -3764,8 +3357,8 @@ static const BinaryField_t c_reorderExtensionFields[] =
  */
 static const BinaryField_t c_wordWrapExtensionFields[] =
 {
-    {PARAMETER_WORD_WRAP,  BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, NULL, NULL, 0},
-    {PARAMETER_WRAP_STYLE, BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, NULL, NULL, 0}
+    {PARAMETER_WORD_WRAP,  BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, NULL, c_booleanValues,   COUNT_OF(c_booleanValues)},
+    {PARAMETER_WRAP_STYLE, BINARY_FIELD_UCHAR, BINARY_UCHAR_BYTES, NULL, c_wrapStyleValues, COUNT_OF(c_wrapStyleValues)}
 };
 
 /*************************************************************************************************/
@@ -3936,510 +3529,6 @@ static const BinaryWidget_t c_binaryExtensions[] =
     {TYPE_A661_CURSOR_ENTRY_EVENTS_EXTENSION,        0x8013, c_cursorEntryEventsExtensionFields, COUNT_OF(c_cursorEntryEventsExtensionFields)},
     {TYPE_A661_MAPHORZ_COORD_SYSTEM_EVENT_EXTENSION, 0x8014, c_maphorzCoordSystemEventExtensionFields, COUNT_OF(c_maphorzCoordSystemEventExtensionFields)},
     {TYPE_A661_MAPVERT_COORD_SYSTEM_EVENT_EXTENSION, 0x8015, c_mapvertCoordSystemEventExtensionFields, COUNT_OF(c_mapvertCoordSystemEventExtensionFields)}
-};
-
-/*************************************************************************************************/
-/**
- * \brief Constant names accepted as property values, from Tables 4.6-8, 4.6-10, 4.6-11, 4.6-13, 4.6-14, and 4.6-15.
- */
-static const BinaryConstant_t c_binaryConstants[] =
-{
-    {CONSTANT_A661_ABORT,                               0x02},
-    {CONSTANT_A661_ABORTED,                             0x02},
-    {CONSTANT_A661_ABSENT,                              0x10},
-    {CONSTANT_A661_ACTIVE_TABBED_PANEL,                 0xB050},
-    {CONSTANT_A661_AC_LAT,                              0xB010},
-    {CONSTANT_A661_AC_LAT_LONG,                         0xB030},
-    {CONSTANT_A661_AC_LONG,                             0xB020},
-    {CONSTANT_A661_AC_ORIENTATION,                      0xB040},
-    {CONSTANT_A661_ALIGNMENT,                           0xB49A},
-    {CONSTANT_A661_ALLOW_CHANGE,                        0xB6A1},
-    {CONSTANT_A661_ALPHA_MASK,                          0xB060},
-    {CONSTANT_A661_ALTERNATE_FLAG,                      0xB088},
-    {CONSTANT_A661_ALTERN_PICTURE_REFERENCE,            0xB080},
-    {CONSTANT_A661_ALTERN_SYMBOL_REFERENCE,             0xB4C1},
-    {CONSTANT_A661_ANIMATION_DELAY,                     0xB702},
-    {CONSTANT_A661_ANIMATION_DURATION,                  0xB703},
-    {CONSTANT_A661_ANIMATION_FLAG,                      0xB090},
-    {CONSTANT_A661_ANIMATION_LAW_REF,                   0xB704},
-    {CONSTANT_A661_ANIMATION_REPETITION,                0xB705},
-    {CONSTANT_A661_ANIMATION_STATE,                     0xB706},
-    {CONSTANT_A661_ANIMATION_TYPE,                      0xB098},
-    {CONSTANT_A661_APP_DATA,                            0xB6D0},
-    {CONSTANT_A661_ARC,                                 0x01},
-    {CONSTANT_A661_ASCII_EXTENDED,                      0x01},
-    {CONSTANT_A661_AUTO_CLOSURE,                        0xB1C2},
-    {CONSTANT_A661_AUTO_FOCUS_MOTION,                   0xB2B9},
-    {CONSTANT_A661_BLINKING_TYPE,                       0xB0A8},
-    {CONSTANT_A661_BLOCKED_BUFFER_OF_MAPITEM,           0xB121},
-    {CONSTANT_A661_BLOCKED_BUFFER_OF_MAPVERT_ITEMS,     0xB126},
-    {CONSTANT_A661_BOTH_CLAMPED,                        0x01},
-    {CONSTANT_A661_BOTTOM,                              0x12},
-    {CONSTANT_A661_BOTTOM_CENTER,                       0x30},
-    {CONSTANT_A661_BOTTOM_LEFT,                         0x31},
-    {CONSTANT_A661_BOTTOM_RIGHT,                        0x32},
-    {CONSTANT_A661_BOTTOM_TO_TOP,                       0x40},
-    {CONSTANT_A661_BOUNDARY_ARRAY,                      0xB6C1},
-    {CONSTANT_A661_BOUNDARY_CHECK,                      0xBC},
-    {CONSTANT_A661_BOUNDARY_CHECK_MODE,                 0xB122},
-    {CONSTANT_A661_BOUND_SIZE_X,                        0xB0E0},
-    {CONSTANT_A661_BOUND_SIZE_XY,                       0xB100},
-    {CONSTANT_A661_BOUND_SIZE_Y,                        0xB0F0},
-    {CONSTANT_A661_BOUND_X,                             0xB0B0},
-    {CONSTANT_A661_BOUND_XY,                            0xB0D0},
-    {CONSTANT_A661_BOUND_Y,                             0xB0C0},
-    {CONSTANT_A661_BROADCAST_DATA,                      0xB0C2},
-    {CONSTANT_A661_BUFFER_OF_FILL_STYLES,               0xB0F8},
-    {CONSTANT_A661_BUFFER_OF_MAPITEM,                   0xB120},
-    {CONSTANT_A661_BUFFER_OF_MAPVERT_ITEMS,             0xB125},
-    {CONSTANT_A661_BUFFER_OF_PARAM,                     0xB110},
-    {CONSTANT_A661_BUTTON_POS,                          0xB641},
-    {CONSTANT_A661_BUTTON_SIZE,                         0xB642},
-    {CONSTANT_A661_CACHING_ENABLE,                      0xB117},
-    {CONSTANT_A661_CDS_DEPENDENT,                       0x1E},
-    {CONSTANT_A661_CENTER,                              0x15},
-    {CONSTANT_A661_CENTER_X,                            0xB130},
-    {CONSTANT_A661_CENTER_XY,                           0xB150},
-    {CONSTANT_A661_CENTER_Y,                            0xB140},
-    {CONSTANT_A661_CIRCULAR,                            0x02},
-    {CONSTANT_A661_CLAMPING,                            0xB501},
-    {CONSTANT_A661_CLEAR,                               0xB000},
-    {CONSTANT_A661_CLOCKWISE,                           0x00},
-    {CONSTANT_A661_CLOSED,                              0xB1E2},
-    {CONSTANT_A661_COARSE_PAGE_DELTA,                   0xB6E3},
-    {CONSTANT_A661_COLOR_INDEX,                         0xB160},
-    {CONSTANT_A661_COMPLETED,                           0x01},
-    {CONSTANT_A661_COUNTER_CLOCKWISE,                   0x01},
-    {CONSTANT_A661_CRP_LAT,                             0xB162},
-    {CONSTANT_A661_CRP_LAT_LONG,                        0xB166},
-    {CONSTANT_A661_CRP_LONG,                            0xB164},
-    {CONSTANT_A661_CURSOR_CLICKED,                      0xB1D3},
-    {CONSTANT_A661_CURSOR_DOUBLE_CLICKED,               0xB1D4},
-    {CONSTANT_A661_CURSOR_INDEX,                        0xB6A0},
-    {CONSTANT_A661_CURSOR_POS,                          0xB170},
-    {CONSTANT_A661_CURSOR_POS_BYTE,                     0xB172},
-    {CONSTANT_A661_CURSOR_PRESSED,                      0xB1D1},
-    {CONSTANT_A661_CURSOR_RELEASED,                     0xB1D2},
-    {CONSTANT_A661_CURSOR_RIGHT_CLICKED,                0xB1D5},
-    {CONSTANT_A661_DEACTIVATE,                          0x04},
-    {CONSTANT_A661_DIRECTION,                           0xB713},
-    {CONSTANT_A661_DONT_RUN,                            0x00},
-    {CONSTANT_A661_DOWN,                                0x1A},
-    {CONSTANT_A661_DRAW_LINE_TO_CURSOR,                 0x36},
-    {CONSTANT_A661_EASING_IN,                           0x01},
-    {CONSTANT_A661_EASING_INOUT,                        0x03},
-    {CONSTANT_A661_EASING_OUT,                          0x02},
-    {CONSTANT_A661_EDB_ALL_CHANGE,                      0x01},
-    {CONSTANT_A661_EDB_CHANGE_CONFIRMED,                0x00},
-    {CONSTANT_A661_EDB_OPEN_CLOSE,                      0x02},
-    {CONSTANT_A661_EDITING,                             0x1B},
-    {CONSTANT_A661_EFFECTIVITY_ARRAY,                   0xB6C8},
-    {CONSTANT_A661_ENABLE,                              0xB180},
-    {CONSTANT_A661_ENABLE_ENTRY_ARRAY,                  0xB1A8},
-    {CONSTANT_A661_ENABLE_HANDLER,                      0xB1A1},
-    {CONSTANT_A661_END,                                 0x03},
-    {CONSTANT_A661_END_ANGLE,                           0xB1B0},
-    {CONSTANT_A661_END_SCALED_VALUE,                    0xB505},
-    {CONSTANT_A661_END_VALUE,                           0xB503},
-    {CONSTANT_A661_ENTRY_ARRAY,                         0xB190},
-    {CONSTANT_A661_ENTRY_POP_UP_ARRAY,                  0xB1C0},
-    {CONSTANT_A661_ENTRY_VALID,                         0xB570},
-    {CONSTANT_A661_ERROR,                               0x1C},
-    {CONSTANT_A661_EVENT_FLAG,                          0xB1D0},
-    {CONSTANT_A661_EVENT_NONE,                          0x00},
-    {CONSTANT_A661_EXCLUDED_CIRCLE,                     0x03},
-    {CONSTANT_A661_EXCLUDED_RECTANGLE,                  0x01},
-    {CONSTANT_A661_EXCLUDED_REGIONS_LIST,               0xB6C9},
-    {CONSTANT_A661_EXCLUDED_TRIANGLE,                   0x02},
-    {CONSTANT_A661_FALSE,                               0x00},
-    {CONSTANT_A661_FILLED,                              0xB1E1},
-    {CONSTANT_A661_FILLED_POLY_START,                   0x2B},
-    {CONSTANT_A661_FILLED_POLY_START_INTERACTIVE,       0xAB},
-    {CONSTANT_A661_FILL_INDEX,                          0xB1E0},
-    {CONSTANT_A661_FINE_PAGE_DELTA,                     0xB6E2},
-    {CONSTANT_A661_FIRST_ACCESS_ENTRY,                  0xB1F0},
-    {CONSTANT_A661_FIRST_ACCESS_UA_ENTRY,               0xB1F8},
-    {CONSTANT_A661_FIRST_VISIBLE_ENTRY,                 0xB200},
-    {CONSTANT_A661_FONT,                                0xB590},
-    {CONSTANT_A661_FORMAT_STRING,                       0xB550},
-    {CONSTANT_A661_FRAME_X,                             0xB210},
-    {CONSTANT_A661_FRAME_XY,                            0xB230},
-    {CONSTANT_A661_FRAME_Y,                             0xB220},
-    {CONSTANT_A661_FROM,                                0x05},
-    {CONSTANT_A661_FROM_ANGLE,                          0xB707},
-    {CONSTANT_A661_FROM_SCALE_X,                        0xB708},
-    {CONSTANT_A661_FROM_SCALE_XY,                       0xB715},
-    {CONSTANT_A661_FROM_SCALE_Y,                        0xB709},
-    {CONSTANT_A661_FROM_VALUE,                          0xB70A},
-    {CONSTANT_A661_FROM_VALUE_X,                        0xB70B},
-    {CONSTANT_A661_FROM_VALUE_XY,                       0xB717},
-    {CONSTANT_A661_FROM_VALUE_Y,                        0xB70C},
-    {CONSTANT_A661_GBK,                                 0x03},
-    {CONSTANT_A661_GESTURE_ABORT,                       0x04},
-    {CONSTANT_A661_GESTURE_CANDIDATE,                   0x05},
-    {CONSTANT_A661_GESTURE_DOUBLE_TAP,                  0x02},
-    {CONSTANT_A661_GESTURE_DRAG,                        0x06},
-    {CONSTANT_A661_GESTURE_END,                         0x03},
-    {CONSTANT_A661_GESTURE_FLICK,                       0x07},
-    {CONSTANT_A661_GESTURE_FLICK_DOWN,                  0x0B},
-    {CONSTANT_A661_GESTURE_FLICK_LEFT,                  0x08},
-    {CONSTANT_A661_GESTURE_FLICK_RIGHT,                 0x09},
-    {CONSTANT_A661_GESTURE_FLICK_UP,                    0x0A},
-    {CONSTANT_A661_GESTURE_HOLD,                        0x0C},
-    {CONSTANT_A661_GESTURE_PINCH,                       0x04},
-    {CONSTANT_A661_GESTURE_PRESS_AND_HOLD,              0x03},
-    {CONSTANT_A661_GESTURE_ROTATE,                      0x05},
-    {CONSTANT_A661_GESTURE_START,                       0x01},
-    {CONSTANT_A661_GESTURE_TAP,                         0x01},
-    {CONSTANT_A661_GESTURE_UPDATE,                      0x02},
-    {CONSTANT_A661_GRID,                                0x03},
-    {CONSTANT_A661_HALO,                                0xB1E8},
-    {CONSTANT_A661_HIGHLIGHT_ONLY,                      0x04},
-    {CONSTANT_A661_HOME_X,                              0xB219},
-    {CONSTANT_A661_HOME_Y,                              0xB21A},
-    {CONSTANT_A661_HORIZONTAL,                          0x01},
-    {CONSTANT_A661_HORIZONTAL_SCROLL,                   0xB217},
-    {CONSTANT_A661_HORZ_LINE,                           0x02},
-    {CONSTANT_A661_HYPHENATE,                           0x02},
-    {CONSTANT_A661_INDEX_OF_FREQUENCY,                  0xB091},
-    {CONSTANT_A661_INITIAL_FOCUS,                       0xB6B0},
-    {CONSTANT_A661_INNER_RADIUS,                        0xB240},
-    {CONSTANT_A661_INNER_STATE_CHECK,                   0xB244},
-    {CONSTANT_A661_INNER_STATE_TOGGLE,                  0xB258},
-    {CONSTANT_A661_INSET_SIZE,                          0xB051},
-    {CONSTANT_A661_IN_BOUNDS,                           0x01},
-    {CONSTANT_A661_ITEM_SPACING,                        0xB5C1},
-    {CONSTANT_A661_ITEM_STYLE,                          0x20},
-    {CONSTANT_A661_ITEM_SYNCHRONIZATION,                0x51},
-    {CONSTANT_A661_KEY_ARRAY,                           0xB700},
-    {CONSTANT_A661_LAYOUT,                              0xB5F0},
-    {CONSTANT_A661_LEFT,                                0x13},
-    {CONSTANT_A661_LEFT_TO_RIGHT,                       0x41},
-    {CONSTANT_A661_LEGEND,                              0x21},
-    {CONSTANT_A661_LEGEND_ALIGNMENT,                    0xB49B},
-    {CONSTANT_A661_LEGEND_ANCHOR,                       0x22},
-    {CONSTANT_A661_LEGEND_ANCHOR_ROTATED,               0x35},
-    {CONSTANT_A661_LEGEND_AND_HIGHLIGHT,                0x05},
-    {CONSTANT_A661_LEGEND_AND_POPUP,                    0x03},
-    {CONSTANT_A661_LEGEND_AND_POPUP_AND_HIGHLIGHT,      0x07},
-    {CONSTANT_A661_LEGEND_AREA_SIZE_X,                  0xB451},
-    {CONSTANT_A661_LEGEND_COMBO,                        0x38},
-    {CONSTANT_A661_LEGEND_HIGHLIGHT,                    0x58},
-    {CONSTANT_A661_LEGEND_ONLY,                         0x01},
-    {CONSTANT_A661_LEGEND_POP_UP,                       0x23},
-    {CONSTANT_A661_LEGEND_POSITION,                     0xB260},
-    {CONSTANT_A661_LEGEND_READOUT,                      0x45},
-    {CONSTANT_A661_LEGEND_READOUT_COMBO,                0x48},
-    {CONSTANT_A661_LEGEND_READOUT_FORMAT_STRING,        0x44},
-    {CONSTANT_A661_LEGEND_REMOVED,                      0xB452},
-    {CONSTANT_A661_LINEAR,                              0x00},
-    {CONSTANT_A661_LINE_ARC,                            0x24},
-    {CONSTANT_A661_LINE_ARC_INTERACTIVE,                0xA4},
-    {CONSTANT_A661_LINE_DELTA_X,                        0xB211},
-    {CONSTANT_A661_LINE_DELTA_Y,                        0xB212},
-    {CONSTANT_A661_LINE_LENGTH,                         0xB270},
-    {CONSTANT_A661_LINE_SEGMENT,                        0x25},
-    {CONSTANT_A661_LINE_SEGMENT_INTERACTIVE,            0xA5},
-    {CONSTANT_A661_LINE_START,                          0x26},
-    {CONSTANT_A661_LINE_START_INTERACTIVE,              0xA6},
-    {CONSTANT_A661_LOOP_FORWARD,                        0x00},
-    {CONSTANT_A661_LOOP_FORWARD_AND_BACKWARD_AND_BLANK, 0x03},
-    {CONSTANT_A661_LOOP_FORWARD_AND_BLANK,              0x02},
-    {CONSTANT_A661_LOOP_FORWARD_AND_RESET,              0x01},
-    {CONSTANT_A661_LSB_MULTIPLE,                        0xB631},
-    {CONSTANT_A661_MAJOR_TICK_INTERVAL,                 0xB600},
-    {CONSTANT_A661_MAJOR_TICK_REFERENCE,                0xB608},
-    {CONSTANT_A661_MAPGRID_CELLSIZE,                    0xB274},
-    {CONSTANT_A661_MAPGRID_OFFSET,                      0xB278},
-    {CONSTANT_A661_MAP_SYNCHRONIZATION_NUMBER,          0xB277},
-    {CONSTANT_A661_MASK_ENABLED,                        0xB290},
-    {CONSTANT_A661_MASK_REFERENCE,                      0xB280},
-    {CONSTANT_A661_MAX_VALUE,                           0xB610},
-    {CONSTANT_A661_MDF_ABSOLUTE,                        0x65},
-    {CONSTANT_A661_MDF_BRG_DIST_ACHDG,                  0x60},
-    {CONSTANT_A661_MDF_DIST_DIST,                       0x67},
-    {CONSTANT_A661_MDF_DIST_DIST_FIX,                   0x6A},
-    {CONSTANT_A661_MDF_LAT_LONG,                        0x61},
-    {CONSTANT_A661_MDF_LEGACY,                          0x62},
-    {CONSTANT_A661_MDF_RELATIVE,                        0x66},
-    {CONSTANT_A661_MDF_X_DIST,                          0x68},
-    {CONSTANT_A661_MDF_Y_ALT,                           0x69},
-    {CONSTANT_A661_MENU_HORIZONTAL,                     0xB640},
-    {CONSTANT_A661_MINIMUM_SIZE,                        0x02},
-    {CONSTANT_A661_MINMAX_VALUES,                       0xB580},
-    {CONSTANT_A661_MINOR_TICK_MULTIPLE,                 0xB630},
-    {CONSTANT_A661_MIN_VALUE,                           0xB620},
-    {CONSTANT_A661_MULTI_STATE_VALUE,                   0xB5A0},
-    {CONSTANT_A661_NEGATIVE_STRING,                     0xB4D4},
-    {CONSTANT_A661_NEXT_FOCUSED_WIDGET,                 0xB2B8},
-    {CONSTANT_A661_NEXT_FOCUS_IN_APP_ID,                0xB2BA},
-    {CONSTANT_A661_NEXT_FOCUS_IN_ID,                    0xB2BC},
-    {CONSTANT_A661_NEXT_FOCUS_IN_LAYER_ID,              0xB2BB},
-    {CONSTANT_A661_NORMAL,                              0x1D},
-    {CONSTANT_A661_NOT_CLAMPED,                         0x00},
-    {CONSTANT_A661_NOT_USED,                            0x00},
-    {CONSTANT_A661_NO_SHUFFLE,                          0x84},
-    {CONSTANT_A661_NO_SIZING,                           0x74},
-    {CONSTANT_A661_NUMBER_OF_ENTRIES,                   0xB2A0},
-    {CONSTANT_A661_NUMBER_OF_KEYS,                      0xB701},
-    {CONSTANT_A661_NUMBER_OF_PICTURES,                  0xB2A2},
-    {CONSTANT_A661_NUMBER_OF_STATES,                    0xB5A1},
-    {CONSTANT_A661_NUMBER_OF_SYMBOLS,                   0xB2A4},
-    {CONSTANT_A661_NUMBER_OF_TICS_COARSE,               0xB0A2},
-    {CONSTANT_A661_NUMBER_OF_TICS_FINE,                 0xB0A4},
-    {CONSTANT_A661_NUMBER_OF_TOUCH_POINTS,              0xB0A0},
-    {CONSTANT_A661_NUMBER_OF_TURNS,                     0xB714},
-    {CONSTANT_A661_NUMBER_OF_UA_ENTRIES,                0xB2A8},
-    {CONSTANT_A661_NUMBER_OF_VISIBLE_CHILDREN,          0xB5D0},
-    {CONSTANT_A661_NUMERIC_MASK,                        0xB2B0},
-    {CONSTANT_A661_OPENING_ENTRY,                       0xB560},
-    {CONSTANT_A661_OPENING_MODE,                        0xB561},
-    {CONSTANT_A661_OPEN_CENTERED,                       0x17},
-    {CONSTANT_A661_OPEN_DOWN,                           0x18},
-    {CONSTANT_A661_OPEN_ENTRY_ARRAY,                    0xB627},
-    {CONSTANT_A661_OPEN_UP,                             0x16},
-    {CONSTANT_A661_OPERATOR_ADD_ASSIGN_ARG,             0x0B},
-    {CONSTANT_A661_OPERATOR_ADD_ASSIGN_SRC,             0x08},
-    {CONSTANT_A661_OPERATOR_ASSIGNMENT,                 0x00},
-    {CONSTANT_A661_OPERATOR_CONSTANT,                   0x02},
-    {CONSTANT_A661_OPERATOR_INVERSE,                    0x01},
-    {CONSTANT_A661_OPERATOR_LOGICAL_AND,                0x06},
-    {CONSTANT_A661_OPERATOR_LOGICAL_OR,                 0x07},
-    {CONSTANT_A661_OPERATOR_PRODUCT,                    0x05},
-    {CONSTANT_A661_OPERATOR_PROD_ASSIGN_ARG,            0x0D},
-    {CONSTANT_A661_OPERATOR_PROD_ASSIGN_SRC,            0x0A},
-    {CONSTANT_A661_OPERATOR_SUB_ASSIGN_ARG,             0x0C},
-    {CONSTANT_A661_OPERATOR_SUB_ASSIGN_SRC,             0x09},
-    {CONSTANT_A661_OPERATOR_SUM,                        0x04},
-    {CONSTANT_A661_ORIENTATION,                         0xB1D2},
-    {CONSTANT_A661_OUTER_RADIUS,                        0xB2D0},
-    {CONSTANT_A661_OUT_OF_BOUNDS,                       0x00},
-    {CONSTANT_A661_PAGE_CONTROL_POSITION,               0xB6E1},
-    {CONSTANT_A661_PAGE_DELTA_X,                        0xB213},
-    {CONSTANT_A661_PAGE_DELTA_Y,                        0xB214},
-    {CONSTANT_A661_PAGE_WRAP_TYPE,                      0xB6E0},
-    {CONSTANT_A661_PARALLEL,                            0x00},
-    {CONSTANT_A661_PARAM_BUFFER_INDEX,                  0xB111},
-    {CONSTANT_A661_PARENT_ENTRY_ARRAY,                  0xB628},
-    {CONSTANT_A661_PARKING_LINE_END,                    0xBB},
-    {CONSTANT_A661_PARKING_LINE_START,                  0xBA},
-    {CONSTANT_A661_PICTURE_ARRAY,                       0xB2E0},
-    {CONSTANT_A661_PICTURE_ENTRY_ARRAY,                 0xB2E8},
-    {CONSTANT_A661_PICTURE_POSITION,                    0xB2F1},
-    {CONSTANT_A661_PICTURE_REFERENCE,                   0xB2F0},
-    {CONSTANT_A661_PIX_FMT_COLOR_INDEXED_8,             0xC2},
-    {CONSTANT_A661_PIX_FMT_LUMINANCE_ALPHA_8,           0xC1},
-    {CONSTANT_A661_PIX_FMT_RGBA_8,                      0xC0},
-    {CONSTANT_A661_PLAY,                                0x01},
-    {CONSTANT_A661_POPUP_AND_HIGHLIGHT,                 0x06},
-    {CONSTANT_A661_POPUP_ONLY,                          0x02},
-    {CONSTANT_A661_POPUP_POS_X,                         0xB1C3},
-    {CONSTANT_A661_POPUP_POS_Y,                         0xB1C4},
-    {CONSTANT_A661_POPUP_SIZE_X,                        0xB1C5},
-    {CONSTANT_A661_POPUP_SIZE_Y,                        0xB1C6},
-    {CONSTANT_A661_POSITIVE_STRING,                     0xB4D3},
-    {CONSTANT_A661_POS_X,                               0xB300},
-    {CONSTANT_A661_POS_X2,                              0xB330},
-    {CONSTANT_A661_POS_X3,                              0xB360},
-    {CONSTANT_A661_POS_XY,                              0xB320},
-    {CONSTANT_A661_POS_XY2,                             0xB350},
-    {CONSTANT_A661_POS_XY3,                             0xB380},
-    {CONSTANT_A661_POS_Y,                               0xB310},
-    {CONSTANT_A661_POS_Y2,                              0xB340},
-    {CONSTANT_A661_POS_Y3,                              0xB370},
-    {CONSTANT_A661_PRESERVE_CHARACTER,                  0x01},
-    {CONSTANT_A661_PRESERVE_WORD,                       0x00},
-    {CONSTANT_A661_PROJECTION_REFERENCE,                0xB1D3},
-    {CONSTANT_A661_PRP_LAT,                             0xB390},
-    {CONSTANT_A661_PRP_LAT_LONG,                        0xB3B0},
-    {CONSTANT_A661_PRP_LONG,                            0xB3A0},
-    {CONSTANT_A661_PRP_SCREEN_X,                        0xB3C0},
-    {CONSTANT_A661_PRP_SCREEN_XY,                       0xB3E0},
-    {CONSTANT_A661_PRP_SCREEN_Y,                        0xB3D0},
-    {CONSTANT_A661_PRP_X,                               0xB3B2},
-    {CONSTANT_A661_PRP_XY,                              0xB3B4},
-    {CONSTANT_A661_PRP_Y,                               0xB3B3},
-    {CONSTANT_A661_RADIUS,                              0xB3F0},
-    {CONSTANT_A661_RANGE,                               0xB1D1},
-    {CONSTANT_A661_RANGE_X,                             0xB402},
-    {CONSTANT_A661_RANGE_XY,                            0xB404},
-    {CONSTANT_A661_RANGE_Y,                             0xB403},
-    {CONSTANT_A661_REFRESH,                             0xB670},
-    {CONSTANT_A661_REF_POS_X,                           0xB690},
-    {CONSTANT_A661_REF_POS_XY,                          0xB691},
-    {CONSTANT_A661_REF_POS_Y,                           0xB692},
-    {CONSTANT_A661_REORDER,                             0xB0AB},
-    {CONSTANT_A661_REPORT_ALL,                          0x61},
-    {CONSTANT_A661_REPORT_ALL_WITH_CANDIDATE,           0x64},
-    {CONSTANT_A661_REPORT_ON_CDS,                       0x63},
-    {CONSTANT_A661_REPORT_ON_COMPLETION,                0x62},
-    {CONSTANT_A661_REPORT_ON_TRANSITION,                0x60},
-    {CONSTANT_A661_REPORT_ON_TRANSITION_WITH_CANDIDATE, 0x65},
-    {CONSTANT_A661_REP_DEFAULT,                         0x00},
-    {CONSTANT_A661_REP_FOCUS,                           0x02},
-    {CONSTANT_A661_REP_HIGHLIGHT,                       0x03},
-    {CONSTANT_A661_REP_STANDARD,                        0x01},
-    {CONSTANT_A661_RIGHT,                               0x14},
-    {CONSTANT_A661_RIGHT_TO_LEFT,                       0x42},
-    {CONSTANT_A661_ROTATION_ANGLE,                      0xB410},
-    {CONSTANT_A661_RUN,                                 0x01},
-    {CONSTANT_A661_RUN_ONCE,                            0x02},
-    {CONSTANT_A661_SAME_LEVEL,                          0x02},
-    {CONSTANT_A661_SCALE_X,                             0xB0AC},
-    {CONSTANT_A661_SCALE_XY,                            0xB0AE},
-    {CONSTANT_A661_SCALE_Y,                             0xB0AD},
-    {CONSTANT_A661_SCREEN_RANGE,                        0xB420},
-    {CONSTANT_A661_SELECTED,                            0x01},
-    {CONSTANT_A661_SELECTED_ENTRY,                      0xB430},
-    {CONSTANT_A661_SELECTED_ENTRY_ARRAY,                0xB439},
-    {CONSTANT_A661_SELECTING_HEIGHT,                    0xB431},
-    {CONSTANT_A661_SELECTING_WIDTH,                     0xB432},
-    {CONSTANT_A661_SELECT_ALL,                          0xB438},
-    {CONSTANT_A661_SEQUENTIAL,                          0x01},
-    {CONSTANT_A661_SEQUENTIAL_FROM,                     0x02},
-    {CONSTANT_A661_SHEET_SIZE_X,                        0xB215},
-    {CONSTANT_A661_SHEET_SIZE_Y,                        0xB216},
-    {CONSTANT_A661_SHIFT_FIRST_VISIBLE_ENTRY,           0xB440},
-    {CONSTANT_A661_SHOW_FAIL,                           0xB671},
-    {CONSTANT_A661_SHOW_MAJOR_TICKS,                    0xB601},
-    {CONSTANT_A661_SHUFFLE_DOWN,                        0x81},
-    {CONSTANT_A661_SHUFFLE_LEFT,                        0x82},
-    {CONSTANT_A661_SHUFFLE_RIGHT,                       0x83},
-    {CONSTANT_A661_SHUFFLE_TO_FIT_MODE,                 0xB5E0},
-    {CONSTANT_A661_SHUFFLE_UP,                          0x80},
-    {CONSTANT_A661_SIZE_BOTTOM_UP,                      0x71},
-    {CONSTANT_A661_SIZE_LEFT_TO_RIGHT,                  0x72},
-    {CONSTANT_A661_SIZE_RIGHT_TO_LEFT,                  0x73},
-    {CONSTANT_A661_SIZE_TOP_DOWN,                       0x70},
-    {CONSTANT_A661_SIZE_TO_FIT_MODE,                    0xB5C0},
-    {CONSTANT_A661_SIZE_X,                              0xB450},
-    {CONSTANT_A661_SIZE_XY,                             0xB470},
-    {CONSTANT_A661_SIZE_Y,                              0xB460},
-    {CONSTANT_A661_SOURCE_DX,                           0xB662},
-    {CONSTANT_A661_SOURCE_DXDY,                         0xB665},
-    {CONSTANT_A661_SOURCE_DY,                           0xB663},
-    {CONSTANT_A661_SOURCE_REF,                          0xB666},
-    {CONSTANT_A661_SOURCE_WIDGET_PARAM,                 0x00},
-    {CONSTANT_A661_SOURCE_X,                            0xB660},
-    {CONSTANT_A661_SOURCE_XY,                           0xB664},
-    {CONSTANT_A661_SOURCE_Y,                            0xB661},
-    {CONSTANT_A661_STAR,                                0x04},
-    {CONSTANT_A661_START_ANGLE,                         0xB480},
-    {CONSTANT_A661_START_SCALED_VALUE,                  0xB504},
-    {CONSTANT_A661_START_VALUE,                         0xB502},
-    {CONSTANT_A661_STOP_BACKWARD,                       0xB6B2},
-    {CONSTANT_A661_STOP_FORWARD,                        0xB6B1},
-    {CONSTANT_A661_STRING,                              0xB490},
-    {CONSTANT_A661_STRING_ALTERNATE,                    0xB498},
-    {CONSTANT_A661_STRING_ARRAY,                        0xB4A0},
-    {CONSTANT_A661_STYLE_SET,                           0xB4B0},
-    {CONSTANT_A661_STYLE_SET_ARRAY,                     0xB4B1},
-    {CONSTANT_A661_STYLE_SET_ARRAY_SIZE,                0xB4B2},
-    {CONSTANT_A661_STYLE_SET_DEFAULT,                   0x00},
-    {CONSTANT_A661_SYMBOL_CIRCLE,                       0x27},
-    {CONSTANT_A661_SYMBOL_CIRCLE_INTERACTIVE,           0xA7},
-    {CONSTANT_A661_SYMBOL_ENTRY_ARRAY,                  0xB2E9},
-    {CONSTANT_A661_SYMBOL_GENERIC,                      0x28},
-    {CONSTANT_A661_SYMBOL_GENERIC_INTERACTIVE,          0xA8},
-    {CONSTANT_A661_SYMBOL_OVAL,                         0x2C},
-    {CONSTANT_A661_SYMBOL_OVAL_INTERACTIVE,             0xAC},
-    {CONSTANT_A661_SYMBOL_PARKABLE,                     0xB8},
-    {CONSTANT_A661_SYMBOL_PARKABLE_INTERACTIVE,         0xB9},
-    {CONSTANT_A661_SYMBOL_POSITION,                     0xB4C2},
-    {CONSTANT_A661_SYMBOL_RECTANGLE,                    0x37},
-    {CONSTANT_A661_SYMBOL_RECTANGLE_INTERACTIVE,        0xB7},
-    {CONSTANT_A661_SYMBOL_REFERENCE,                    0xB4C0},
-    {CONSTANT_A661_SYMBOL_ROTATED,                      0x29},
-    {CONSTANT_A661_SYMBOL_ROTATED_INTERACTIVE,          0xA9},
-    {CONSTANT_A661_SYMBOL_ROTATED_PARKABLE,             0xBE},
-    {CONSTANT_A661_SYMBOL_ROTATED_PARKABLE_INTERACTIVE, 0xBF},
-    {CONSTANT_A661_SYMBOL_RUNWAY,                       0x2A},
-    {CONSTANT_A661_SYMBOL_RUNWAY_INTERACTIVE,           0xAA},
-    {CONSTANT_A661_SYMBOL_TARGET,                       0x2D},
-    {CONSTANT_A661_SYMBOL_TARGET_INTERACTIVE,           0xAD},
-    {CONSTANT_A661_SYMBOL_TARGET_PARKABLE,              0x3D},
-    {CONSTANT_A661_SYMBOL_TARGET_PARKABLE_INTERACTIVE,  0xBD},
-    {CONSTANT_A661_SYNC_FRAME,                          0xB4C7},
-    {CONSTANT_A661_TAB_DIRECTION_WIDGET_ID_ARRAY,       0xB672},
-    {CONSTANT_A661_TAB_POSITION,                        0xB052},
-    {CONSTANT_A661_TARGET_WIDGET_ID,                    0xB650},
-    {CONSTANT_A661_TICS_COARSE,                         0xB4D0},
-    {CONSTANT_A661_TICS_COARSE_8BYTE,                   0xB4D2},
-    {CONSTANT_A661_TICS_COARSE_ARRAY,                   0xB0A6},
-    {CONSTANT_A661_TICS_FINE,                           0xB4E0},
-    {CONSTANT_A661_TICS_FINE_8BYTE,                     0xB4E2},
-    {CONSTANT_A661_TICS_FINE_ARRAY,                     0xB0AA},
-    {CONSTANT_A661_TO,                                  0x06},
-    {CONSTANT_A661_TOP,                                 0x11},
-    {CONSTANT_A661_TOP_CENTER,                          0x33},
-    {CONSTANT_A661_TOP_LEFT,                            0x34},
-    {CONSTANT_A661_TOP_RIGHT,                           0x35},
-    {CONSTANT_A661_TOP_TO_BOTTOM,                       0x43},
-    {CONSTANT_A661_TOUCH_ABORT,                         0x04},
-    {CONSTANT_A661_TOUCH_DOWN,                          0x01},
-    {CONSTANT_A661_TOUCH_MOVE,                          0x02},
-    {CONSTANT_A661_TOUCH_MOVE_OUTSIDE,                  0x05},
-    {CONSTANT_A661_TOUCH_UP,                            0x03},
-    {CONSTANT_A661_TO_ANGLE,                            0xB70D},
-    {CONSTANT_A661_TO_BACK,                             0x01},
-    {CONSTANT_A661_TO_FRONT,                            0x02},
-    {CONSTANT_A661_TO_SCALE_X,                          0xB70E},
-    {CONSTANT_A661_TO_SCALE_XY,                         0xB716},
-    {CONSTANT_A661_TO_SCALE_Y,                          0xB70F},
-    {CONSTANT_A661_TO_VALUE,                            0xB710},
-    {CONSTANT_A661_TO_VALUE_X,                          0xB711},
-    {CONSTANT_A661_TO_VALUE_XY,                         0xB718},
-    {CONSTANT_A661_TO_VALUE_Y,                          0xB712},
-    {CONSTANT_A661_TRANSLATION_X,                       0xB4F0},
-    {CONSTANT_A661_TRANSLATION_XY,                      0xB510},
-    {CONSTANT_A661_TRANSLATION_Y,                       0xB500},
-    {CONSTANT_A661_TREE_NODE_STYLE_ARRAY,               0xB629},
-    {CONSTANT_A661_TRIANGLE_END,                        0x32},
-    {CONSTANT_A661_TRIANGLE_END_DOUBLE,                 0x33},
-    {CONSTANT_A661_TRIANGLE_END_DOUBLE_INTERACTIVE,     0xB3},
-    {CONSTANT_A661_TRIANGLE_END_INTERACTIVE,            0xB2},
-    {CONSTANT_A661_TRIANGLE_FAN_START,                  0x34},
-    {CONSTANT_A661_TRIANGLE_FAN_START_INTERACTIVE,      0xB4},
-    {CONSTANT_A661_TRIANGLE_SEGMENT,                    0x2F},
-    {CONSTANT_A661_TRIANGLE_SEGMENT_DOUBLE,             0x31},
-    {CONSTANT_A661_TRIANGLE_SEGMENT_DOUBLE_INTERACTIVE, 0xB1},
-    {CONSTANT_A661_TRIANGLE_SEGMENT_INTERACTIVE,        0xAF},
-    {CONSTANT_A661_TRIANGLE_STRIP_START,                0x2E},
-    {CONSTANT_A661_TRIANGLE_STRIP_START_INTERACTIVE,    0xAE},
-    {CONSTANT_A661_TRUE,                                0x01},
-    {CONSTANT_A661_TRUE_WITH_VALIDATION,                0x02},
-    {CONSTANT_A661_UA_POSITION_FLAG,                    0xB1C1},
-    {CONSTANT_A661_UNSELECTED,                          0x00},
-    {CONSTANT_A661_UNSELECT_ALL,                        0xB43A},
-    {CONSTANT_A661_UP,                                  0x19},
-    {CONSTANT_A661_UTF8,                                0x02},
-    {CONSTANT_A661_VALIDATION,                          0x01},
-    {CONSTANT_A661_VALIDATION_AND_WHEEL,                0x02},
-    {CONSTANT_A661_VALUE,                               0xB520},
-    {CONSTANT_A661_VALUE_8BYTE,                         0xB522},
-    {CONSTANT_A661_VERTEX_RENDER_END,                   0x3B},
-    {CONSTANT_A661_VERTEX_RENDER_LINES,                 0x01},
-    {CONSTANT_A661_VERTEX_RENDER_LINE_LOOP,             0x02},
-    {CONSTANT_A661_VERTEX_RENDER_POLYLINE,              0x03},
-    {CONSTANT_A661_VERTEX_RENDER_SEGMENT,               0x3A},
-    {CONSTANT_A661_VERTEX_RENDER_START,                 0x39},
-    {CONSTANT_A661_VERTEX_RENDER_TRIANGLE,              0x04},
-    {CONSTANT_A661_VERTEX_RENDER_TRIANGLE_FAN,          0x05},
-    {CONSTANT_A661_VERTEX_RENDER_TRIANGLE_STRIP,        0x06},
-    {CONSTANT_A661_VERTICAL,                            0x00},
-    {CONSTANT_A661_VERTICAL_SCROLL,                     0xB218},
-    {CONSTANT_A661_VERTICES_ARRAY,                      0xB528},
-    {CONSTANT_A661_VERT_LINE,                           0x03},
-    {CONSTANT_A661_VISIBLE,                             0xB530},
-    {CONSTANT_A661_VISIBLE_CHILD,                       0xB540},
-    {CONSTANT_A661_VISIBLE_CHILD_INDEX,                 0xB680},
-    {CONSTANT_A661_WHEEL,                               0x03},
-    {CONSTANT_A661_WORD_WRAP,                           0xB4A8},
-    {CONSTANT_A661_WRAP_BOTH,                           0x01},
-    {CONSTANT_A661_WRAP_FIRST_TO_LAST,                  0x02},
-    {CONSTANT_A661_WRAP_LAST_TO_FIRST,                  0x03},
-    {CONSTANT_A661_WRAP_NONE,                           0x00},
-    {CONSTANT_A661_WRAP_STYLE,                          0xB4A9}
 };
 
 /*************************************************************************************************/
@@ -5092,6 +4181,31 @@ static uint32_t FindSameNameProperty(const Arinc661_Definition_t* definition, ui
 
 /*************************************************************************************************/
 /**
+ * \brief Reads a top-level charset-encoding element, which a file may hold once (section 6.2.1).
+ *
+ * \param[in,out] definition   Caller-owned definition
+ * \param[in]     node         charset-encoding element
+ *
+ * \retval        TRUE         if the element is the first of the file and names a Table 4.6-13 encoding.
+ * \retval        FALSE        otherwise.
+ */
+static bool_t ReadCharsetEncoding(Arinc661_Definition_t* definition, const FACEOE_Utl_Xml_Node_t* node);
+
+/*************************************************************************************************/
+/**
+ * \brief Appends to the root a charset-encoding element naming an encoding (section 6.2.1).
+ *
+ * \param[in,out] xml               Workspace building the document
+ * \param[in,out] root              a661_df element
+ * \param[in]     charsetEncoding   Encoding to name
+ *
+ * \retval        TRUE              if the element was appended.
+ * \retval        FALSE             if workspace storage is exhausted, or the encoding has no Table 4.6-13 name.
+ */
+static bool_t WriteCharsetEncoding(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* root, Arinc661_CharsetEncoding_t charsetEncoding);
+
+/*************************************************************************************************/
+/**
  * \brief Appends the model element of one owner, with its properties.
  *
  * \par Details:
@@ -5271,7 +4385,7 @@ static const Arinc661_Property_t* FindProperty(const Arinc661_Definition_t* defi
  * \param[in]  maximum    Largest accepted value
  * \param[out] value      Converted value
  *
- * \retval     TRUE       if the value, zero for an absent property, is a decimal integer or constant name within the range.
+ * \retval     TRUE       if the value, zero for an absent property, is an integer or constant name within the range.
  * \retval     FALSE      otherwise.
  */
 static bool_t ScanInteger(const Arinc661_Property_t* property, int64_t minimum, int64_t maximum, int64_t* value);
@@ -6704,6 +5818,95 @@ static uint32_t FindSameNameProperty(const Arinc661_Definition_t* definition, ui
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  For example, <charset-encoding name="A661_UTF8"/> sets charsetEncoding to
+ *  ARINC661_CHARSET_ENCODING_UTF8.
+ */
+static bool_t ReadCharsetEncoding(Arinc661_Definition_t* definition, const FACEOE_Utl_Xml_Node_t* node)
+{
+    char_t   charset_name[ARINC661_MAX_NAME_BYTES];
+    uint32_t charset_index;
+    bool_t   is_first;
+    bool_t   names_match;
+    bool_t   is_valid;
+
+    is_first = (ARINC661_CHARSET_ENCODING_NONE == definition->charsetEncoding);
+    if (is_first)
+    {
+        is_valid = CopyAttribute(node, XML_ATTRIBUTE_NAME, charset_name, sizeof(charset_name));
+    }
+    else
+    {
+        is_valid = FALSE;
+    }
+
+    if (is_valid)
+    {
+        for (charset_index = 0; charset_index < COUNT_OF(c_charsetEncodings); ++charset_index)
+        {
+            names_match = (0 == strncmp(charset_name, c_charsetEncodings[charset_index].name, sizeof(charset_name)));
+            if (names_match)
+            {
+                definition->charsetEncoding = c_charsetEncodings[charset_index].value;
+                break;
+            }
+        }
+        is_valid = (ARINC661_CHARSET_ENCODING_NONE != definition->charsetEncoding);
+    }
+
+    return is_valid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  For example, ARINC661_CHARSET_ENCODING_UTF8 gives <charset-encoding name="A661_UTF8"/>.
+ *  An OEM encoding has no name, so it is not written.
+ */
+static bool_t WriteCharsetEncoding(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* root, Arinc661_CharsetEncoding_t charsetEncoding)
+{
+    FACEOE_Utl_Xml_Node_t* charset_node;
+    const char_t*          charset_name;
+    uint32_t               charset_index;
+    bool_t                 has_name;
+    bool_t                 is_valid;
+
+    charset_name = NULL;
+    for (charset_index = 0; charset_index < COUNT_OF(c_charsetEncodings); ++charset_index)
+    {
+        if (charsetEncoding == c_charsetEncodings[charset_index].value)
+        {
+            charset_name = c_charsetEncodings[charset_index].name;
+            break;
+        }
+    }
+
+    has_name = (NULL != charset_name);
+    if (has_name)
+    {
+        charset_node = AppendElement(xml, DF_ELEMENT_CHARSET_ENCODING);
+        is_valid     = (NULL != charset_node);
+    }
+    else
+    {
+        charset_node = NULL;
+        is_valid     = FALSE;
+    }
+
+    if (is_valid)
+    {
+        is_valid = AppendAttribute(xml, charset_node, XML_ATTRIBUTE_NAME, charset_name);
+    }
+    if (is_valid)
+    {
+        FACEOE_Utl_Xml_AppendChild(root, charset_node);
+    }
+
+    return is_valid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Selects properties whose owner kind and ownerIndex both match the requested
  *  model. For example, the properties for one layer can produce:
  *
@@ -6916,7 +6119,7 @@ static bool_t WriteBytes(byte_t* buffer, uint64_t capacity, uint64_t* offset, co
  */
 static bool_t WriteByte(byte_t* buffer, uint64_t capacity, uint64_t* offset, byte_t value)
 {
-    return WriteBytes(buffer, capacity, offset, &value, 1);
+    return WriteBytes(buffer, capacity, offset, &value, BINARY_UCHAR_BYTES);
 }
 
 /*************************************************************************************************/
@@ -7110,32 +6313,36 @@ static const Arinc661_Property_t* FindProperty(const Arinc661_Definition_t* defi
 /*************************************************************************************************/
 /**
  * \par Details:
- *  An absent property yields zero. A present value is either a complete decimal
- *  integer such as "10000" or a constant name such as "A661_TRUE" or
- *  "A661_CENTER". Other text returns FALSE, including a color name, whose number
- *  is implementation dependent (section 6.2.4.1).
+ *  An absent property yields zero. A present value is either a complete integer,
+ *  decimal such as "10000" or hexadecimal such as "0x2710" (section 6.2.4.1), or a
+ *  constant name such as "A661_TRUE" or "A661_CENTER". Other text returns FALSE,
+ *  including a color name, whose number is implementation dependent.
  */
 static bool_t ScanInteger(const Arinc661_Property_t* property, int64_t minimum, int64_t maximum, int64_t* value)
 {
-    int64_t  parsed_value;
-    int32_t  consumed;
-    uint32_t constant_index;
-    bool_t   is_valid;
+    const char_t* constant_name;
+    int64_t       parsed_value;
+    int32_t       consumed;
+    uint32_t      constant_count;
+    uint32_t      constant_index;
+    bool_t        is_valid;
 
     parsed_value = 0;
     is_valid     = TRUE;
     if (NULL != property)
     {
-        consumed = FACEOE_Utl_Scan_Int64(property->value, &parsed_value);
+        consumed = FACEOE_Utl_Scan_Integer(property->value, &parsed_value);
         // Require a nonempty scan that consumes the complete value
         is_valid = (0 < consumed) && ('\0' == property->value[consumed]);
         if (FALSE == is_valid)
         {
-            for (constant_index = 0; constant_index < COUNT_OF(c_binaryConstants); ++constant_index)
+            constant_count = Arinc661_Runtime_GetConstantCount();
+            for (constant_index = 0; constant_index < constant_count; ++constant_index)
             {
-                if (0 == strncmp(property->value, c_binaryConstants[constant_index].name, sizeof(property->value)))
+                constant_name = Arinc661_Runtime_GetConstantName(constant_index);
+                if (0 == strncmp(property->value, constant_name, sizeof(property->value)))
                 {
-                    parsed_value = c_binaryConstants[constant_index].value;
+                    parsed_value = Arinc661_Runtime_GetConstantValue(constant_index);
                     is_valid     = TRUE;
                     break;
                 }
@@ -7519,7 +6726,7 @@ static bool_t WriteBinaryPad(byte_t* buffer, uint64_t capacity, uint64_t* offset
  *  Converts the property text according to the parameter type:
  *
  * \verbatim
- * uchar, ushort, ulong, long   decimal integer or constant name, range-checked
+ * uchar, ushort, ulong, long   integer or constant name, range-checked
  * float                        decimal number stored as IEEE 754 single precision
  * fr(180), fr(32768)           decimal number scaled by 2^31 / range and rounded
  * string                       value bytes followed by a zero terminator
@@ -9305,7 +8512,7 @@ void Arinc661_Definition_Initialize(Arinc661_Definition_t* definition, Arinc661_
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Counts the supported widget types or the supported extension types.
+ *  None
  */
 uint32_t Arinc661_Definition_GetTypeCount(bool_t isExtension)
 {
@@ -9591,40 +8798,6 @@ bool_t Arinc661_Definition_ReadBinaryValue(Arinc661_ParameterKind_t kind, const 
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Counts the constant names of section 4.6 that property values may use.
- */
-uint32_t Arinc661_Definition_GetConstantCount(void)
-{
-    return (uint32_t)COUNT_OF(c_binaryConstants);
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Constants are in name order.
- */
-const char_t* Arinc661_Definition_GetConstantName(uint32_t constantIndex)
-{
-    LOGASSERT(constantIndex < Arinc661_Definition_GetConstantCount());
-
-    return c_binaryConstants[constantIndex].name;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  Returns the numeric value the binary form stores for the constant.
- */
-uint32_t Arinc661_Definition_GetConstantValue(uint32_t constantIndex)
-{
-    LOGASSERT(constantIndex < Arinc661_Definition_GetConstantCount());
-
-    return c_binaryConstants[constantIndex].value;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
  *  An extension type the table does not list applies nowhere.
  */
 bool_t Arinc661_Definition_ExtensionApplies(const char_t* extensionType, const char_t* widgetType)
@@ -9719,10 +8892,7 @@ const char_t* Arinc661_Definition_GetExtensionTarget(const char_t* extensionType
  *
  *  Widgets are visited before their descendants. Temporary XML node pointers
  *  map a nested widget's parent to an earlier widget array entry. Each supported
- *  owner needs a model, including an empty one. Strings are copied into the
- *  result, so no input or workspace pointers remain there.
- *
- *  Input may include an XML declaration; it is not retained in the result.
+ *  owner needs a model, including an empty one.
  *
  *  Both version attributes are required and must fit uint32_t. Failure clears
  *  layerCount, widgetCount, propertyCount, blockByteCount, and charsetEncoding;
@@ -9737,13 +8907,11 @@ bool_t Arinc661_Definition_Read(Arinc661_Definition_t* definition, byte_t* buffe
     FACEOE_Utl_Xml_Node_t* model_node;
     Arinc661_Layer_t*      layer;
     Arinc661_Widget_t*     widget;
-    char_t                 charset_name[ARINC661_MAX_NAME_BYTES];
     int64_t                version;
     uint32_t               layer_index;
     uint32_t               node_index;
     uint32_t               widget_index;
     uint32_t               parent_index;
-    uint32_t               charset_index;
     bool_t                 has_workspace;
     bool_t                 is_extension;
     bool_t                 is_valid;
@@ -9920,24 +9088,7 @@ bool_t Arinc661_Definition_Read(Arinc661_Definition_t* definition, byte_t* buffe
             }
             else if (HasElementName(layer_node, DF_ELEMENT_CHARSET_ENCODING))
             {
-                // Select the Table 4.6-13 encoding by name (section 6.2.1) and allow one per file
-                is_valid = (ARINC661_CHARSET_ENCODING_NONE == definition->charsetEncoding);
-                if (is_valid)
-                {
-                    is_valid = CopyAttribute(layer_node, XML_ATTRIBUTE_NAME, charset_name, sizeof(charset_name));
-                }
-                if (is_valid)
-                {
-                    for (charset_index = 0; charset_index < COUNT_OF(c_charsetEncodings); ++charset_index)
-                    {
-                        if (0 == strncmp(charset_name, c_charsetEncodings[charset_index].name, sizeof(charset_name)))
-                        {
-                            definition->charsetEncoding = c_charsetEncodings[charset_index].value;
-                            break;
-                        }
-                    }
-                    is_valid = (ARINC661_CHARSET_ENCODING_NONE != definition->charsetEncoding);
-                }
+                is_valid = ReadCharsetEncoding(definition, layer_node);
                 if (FALSE == is_valid)
                 {
                     break;
@@ -9990,11 +9141,10 @@ bool_t Arinc661_Definition_Read(Arinc661_Definition_t* definition, byte_t* buffe
  * </a661_df>
  * \endcode
  *
- *  Output starts directly with the a661_df element, without an XML declaration.
- *
  *  layerIndex selects the owning layer. UINT32_MAX in parentWidgetIndex places a
- *  widget directly under that layer; otherwise it names an earlier widget in the
- *  same layer. The caller supplies valid array counts and these ownership links.
+ *  widget directly under that layer; otherwise it must name an earlier widget, not
+ *  an extension, of the same layer, or writing returns zero. The caller supplies
+ *  valid array counts.
  *  Each owner receives a model, even when no properties match.
  *
  *  XML nodes, attributes, and formatted numbers use the temporary workspace;
@@ -10009,14 +9159,13 @@ uint64_t Arinc661_Definition_Write(const Arinc661_Definition_t* definition, byte
     FACEOE_Utl_Xml_Node_t*   layer_node;
     FACEOE_Utl_Xml_Node_t*   widget_node;
     FACEOE_Utl_Xml_Node_t*   parent_node;
-    FACEOE_Utl_Xml_Node_t*   charset_node;
     const Arinc661_Layer_t*  layer;
     const Arinc661_Widget_t* widget;
+    const Arinc661_Widget_t* parent;
     const char_t*            element_name;
     uint64_t                 byte_count;
     uint32_t                 layer_index;
     uint32_t                 widget_index;
-    uint32_t                 charset_index;
     bool_t                   has_workspace;
     bool_t                   has_parent;
     bool_t                   is_valid;
@@ -10059,25 +9208,8 @@ uint64_t Arinc661_Definition_Write(const Arinc661_Definition_t* definition, byte
     {
         if (ARINC661_CHARSET_ENCODING_NONE != definition->charsetEncoding)
         {
-            // Place the charset-encoding element before the model and layers (section 6.2.1)
-            charset_node = AppendElement(&xml, DF_ELEMENT_CHARSET_ENCODING);
-            is_valid     = (NULL != charset_node);
-            if (is_valid)
-            {
-                is_valid = FALSE;
-                for (charset_index = 0; charset_index < COUNT_OF(c_charsetEncodings); ++charset_index)
-                {
-                    if (definition->charsetEncoding == c_charsetEncodings[charset_index].value)
-                    {
-                        is_valid = AppendAttribute(&xml, charset_node, XML_ATTRIBUTE_NAME, c_charsetEncodings[charset_index].name);
-                        break;
-                    }
-                }
-            }
-            if (is_valid)
-            {
-                FACEOE_Utl_Xml_AppendChild(root, charset_node);
-            }
+            // Place the charset-encoding element before the model and layers
+            is_valid = WriteCharsetEncoding(&xml, root, definition->charsetEncoding);
         }
     }
     if (is_valid)
@@ -10144,9 +9276,17 @@ uint64_t Arinc661_Definition_Write(const Arinc661_Definition_t* definition, byte
                     parent_node = layer_node;
                     if (UINT32_MAX != widget->parentWidgetIndex)
                     {
-                        // A nested parent must have been built before the current widget
+                        // A nested parent must be an earlier widget of the same layer, not an extension
                         has_parent = (widget->parentWidgetIndex < widget_index);
-                        is_valid   = has_parent;
+                        if (has_parent)
+                        {
+                            parent   = &definition->widgets[widget->parentWidgetIndex];
+                            is_valid = (layer_index == parent->layerIndex) && (FALSE == parent->isExtension);
+                        }
+                        else
+                        {
+                            is_valid = FALSE;
+                        }
                         if (is_valid)
                         {
                             parent_node = xml.widgetNodes[widget->parentWidgetIndex];
@@ -10276,8 +9416,8 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
  *  the retained symbol, picture, and animation law blocks unchanged, one layer
  *  block per layer, and the footer. Each layer block holds the commands of its
  *  widget array entries in array order, which must place a parent before its
- *  children and an extension after the widget it extends. For example, one
- *  layer with one panel:
+ *  children and an extension after the widget it extends, with no other widget
+ *  of the layer between them. For example, one layer with one panel:
  *
  * \verbatim
  * A661 01 04 6788 0000        header: versions, ApplicationId, no OEM data

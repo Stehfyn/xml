@@ -27,7 +27,7 @@
  *
  * \retval None
  */
-void RunCDSRunTimeTests(void);
+void RunCDSRuntimeTests(void);
 
 #define TEST_LAYER_ID      (7U)  ///< LayerId of the test layer
 #define TEST_WIDGET_IDENT  (2U)  ///< WidgetIdent of the test label
@@ -52,30 +52,80 @@ static void SetProperty(Arinc661_Property_t* property, Arinc661_PropertyOwner_t 
 
 /*************************************************************************************************/
 /**
- * \brief Returns the value of an owner's occurrence-th property of a name, or NULL.
+ * \brief Returns the item of an owner's occurrence-th property of a name, or NULL.
  */
-static const char_t* ValueOf(const FACEOE_Utl_Node_t* owner, const char_t* name, uint32_t occurrence)
+static const Arinc661_Scene_Node_t* PropertyOf(const FACEOE_Utl_Node_t* owner, const char_t* name, uint32_t occurrence)
 {
-    const FACEOE_Utl_Node_t*   entry;
-    const Arinc661_Property_t* property;
-    const char_t*              value;
-    uint32_t                   seen;
+    const FACEOE_Utl_Node_t*     entry;
+    const Arinc661_Scene_Node_t* item;
+    const Arinc661_Scene_Node_t* found;
+    const Arinc661_Property_t*   property;
+    uint32_t                     seen;
 
-    value = NULL;
+    found = NULL;
     seen  = 0;
     for (entry = owner->firstChild->firstChild; NULL != entry; entry = entry->nextSibling)
     {
-        property = (const Arinc661_Property_t*)((const Arinc661_Scene_Node_t*)entry->item)->data;
+        item     = (const Arinc661_Scene_Node_t*)entry->item;
+        property = (const Arinc661_Property_t*)item->data;
         if (0 == strncmp(name, property->name, sizeof(property->name)))
         {
             if (seen == occurrence)
             {
-                value = property->value;
+                found = item;
                 break;
             }
             seen += 1;
         }
     }
+
+    return found;
+}
+
+/*************************************************************************************************/
+/**
+ * \brief Returns the value of an owner's occurrence-th property of a name, or NULL.
+ */
+static const char_t* ValueOf(const FACEOE_Utl_Node_t* owner, const char_t* name, uint32_t occurrence)
+{
+    const Arinc661_Scene_Node_t* item;
+    const char_t*                value;
+
+    value = NULL;
+    item  = PropertyOf(owner, name, occurrence);
+    if (NULL != item)
+    {
+        value = ((const Arinc661_Property_t*)item->data)->value;
+    }
+
+    return value;
+}
+
+/*************************************************************************************************/
+/**
+ * \brief Returns the value of a constant, which must be listed exactly once.
+ */
+static uint32_t FindConstant(const char_t* name)
+{
+    const char_t* constant_name;
+    uint32_t      constant_count;
+    uint32_t      index;
+    uint32_t      found;
+    uint32_t      value;
+
+    constant_count = Arinc661_Runtime_GetConstantCount();
+    found          = 0;
+    value          = 0;
+    for (index = 0; index < constant_count; ++index)
+    {
+        constant_name = Arinc661_Runtime_GetConstantName(index);
+        if (0 == strcmp(name, constant_name))
+        {
+            value  = Arinc661_Runtime_GetConstantValue(index);
+            found += 1;
+        }
+    }
+    assert(1 == found);
 
     return value;
 }
@@ -88,10 +138,10 @@ static const char_t* ValueOf(const FACEOE_Utl_Node_t* owner, const char_t* name,
 /**
  * \par Details:
  *  Checks the run-time parameter table, Arinc661_Definition_ReadBinaryValue, the scene's widget
- *  table and run-time values, and CDS_RunTime_ApplyBlock on blocks that set parameters, add a
+ *  table and run-time values, and CDS_Runtime_ApplyBlock on blocks that set parameters, add a
  *  run-time-only one, change the layer's activity and visibility, and name an unknown widget.
  */
-void RunCDSRunTimeTests(void)
+void RunCDSRuntimeTests(void)
 {
     static const byte_t c_fr180Ninety[]  = {0x40, 0x00, 0x00, 0x00};
     static const byte_t c_shortMinusOne[] = {0xFF, 0xFF};
@@ -144,7 +194,7 @@ void RunCDSRunTimeTests(void)
     static Arinc661_Scene_Node_t items[TEST_NODES];
     static FACEOE_Utl_Node_t*    widget_nodes[TEST_IDENTS];
     static Arinc661_Property_t   values[TEST_VALUES];
-    Arinc661_RunTimeParameter_t  parameter;
+    Arinc661_Runtime_Parameter_t parameter;
     Arinc661_Layer_t             layer;
     Arinc661_Widget_t            widget;
     Arinc661_Property_t          properties[TEST_PROPERTIES];
@@ -154,12 +204,37 @@ void RunCDSRunTimeTests(void)
     char_t                       text[ARINC661_MAX_PROPERTY_BYTES];
 
     // The label's run-time table: Visible is one byte, PosX and PosY a pair of longs
-    assert(Arinc661_RunTime_GetParameter("A661_LABEL", 0xB530, &parameter));
-    assert((ARINC661_RUNTIME_1BYTE == parameter.structure) && (ARINC661_PARAMETER_UCHAR == parameter.kind) && (0 == strcmp("Visible", parameter.name)) && (NULL == parameter.secondName));
-    assert(Arinc661_RunTime_GetParameter("A661_LABEL", 0xB320, &parameter));
-    assert((ARINC661_RUNTIME_8BYTES == parameter.structure) && (0 == strcmp("PosX", parameter.name)) && (0 == strcmp("PosY", parameter.secondName)));
-    assert(FALSE == Arinc661_RunTime_GetParameter("A661_LABEL", 0xFFFF, &parameter));
-    assert(FALSE == Arinc661_RunTime_GetParameter("A661_NO_SUCH_TYPE", 0xB530, &parameter));
+    assert(Arinc661_Runtime_GetParameter("A661_LABEL", 0xB530, &parameter));
+    assert((ARINC661_PARAMETER_STRUCTURE_1BYTE == parameter.structure) && (ARINC661_PARAMETER_UCHAR == parameter.kind) && (0 == strcmp("Visible", parameter.name)) && (NULL == parameter.secondName));
+    assert(Arinc661_Runtime_GetParameter("A661_LABEL", 0xB320, &parameter));
+    assert((ARINC661_PARAMETER_STRUCTURE_8BYTES == parameter.structure) && (0 == strcmp("PosX", parameter.name)) && (0 == strcmp("PosY", parameter.secondName)));
+    assert(FALSE == Arinc661_Runtime_GetParameter("A661_LABEL", 0xFFFF, &parameter));
+    assert(FALSE == Arinc661_Runtime_GetParameter("A661_NO_SUCH_TYPE", 0xB530, &parameter));
+
+    // Constants: the values arinc661.h gives, and the Table 4.6-11 values of the two names Table 4.6-8 also lists
+    assert(ARINC661_A661_FALSE == FindConstant("A661_FALSE"));
+    assert(ARINC661_A661_TRUE == FindConstant("A661_TRUE"));
+    assert(ARINC661_A661_SELECTED == FindConstant("A661_SELECTED"));
+    assert(ARINC661_A661_HORZ_LINE == FindConstant("A661_HORZ_LINE"));
+    assert(ARINC661_A661_VERT_LINE == FindConstant("A661_VERT_LINE"));
+    assert(ARINC661_A661_ABSENT == FindConstant("A661_ABSENT"));
+    assert(ARINC661_A661_TOP == FindConstant("A661_TOP"));
+    assert(ARINC661_A661_BOTTOM == FindConstant("A661_BOTTOM"));
+    assert(ARINC661_A661_LEFT == FindConstant("A661_LEFT"));
+    assert(ARINC661_A661_RIGHT == FindConstant("A661_RIGHT"));
+    assert(ARINC661_A661_OPEN_UP == FindConstant("A661_OPEN_UP"));
+    assert(ARINC661_A661_OPEN_CENTERED == FindConstant("A661_OPEN_CENTERED"));
+    assert(ARINC661_A661_BOTTOM_CENTER == FindConstant("A661_BOTTOM_CENTER"));
+    assert(ARINC661_A661_BOTTOM_LEFT == FindConstant("A661_BOTTOM_LEFT"));
+    assert(ARINC661_A661_BOTTOM_RIGHT == FindConstant("A661_BOTTOM_RIGHT"));
+    assert(ARINC661_A661_TOP_CENTER == FindConstant("A661_TOP_CENTER"));
+    assert(ARINC661_A661_TOP_LEFT == FindConstant("A661_TOP_LEFT"));
+    assert(ARINC661_A661_TOP_RIGHT == FindConstant("A661_TOP_RIGHT"));
+    assert(ARINC661_A661_BOTTOM_TO_TOP == FindConstant("A661_BOTTOM_TO_TOP"));
+    assert(ARINC661_A661_RIGHT_TO_LEFT == FindConstant("A661_RIGHT_TO_LEFT"));
+    assert(ARINC661_A661_TOP_TO_BOTTOM == FindConstant("A661_TOP_TO_BOTTOM"));
+    assert(0xB1D2 == FindConstant("A661_ORIENTATION"));
+    assert(0xB1D1 == FindConstant("A661_RANGE"));
 
     // Binary values read as the text a binary Definition File gives them
     assert(Arinc661_Definition_ReadBinaryValue(ARINC661_PARAMETER_FR180, c_fr180Ninety, sizeof(c_fr180Ninety), text, sizeof(text)) && (0 == strcmp("90", text)));
@@ -193,13 +268,16 @@ void RunCDSRunTimeTests(void)
     assert(NULL == Arinc661_Scene_GetWidget(&scene, 0, TEST_WIDGET_IDENT));
 
     // A block sets the ContextNumber and the parameters, as copies; the definition is unchanged
-    assert(CDS_RunTime_ApplyBlock(&scene, c_setBlock, sizeof(c_setBlock)));
+    assert(CDS_Runtime_ApplyBlock(&scene, c_setBlock, sizeof(c_setBlock)));
     assert(0 == strcmp("5", ValueOf(layer_node, "ContextNumber", 0)));
     assert(0 == strcmp("0", ValueOf(label, "Visible", 0)));
     assert(0 == strcmp("100", ValueOf(label, "PosX", 0)));
     assert(0 == strcmp("-200", ValueOf(label, "PosY", 0)));
     assert(0 == strcmp("HI", ValueOf(label, "LabelString", 0)));
     assert(0 == strcmp("3", ValueOf(label, "Font", 0)));
+    assert(PropertyOf(label, "Visible", 0)->isNumber && (0.0 == PropertyOf(label, "Visible", 0)->number));
+    assert(PropertyOf(label, "PosY", 0)->isNumber && (-200.0 == PropertyOf(label, "PosY", 0)->number));
+    assert(FALSE == PropertyOf(label, "LabelString", 0)->isNumber);
     assert((0 == strcmp("1", properties[3].value)) && (0 == strcmp("A", properties[6].value)));
     assert(TEST_VALUES == scene.valueCount);
     assert(COUNT_OF(nodes) == scene.tree.nodeCount);
@@ -207,26 +285,27 @@ void RunCDSRunTimeTests(void)
     // Setting a value again reuses its copy
     Arinc661_Scene_SetValue(&scene, label, "Visible", 0, "1");
     assert(0 == strcmp("1", ValueOf(label, "Visible", 0)));
+    assert(1.0 == PropertyOf(label, "Visible", 0)->number);
     assert(TEST_VALUES == scene.valueCount);
 
     // A661_REQ_LAYER_INACTIVE makes the layer inactive and invisible
-    assert(CDS_RunTime_ApplyBlock(&scene, c_inactiveBlock, sizeof(c_inactiveBlock)));
+    assert(CDS_Runtime_ApplyBlock(&scene, c_inactiveBlock, sizeof(c_inactiveBlock)));
     assert(0 == strcmp("6", ValueOf(layer_node, "ContextNumber", 0)));
     assert((FALSE == ((const Arinc661_Scene_Node_t*)layer_node->item)->active) && (FALSE == ((const Arinc661_Scene_Node_t*)layer_node->item)->visible));
 
     // While inactive, set-parameter commands and the ContextNumber are passed over
     Arinc661_Scene_SetValue(&scene, label, "Visible", 0, "0");
-    assert(CDS_RunTime_ApplyBlock(&scene, c_showWidgetBlock, sizeof(c_showWidgetBlock)));
+    assert(CDS_Runtime_ApplyBlock(&scene, c_showWidgetBlock, sizeof(c_showWidgetBlock)));
     assert(0 == strcmp("0", ValueOf(label, "Visible", 0)));
     assert(0 == strcmp("6", ValueOf(layer_node, "ContextNumber", 0)));
 
     // A661_REQ_LAYER_ACTIVE, then A661_REQ_LAYER_VISIBLE
-    assert(CDS_RunTime_ApplyBlock(&scene, c_activeBlock, sizeof(c_activeBlock)));
+    assert(CDS_Runtime_ApplyBlock(&scene, c_activeBlock, sizeof(c_activeBlock)));
     assert(((const Arinc661_Scene_Node_t*)layer_node->item)->active && ((const Arinc661_Scene_Node_t*)layer_node->item)->visible);
 
     // A widget the layer does not have, and a block cut short, are not applied
-    assert(FALSE == CDS_RunTime_ApplyBlock(&scene, c_unknownWidgetBlock, sizeof(c_unknownWidgetBlock)));
-    assert(FALSE == CDS_RunTime_ApplyBlock(&scene, c_setBlock, sizeof(c_setBlock) - 1));
+    assert(FALSE == CDS_Runtime_ApplyBlock(&scene, c_unknownWidgetBlock, sizeof(c_unknownWidgetBlock)));
+    assert(FALSE == CDS_Runtime_ApplyBlock(&scene, c_setBlock, sizeof(c_setBlock) - 1));
 
     // Building again drops every run-time value
     Arinc661_Scene_Build(&scene, &layer, 1, &widget, 1, properties, TEST_PROPERTIES, NULL);

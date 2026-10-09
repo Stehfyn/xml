@@ -26,7 +26,7 @@
 **===============================================================================================*/
 
 /* Arbitrarily chosen capacities for the XML arrays stored in the caller's workspace. */
-#define ARINC661_XML_NODE_CAPACITY      (65536UL) ///< Temporary XML node slots for declarations, elements, and descendants
+#define ARINC661_XML_NODE_CAPACITY      (65536UL) ///< Temporary XML node slots for the XML declaration and every element
 #define ARINC661_XML_ATTRIBUTE_CAPACITY (65536UL) ///< Temporary XML attribute slots shared by all elements
 #define ARINC661_XML_WIDGET_CAPACITY    (65536UL) ///< XML node pointer slots indexed by widget array position
 
@@ -104,7 +104,7 @@ typedef struct Arinc661_Definition_s
  * \param[in]  widgetCapacity     Widget slots
  * \param[in]  properties         Property storage
  * \param[in]  propertyCapacity   Property slots
- * \param[in]  blocks             Binary block storage, or NULL
+ * \param[in]  blocks             Binary block storage, or NULL when blockCapacity is zero
  * \param[in]  blockCapacity      Binary block bytes
  *
  * \retval     None
@@ -138,7 +138,7 @@ const char_t* Arinc661_Definition_GetTypeName(bool_t isExtension, uint32_t typeI
  *
  * \param[in]  typeName         Zero-terminated type name
  * \param[in]  isExtension      TRUE for extension types, FALSE for widget types
- * \param[out] parameterCount   Number of named parameters, excluding unused pads
+ * \param[out] parameterCount   Number of named parameters, excluding unused pads and alignment
  *
  * \retval     TRUE             if the type is known.
  * \retval     FALSE            otherwise.
@@ -169,12 +169,12 @@ bool_t Arinc661_Definition_GetParameter(const char_t* typeName, bool_t isExtensi
  * \brief Reads one binary value of a parameter kind as property text.
  *
  * \par Details:
- *  The text is what Arinc661_Definition_ReadBinary gives the same bytes: a decimal integer,
+ *  The text is what Arinc661_Definition_ReadBinary makes of the same bytes: a decimal integer,
  *  the fewest decimal digits that reproduce a float or fr() value, or a string's characters.
  *
  * \par Requirements:
  *  - 001 This function shall read a UCHAR from 1 byte, a USHORT or SHORT from 2, and a LONG, ULONG, FLOAT, FR180, or FR32768 from 4, most significant byte first.
- *  - 002 This function shall copy a STRING up to its zero terminator, which must lie within sizeOfValue bytes.
+ *  - 002 This function shall copy a STRING up to its zero terminator, which must lie within sizeOfValue bytes of value and capacity bytes of text.
  *  - 003 This function shall return FALSE for any other kind, too few bytes, or a float that is not finite.
  *  - 004 This function shall fail an assertion if value or text is NULL, or capacity is less than ARINC661_MAX_PROPERTY_BYTES.
  *
@@ -188,34 +188,6 @@ bool_t Arinc661_Definition_GetParameter(const char_t* typeName, bool_t isExtensi
  * \retval     FALSE         otherwise.
  */
 bool_t Arinc661_Definition_ReadBinaryValue(Arinc661_ParameterKind_t kind, const byte_t* value, uint32_t sizeOfValue, char_t* text, uint32_t capacity);
-
-/*************************************************************************************************/
-/**
- * \brief Counts the section 4.6 constant names accepted as property values.
- *
- * \retval uint32_t   Number of constants.
- */
-uint32_t Arinc661_Definition_GetConstantCount(void);
-
-/*************************************************************************************************/
-/**
- * \brief Returns a constant name.
- *
- * \param[in] constantIndex   Index below Arinc661_Definition_GetConstantCount
- *
- * \retval    const char_t*   Zero-terminated constant name, such as A661_TRUE.
- */
-const char_t* Arinc661_Definition_GetConstantName(uint32_t constantIndex);
-
-/*************************************************************************************************/
-/**
- * \brief Returns the value the binary form stores for a constant.
- *
- * \param[in] constantIndex   Index below Arinc661_Definition_GetConstantCount
- *
- * \retval    uint32_t        Constant value.
- */
-uint32_t Arinc661_Definition_GetConstantValue(uint32_t constantIndex);
 
 /*************************************************************************************************/
 /**
@@ -259,18 +231,18 @@ const char_t* Arinc661_Definition_GetExtensionTarget(const char_t* extensionType
  *  field values with the field names dropped. Other property forms, such as
  *  structprop and datablock, are rejected. An a661_extension inside a widget
  *  (section 8) becomes a widget array entry flagged isExtension. A top-level
- *  charset-encoding element (section 6.2.1) sets charsetEncoding from its name;
- *  symbol, picture, and animation law definitions are not read, and
- *  blockByteCount is cleared.
+ *  charset-encoding element (section 6.2.1) sets charsetEncoding from its name.
+ *  Symbol, picture, and animation law definitions (section 6.2.2) are rejected,
+ *  and blockByteCount is cleared.
  *  Strings are copied into the result arrays; the result retains no pointers
  *  into the input buffer or temporary workspace.
  *  Input may include an XML declaration; it is not retained in the result.
- *  The input buffer must have one writable byte after sizeOfXmlBuffer bytes and is
- *  changed by FACEOE_Utl_Xml_ReadDocument while parsing.
+ *  The input buffer must have one writable byte after sizeOfXmlBuffer bytes, where
+ *  FACEOE_Utl_Xml_ReadDocument writes a zero terminator.
  *
  * \par Requirements:
  *  - 001 This function shall read the a661_df attributes, layers, widgets, properties, and array properties into caller-owned storage.
- *  - 002 This function shall clear all result counts when a supported value is invalid or a result array is too small.
+ *  - 002 This function shall clear all result counts on failure.
  *  - 003 This function shall use only the supplied workspace for temporary XML storage.
  *  - 004 This function shall return FALSE when FACEOE_Utl_Xml_ReadDocument rejects the input.
  *  - 005 This function shall accept input with or without an XML declaration.
@@ -299,8 +271,9 @@ bool_t Arinc661_Definition_Read(Arinc661_Definition_t* definition, byte_t* buffe
  *  of one model that share a name are an array and are written as one arrayprop
  *  with an entry child per value; a lone property is always written as a prop.
  *  An entry flagged isExtension is written as an a661_extension inside its parent
- *  widget. A charsetEncoding other than ARINC661_CHARSET_ENCODING_NONE writes a
- *  charset-encoding element. Binary blocks have no XML form here and are not written.
+ *  widget. A standard charsetEncoding writes a charset-encoding element with its
+ *  Table 4.6-13 name; an OEM value has no name, so writing returns zero. Binary
+ *  blocks have no XML form here and are not written.
  *  Storage arrays and their string fields must remain valid until writing finishes.
  *  Output starts with the a661_df element, without an XML declaration.
  *
@@ -339,10 +312,11 @@ uint64_t Arinc661_Definition_Write(const Arinc661_Definition_t* definition, byte
  *  ContextNumber properties. An A661_CMD_EXTEND command becomes a widget array
  *  entry flagged isExtension whose parent is the widget it follows (section 8.1).
  *  The charset encoding block sets charsetEncoding; symbol, picture, and
- *  animation law blocks are copied unchanged into blocks, so the file can be
- *  written back byte for byte. The binary form carries no names, so the
- *  definition, layer, and widget names are empty. String bytes are copied
- *  unchanged, whatever the character set encoding.
+ *  animation law blocks are copied unchanged into blocks for
+ *  Arinc661_Definition_WriteBinary to write back; OEM data is skipped. The
+ *  binary form carries no names, so the definition, layer, and widget names
+ *  are empty. String bytes are copied unchanged, whatever the character set
+ *  encoding.
  *  Each array element becomes its own property, all sharing the array's name,
  *  in element order; arrays of pairs, such as Vertices and BufferStructure,
  *  alternate the two members. Parameters with no numeric type, such as
@@ -354,7 +328,7 @@ uint64_t Arinc661_Definition_Write(const Arinc661_Definition_t* definition, byte
  * \par Requirements:
  *  - 001 This function shall read the header, charset encoding, layer, widget, extension, and Creation Structure values into caller-owned storage.
  *  - 002 This function shall retain symbol, picture, and animation law blocks unchanged in caller-owned storage.
- *  - 003 This function shall clear all result counts when the input is malformed or a result array is too small.
+ *  - 003 This function shall clear all result counts on failure.
  *  - 004 This function shall not read outside the supplied input bytes.
  *  - 005 This function shall fail an assertion if definition or bufferToReadBinaryFrom is NULL, or blocks is NULL with a nonzero blockCapacity.
  *
@@ -386,8 +360,8 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
  *  take two properties per entry. Parameters with no numeric type, such as
  *  DefaultStyleText, StaticParamBuffer entries, and excluded region structures,
  *  take two hexadecimal digits per byte. An entry flagged isExtension is written
- *  as an A661_CMD_EXTEND command and must directly follow, in array order, the
- *  widget named by its parentWidgetIndex. A charsetEncoding other than
+ *  as an A661_CMD_EXTEND command; its parentWidgetIndex must name the last widget
+ *  of its layer before it in array order. A charsetEncoding other than
  *  ARINC661_CHARSET_ENCODING_NONE writes the charset encoding block, and blocks are
  *  written unchanged before the layers.
  *  A661_SELECTOR cannot be written because Table 4.6-7 assigns it no WidgetType code.
