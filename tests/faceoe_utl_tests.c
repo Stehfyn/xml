@@ -64,7 +64,7 @@ void RunArinc661SceneTests(void);
  *
  * \retval None
  */
-void RunArinc661RendererTests(void);
+void RunCDSRendererTests(void);
 
 /*************************************************************************************************/
 /**
@@ -618,25 +618,33 @@ static void RecordVisit(const FACEOE_Utl_Node_t* node, void* context)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Takes nodes in storage order until the storage is full, then links a root with two children
- *  and a grandchild and checks every link. A visit reaches only linked nodes, parents before
- *  children.
+ *  An empty tree has no root and visits nothing. Takes nodes in storage order until the storage
+ *  is full, the first becoming the root, then links two children and a grandchild below it and
+ *  checks every link. A visit reaches only linked nodes, parents before children.
  */
 static void TestTree(void)
 {
     FACEOE_Utl_Node_t  nodes[TEST_TREE_NODES];
     FACEOE_Utl_Tree_t  tree;
+    FACEOE_Utl_Node_t* root;
     FACEOE_Utl_Node_t* first;
     FACEOE_Utl_Node_t* second;
     FACEOE_Utl_Node_t* grandchild;
     VisitRecord_t      record;
-    int32_t            items[TEST_TREE_NODES - 1];
+    int32_t            items[TEST_TREE_NODES];
 
-    FACEOE_Utl_Tree_Initialize(&tree, nodes, COUNT_OF(nodes), NULL);
-    assert(&nodes[0] == tree.root);
-    first      = FACEOE_Utl_Tree_AddNode(&tree, &items[0]);
-    second     = FACEOE_Utl_Tree_AddNode(&tree, &items[1]);
-    grandchild = FACEOE_Utl_Tree_AddNode(&tree, &items[2]);
+    FACEOE_Utl_Tree_Initialize(&tree, nodes, COUNT_OF(nodes));
+    assert(NULL == tree.root);
+    record.count = 0;
+    FACEOE_Utl_Tree_Visit(&tree, RecordVisit, &record);
+    assert(0 == record.count);
+
+    root       = FACEOE_Utl_Tree_AddNode(&tree, &items[0]);
+    first      = FACEOE_Utl_Tree_AddNode(&tree, &items[1]);
+    second     = FACEOE_Utl_Tree_AddNode(&tree, &items[2]);
+    grandchild = FACEOE_Utl_Tree_AddNode(&tree, &items[3]);
+    assert(&nodes[0] == root);
+    assert(root == tree.root);
     assert(&nodes[1] == first);
     assert(&nodes[2] == second);
     assert(&nodes[3] == grandchild);
@@ -661,7 +669,7 @@ static void TestTree(void)
     assert(grandchild == first->firstChild);
     assert(grandchild == first->lastChild);
     assert(first == grandchild->parent);
-    assert(&items[2] == grandchild->item);
+    assert(&items[3] == grandchild->item);
 
     // Depth first: each parent, then its children in append order
     record.count = 0;
@@ -733,7 +741,7 @@ int main(void)
     RunFACEOEDisplayManagementTests();
     RunFACEOEGfxTests();
     RunArinc661SceneTests();
-    RunArinc661RendererTests();
+    RunCDSRendererTests();
     RunArinc661UpdateTests();
     return 0;
 }

@@ -7,7 +7,7 @@
 **===============================================================================================*/
 
 #include "arinc661/arinc661_definition.h"
-#include "arinc661_renderer.h"
+#include "cds/cds_renderer.h"
 #include "faceoe_utl/faceoe_utl_defines.h"
 
 #ifdef NDEBUG
@@ -27,31 +27,32 @@
  *
  * \retval None
  */
-void RunArinc661RendererTests(void);
+void RunCDSRendererTests(void);
 
 #define TEST_MAX_WIDGETS    (64)
 #define TEST_MAX_PROPERTIES (2048)
 
 #define TEST_MAX_LAYERS     (2)
 #define TEST_LAYER_ID       (7U) ///< LayerId of the test layer; not its array index, so lookups by index would fail
+#define TEST_SCENE_NODES    ((2 * (1 + TEST_MAX_LAYERS + TEST_MAX_WIDGETS)) + TEST_MAX_PROPERTIES) ///< Two nodes for the root, each layer, and each widget, and one per property
 
-static Arinc661_Layer_t           s_layers[TEST_MAX_LAYERS];
-static Arinc661_Widget_t          s_widgets[TEST_MAX_WIDGETS];
-static Arinc661_Property_t        s_properties[TEST_MAX_PROPERTIES];
-static FACEOE_Utl_Node_t          s_sceneNodes[ARINC661_SCENE_NODE_COUNT(TEST_MAX_WIDGETS, TEST_MAX_PROPERTIES)];
-static Arinc661_Scene_Node_t      s_sceneItems[COUNT_OF(s_sceneNodes)];
-static FACEOE_Gfx_Command_t       s_commands[8192];
-static FACEOE_Gfx_Point_t         s_points[65536];
-static char_t                     s_text[65536];
-static Arinc661_Renderer_Bounds_t s_bounds[TEST_MAX_WIDGETS];
+static Arinc661_Layer_t      s_layers[TEST_MAX_LAYERS];
+static Arinc661_Widget_t     s_widgets[TEST_MAX_WIDGETS];
+static Arinc661_Property_t   s_properties[TEST_MAX_PROPERTIES];
+static FACEOE_Utl_Node_t     s_sceneNodes[TEST_SCENE_NODES];
+static Arinc661_Scene_Node_t s_sceneItems[COUNT_OF(s_sceneNodes)];
+static FACEOE_Gfx_Command_t  s_commands[8192];
+static FACEOE_Gfx_Point_t    s_points[65536];
+static char_t                s_text[65536];
+static CDS_Renderer_Bounds_t s_bounds[TEST_MAX_WIDGETS];
 
 /*************************************************************************************************/
 /**
- * \brief Builds the scene of a definition in s_sceneNodes and s_sceneItems, asserting that it succeeds.
+ * \brief Builds the scene of a definition in s_sceneNodes and s_sceneItems.
  */
 static void BuildScene(const Arinc661_Definition_t* definition, Arinc661_Scene_t* scene)
 {
-    assert(Arinc661_Scene_Build(scene, s_sceneNodes, s_sceneItems, COUNT_OF(s_sceneNodes), definition->layers, definition->layerCount, definition->widgets, definition->widgetCount, definition->properties, definition->propertyCount, NULL));
+    Arinc661_Scene_Build(scene, s_sceneNodes, s_sceneItems, COUNT_OF(s_sceneNodes), definition->layers, definition->layerCount, definition->widgets, definition->widgetCount, definition->properties, definition->propertyCount, NULL);
 }
 
 /*************************************************************************************************/
@@ -222,52 +223,52 @@ static bool_t HasText(const FACEOE_Gfx_DrawList_t* list, const char_t* fragment)
  *  bounds through a panel and a rotation container, picking, hiding, and that every widget
  *  type draws with balanced stacks.
  */
-void RunArinc661RendererTests(void)
+void RunCDSRendererTests(void)
 {
-    Arinc661_Definition_t       definition;
-    FACEOE_Gfx_DrawList_t       list;
-    FACEOE_Gfx_Transform_t      base;
-    Arinc661_Renderer_Options_t options;
-    Arinc661_Scene_t            scene;
-    FACEOE_Gfx_Point_t          point;
-    char_t                      text[64];
-    uint32_t                    panel;
-    uint32_t                    child;
-    uint32_t                    rotation;
-    uint32_t                    button;
-    uint32_t                    type_index;
-    uint32_t                    bounds_index;
-    uint32_t                    width_index;
-    float32_t                   width;
-    float32_t                   height;
-    bool_t                      has_bounds;
+    Arinc661_Definition_t  definition;
+    FACEOE_Gfx_DrawList_t  list;
+    FACEOE_Gfx_Transform_t base;
+    CDS_Renderer_Options_t options;
+    Arinc661_Scene_t       scene;
+    FACEOE_Gfx_Point_t     point;
+    char_t                 text[64];
+    uint32_t               panel;
+    uint32_t               child;
+    uint32_t               rotation;
+    uint32_t               button;
+    uint32_t               type_index;
+    uint32_t               bounds_index;
+    uint32_t               width_index;
+    float32_t              width;
+    float32_t              height;
+    bool_t                 has_bounds;
 
     // Section 3.2.6 examples, then edge cases
-    Arinc661_Renderer_FormatNumber("+____.__", -123.40, text, sizeof(text));
+    CDS_Renderer_FormatNumber("+____.__", -123.40, text, sizeof(text));
     assert(0 == strncmp("-123.4", text, sizeof("-123.4")));
-    Arinc661_Renderer_FormatNumber("+____.##", 123.40, text, sizeof(text));
+    CDS_Renderer_FormatNumber("+____.##", 123.40, text, sizeof(text));
     assert(0 == strncmp("+123.40", text, sizeof("+123.40")));
-    Arinc661_Renderer_FormatNumber("___#.##", -23.45, text, sizeof(text));
+    CDS_Renderer_FormatNumber("___#.##", -23.45, text, sizeof(text));
     assert(0 == strncmp("-23.45", text, sizeof("-23.45")));
-    Arinc661_Renderer_FormatNumber("~~~#.##", -23.45, text, sizeof(text));
+    CDS_Renderer_FormatNumber("~~~#.##", -23.45, text, sizeof(text));
     assert(0 == strncmp("-  23.45", text, sizeof("-  23.45")));
-    Arinc661_Renderer_FormatNumber("_.~W", 0.0, text, sizeof(text));
+    CDS_Renderer_FormatNumber("_.~W", 0.0, text, sizeof(text));
     assert(0 == strncmp(". W", text, sizeof(". W")));
-    Arinc661_Renderer_FormatNumber("_._W", 0.0, text, sizeof(text));
+    CDS_Renderer_FormatNumber("_._W", 0.0, text, sizeof(text));
     assert(0 == strncmp(".W", text, sizeof(".W")));
-    Arinc661_Renderer_FormatNumber("###D##'##\"", 402318.0, text, sizeof(text));
+    CDS_Renderer_FormatNumber("###D##'##\"", 402318.0, text, sizeof(text));
     assert(0 == strncmp("040D23'18\"", text, sizeof("040D23'18\"")));
-    Arinc661_Renderer_FormatNumber("##", 1234.0, text, sizeof(text));
+    CDS_Renderer_FormatNumber("##", 1234.0, text, sizeof(text));
     assert(0 == strncmp("1234", text, sizeof("1234")));
-    Arinc661_Renderer_FormatNumber("", 5.0, text, sizeof(text));
+    CDS_Renderer_FormatNumber("", 5.0, text, sizeof(text));
     assert(0 == strncmp("5", text, sizeof("5")));
-    Arinc661_Renderer_FormatNumber(".##", 5.25, text, sizeof(text));
+    CDS_Renderer_FormatNumber(".##", 5.25, text, sizeof(text));
     assert(0 == strncmp("5.25", text, sizeof("5.25")));
-    Arinc661_Renderer_FormatNumber("kt", 250.0, text, sizeof(text));
+    CDS_Renderer_FormatNumber("kt", 250.0, text, sizeof(text));
     assert(0 == strncmp("kt250", text, sizeof("kt250")));
-    Arinc661_Renderer_FormatNumber("+##", -7.0, text, sizeof(text));
+    CDS_Renderer_FormatNumber("+##", -7.0, text, sizeof(text));
     assert(0 == strncmp("-07", text, sizeof("-07")));
-    Arinc661_Renderer_FormatNumber("#.#", 0.96, text, sizeof(text));
+    CDS_Renderer_FormatNumber("#.#", 0.96, text, sizeof(text));
     assert(0 == strncmp("1.0", text, sizeof("1.0")));
 
     Arinc661_Definition_Initialize(&definition, s_layers, TEST_MAX_LAYERS, s_widgets, TEST_MAX_WIDGETS, s_properties, TEST_MAX_PROPERTIES, NULL, 0);
@@ -288,7 +289,7 @@ void RunArinc661RendererTests(void)
     options.bounds            = s_bounds;
     options.boundsCapacity    = TEST_MAX_WIDGETS;
     BuildScene(&definition, &scene);
-    Arinc661_Renderer_GetLayerSize(&scene, TEST_LAYER_ID, &width, &height);
+    CDS_Renderer_GetLayerSize(&scene, TEST_LAYER_ID, &width, &height);
     assert((10000.0f == width) && (10000.0f == height));
 
     // A panel at (1000, 1000) holding a label at (500, 500): the label is drawn at (1500, 1500)
@@ -323,7 +324,7 @@ void RunArinc661RendererTests(void)
     }
     FACEOE_Gfx_DrawList_SetTransform(&list, &base);
     BuildScene(&definition, &scene);
-    Arinc661_Renderer_DrawLayer(&scene, TEST_LAYER_ID, &list, &options);
+    CDS_Renderer_DrawLayer(&scene, TEST_LAYER_ID, &list, &options);
     assert(FALSE == list.isOverflowed);
     assert(0 == list.transformDepth);
     assert(0 == list.clipDepth);
@@ -338,13 +339,13 @@ void RunArinc661RendererTests(void)
     assert(&definition.widgets[panel] == options.bounds[1].widget);
     point.x = 200.0f;
     point.y = 660.0f;
-    assert(&definition.widgets[child] == Arinc661_Renderer_Pick(options.bounds, options.boundsCount, point));
+    assert(&definition.widgets[child] == CDS_Renderer_Pick(options.bounds, options.boundsCount, point));
     point.x = 120.0f;
     point.y = 880.0f;
-    assert(&definition.widgets[panel] == Arinc661_Renderer_Pick(options.bounds, options.boundsCount, point));
+    assert(&definition.widgets[panel] == CDS_Renderer_Pick(options.bounds, options.boundsCount, point));
     point.x = 10.0f;
     point.y = 10.0f;
-    assert(NULL == Arinc661_Renderer_Pick(options.bounds, options.boundsCount, point));
+    assert(NULL == CDS_Renderer_Pick(options.bounds, options.boundsCount, point));
 
     // A hidden label is skipped when hidden widgets are not shown
     for (width_index = 0; width_index < definition.propertyCount; ++width_index)
@@ -358,7 +359,7 @@ void RunArinc661RendererTests(void)
     FACEOE_Gfx_DrawList_Clear(&list);
     FACEOE_Gfx_DrawList_SetTransform(&list, &base);
     BuildScene(&definition, &scene);
-    Arinc661_Renderer_DrawLayer(&scene, TEST_LAYER_ID, &list, &options);
+    CDS_Renderer_DrawLayer(&scene, TEST_LAYER_ID, &list, &options);
     assert(1 == options.boundsCount);
     assert(FALSE == HasText(&list, "Hello"));
     options.showsHidden = TRUE;
@@ -391,7 +392,7 @@ void RunArinc661RendererTests(void)
     FACEOE_Gfx_DrawList_Clear(&list);
     FACEOE_Gfx_DrawList_SetTransform(&list, &base);
     BuildScene(&definition, &scene);
-    Arinc661_Renderer_DrawLayer(&scene, TEST_LAYER_ID, &list, &options);
+    CDS_Renderer_DrawLayer(&scene, TEST_LAYER_ID, &list, &options);
     has_bounds = FALSE;
     for (bounds_index = 0; bounds_index < options.boundsCount; ++bounds_index)
     {
@@ -434,7 +435,7 @@ void RunArinc661RendererTests(void)
         FACEOE_Gfx_DrawList_Clear(&list);
         FACEOE_Gfx_DrawList_SetTransform(&list, &base);
         BuildScene(&definition, &scene);
-        Arinc661_Renderer_DrawLayer(&scene, TEST_LAYER_ID, &list, &options);
+        CDS_Renderer_DrawLayer(&scene, TEST_LAYER_ID, &list, &options);
         if (list.isOverflowed || (0 != list.transformDepth) || (0 != list.clipDepth) || (options.boundsCount < definition.widgetCount))
         {
             fprintf(stderr, "scene failed for %s: overflow %d transforms %u clips %u bounds %u of %u\n", Arinc661_Definition_GetTypeName(FALSE, type_index), (int)list.isOverflowed, (unsigned)list.transformDepth, (unsigned)list.clipDepth, (unsigned)options.boundsCount, (unsigned)definition.widgetCount);
@@ -447,14 +448,14 @@ void RunArinc661RendererTests(void)
     // An inactive layer records nothing, and draws again once active; a LayerId no layer holds records nothing
     FACEOE_Gfx_DrawList_Clear(&list);
     Arinc661_Scene_DisableLayer(&scene, TEST_LAYER_ID);
-    Arinc661_Renderer_DrawLayer(&scene, TEST_LAYER_ID, &list, &options);
+    CDS_Renderer_DrawLayer(&scene, TEST_LAYER_ID, &list, &options);
     assert((0 == list.commandCount) && (0 == options.boundsCount));
     Arinc661_Scene_EnableLayer(&scene, TEST_LAYER_ID);
-    Arinc661_Renderer_DrawLayer(&scene, TEST_LAYER_ID, &list, &options);
+    CDS_Renderer_DrawLayer(&scene, TEST_LAYER_ID, &list, &options);
     assert((0 < list.commandCount) && (definition.widgetCount <= options.boundsCount));
     FACEOE_Gfx_DrawList_Clear(&list);
-    Arinc661_Renderer_DrawLayer(&scene, 0, &list, &options);
+    CDS_Renderer_DrawLayer(&scene, 0, &list, &options);
     assert((0 == list.commandCount) && (0 == options.boundsCount));
-    Arinc661_Renderer_GetLayerSize(&scene, 0, &width, &height);
+    CDS_Renderer_GetLayerSize(&scene, 0, &width, &height);
     assert((10000.0f == width) && (10000.0f == height));
 }

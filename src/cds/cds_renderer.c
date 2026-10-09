@@ -4,14 +4,14 @@
 
 /**
  * ARINC 661 Part 1-7, sections 2.3.4, 3.1.3, 3.2.3, 3.2.6, and the widget definitions of
- * sections 3.3 to 3.10; see arinc661_renderer.h.
+ * sections 3.3 to 3.10; see cds_renderer.h.
  */
 
 /*=================================================================================================
 ** 2. INCLUDE FILES
 **===============================================================================================*/
 
-#include "arinc661_renderer.h"
+#include "cds/cds_renderer.h"
 #include "arinc661/arinc661_definition.h"
 #include "faceoe_utl/faceoe_utl_defines.h"
 #include "faceoe_utl/faceoe_utl_print.h"
@@ -33,7 +33,6 @@
 #define RENDERER_MAX_POINTS      (256)
 #define RENDERER_MAX_TICKS       (1000)
 #define RENDERER_TEXT_BYTES      (ARINC661_MAX_PROPERTY_BYTES + 64)
-#define RENDERER_DEFAULT_EXTENT  (10000.0f)
 #define RENDERER_DEGREES         (0.01745329252f)
 #define RENDERER_FULL_TURN       (6.28318530718f)
 #define RENDERER_HIDDEN_ALPHA    (0.3f)
@@ -150,14 +149,14 @@ typedef struct Bounds_s
 /** Drawing state for one layer. */
 typedef struct Renderer_s
 {
-    FACEOE_Gfx_DrawList_t*       drawList;
-    Arinc661_Renderer_Options_t* options;
-    float32_t                    layerWidth;
-    float32_t                    layerHeight;
-    uint32_t                     chipCount;
-    uint32_t                     animationCount;
-    const FACEOE_Utl_Node_t*     animations[RENDERER_MAX_ANIMATIONS];
-    FACEOE_Gfx_Transform_t       base;
+    FACEOE_Gfx_DrawList_t*   drawList;
+    CDS_Renderer_Options_t*  options;
+    float32_t                layerWidth;
+    float32_t                layerHeight;
+    uint32_t                 chipCount;
+    uint32_t                 animationCount;
+    const FACEOE_Utl_Node_t* animations[RENDERER_MAX_ANIMATIONS];
+    FACEOE_Gfx_Transform_t   base;
 } Renderer_t;
 
 /*=================================================================================================
@@ -1472,12 +1471,12 @@ static uint32_t ExtensionCount(const FACEOE_Utl_Node_t* node)
  */
 static void Record(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, const Bounds_t* bounds, float32_t alpha)
 {
-    Arinc661_Renderer_Options_t* options;
-    const Arinc661_Widget_t*     widget;
-    FACEOE_Gfx_Transform_t       identity;
-    char_t                       text[RENDERER_TEXT_BYTES];
-    uint32_t                     extension_count;
-    float32_t                    font_size;
+    CDS_Renderer_Options_t*  options;
+    const Arinc661_Widget_t* widget;
+    FACEOE_Gfx_Transform_t   identity;
+    char_t                   text[RENDERER_TEXT_BYTES];
+    uint32_t                 extension_count;
+    float32_t                font_size;
 
     options = renderer->options;
     widget  = WidgetOf(node);
@@ -1668,7 +1667,7 @@ static void NumericBox(const Renderer_t* renderer, const FACEOE_Utl_Node_t* node
     {
         format = "";
     }
-    Arinc661_Renderer_FormatNumber(format, (float64_t)NumberOr(node, "Value", 0.0f), text, sizeof(text));
+    CDS_Renderer_FormatNumber(format, (float64_t)NumberOr(node, "Value", 0.0f), text, sizeof(text));
     legend     = Value(node, "LegendString", 0);
     has_legend = ((NULL != legend) && ('\0' != legend[0]) && (FALSE == Is(node, "LegendRemoved", "A661_TRUE")));
     field_x      = x;
@@ -3179,7 +3178,7 @@ static void DrawChildren(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, fl
  *  Lists the layer's animations once, fills the layer area when asked, then records every
  *  widget placed directly in the layer and, through it, everything below.
  */
-void Arinc661_Renderer_DrawLayer(const Arinc661_Scene_t* scene, uint32_t layerId, FACEOE_Gfx_DrawList_t* drawList, Arinc661_Renderer_Options_t* options)
+void CDS_Renderer_DrawLayer(const Arinc661_Scene_t* scene, uint32_t layerId, FACEOE_Gfx_DrawList_t* drawList, CDS_Renderer_Options_t* options)
 {
     const FACEOE_Utl_Node_t* layer;
     const FACEOE_Utl_Node_t* child;
@@ -3212,7 +3211,7 @@ void Arinc661_Renderer_DrawLayer(const Arinc661_Scene_t* scene, uint32_t layerId
             // Collect the layer's animation widgets once so targets can be matched cheaply
             CollectAnimations(&renderer, layer);
         }
-        Arinc661_Renderer_GetLayerSize(scene, layerId, &renderer.layerWidth, &renderer.layerHeight);
+        CDS_Renderer_GetLayerSize(scene, layerId, &renderer.layerWidth, &renderer.layerHeight);
         if (options->fillsLayerArea)
         {
             FACEOE_Gfx_DrawList_FillRectangle(drawList, 0.0f, 0.0f, renderer.layerWidth, renderer.layerHeight, COLOR_LAYER);
@@ -3234,7 +3233,7 @@ void Arinc661_Renderer_DrawLayer(const Arinc661_Scene_t* scene, uint32_t layerId
  *  Ties go to the later entry. A widget's bounds follow its children's, so a container wins
  *  a tie with its child, and a later sibling, drawn on top, wins over an earlier one.
  */
-const Arinc661_Widget_t* Arinc661_Renderer_Pick(const Arinc661_Renderer_Bounds_t* bounds, uint32_t count, FACEOE_Gfx_Point_t point)
+const Arinc661_Widget_t* CDS_Renderer_Pick(const CDS_Renderer_Bounds_t* bounds, uint32_t count, FACEOE_Gfx_Point_t point)
 {
     const Arinc661_Widget_t* best;
     float32_t                area;
@@ -3268,7 +3267,7 @@ const Arinc661_Widget_t* Arinc661_Renderer_Pick(const Arinc661_Renderer_Bounds_t
  *  beyond the slots are emitted in the first slot so no magnitude is lost. A negative value
  *  without a `+` slot gets a leading minus.
  */
-void Arinc661_Renderer_FormatNumber(const char_t* format, float64_t value, char_t* text, uint32_t capacity)
+void CDS_Renderer_FormatNumber(const char_t* format, float64_t value, char_t* text, uint32_t capacity)
 {
     char_t    integer_digits[64];
     char_t    decimal_digits[64];
@@ -3506,7 +3505,7 @@ void Arinc661_Renderer_FormatNumber(const char_t* format, float64_t value, char_
  * \par Details:
  *  A missing layer, Width, or Height, or a size below 1, falls back to 100 mm.
  */
-void Arinc661_Renderer_GetLayerSize(const Arinc661_Scene_t* scene, uint32_t layerId, float32_t* width, float32_t* height)
+void CDS_Renderer_GetLayerSize(const Arinc661_Scene_t* scene, uint32_t layerId, float32_t* width, float32_t* height)
 {
     const FACEOE_Utl_Node_t*   layer;
     const FACEOE_Utl_Node_t*   entry;
@@ -3520,8 +3519,8 @@ void Arinc661_Renderer_GetLayerSize(const Arinc661_Scene_t* scene, uint32_t laye
     LOGASSERT(NULL != width);
     LOGASSERT(NULL != height);
 
-    (*width)  = RENDERER_DEFAULT_EXTENT;
-    (*height) = RENDERER_DEFAULT_EXTENT;
+    (*width)  = CDS_RENDERER_DEFAULT_EXTENT;
+    (*height) = CDS_RENDERER_DEFAULT_EXTENT;
     layer     = Arinc661_Scene_GetLayer(scene, layerId);
     if (NULL != layer)
     {

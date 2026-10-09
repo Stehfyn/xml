@@ -1,5 +1,5 @@
-#ifndef ARINC661_RENDERER_H
-#define ARINC661_RENDERER_H
+#ifndef CDS_RENDERER_H
+#define CDS_RENDERER_H
 
 /*=================================================================================================
 ** 1. References
@@ -17,10 +17,6 @@
 ** 2. INCLUDE FILES
 **===============================================================================================*/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "arinc661/arinc661_scene.h"
 #include "faceoe_gfx/faceoe_gfx_drawlist.h"
 
@@ -30,6 +26,8 @@ extern "C" {
 ** 3.1 Macros
 **===============================================================================================*/
 
+#define CDS_RENDERER_DEFAULT_EXTENT (10000.0f) ///< Layer width or height in 0.01 mm when the layer gives none: 100 mm
+
 /*=================================================================================================
 ** 3.2 Types
 **===============================================================================================*/
@@ -38,29 +36,29 @@ extern "C" {
 /**
  * \brief Output-space bounds of one drawn widget.
  */
-typedef struct Arinc661_Renderer_Bounds_s
+typedef struct CDS_Renderer_Bounds_s
 {
     const Arinc661_Widget_t* widget;  ///< Widget the bounds enclose
     FACEOE_Gfx_Point_t       minimum; ///< Top-left in output units
     FACEOE_Gfx_Point_t       maximum; ///< Bottom-right in output units
-} Arinc661_Renderer_Bounds_t;
+} CDS_Renderer_Bounds_t;
 
 /*************************************************************************************************/
 /**
  * \brief How a layer is drawn, and where its widget bounds are reported.
  */
-typedef struct Arinc661_Renderer_Options_s
+typedef struct CDS_Renderer_Options_s
 {
-    bool_t                      showsHidden;       ///< TRUE to draw invisible subtrees, inactive pages, and closed pop-ups faded instead of skipping them
-    bool_t                      showsNames;        ///< TRUE to label every widget with its name
-    bool_t                      showsNonGraphical; ///< TRUE to draw widgets without geometry as chips along the layer's left edge
-    bool_t                      fillsLayerArea;    ///< TRUE to fill the layer's Width by Height area
-    float32_t                   fontSize;          ///< Host font size in output units
-    Arinc661_Renderer_Bounds_t* bounds;            ///< Caller's bounds storage, or NULL
-    uint32_t                    boundsCapacity;    ///< Bounds slots
-    uint32_t                    boundsCount;       ///< Result: bounds written; a widget's entry follows its children's
-    float32_t                   animationTime;     ///< Seconds into the layer's animations, or negative to draw the rest state
-} Arinc661_Renderer_Options_t;
+    bool_t                 showsHidden;       ///< TRUE to draw invisible subtrees, inactive pages, and closed pop-ups faded instead of skipping them
+    bool_t                 showsNames;        ///< TRUE to label every widget with its name
+    bool_t                 showsNonGraphical; ///< TRUE to draw widgets without geometry as chips along the layer's left edge
+    bool_t                 fillsLayerArea;    ///< TRUE to fill the layer's Width by Height area
+    float32_t              fontSize;          ///< Host font size in output units
+    CDS_Renderer_Bounds_t* bounds;            ///< Caller's bounds storage, or NULL
+    uint32_t               boundsCapacity;    ///< Bounds slots
+    uint32_t               boundsCount;       ///< Result: bounds written; a widget's entry follows its children's
+    float32_t              animationTime;     ///< Seconds into the layer's animations, or negative to draw the rest state
+} CDS_Renderer_Options_t;
 
 /*=================================================================================================
 ** 3.3 Constants
@@ -85,25 +83,25 @@ typedef struct Arinc661_Renderer_Options_s
  *  recorded for an inactive layer, or for a LayerId no layer in the scene holds.
  *
  * \param[in]     scene      Scene to draw
- * \param[in]     layerId    LayerId of the layer to draw
+ * \param[in]     layerId    LayerId of the layer to draw, below ARINC661_SCENE_MAX_LAYER_IDS
  * \param[in,out] drawList   Target draw list
  * \param[in,out] options    Drawing options; boundsCount is reset, then counts the bounds written
  *
  * \retval        None
  */
-void Arinc661_Renderer_DrawLayer(const Arinc661_Scene_t* scene, uint32_t layerId, FACEOE_Gfx_DrawList_t* drawList, Arinc661_Renderer_Options_t* options);
+void CDS_Renderer_DrawLayer(const Arinc661_Scene_t* scene, uint32_t layerId, FACEOE_Gfx_DrawList_t* drawList, CDS_Renderer_Options_t* options);
 
 /*************************************************************************************************/
 /**
  * \brief Finds the smallest recorded bounds containing a point.
  *
- * \param[in] bounds   Bounds written by Arinc661_Renderer_DrawLayer
+ * \param[in] bounds   Bounds written by CDS_Renderer_DrawLayer
  * \param[in] count    Number of bounds
  * \param[in] point    Output-space point
  *
  * \retval    const Arinc661_Widget_t*   Widget of those bounds, or NULL.
  */
-const Arinc661_Widget_t* Arinc661_Renderer_Pick(const Arinc661_Renderer_Bounds_t* bounds, uint32_t count, FACEOE_Gfx_Point_t point);
+const Arinc661_Widget_t* CDS_Renderer_Pick(const CDS_Renderer_Bounds_t* bounds, uint32_t count, FACEOE_Gfx_Point_t point);
 
 /*************************************************************************************************/
 /**
@@ -121,23 +119,19 @@ const Arinc661_Widget_t* Arinc661_Renderer_Pick(const Arinc661_Renderer_Bounds_t
  *
  * \retval     None
  */
-void Arinc661_Renderer_FormatNumber(const char_t* format, float64_t value, char_t* text, uint32_t capacity);
+void CDS_Renderer_FormatNumber(const char_t* format, float64_t value, char_t* text, uint32_t capacity);
 
 /*************************************************************************************************/
 /**
  * \brief Reads a layer's Width and Height in 0.01 mm.
  *
  * \param[in]  scene     Scene
- * \param[in]  layerId   LayerId of the layer
+ * \param[in]  layerId   LayerId of the layer, below ARINC661_SCENE_MAX_LAYER_IDS
  * \param[out] width     Width, at least 1
  * \param[out] height    Height, at least 1
  *
  * \retval     None
  */
-void Arinc661_Renderer_GetLayerSize(const Arinc661_Scene_t* scene, uint32_t layerId, float32_t* width, float32_t* height);
+void CDS_Renderer_GetLayerSize(const Arinc661_Scene_t* scene, uint32_t layerId, float32_t* width, float32_t* height);
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* ARINC661_RENDERER_H */
+#endif /* CDS_RENDERER_H */

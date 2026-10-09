@@ -90,6 +90,9 @@ extern "C"
 #define SCENE_PANE_COLUMN_IDX     (1)
 #define INSPECTOR_PANE_COLUMN     (2)
 #define PANE_COUNT                (3)
+
+#define SCENE_NODES_PER_ENTRY (2) ///< Scene nodes for the root, a layer, or a widget: the node and its model node
+#define SCENE_NODE_CAPACITY   ((SCENE_NODES_PER_ENTRY * (1 + ARINC661_DEFINITION_EDITOR_MAX_LAYERS + ARINC661_DEFINITION_EDITOR_MAX_WIDGETS)) + ARINC661_DEFINITION_EDITOR_MAX_PROPERTIES) ///< Scene nodes for the largest document, as Arinc661_Scene_Build counts them
 #define INVALID_HIERARCHY_INDEX   (UINT32_MAX)
 #define INVALID_DOCUMENT_INDEX    (UINT32_MAX)
 
@@ -569,7 +572,7 @@ static const Arinc661_Parameter_t c_ulongParameter  = {NULL, ARINC661_PARAMETER_
 /**
  * \brief Node storage for the scene of the document being drawn; each draw builds the scene again.
  */
-static FACEOE_Utl_Node_t s_sceneNodes[ARINC661_SCENE_NODE_COUNT(ARINC661_DEFINITION_EDITOR_MAX_WIDGETS, ARINC661_DEFINITION_EDITOR_MAX_PROPERTIES)];
+static FACEOE_Utl_Node_t s_sceneNodes[SCENE_NODE_CAPACITY];
 
 /*************************************************************************************************/
 /**
@@ -1288,15 +1291,17 @@ static const char_t* LayerIdText(const Arinc661_DefinitionEditor_Document_t* doc
 
 /*************************************************************************************************/
 /**
- * \brief Returns the LayerId under which a layer is in a scene built from its document.
+ * \brief Finds the LayerId under which a layer is in a scene built from its document.
  *
- * \param[in] document     Document the scene was built from
- * \param[in] scene        Scene built from the document
- * \param[in] layerIndex   Layer array index
+ * \param[in]  document     Document the scene was built from
+ * \param[in]  scene        Scene built from the document
+ * \param[in]  layerIndex   Layer array index
+ * \param[out] layerId      LayerId, written only when the layer is in the scene
  *
- * \retval    uint32_t   LayerId, or ARINC661_SCENE_LAYER_IDS for a layer the scene left out.
+ * \retval     TRUE         if the layer is in the scene.
+ * \retval     FALSE        if the scene left it out.
  */
-static uint32_t SceneLayerId(const Arinc661_DefinitionEditor_Document_t* document, const Arinc661_Scene_t* scene, uint32_t layerIndex);
+static bool_t SceneLayerId(const Arinc661_DefinitionEditor_Document_t* document, const Arinc661_Scene_t* scene, uint32_t layerIndex, uint32_t* layerId);
 
 /*************************************************************************************************/
 /**
@@ -1452,7 +1457,7 @@ static void BuildScene(const Arinc661_DefinitionEditor_Document_t* document, boo
  *
  * \retval    uint32_t   Widget array index.
  */
-static uint32_t GetBoundsWidgetIndex(const Arinc661_DefinitionEditor_Document_t* document, const Arinc661_Renderer_Bounds_t* bounds);
+static uint32_t GetBoundsWidgetIndex(const Arinc661_DefinitionEditor_Document_t* document, const CDS_Renderer_Bounds_t* bounds);
 
 /*************************************************************************************************/
 /**
@@ -5043,13 +5048,12 @@ static const char_t* LayerIdText(const Arinc661_DefinitionEditor_Document_t* doc
 /**
  * \par Details:
  *  The scene leaves out a layer without a valid LayerId, or with the LayerId of an earlier
- *  layer; the renderer draws nothing for ARINC661_SCENE_LAYER_IDS.
+ *  layer.
  */
-static uint32_t SceneLayerId(const Arinc661_DefinitionEditor_Document_t* document, const Arinc661_Scene_t* scene, uint32_t layerIndex)
+static bool_t SceneLayerId(const Arinc661_DefinitionEditor_Document_t* document, const Arinc661_Scene_t* scene, uint32_t layerIndex, uint32_t* layerId)
 {
     const FACEOE_Utl_Node_t* layer;
     float32_t                number;
-    uint32_t                 layer_id;
     bool_t                   has_number;
     bool_t                   is_slot;
     bool_t                   is_in_scene;
@@ -5057,7 +5061,7 @@ static uint32_t SceneLayerId(const Arinc661_DefinitionEditor_Document_t* documen
     has_number = GetPropertyNumber(document, ARINC661_PROPERTY_LAYER, layerIndex, PROPERTY_LAYER_ID, &number);
     if (has_number)
     {
-        is_slot = !!((0.0f <= number) && (number < (float32_t)ARINC661_SCENE_LAYER_IDS));
+        is_slot = !!((0.0f <= number) && (number < (float32_t)ARINC661_SCENE_MAX_LAYER_IDS));
     }
     else
     {
@@ -5085,14 +5089,10 @@ static uint32_t SceneLayerId(const Arinc661_DefinitionEditor_Document_t* documen
 
     if (is_in_scene)
     {
-        layer_id = (uint32_t)number;
-    }
-    else
-    {
-        layer_id = ARINC661_SCENE_LAYER_IDS;
+        (*layerId) = (uint32_t)number;
     }
 
-    return layer_id;
+    return is_in_scene;
 }
 
 /*************************************************************************************************/
@@ -5246,20 +5246,18 @@ static void DrawSceneToolbar(Arinc661_DefinitionEditor_Document_t* document, uin
 /**
  * \par Details:
  *  With omitsHidden, a hidden widget is left out with everything below it, as the editor
- *  hides a subtree. s_sceneNodes fits the largest document, so the build cannot fail.
+ *  hides a subtree. s_sceneNodes fits the largest document, so the build's room assertion holds.
  */
 static void BuildScene(const Arinc661_DefinitionEditor_Document_t* document, bool_t omitsHidden, Arinc661_Scene_t* scene)
 {
     const byte_t* omit_flags;
-    bool_t        is_built;
 
     omit_flags = NULL;
     if (omitsHidden)
     {
         omit_flags = document->isHiddenInEditor;
     }
-    is_built = Arinc661_Scene_Build(scene, s_sceneNodes, s_sceneItems, COUNT_OF(s_sceneNodes), document->layers, document->definition.layerCount, document->widgets, document->definition.widgetCount, document->properties, document->definition.propertyCount, omit_flags);
-    LOGASSERT(is_built);
+    Arinc661_Scene_Build(scene, s_sceneNodes, s_sceneItems, COUNT_OF(s_sceneNodes), document->layers, document->definition.layerCount, document->widgets, document->definition.widgetCount, document->properties, document->definition.propertyCount, omit_flags);
 }
 
 /*************************************************************************************************/
@@ -5267,7 +5265,7 @@ static void BuildScene(const Arinc661_DefinitionEditor_Document_t* document, boo
  * \par Details:
  *  The bounds point into the document's widget array, so the offset is the index.
  */
-static uint32_t GetBoundsWidgetIndex(const Arinc661_DefinitionEditor_Document_t* document, const Arinc661_Renderer_Bounds_t* bounds)
+static uint32_t GetBoundsWidgetIndex(const Arinc661_DefinitionEditor_Document_t* document, const CDS_Renderer_Bounds_t* bounds)
 {
     return (uint32_t)(bounds->widget - document->widgets);
 }
@@ -5282,7 +5280,7 @@ static uint32_t PickWidget(const Arinc661_DefinitionEditor_Document_t* document,
     const Arinc661_Widget_t* widget;
     uint32_t                 widget_index;
 
-    widget       = Arinc661_Renderer_Pick(document->owner->sceneBounds, document->owner->sceneBoundsCount, point);
+    widget       = CDS_Renderer_Pick(document->owner->sceneBounds, document->owner->sceneBoundsCount, point);
     widget_index = INVALID_HIERARCHY_INDEX;
     if (NULL != widget)
     {
@@ -5304,32 +5302,32 @@ static uint32_t PickWidget(const Arinc661_DefinitionEditor_Document_t* document,
  */
 static void DrawSceneInteraction(Arinc661_DefinitionEditor_Document_t* document, uint32_t layerIndex, ImVec2 layerMin, ImVec2 layerMax, float32_t scale, ImDrawList* drawList, bool_t isCanvasHovered)
 {
-    Arinc661_DefinitionEditor_t*      owner;
-    const Arinc661_Renderer_Bounds_t* bounds;
-    FACEOE_Gfx_Point_t                mouse_point;
-    ImVec2                            mouse;
-    ImVec2                            corners[4];
-    ImVec2                            marquee_min;
-    ImVec2                            marquee_max;
-    ImVec2                            selected_min;
-    ImVec2                            selected_max;
-    float32_t                         delta_x;
-    float32_t                         delta_y;
-    float32_t                         step;
-    float32_t                         value;
-    float32_t                         width;
-    float32_t                         height;
-    uint32_t                          hit_index;
-    uint32_t                          bounds_index;
-    uint32_t                          bounds_widget_index;
-    uint32_t                          corner;
-    int32_t                           hover_mode;
-    bool_t                            has_selected_bounds;
-    bool_t                            has_position;
-    bool_t                            has_size;
-    bool_t                            has_angle;
-    ImVec2                            rotate_handle;
-    ImVec2                            center;
+    Arinc661_DefinitionEditor_t* owner;
+    const CDS_Renderer_Bounds_t* bounds;
+    FACEOE_Gfx_Point_t           mouse_point;
+    ImVec2                       mouse;
+    ImVec2                       corners[4];
+    ImVec2                       marquee_min;
+    ImVec2                       marquee_max;
+    ImVec2                       selected_min;
+    ImVec2                       selected_max;
+    float32_t                    delta_x;
+    float32_t                    delta_y;
+    float32_t                    step;
+    float32_t                    value;
+    float32_t                    width;
+    float32_t                    height;
+    uint32_t                     hit_index;
+    uint32_t                     bounds_index;
+    uint32_t                     bounds_widget_index;
+    uint32_t                     corner;
+    int32_t                      hover_mode;
+    bool_t                       has_selected_bounds;
+    bool_t                       has_position;
+    bool_t                       has_size;
+    bool_t                       has_angle;
+    ImVec2                       rotate_handle;
+    ImVec2                       center;
 
     owner               = document->owner;
     mouse               = ImGui::GetMousePos();
@@ -7699,7 +7697,7 @@ static void ResolveWidgetArea(const Arinc661_DefinitionEditor_Document_t* docume
  * \par Details:
  *  Shows the selected layer, the layer of the selected widget, or else the first layer,
  *  with its origin at the lower-left corner (section 2.3.4). The scene is built without the
- *  widgets hidden in the editor and drawn with Arinc661_Renderer_DrawLayer, which records
+ *  widgets hidden in the editor and drawn with CDS_Renderer_DrawLayer, which records
  *  the widget bounds used for picking. The canvas also handles zoom, pan, the view
  *  shortcuts, window frames, rulers, and the cursor readout.
  */
@@ -7707,7 +7705,7 @@ static void DrawScenePane(Arinc661_DefinitionEditor_Document_t* editor)
 {
     const ImGuiStyle*            style;
     Arinc661_DefinitionEditor_t* owner;
-    Arinc661_Renderer_Options_t  options;
+    CDS_Renderer_Options_t       options;
     Arinc661_Scene_t             scene;
     FACEOE_Gfx_Transform_t       transform;
     ImDrawList*                  draw_list;
@@ -7724,7 +7722,9 @@ static void DrawScenePane(Arinc661_DefinitionEditor_Document_t* editor)
     float32_t                    label_height;
     float32_t                    scale;
     uint32_t                     layer_index;
+    uint32_t                     layer_id;
     uint32_t                     property_index;
+    bool_t                       is_in_scene;
     char_t                       zoom_label[LABEL_FORMAT_BYTES];
     char_t                       readout[LABEL_FORMAT_BYTES * 2];
     WidgetArea_t                 zoom_area;
@@ -7786,7 +7786,16 @@ static void DrawScenePane(Arinc661_DefinitionEditor_Document_t* editor)
         else
         {
             BuildScene(editor, TRUE, &scene);
-            Arinc661_Renderer_GetLayerSize(&scene, SceneLayerId(editor, &scene, layer_index), &layer_width, &layer_height);
+            is_in_scene = SceneLayerId(editor, &scene, layer_index, &layer_id);
+            if (is_in_scene)
+            {
+                CDS_Renderer_GetLayerSize(&scene, layer_id, &layer_width, &layer_height);
+            }
+            else
+            {
+                layer_width  = CDS_RENDERER_DEFAULT_EXTENT;
+                layer_height = CDS_RENDERER_DEFAULT_EXTENT;
+            }
             width_text  = "";
             height_text = "";
             property_index = FindOwnedProperty(editor, ARINC661_PROPERTY_LAYER, layer_index, PROPERTY_WIDTH);
@@ -7895,7 +7904,10 @@ static void DrawScenePane(Arinc661_DefinitionEditor_Document_t* editor)
             options.fontSize          = ImGui::GetFontSize();
             options.bounds            = owner->sceneBounds;
             options.boundsCapacity    = ARINC661_DEFINITION_EDITOR_MAX_WIDGETS;
-            Arinc661_Renderer_DrawLayer(&scene, SceneLayerId(editor, &scene, layer_index), &owner->drawList, &options);
+            if (is_in_scene)
+            {
+                CDS_Renderer_DrawLayer(&scene, layer_id, &owner->drawList, &options);
+            }
             owner->sceneBoundsCount = options.boundsCount;
             draw_list->PushClipRect(canvas_min, canvas_max, true);
             draw_list->AddRectFilled(layer_min, layer_min + layer_size, SCENE_LAYER_COLOR);
@@ -8563,9 +8575,10 @@ void Arinc661_DefinitionEditor_SelectDocument(Arinc661_DefinitionEditor_t* edito
 bool_t Arinc661_DefinitionEditor_RecordDocument(const Arinc661_DefinitionEditor_t* editor, uint32_t documentIndex, FACEOE_Gfx_DrawList_t* drawList, float32_t fontSize)
 {
     const Arinc661_DefinitionEditor_Document_t* document;
-    Arinc661_Renderer_Options_t                 options;
+    CDS_Renderer_Options_t                      options;
     Arinc661_Scene_t                            scene;
     uint32_t                                    layer_index;
+    uint32_t                                    layer_id;
     bool_t                                      has_layers;
 
     LOGASSERT(NULL != editor);
@@ -8580,7 +8593,10 @@ bool_t Arinc661_DefinitionEditor_RecordDocument(const Arinc661_DefinitionEditor_
         BuildScene(document, FALSE, &scene);
         for (layer_index = 0; layer_index < document->definition.layerCount; ++layer_index)
         {
-            Arinc661_Renderer_DrawLayer(&scene, SceneLayerId(document, &scene, layer_index), drawList, &options);
+            if (SceneLayerId(document, &scene, layer_index, &layer_id))
+            {
+                CDS_Renderer_DrawLayer(&scene, layer_id, drawList, &options);
+            }
             has_layers = TRUE;
         }
     }
@@ -8977,12 +8993,13 @@ void Arinc661_DefinitionEditor_SelectWidget(Arinc661_DefinitionEditor_t* editor,
  *  Like Arinc661_DefinitionEditor_RecordDocument, with the bounds of every drawn widget appended
  *  across the layers so a host can pick through the preview.
  */
-bool_t Arinc661_DefinitionEditor_RecordDocumentBounds(const Arinc661_DefinitionEditor_t* editor, uint32_t documentIndex, FACEOE_Gfx_DrawList_t* drawList, float32_t fontSize, Arinc661_Renderer_Bounds_t* bounds, uint32_t boundsCapacity, uint32_t* boundsCount)
+bool_t Arinc661_DefinitionEditor_RecordDocumentBounds(const Arinc661_DefinitionEditor_t* editor, uint32_t documentIndex, FACEOE_Gfx_DrawList_t* drawList, float32_t fontSize, CDS_Renderer_Bounds_t* bounds, uint32_t boundsCapacity, uint32_t* boundsCount)
 {
     const Arinc661_DefinitionEditor_Document_t* document;
-    Arinc661_Renderer_Options_t                 options;
+    CDS_Renderer_Options_t                      options;
     Arinc661_Scene_t                            scene;
     uint32_t                                    layer_index;
+    uint32_t                                    layer_id;
     uint32_t                                    total;
     bool_t                                      has_layers;
 
@@ -9004,7 +9021,10 @@ bool_t Arinc661_DefinitionEditor_RecordDocumentBounds(const Arinc661_DefinitionE
                 options.bounds         = &bounds[total];
                 options.boundsCapacity = (boundsCapacity - total);
             }
-            Arinc661_Renderer_DrawLayer(&scene, SceneLayerId(document, &scene, layer_index), drawList, &options);
+            if (SceneLayerId(document, &scene, layer_index, &layer_id))
+            {
+                CDS_Renderer_DrawLayer(&scene, layer_id, drawList, &options);
+            }
             total += options.boundsCount;
             has_layers = TRUE;
         }
@@ -9106,12 +9126,13 @@ void Arinc661_DefinitionEditor_SelectionText(const Arinc661_DefinitionEditor_t* 
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The size comes from Arinc661_Renderer_GetLayerSize, so each dimension is at least 1.
+ *  The size comes from CDS_Renderer_GetLayerSize, so each dimension is at least 1.
  */
 bool_t Arinc661_DefinitionEditor_LayerAt(const Arinc661_DefinitionEditor_t* editor, uint32_t documentIndex, uint32_t layerIndex, const char_t** layerId, const char_t** name, float32_t* width, float32_t* height)
 {
     const Arinc661_DefinitionEditor_Document_t* document;
     Arinc661_Scene_t                            scene;
+    uint32_t                                    layer_id;
     bool_t                                      is_found;
 
     LOGASSERT(NULL != editor);
@@ -9126,7 +9147,15 @@ bool_t Arinc661_DefinitionEditor_LayerAt(const Arinc661_DefinitionEditor_t* edit
         (*layerId) = LayerIdText(document, layerIndex);
         (*name)    = document->layers[layerIndex].name;
         BuildScene(document, FALSE, &scene);
-        Arinc661_Renderer_GetLayerSize(&scene, SceneLayerId(document, &scene, layerIndex), width, height);
+        if (SceneLayerId(document, &scene, layerIndex, &layer_id))
+        {
+            CDS_Renderer_GetLayerSize(&scene, layer_id, width, height);
+        }
+        else
+        {
+            (*width)  = CDS_RENDERER_DEFAULT_EXTENT;
+            (*height) = CDS_RENDERER_DEFAULT_EXTENT;
+        }
         is_found = TRUE;
     }
 

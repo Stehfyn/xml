@@ -13,8 +13,8 @@ extern "C"
 {
 #include "faceoe/faceoe_displaymanagement.h"
 #include "faceoe_gfx/faceoe_gfx_drawlist.h"
+#include "cds/cds_renderer.h"
 }
-#include "arinc661_renderer.h"
 
 /*=================================================================================================
 ** 3. DECLARATIONS
@@ -102,7 +102,7 @@ typedef struct Arinc661_Configuration_Editor_s
     int64_t                           dragOriginHeight;                                                                                        ///< pixelArea.height at drag start.
     float32_t                         dragScale;                                                                                               ///< Canvas pixels per configured screen pixel at drag start.
     bool_t                            hasDragged;                                                                                              ///< TRUE once the mouse moved past the drag threshold.
-    Arinc661_Renderer_Bounds_t        previewBounds[ARINC661_CONFIGURATION_MAX_PREVIEW_BOUNDS];                                                ///< Widget bounds of this frame's previews; each widget points into the definition of its previewDocuments slot.
+    CDS_Renderer_Bounds_t             previewBounds[ARINC661_CONFIGURATION_MAX_PREVIEW_BOUNDS];                                                ///< Widget bounds of this frame's previews; each widget points into the definition of its previewDocuments slot.
     uint32_t                          previewBoundsCount;                                                                                      ///< Bounds recorded this frame.
     uint32_t                          previewDocuments[ARINC661_CONFIGURATION_MAX_PREVIEW_BOUNDS];                                             ///< Definition editor document slot of each bound.
     int32_t                           status;                                                                                                  ///< Editor status message; shown in place of the active document's.

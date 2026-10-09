@@ -13,8 +13,8 @@ extern "C"
 {
 #include "arinc661/arinc661_definition.h"
 #include "arinc661/arinc661_scene.h"
+#include "cds/cds_renderer.h"
 }
-#include "arinc661_renderer.h"
 
 /*=================================================================================================
 ** 3. DECLARATIONS
@@ -95,7 +95,7 @@ typedef struct Arinc661_DefinitionEditor_s
     FACEOE_Gfx_Command_t                 sceneCommands[ARINC661_DEFINITION_EDITOR_MAX_SCENE_COMMANDS];         ///< Scene command storage.
     FACEOE_Gfx_Point_t                   scenePoints[ARINC661_DEFINITION_EDITOR_MAX_SCENE_POINTS];             ///< Scene point storage.
     char_t                               sceneText[ARINC661_DEFINITION_EDITOR_MAX_SCENE_TEXT_BYTES];           ///< Scene text storage.
-    Arinc661_Renderer_Bounds_t           sceneBounds[ARINC661_DEFINITION_EDITOR_MAX_WIDGETS];                  ///< Widget bounds of the last scene.
+    CDS_Renderer_Bounds_t                sceneBounds[ARINC661_DEFINITION_EDITOR_MAX_WIDGETS];                  ///< Widget bounds of the last scene.
     uint32_t                             sceneBoundsCount;                                                     ///< Bounds recorded by the last scene.
     int32_t                              dragMode;                                                             ///< Scene drag in progress: none, move, or a resize corner.
     uint32_t                             dragWidget;                                                           ///< Widget being dragged.
@@ -642,7 +642,7 @@ void Arinc661_DefinitionEditor_SelectWidget(Arinc661_DefinitionEditor_t* editor,
  * \retval        TRUE            if at least one layer was recorded.
  * \retval        FALSE           otherwise.
  */
-bool_t Arinc661_DefinitionEditor_RecordDocumentBounds(const Arinc661_DefinitionEditor_t* editor, uint32_t documentIndex, FACEOE_Gfx_DrawList_t* drawList, float32_t fontSize, Arinc661_Renderer_Bounds_t* bounds, uint32_t boundsCapacity, uint32_t* boundsCount);
+bool_t Arinc661_DefinitionEditor_RecordDocumentBounds(const Arinc661_DefinitionEditor_t* editor, uint32_t documentIndex, FACEOE_Gfx_DrawList_t* drawList, float32_t fontSize, CDS_Renderer_Bounds_t* bounds, uint32_t boundsCapacity, uint32_t* boundsCount);
 
 /*************************************************************************************************/
 /**
@@ -691,8 +691,8 @@ void Arinc661_DefinitionEditor_SelectionText(const Arinc661_DefinitionEditor_t* 
  * \param[in]  layerIndex      Layer array index
  * \param[out] layerId         LayerId text, or an empty string
  * \param[out] name            Layer name
- * \param[out] width           Width in 0.01 mm, as Arinc661_Renderer_GetLayerSize reads it
- * \param[out] height          Height in 0.01 mm, as Arinc661_Renderer_GetLayerSize reads it
+ * \param[out] width           Width in 0.01 mm, as CDS_Renderer_GetLayerSize reads it
+ * \param[out] height          Height in 0.01 mm, as CDS_Renderer_GetLayerSize reads it
  *
  * \retval     TRUE            if the layer exists.
  * \retval     FALSE           otherwise.

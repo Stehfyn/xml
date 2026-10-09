@@ -26,11 +26,11 @@
  * \brief Tree of nodes taken in order from caller-owned storage.
  *
  * \par Details:
- *  nodes[0] is the root. Nodes are linked with FACEOE_Utl_Node_AppendChild.
+ *  The first node taken, nodes[0], is the root. Nodes are linked with FACEOE_Utl_Node_AppendChild.
  */
 typedef struct FACEOE_Utl_Tree_s
 {
-    FACEOE_Utl_Node_t* root;         ///< Root node, nodes[0]
+    FACEOE_Utl_Node_t* root;         ///< Root node, nodes[0]; NULL until FACEOE_Utl_Tree_AddNode takes it
     FACEOE_Utl_Node_t* nodes;        ///< Caller's node storage
     uint32_t           nodeCapacity; ///< Number of nodes in the storage
     uint32_t           nodeCount;    ///< Number of nodes taken, the root included
@@ -61,27 +61,26 @@ typedef void (*FACEOE_Utl_Tree_Visitor_t)(const FACEOE_Utl_Node_t* node, void* c
 
 /*************************************************************************************************/
 /**
- * \brief Initializes a tree in caller-owned node storage, with a root holding an item.
+ * \brief Initializes an empty tree in caller-owned node storage.
  *
  * \par Requirements:
- *  - 001 This function shall initialize nodes[0] as the root holding rootItem, leaving nodeCount at 1.
+ *  - 001 This function shall leave the tree with no nodes taken and a NULL root.
  *  - 002 This function shall fail an assertion if tree or nodes is NULL, or nodeCapacity is zero.
  *
  * \param[out] tree           Tree to initialize
  * \param[out] nodes          Caller-owned node storage
  * \param[in]  nodeCapacity   Number of nodes in the storage
- * \param[in]  rootItem       Pointer to the root's item, or NULL
  *
  * \retval     None
  */
-void FACEOE_Utl_Tree_Initialize(FACEOE_Utl_Tree_t* tree, FACEOE_Utl_Node_t* nodes, uint32_t nodeCapacity, void* rootItem);
+void FACEOE_Utl_Tree_Initialize(FACEOE_Utl_Tree_t* tree, FACEOE_Utl_Node_t* nodes, uint32_t nodeCapacity);
 
 /*************************************************************************************************/
 /**
  * \brief Takes the next node from the tree's storage, initialized and unlinked, holding an item.
  *
  * \par Requirements:
- *  - 001 This function shall take nodes in storage order; the first call after FACEOE_Utl_Tree_Initialize returns nodes[1].
+ *  - 001 This function shall take nodes in storage order, starting at nodes[0], and make the first node taken the root.
  *  - 002 This function shall return NULL, taking nothing, when the storage is full.
  *  - 003 This function shall fail an assertion if tree is NULL.
  *
@@ -102,7 +101,8 @@ FACEOE_Utl_Node_t* FACEOE_Utl_Tree_AddNode(FACEOE_Utl_Tree_t* tree, void* item);
  * \par Requirements:
  *  - 001 This function shall call visitor once for the root and each node linked below it, a parent before its children and children in append order.
  *  - 002 This function shall not visit a node that is taken but not linked below the root.
- *  - 003 This function shall fail an assertion if tree or visitor is NULL, or the walk does not end within nodeCount visits.
+ *  - 003 This function shall visit nothing in a tree without a root.
+ *  - 004 This function shall fail an assertion if tree or visitor is NULL, or the walk does not end within nodeCount visits.
  *
  * \param[in] tree      Tree to visit
  * \param[in] visitor   Non-NULL callback invoked for each node

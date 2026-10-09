@@ -79,6 +79,12 @@ add_library(faceoe STATIC
 target_link_libraries(faceoe PUBLIC faceoe_utl)
 target_include_directories(faceoe PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
+add_library(cds STATIC
+    src/cds/cds_renderer.c
+    include/cds/cds_renderer.h)
+target_link_libraries(cds PUBLIC arinc661 faceoe_gfx)
+target_include_directories(cds PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+
 add_executable(unit_tests
     tests/faceoe_utl_tests.c
     tests/arinc661_definition_tests.c
@@ -86,11 +92,10 @@ add_executable(unit_tests
     tests/faceoe_gfx_tests.c
     tests/faceoe_displaymanagement_tests.c
     tests/arinc661_update_tests.c
-    tests/arinc661_renderer_tests.c
-    examples/arinc661_renderer.c
+    tests/cds_renderer_tests.c
     examples/arinc661_update.c)
 target_include_directories(unit_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/examples")
-target_link_libraries(unit_tests PRIVATE faceoe_utl faceoe_gfx arinc661 faceoe winhttp bcrypt)
+target_link_libraries(unit_tests PRIVATE faceoe_utl faceoe_gfx arinc661 faceoe cds winhttp bcrypt)
 
 add_executable(arinc661_example examples/arinc661_example.c)
 target_link_libraries(arinc661_example PRIVATE arinc661 faceoe)
@@ -124,24 +129,22 @@ if(WIN32)
         examples/arinc661_help.h
         examples/arinc661_icons.cpp
         examples/arinc661_icons.h
-        examples/arinc661_renderer.c
-        examples/arinc661_renderer.h
         examples/arinc661_update.c
         examples/arinc661_update.h
         examples/arinc661_version.h
         examples/cds_editor.rc)
-    target_link_libraries(cds_editor PRIVATE faceoe arinc661 faceoe_gfx imgui opengl32 gdi32 dwmapi ole32 shell32 winhttp bcrypt)
+    target_link_libraries(cds_editor PRIVATE faceoe arinc661 faceoe_gfx cds imgui opengl32 gdi32 dwmapi ole32 shell32 winhttp bcrypt)
     set_target_properties(cds_editor PROPERTIES OUTPUT_NAME "cds-editor" VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
-    add_executable(arinc661_definition_editor_tests tests/arinc661_definition_editor_tests.cpp examples/arinc661_gfx_imgui.cpp examples/arinc661_renderer.c examples/arinc661_help.c examples/arinc661_context.cpp examples/arinc661_configuration.cpp examples/arinc661_icons.cpp)
+    add_executable(arinc661_definition_editor_tests tests/arinc661_definition_editor_tests.cpp examples/arinc661_gfx_imgui.cpp examples/arinc661_help.c examples/arinc661_context.cpp examples/arinc661_configuration.cpp examples/arinc661_icons.cpp)
     target_include_directories(arinc661_definition_editor_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/examples")
-    target_link_libraries(arinc661_definition_editor_tests PRIVATE arinc661 faceoe faceoe_gfx imgui)
+    target_link_libraries(arinc661_definition_editor_tests PRIVATE arinc661 faceoe faceoe_gfx cds imgui)
     add_test(NAME arinc661_definition_editor_tests COMMAND arinc661_definition_editor_tests)
 
     # GUI tests drive the editor panels through the null backend with synthetic input
-    add_executable(arinc661_gui_tests tests/arinc661_gui_tests.cpp examples/arinc661_gfx_imgui.cpp examples/arinc661_renderer.c examples/arinc661_help.c examples/arinc661_context.cpp examples/arinc661_configuration.cpp examples/arinc661_icons.cpp)
+    add_executable(arinc661_gui_tests tests/arinc661_gui_tests.cpp examples/arinc661_gfx_imgui.cpp examples/arinc661_help.c examples/arinc661_context.cpp examples/arinc661_configuration.cpp examples/arinc661_icons.cpp)
     target_include_directories(arinc661_gui_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/examples")
-    target_link_libraries(arinc661_gui_tests PRIVATE arinc661 faceoe faceoe_gfx imgui)
+    target_link_libraries(arinc661_gui_tests PRIVATE arinc661 faceoe faceoe_gfx cds imgui)
     add_test(NAME arinc661_gui_tests COMMAND arinc661_gui_tests "${CMAKE_CURRENT_SOURCE_DIR}/examples")
 
     # Shell extension: content-sniffed overlay badges and a context menu verb for Explorer

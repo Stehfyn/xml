@@ -93,9 +93,9 @@ static const FACEOE_Utl_Node_t* NextNode(const FACEOE_Utl_Tree_t* tree, const FA
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The root is taken with FACEOE_Utl_Tree_AddNode, leaving nodeCapacity - 1 nodes for later calls.
+ *  The first FACEOE_Utl_Tree_AddNode takes the root.
  */
-void FACEOE_Utl_Tree_Initialize(FACEOE_Utl_Tree_t* tree, FACEOE_Utl_Node_t* nodes, uint32_t nodeCapacity, void* rootItem)
+void FACEOE_Utl_Tree_Initialize(FACEOE_Utl_Tree_t* tree, FACEOE_Utl_Node_t* nodes, uint32_t nodeCapacity)
 {
     LOGASSERT(NULL != tree);
     LOGASSERT(NULL != nodes);
@@ -105,7 +105,7 @@ void FACEOE_Utl_Tree_Initialize(FACEOE_Utl_Tree_t* tree, FACEOE_Utl_Node_t* node
     tree->nodes        = nodes;
     tree->nodeCapacity = nodeCapacity;
     tree->nodeCount    = 0;
-    tree->root         = FACEOE_Utl_Tree_AddNode(tree, rootItem);
+    tree->root         = NULL;
 }
 
 /*************************************************************************************************/
@@ -127,7 +127,13 @@ FACEOE_Utl_Node_t* FACEOE_Utl_Tree_AddNode(FACEOE_Utl_Tree_t* tree, void* item)
         node = &tree->nodes[tree->nodeCount];
 
         FACEOE_Utl_Node_Initialize(node, item);
-        
+
+        if (0 == tree->nodeCount)
+        {
+            // The first node taken is the root
+            tree->root = node;
+        }
+
         tree->nodeCount += 1;
     }
     else

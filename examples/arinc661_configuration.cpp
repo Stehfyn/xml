@@ -4454,7 +4454,7 @@ static void DrawScenePane(Arinc661_Configuration_Editor_t* owner, Arinc661_Confi
 
                     play_point.x = mouse_position.x;
                     play_point.y = mouse_position.y;
-                    play_widget  = Arinc661_Renderer_Pick(owner->previewBounds, owner->previewBoundsCount, play_point);
+                    play_widget  = CDS_Renderer_Pick(owner->previewBounds, owner->previewBoundsCount, play_point);
                     for (play_slot = 0; play_slot < owner->previewBoundsCount; ++play_slot)
                     {
                         if (NULL == play_widget)
@@ -4482,7 +4482,7 @@ static void DrawScenePane(Arinc661_Configuration_Editor_t* owner, Arinc661_Confi
 
                     pick_point.x = mouse_position.x;
                     pick_point.y = mouse_position.y;
-                    pick_widget  = Arinc661_Renderer_Pick(owner->previewBounds, owner->previewBoundsCount, pick_point);
+                    pick_widget  = CDS_Renderer_Pick(owner->previewBounds, owner->previewBoundsCount, pick_point);
                     if (NULL != pick_widget)
                     {
                         for (pick_slot = 0; pick_slot < owner->previewBoundsCount; ++pick_slot)
