@@ -7,10 +7,11 @@
  * https://saemobilus.sae.org/standards/arinc661-6-cockpit-display-system-interfaces-user-systems
  * J661-hosted Supplement 6 strict XML Definition File schema (a661Strict.xsd):
  * https://j661.sourceforge.net/articles/articles/resources/a661Strict.xsd
- * ARINC 661 Part 1, Supplement 7, binary Definition File:
+ * ARINC 661 Part 1, Supplement 7 (Part 1-7), binary and XML Definition File:
  * section 4.5.3.2 (Definition File structure), section 4.5.3.3 (layer block commands),
- * section 4.6 (constants), section 7 (picture blocks), section 8 (widget extensions),
- * section 9 (animation law blocks), and the Creation Structure tables in sections 3 and 8.
+ * section 4.6 (keyword values), section 6 (XML Definition File), section 7 (picture blocks),
+ * section 8 (widget extensions), section 9 (animation law blocks), and the Creation Structure
+ * tables in sections 3 and 8.
  * ARINC 661 Part 1-7, Table 8.4, Possible Widgets for Extension: which widget types each
  * extension may be attached to, generated from the column positions of the table's marks.
  */
@@ -56,7 +57,7 @@
 #define DF_ELEMENT_STRUCT_ENTRY   ("structentry")
 #define DF_ELEMENT_FIELD          ("field")
 
-/* ARINC 661 Part 1-7, sections 6.2.1 and 8: charset encoding and widget extension elements. */
+/* ARINC 661 Part 1-7, sections 6.2.1 and 6.1.1: charset encoding and widget extension elements. */
 #define DF_ELEMENT_CHARSET_ENCODING ("charset-encoding")
 #define DF_ELEMENT_EXTENSION        ("a661_extension")
 
@@ -87,7 +88,7 @@
 #define BINARY_CMD_CREATE             (0xCA01U) ///< A661_CMD_CREATE
 #define BINARY_CMD_EXTEND             (0xCA05U) ///< A661_CMD_EXTEND
 
-/* ARINC 661 Part 1-7, Table 7-3 pixel formats and their bytes per pixel or color table entry. */
+/* ARINC 661 Part 1-7, pixel formats: values from Table 4.6-11, bytes per pixel or color table entry from Table 7-3. */
 #define BINARY_PIX_FMT_RGBA_8            (0xC0U) ///< A661_PIX_FMT_RGBA_8, four bytes
 #define BINARY_PIX_FMT_LUMINANCE_ALPHA_8 (0xC1U) ///< A661_PIX_FMT_LUMINANCE_ALPHA_8, two bytes
 #define BINARY_PIX_FMT_COLOR_INDEXED_8   (0xC2U) ///< A661_PIX_FMT_COLOR_INDEXED_8, one byte
@@ -96,14 +97,14 @@
 #define BINARY_WORD_BYTES           (4U)  ///< Blocks and commands are aligned to 32 bits
 #define BINARY_MAX_FIELDS           (40U) ///< Upper bound on the entries of one field table, pads included
 
-/* ARINC 661 Part 1-7, section 3.3 data types: big-endian field widths. */
+/* ARINC 661 Part 1-7, Table 3.3-1: big-endian field widths. */
 #define BINARY_UCHAR_BYTES    (1U) ///< uchar
 #define BINARY_USHORT_BYTES   (2U) ///< ushort
 #define BINARY_ULONG_BYTES    (4U) ///< ulong, long, float, and fr()
 #define BINARY_VARIABLE_BYTES (0U) ///< Width of a field whose value sizes itself: string, alignment, sized bytes, region, or layer request
 
 /* Sizes of Creation Structure parameters stored as bytes without a numeric type (BINARY_FIELD_BYTES). */
-#define BINARY_ANIMATION_VALUE_BYTES     (4U)  ///< FromValue and ToValue of AnimationOnParam, in the target parameter's encoding (Table 3.9.8-2)
+#define BINARY_ANIMATION_VALUE_BYTES     (4U)  ///< FromValue and ToValue of AnimationOnParam: 32 bits, type N/A (Table 3.9.8-2)
 #define BINARY_BCD_VALUE_BYTES           (8U)  ///< BCD values and tics of EditBoxNumericBCD (Table 3.6.1-5)
 #define BINARY_STYLE_TEXT_BYTES          (12U) ///< DefaultStyleText of LabelComplex and ScrollList (Tables 3.3.21-2 and 3.3.37-2)
 #define BINARY_WIDGET_PARAM_RESULT_BYTES (20U) ///< One EventHandler WidgetParamResultArray entry with a SourceWidgetParam_Struct source (Tables 3.9.17-4 and 3.9.17-5)
@@ -112,7 +113,7 @@
 #define BINARY_ONE_PER_ENTRY  (1U) ///< elementsPerEntry of an array of single elements
 #define BINARY_PAIR_PER_ENTRY (2U) ///< elementsPerEntry of an array of pairs, such as Vertices x and y
 
-/* ARINC 661 Part 1-7, Tables 4.5.3.2-1 through 4.5.3.2-6: block codes. */
+/* ARINC 661 Part 1-7, Tables 4.5.3.2-3 through 4.5.3.2-6: block codes. */
 #define BINARY_BLOCK_CODE_SHIFT (24U) ///< A block code is the most significant byte of its 32-bit word
 
 /* Hexadecimal property text of byte parameters. */
@@ -133,7 +134,7 @@
 #define BINARY_PROPERTY_WIDGET_IDENT   ("WidgetIdent")
 
 #define BINARY_INTEGER_TEXT_BYTES (32U)           ///< Integer formatting buffer bytes, including the zero terminator
-#define BINARY_FR_FULL_SCALE      (2147483648.0)  ///< Two raised to the number of fr() bits minus one
+#define BINARY_FR_FULL_SCALE      (2147483648.0)  ///< 2^31; one LSB of a 32-bit fr(x) is x / 2^31
 #define BINARY_FR180_RANGE        (180.0)         ///< fr(180): degrees from -180 to 180
 #define BINARY_FR32768_RANGE      (32768.0)       ///< fr(32768): -32768 to 32768
 #define BINARY_FR_PRECISION       (10)            ///< Most fractional digits tried when formatting an fr() value; one fr(180) LSB is 8.4e-8
@@ -1087,7 +1088,7 @@ typedef struct CharsetEncoding_s
 
 /*************************************************************************************************/
 /**
- * \brief Encoding of one Creation Structure parameter (Part 1-7, section 3.3 data types).
+ * \brief Encoding of one Creation Structure parameter (Part 1-7, Table 3.3-1).
  */
 typedef enum BinaryFieldType_e
 {
@@ -1109,7 +1110,7 @@ typedef enum BinaryFieldType_e
 
 /*************************************************************************************************/
 /**
- * \brief ExcludedRegionType of an excluded region structure (Part 1-7, Table 8.6.7-3).
+ * \brief ExcludedRegionType of an excluded region structure (Part 1-7, Tables 8.6.7-3 and 4.6-11).
  */
 typedef enum BinaryRegionType_e
 {
@@ -1151,7 +1152,7 @@ typedef struct BinaryWidget_s
 {
     const char_t*        name;       ///< Type name, for example A661_PANEL or A661_LEGEND_ALIGN_EXTENSION
     uint16_t             code;       ///< WidgetType value in Table 4.6-7, or ExtensionType value in Table 4.6-12
-    const BinaryField_t* fields;     ///< Creation Structure parameters, including unused pads and alignment
+    const BinaryField_t* fields;     ///< Creation Structure parameters after ParentIdent or ExtensionType, including unused pads and alignment
     uint32_t             fieldCount; ///< Number of parameters
 } BinaryWidget_t;
 
@@ -1178,7 +1179,7 @@ typedef struct ExtensionTargets_s
 
 /*************************************************************************************************/
 /**
- * \brief Definition File header (Table 4.5.3.2-2).
+ * \brief Definition File header up to OEM_Free_Data (Table 4.5.3.2-2).
  */
 #pragma pack(push, 1)
 typedef struct BinaryHeader_s
@@ -1187,7 +1188,7 @@ typedef struct BinaryHeader_s
     byte_t   libraryVersion;    ///< LibraryVersion
     byte_t   supplementVersion; ///< SuppVersion
     uint16_t appliIdent;        ///< AppliIdent
-    uint16_t oemDataSize;       ///< Bytes of OEM data after the header
+    uint16_t oemDataSize;       ///< Bytes of OEM_Free_Data that follow
 } BinaryHeader_t;
 #pragma pack(pop)
 
@@ -1200,7 +1201,7 @@ typedef struct BinaryLayerBlock_s
 {
     byte_t   blockCode;     ///< A661_BEGIN_LAYER_BLOCK
     byte_t   layerIdent;    ///< LayerIdent
-    uint16_t contextNumber; ///< ContextNumber
+    uint16_t contextNumber; ///< Context Number
     uint32_t blockSize;     ///< Block Size, including this header and the end code
 } BinaryLayerBlock_t;
 #pragma pack(pop)
@@ -1240,7 +1241,7 @@ typedef struct BinaryCharsetBlock_s
 #pragma pack(push, 1)
 typedef struct BinaryBlockEnd_s
 {
-    byte_t endCode;      ///< Block end code or A661_DF_FOOTER
+    byte_t endCode;      ///< Block or picture end code, or A661_DF_FOOTER
     byte_t unusedPad[3]; ///< UnusedPad
 } BinaryBlockEnd_t;
 #pragma pack(pop)
@@ -1270,15 +1271,15 @@ typedef struct BinaryPicture_s
 {
     byte_t   pictureCode; ///< A661_BEGIN_PICTURE
     byte_t   unusedPad;   ///< UnusedPad
-    uint16_t reference;   ///< Picture reference
-    uint16_t width;       ///< Width in pixels
-    uint16_t height;      ///< Height in pixels
+    uint16_t reference;   ///< PictureReference
+    uint16_t width;       ///< NumberOfPixelsWidth
+    uint16_t height;      ///< NumberOfPixelsHeight
 } BinaryPicture_t;
 #pragma pack(pop)
 
 /*************************************************************************************************/
 /**
- * \brief Start of every command and the whole fixed part of A661_CMD_EXTEND (Table 4.5.3.3.2); parameters follow.
+ * \brief Start of every layer block command and the whole fixed part of A661_CMD_EXTEND (Table 4.5.3.3.2); parameters follow.
  */
 #pragma pack(push, 1)
 typedef struct BinaryCommand_s
@@ -1701,8 +1702,9 @@ static const BinaryArray_t c_styleSetArraySizeArray      = {PARAMETER_STYLE_SET_
  *  Widget arrays start after ParentIdent; extension arrays start after
  *  ExtensionType. An array parameter points at the descriptor that names its
  *  count parameter and its elements per entry; arrays of pairs, such as Vertices and
- *  BufferStructure, alternate the two members. Arrays are padded to 32 bits
- *  only where the table says so, which is recorded as an alignment entry.
+ *  BufferStructure, alternate the two members. An alignment entry stands for the
+ *  table's padding to 32 bits after a string or array that more parameters follow;
+ *  the command's own padding covers the end of the structure.
  *  A661_SELECTOR has no array because Table 4.6-7 gives it no WidgetType code.
  */
 /*************************************************************************************************/
@@ -4873,7 +4875,7 @@ static void ResetDefinition(Arinc661_Definition_t* definition);
  *
  * \param[out] xml               Partitioned temporary storage
  * \param[in]  workspace         Eight-byte-aligned caller storage
- * \param[in]  sizeOfWorkspace   Workspace size
+ * \param[in]  sizeOfWorkspace   Number of workspace bytes
  *
  * \retval     TRUE              if the workspace is aligned and has enough bytes.
  * \retval     FALSE             if the workspace is too small or misaligned.
@@ -4918,15 +4920,15 @@ static const FACEOE_Utl_Xml_Attribute_t* FindAttribute(const FACEOE_Utl_Xml_Node
 
 /*************************************************************************************************/
 /**
- * \brief Copies a counted XML attribute into terminated caller storage.
+ * \brief Copies an attribute value into caller storage as a zero-terminated string.
  *
  * \param[in]  node          Element to search
  * \param[in]  name          Attribute name
  * \param[out] destination   Output character storage
  * \param[in]  capacity      Number of destination bytes
  *
- * \retval     TRUE        if the attribute is absent or fits the destination.
- * \retval     FALSE       if the attribute exceeds the destination.
+ * \retval     TRUE        if the attribute is absent or its value fits the destination.
+ * \retval     FALSE       if the value and its terminator exceed capacity; the destination is left empty.
  */
 static bool_t CopyAttribute(const FACEOE_Utl_Xml_Node_t* node, const char_t* name, char_t* destination, uint32_t capacity);
 
@@ -5014,13 +5016,13 @@ static FACEOE_Utl_Xml_Node_t* FindDocumentElement(const FACEOE_Utl_Xml_Document_
  * \param[in] current   Node just visited
  *
  * \retval    non-NULL   Next node in document order.
- * \retval    NULL       after the subtree.
+ * \retval    NULL       if current is the last node of the subtree.
  */
 static FACEOE_Utl_Xml_Node_t* NextSubtreeNode(FACEOE_Utl_Xml_Node_t* root, FACEOE_Utl_Xml_Node_t* current);
 
 /*************************************************************************************************/
 /**
- * \brief Checks whether an element may appear inside a model.
+ * \brief Checks whether a node is a model or an element that may appear inside one.
  *
  * \param[in] node   XML node to check
  *
@@ -5102,7 +5104,7 @@ static uint32_t FindSameNameProperty(const Arinc661_Definition_t* definition, ui
  * \param[in]     ownerIndex   Layer or widget index, or zero for the definition
  *
  * \retval        TRUE        if the model and its properties were appended.
- * \retval        FALSE       if workspace storage is exhausted or a property value cannot be written literally.
+ * \retval        FALSE       if workspace storage is exhausted or a property name or value cannot be written literally.
  */
 static bool_t WriteProperties(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* parent, const Arinc661_Definition_t* definition, Arinc661_PropertyOwner_t owner, uint32_t ownerIndex);
 
@@ -5213,7 +5215,7 @@ static uint64_t AlignToWord(uint64_t size);
 /**
  * \brief Stores bytes given as hexadecimal digits.
  *
- * \param[in]  text          Zero-terminated digits, two per byte
+ * \param[in]  text          Zero-terminated uppercase digits, two per byte
  * \param[in]  sizeOfValue   Number of bytes the text must hold
  * \param[out] buffer        Output bytes
  * \param[in]  capacity      Output buffer capacity
@@ -5251,7 +5253,7 @@ static const BinaryWidget_t* FindTypeByCode(uint32_t code, bool_t isExtension);
  * \brief Finds a property of one model by name and position among properties of that name.
  *
  * \param[in] definition   Definition to search
- * \param[in] owner        Owning model kind
+ * \param[in] owner        Kind of property owner
  * \param[in] ownerIndex   Layer or widget index, or zero for the definition
  * \param[in] name         Zero-terminated property name
  * \param[in] occurrence   Zero for the first property of this name, one for the second, and so on
@@ -5269,8 +5271,8 @@ static const Arinc661_Property_t* FindProperty(const Arinc661_Definition_t* defi
  * \param[in]  maximum    Largest accepted value
  * \param[out] value      Converted value
  *
- * \retval     TRUE       if the value, zero for an absent property, is a number or constant name within the range.
- * \retval     FALSE      if the value is not numeric, not a known constant, or out of range.
+ * \retval     TRUE       if the value, zero for an absent property, is a decimal integer or constant name within the range.
+ * \retval     FALSE      otherwise.
  */
 static bool_t ScanInteger(const Arinc661_Property_t* property, int64_t minimum, int64_t maximum, int64_t* value);
 
@@ -5441,7 +5443,7 @@ static bool_t WriteBinaryPad(byte_t* buffer, uint64_t capacity, uint64_t* offset
  * \brief Appends one Creation Structure parameter to the output.
  *
  * \param[in]     field      Parameter encoding
- * \param[in]     property   Property holding the value, or NULL for zero or an empty string
+ * \param[in]     property   Property holding the value, or NULL when absent
  * \param[out]    buffer     Output bytes
  * \param[in]     capacity   Output buffer capacity
  * \param[in,out] offset     Output byte offset, advanced past the parameter
@@ -5553,7 +5555,7 @@ static bool_t WriteBinaryCommand(const Arinc661_Definition_t* definition, uint32
 
 /*************************************************************************************************/
 /**
- * \brief Formats a number without an exponent or unused fractional zeros.
+ * \brief Formats a number without an exponent or trailing fractional zeros.
  *
  * \param[out] text        Zero-terminated result
  * \param[in]  capacity    Result capacity in bytes
@@ -5602,10 +5604,10 @@ static uint32_t FormatFraction(char_t* text, uint32_t capacity, int64_t lsbCount
 
 /*************************************************************************************************/
 /**
- * \brief Appends a property with a counted value to the result.
+ * \brief Appends a property with a counted value to the definition.
  *
  * \param[in,out] definition    Caller-owned definition
- * \param[in]     owner         Owning model kind
+ * \param[in]     owner         Kind of property owner
  * \param[in]     ownerIndex    Layer or widget index, or zero for the definition
  * \param[in]     name          Zero-terminated property name
  * \param[in]     value         Value bytes
@@ -5618,16 +5620,16 @@ static bool_t AddProperty(Arinc661_Definition_t* definition, Arinc661_PropertyOw
 
 /*************************************************************************************************/
 /**
- * \brief Appends a property with a decimal integer value to the result.
+ * \brief Appends a property with a decimal integer value to the definition.
  *
  * \param[in,out] definition   Caller-owned definition
- * \param[in]     owner        Owning model kind
+ * \param[in]     owner        Kind of property owner
  * \param[in]     ownerIndex   Layer or widget index, or zero for the definition
  * \param[in]     name         Zero-terminated property name
  * \param[in]     value        Property value
  *
  * \retval        TRUE         if the property was appended.
- * \retval        FALSE        if the property array is full.
+ * \retval        FALSE        if the property array is full or the name does not fit.
  */
 static bool_t AddIntegerProperty(Arinc661_Definition_t* definition, Arinc661_PropertyOwner_t owner, uint32_t ownerIndex, const char_t* name, int64_t value);
 
@@ -5641,7 +5643,7 @@ static bool_t AddIntegerProperty(Arinc661_Definition_t* definition, Arinc661_Pro
  * \param[in]     sizeOfValue   Number of bytes in value
  *
  * \retval        TRUE          if the property was appended.
- * \retval        FALSE         if the property array is full or the digits do not fit a value.
+ * \retval        FALSE         if the property array is full, or the name or digits do not fit.
  */
 static bool_t AddHexProperty(Arinc661_Definition_t* definition, const char_t* name, const byte_t* value, uint64_t sizeOfValue);
 
@@ -5718,7 +5720,7 @@ static bool_t ReadBinaryFraction(Arinc661_Definition_t* definition, const char_t
  * \param[in,out] offset       Byte offset of the parameter, advanced past it
  *
  * \retval        TRUE         if the parameter was read.
- * \retval        FALSE        if the terminator is outside the command, or the result storage is full.
+ * \retval        FALSE        if the terminator is outside the command, or it exceeds the result storage.
  */
 static bool_t ReadBinaryString(Arinc661_Definition_t* definition, const char_t* name, const byte_t* buffer, uint64_t endOffset, uint64_t* offset);
 
@@ -5798,10 +5800,10 @@ static bool_t ReadBinaryPad(uint64_t endOffset, uint64_t* offset, uint64_t sizeO
 
 /*************************************************************************************************/
 /**
- * \brief Skips the zero bytes up to the next 32-bit boundary.
+ * \brief Skips to the next 32-bit boundary without checking the skipped bytes.
  *
  * \param[in]     endOffset   Byte offset following the command
- * \param[in,out] offset      Byte offset of the parameter, advanced past it
+ * \param[in,out] offset      Input byte offset, advanced to the boundary
  *
  * \retval        TRUE        if the boundary lies inside the command.
  * \retval        FALSE       otherwise.
@@ -5842,6 +5844,20 @@ static bool_t ReadBinaryCommand(Arinc661_Definition_t* definition, const byte_t*
 
 /*************************************************************************************************/
 /**
+ * \brief Reads the Definition File header and skips the OEM data that follows it.
+ *
+ * \param[in,out] definition           Caller-owned definition
+ * \param[in]     buffer               Input bytes
+ * \param[in]     sizeOfBinaryBuffer   Number of input bytes
+ * \param[out]    offset               Byte offset after the header and its OEM data
+ *
+ * \retval        TRUE                 if the header was read.
+ * \retval        FALSE                if the input is shorter than the header, the magic number is wrong, or storage is insufficient.
+ */
+static bool_t ReadBinaryHeader(Arinc661_Definition_t* definition, const byte_t* buffer, uint64_t sizeOfBinaryBuffer, uint64_t* offset);
+
+/*************************************************************************************************/
+/**
  * \brief Reads one layer block into the layer, widget, and property arrays.
  *
  * \param[in,out] definition           Caller-owned definition
@@ -5877,7 +5893,7 @@ static bool_t ReadBinaryCharsetBlock(Arinc661_Definition_t* definition, const by
  * \param[in]     pixelFormat          Table 7-3 pixel format of the block's pictures
  * \param[in,out] cursor               Offset of the picture code; on success, the offset after its end code
  *
- * \retval        TRUE                 if the picture lies inside the input and ends with A661_END_PICTURE.
+ * \retval        TRUE                 if the picture starts with A661_BEGIN_PICTURE, lies inside the input, and ends with A661_END_PICTURE.
  * \retval        FALSE                otherwise.
  */
 static bool_t ReadBinaryPicture(const byte_t* buffer, uint64_t sizeOfBinaryBuffer, uint32_t pixelFormat, uint64_t* cursor);
@@ -5891,7 +5907,7 @@ static bool_t ReadBinaryPicture(const byte_t* buffer, uint64_t sizeOfBinaryBuffe
  * \param[in,out] offset               Byte offset of the block, advanced past its end code
  *
  * \retval        TRUE                 if the block is well formed and complete.
- * \retval        FALSE                if it is truncated, lacks an end code, or uses an unknown pixel format.
+ * \retval        FALSE                if it is truncated, lacks a picture or end code, or uses an unknown pixel format.
  */
 static bool_t ReadBinaryPictureBlock(const byte_t* buffer, uint64_t sizeOfBinaryBuffer, uint64_t* offset);
 
@@ -5929,7 +5945,7 @@ static bool_t ReadBinaryOpaqueBlock(Arinc661_Definition_t* definition, const byt
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Array entries and scalar fields are left as they are; with zero counts they are not published.
+ *  Array entries, the name, and the versions are left as they are; zero counts hide the entries.
  */
 static void ResetDefinition(Arinc661_Definition_t* definition)
 {
@@ -6300,8 +6316,8 @@ static bool_t AppendAttribute(XmlWorkspace_t* xml, FACEOE_Utl_Xml_Node_t* node, 
  *  to its zero-terminated representation:
  *
  * \verbatim
- * value:                 -42
- * new text bytes:        '-' '4' '2' '\0'
+ * value:                  -42
+ * new text bytes:         '-' '4' '2' '\0'
  * textByteCount increase: 4
  * \endverbatim
  *
@@ -6321,7 +6337,7 @@ static const char_t* FormatInteger(XmlWorkspace_t* xml, int64_t value)
         text       = (char_t*)&xml->text[xml->textByteCount];
         byte_count = FACEOE_Utl_Print_Int64(text, XML_INTEGER_TEXT_BYTES, value);
         LOGASSERT((0 < byte_count) && ((uint32_t)byte_count < XML_INTEGER_TEXT_BYTES));
-        // Keep the terminator in workspace storage for subsequent strlen calls
+        // Keep the terminator in workspace storage for later strnlen calls
         xml->textByteCount += ((uint64_t)byte_count + 1);
     }
 
@@ -6453,10 +6469,8 @@ static FACEOE_Utl_Xml_Node_t* NextSubtreeNode(FACEOE_Utl_Xml_Node_t* root, FACEO
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Accepts field, structentry, xyentry, entry, arrayprop, prop, and model, which
- *  are the elements the subtree walk of a layer may meet inside a model. The
- *  innermost elements come first: a model holds many of them, so most calls
- *  stop at an early comparison.
+ *  Accepts model and the elements a layer's subtree walk may meet inside one:
+ *  field, structentry, xyentry, entry, arrayprop, and prop.
  */
 static bool_t IsModelContent(const FACEOE_Utl_Xml_Node_t* node)
 {
@@ -6475,9 +6489,9 @@ static bool_t IsModelContent(const FACEOE_Utl_Xml_Node_t* node)
  *  Reserves the next result slot, records the owner, and copies the name
  *  attribute of nameNode and the valueAttribute of valueNode. For a plain prop
  *  both nodes are the prop itself; for an array entry the name comes from the
- *  arrayprop and the value from the entry. Missing attributes become empty
- *  strings through CopyAttribute. The count is published only after both
- *  strings fit.
+ *  arrayprop and the value from the entry or structentry field. Missing
+ *  attributes become empty strings through CopyAttribute. The count is
+ *  published only after both strings fit.
  */
 static bool_t AppendProperty(Arinc661_Definition_t* definition, Arinc661_PropertyOwner_t owner, uint32_t ownerIndex, const FACEOE_Utl_Xml_Node_t* nameNode, const FACEOE_Utl_Xml_Node_t* valueNode, const char_t* valueAttribute)
 {
@@ -6510,7 +6524,7 @@ static bool_t AppendProperty(Arinc661_Definition_t* definition, Arinc661_Propert
 /**
  * \par Details:
  *  Flattens one array into properties that share the array's name, one per
- *  value, in document order. The three entry forms of section 6.2.4 are:
+ *  value, in document order. It reads three of the four entry forms of section 6.2.4:
  *
  * \code{.xml}
  * <arrayprop name="EntryList">
@@ -6611,7 +6625,7 @@ static bool_t ReadArrayProperty(Arinc661_Definition_t* definition, FACEOE_Utl_Xm
  *  With owner=ARINC661_PROPERTY_WIDGET and ownerIndex=2, both copied entries
  *  refer to widgets[2]. An arrayprop adds one property per entry value, all
  *  named after the array. An empty model succeeds without adding entries.
- *  A missing model, unexpected child, or exhausted result storage returns FALSE.
+ *  A missing model, unexpected child, full property array, or oversized name or value returns FALSE.
  *  Properties already counted remain until the public reader clears the counts.
  */
 static bool_t ReadProperties(Arinc661_Definition_t* definition, FACEOE_Utl_Xml_Node_t* model, Arinc661_PropertyOwner_t owner, uint32_t ownerIndex)
@@ -6902,7 +6916,7 @@ static bool_t WriteBytes(byte_t* buffer, uint64_t capacity, uint64_t* offset, co
  */
 static bool_t WriteByte(byte_t* buffer, uint64_t capacity, uint64_t* offset, byte_t value)
 {
-    return WriteBytes(buffer, capacity, offset, &value, sizeof(value));
+    return WriteBytes(buffer, capacity, offset, &value, 1);
 }
 
 /*************************************************************************************************/
@@ -6959,9 +6973,8 @@ static uint64_t AlignToWord(uint64_t size)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Accepts uppercase digits only, exactly two per byte and nothing else, so
- *  "1B4200" stores three bytes. The length check keeps the terminator, which
- *  strchr would also find, out of reach.
+ *  Accepts uppercase hexadecimal digits only, exactly two per byte and nothing
+ *  else, so "1B4200" stores three bytes.
  */
 static bool_t WriteHexBytes(const char_t* text, uint64_t sizeOfValue, byte_t* buffer, uint64_t capacity, uint64_t offset)
 {
@@ -7099,8 +7112,8 @@ static const Arinc661_Property_t* FindProperty(const Arinc661_Definition_t* defi
  * \par Details:
  *  An absent property yields zero. A present value is either a complete decimal
  *  integer such as "10000" or a constant name such as "A661_TRUE" or
- *  "A661_CENTER". Other text, for example a color name, returns FALSE because the
- *  binary form has no place for it.
+ *  "A661_CENTER". Other text returns FALSE, including a color name, whose number
+ *  is implementation dependent (section 6.2.4.1).
  */
 static bool_t ScanInteger(const Arinc661_Property_t* property, int64_t minimum, int64_t maximum, int64_t* value)
 {
@@ -7518,8 +7531,8 @@ static bool_t WriteBinaryPad(byte_t* buffer, uint64_t capacity, uint64_t* offset
  * alignment                    zero bytes up to the next 32-bit boundary
  * \endverbatim
  *
- *  An absent property is written as zero or as an empty string. An fr() value of
- *  +range is clamped to INT32_MAX.
+ *  An absent property is written as zero or an empty string, except that a region
+ *  or layer request returns FALSE. An fr() value of +range is clamped to INT32_MAX.
  */
 static bool_t WriteBinaryField(const BinaryField_t* field, const Arinc661_Property_t* property, byte_t* buffer, uint64_t capacity, uint64_t* offset)
 {
@@ -7626,7 +7639,7 @@ static bool_t WriteBinaryField(const BinaryField_t* field, const Arinc661_Proper
  * 01        LibraryVersion      <- libraryVersion
  * 04        SuppVersion         <- supplementVersion
  * 6788      AppliIdent          <- property ApplicationId, zero when absent
- * 0000      Size of the OEM data; none is written
+ * 0000      Size of the OEM free data; none is written
  * \endverbatim
  */
 static bool_t WriteBinaryHeader(const Arinc661_Definition_t* definition, byte_t* buffer, uint64_t capacity, uint64_t* offset)
@@ -7683,7 +7696,7 @@ static bool_t WriteBinaryHeader(const Arinc661_Definition_t* definition, byte_t*
  * \verbatim
  * C8        A661_BEGIN_CHARSET_ENCODING_BLOCK
  * 00        UnusedPad
- * 0002      Charset encoding    <- charsetEncoding
+ * 0002      A661_Charset_Encoding <- charsetEncoding
  * C9        A661_END_CHARSET_ENCODING_BLOCK
  * 000000    UnusedPad
  * \endverbatim
@@ -7717,8 +7730,8 @@ static bool_t WriteBinaryCharsetBlock(byte_t* buffer, uint64_t capacity, uint64_
 /*************************************************************************************************/
 /**
  * \par Details:
- *  ReadBinaryOpaqueBlock keeps these blocks byte for byte, so they are written
- *  back unchanged, ahead of the layers as Table 4.5.3.2-1 orders them.
+ *  ReadBinaryOpaqueBlock keeps these blocks byte for byte and in read order, so
+ *  they are written back unchanged, ahead of the layers (Table 4.5.3.2-1).
  */
 static bool_t WriteBinaryOpaqueBlocks(const Arinc661_Definition_t* definition, byte_t* buffer, uint64_t capacity, uint64_t* offset)
 {
@@ -7756,9 +7769,9 @@ static bool_t WriteBinaryFooter(byte_t* buffer, uint64_t capacity, uint64_t* off
  * \verbatim
  * A0        A661_BEGIN_LAYER_BLOCK
  * 01        LayerIdent          <- property LayerId
- * 0000      ContextNumber       <- property ContextNumber
+ * 0000      Context Number      <- property ContextNumber
  * 0000007C  Block Size, filled in once the commands are written
- * ...       one command per widget of the layer, in array order
+ * ...       one command per widget array entry of the layer, in array order
  * C0        A661_END_LAYER_BLOCK
  * 000000    UnusedPad
  * \endverbatim
@@ -7799,7 +7812,6 @@ static bool_t WriteBinaryLayer(const Arinc661_Definition_t* definition, uint32_t
         (*offset) += sizeof(BinaryLayerBlock_t);
         for (widget_index = 0; widget_index < definition->widgetCount; ++widget_index)
         {
-            // Select entries belonging to this layer while preserving their array order
             if (layerIndex == definition->widgets[widget_index].layerIndex)
             {
                 is_valid = WriteBinaryCommand(definition, widget_index, last_widget_index, buffer, capacity, offset);
@@ -7952,7 +7964,7 @@ static bool_t WriteBinaryCommand(const Arinc661_Definition_t* definition, uint32
         is_valid = ScanInteger(property, 0, UINT16_MAX, &widget_ident);
         if (is_valid && (UINT32_MAX != widget->parentWidgetIndex))
         {
-            // Require the nested parent to precede the current widget in the same layer and to be a widget itself
+            // Require the parent to precede this widget in the same layer and not be an extension
             is_valid = (widget->parentWidgetIndex < widgetIndex);
             if (is_valid)
             {
@@ -8148,8 +8160,8 @@ static uint32_t FormatFloat32(char_t* text, uint32_t capacity, float32_t value)
 /*************************************************************************************************/
 /**
  * \par Details:
- *  The exact value is lsbCount times range over 2^31; the text keeps only the digits
- *  needed for EncodeFraction to return lsbCount again, at most BINARY_FR_PRECISION.
+ *  The exact value is lsbCount times range over 2^31; the text keeps only the fractional
+ *  digits needed for EncodeFraction to return lsbCount again, at most BINARY_FR_PRECISION.
  */
 static uint32_t FormatFraction(char_t* text, uint32_t capacity, int64_t lsbCount, float64_t range)
 {
@@ -8424,8 +8436,7 @@ static bool_t ReadBinaryFixedBytes(Arinc661_Definition_t* definition, const char
 /*************************************************************************************************/
 /**
  * \par Details:
- *  For example, 0003 0000 0A0B0C 00 becomes "0A0B0C"; the size and alignment
- *  are dropped.
+ *  For example, 0003 0000 0A0B0C 00 becomes "0A0B0C"; only the bytes are kept.
  */
 static bool_t ReadBinarySizedBytes(Arinc661_Definition_t* definition, const char_t* name, const byte_t* buffer, uint64_t endOffset, uint64_t* offset)
 {
@@ -8707,8 +8718,8 @@ static bool_t ReadBinaryField(Arinc661_Definition_t* definition, const BinaryFie
  *  to map that identifier to a widget array index.
  *
  *  Each array element becomes its own property, all sharing the array's name,
- *  in element order. The element count comes from the parameter the table names
- *  as the count, read earlier in the same command.
+ *  in element order. The element count is the count parameter the table names,
+ *  read earlier in the same command, times the elements per entry.
  *
  *  The parameters must fill the command up to its 32-bit padding. Any other
  *  length returns FALSE; such a command likely follows another supplement's
@@ -8840,12 +8851,63 @@ static bool_t ReadBinaryCommand(Arinc661_Definition_t* definition, const byte_t*
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  Reads the header of Table 4.5.3.2-2, the inverse of WriteBinaryHeader, for example:
+ *
+ * \verbatim
+ * A661      A661_DF_MAGIC_NUMBER
+ * 01        LibraryVersion      -> libraryVersion
+ * 04        SuppVersion         -> supplementVersion
+ * 6788      AppliIdent          -> property ApplicationId
+ * 0000      Size of the OEM free data, which is skipped
+ * \endverbatim
+ *
+ *  The OEM data occupies whole words, so offset is word aligned.
+ */
+static bool_t ReadBinaryHeader(Arinc661_Definition_t* definition, const byte_t* buffer, uint64_t sizeOfBinaryBuffer, uint64_t* offset)
+{
+    uint32_t magic_number;
+    uint32_t appli_ident;
+    uint32_t oem_data_size;
+    bool_t   has_header_bytes;
+    bool_t   is_valid;
+
+    has_header_bytes = (sizeof(BinaryHeader_t) <= sizeOfBinaryBuffer);
+    if (has_header_bytes)
+    {
+        magic_number = ReadUnsigned(buffer, OFFSET_OF(BinaryHeader_t, magicNumber), BINARY_USHORT_BYTES);
+        is_valid     = (BINARY_DF_MAGIC_NUMBER == magic_number);
+    }
+    else
+    {
+        is_valid = FALSE;
+    }
+
+    if (is_valid)
+    {
+        definition->name[0]           = '\0';
+        definition->libraryVersion    = buffer[OFFSET_OF(BinaryHeader_t, libraryVersion)];
+        definition->supplementVersion = buffer[OFFSET_OF(BinaryHeader_t, supplementVersion)];
+        appli_ident                   = ReadUnsigned(buffer, OFFSET_OF(BinaryHeader_t, appliIdent), BINARY_USHORT_BYTES);
+        is_valid                      = AddIntegerProperty(definition, ARINC661_PROPERTY_DEFINITION, 0, BINARY_PROPERTY_APPLICATION_ID, appli_ident);
+    }
+    if (is_valid)
+    {
+        oem_data_size = ReadUnsigned(buffer, OFFSET_OF(BinaryHeader_t, oemDataSize), BINARY_USHORT_BYTES);
+        (*offset)     = sizeof(BinaryHeader_t) + AlignToWord(oem_data_size);
+    }
+
+    return is_valid;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Reads one block laid out as in Table 4.5.3.2-4:
  *
  * \verbatim
  * A0        A661_BEGIN_LAYER_BLOCK
  * 01        LayerIdent          -> property LayerId
- * 0000      ContextNumber       -> property ContextNumber
+ * 0000      Context Number      -> property ContextNumber
  * 0000007C  Block Size, including this header and the end code
  * ...       A661_CMD_CREATE and A661_CMD_EXTEND commands
  * C0        A661_END_LAYER_BLOCK
@@ -8959,9 +9021,9 @@ static bool_t ReadBinaryLayer(Arinc661_Definition_t* definition, const byte_t* b
  * \verbatim
  * BC        A661_BEGIN_PICTURE
  * 00        UnusedPad
- * 0001      Picture reference
- * 0002      Width in pixels
- * 0003      Height in pixels
+ * 0001      PictureReference
+ * 0002      NumberOfPixelsWidth
+ * 0003      NumberOfPixelsHeight
  * ...       Width x height pixels in the block's pixel format, 24 bytes here, padded to 32 bits
  * BD        A661_END_PICTURE
  * 000000    UnusedPad
@@ -8999,7 +9061,7 @@ static bool_t ReadBinaryPicture(const byte_t* buffer, uint64_t sizeOfBinaryBuffe
  *  Table 7-2 with its pixel data padded to 32 bits, an optional reserved word,
  *  and the end code. Bytes per pixel and per color table entry follow
  *  Table 7-3; an implementation-dependent format cannot be read and
- *  returns FALSE. Table 7-1 and the Appendix C-9 example put a reserved word
+ *  returns FALSE. Table 7-1 and example C-9 of Appendix C put a reserved word
  *  before the end code; a block without it is also accepted.
  */
 static bool_t ReadBinaryPictureBlock(const byte_t* buffer, uint64_t sizeOfBinaryBuffer, uint64_t* offset)
@@ -9129,7 +9191,7 @@ static bool_t ReadBinarySizedBlock(const byte_t* buffer, uint64_t sizeOfBinaryBu
  * \verbatim
  * C8        A661_BEGIN_CHARSET_ENCODING_BLOCK
  * 00        UnusedPad
- * 0002      Charset encoding    -> charsetEncoding A661_UTF8
+ * 0002      A661_Charset_Encoding -> charsetEncoding A661_UTF8
  * C9        A661_END_CHARSET_ENCODING_BLOCK
  * 000000    UnusedPad
  * \endverbatim
@@ -10155,21 +10217,8 @@ bool_t Arinc661_Definition_ReadBinary(Arinc661_Definition_t* definition, const b
     // Reset result counts while retaining the supplied arrays and capacities
     ResetDefinition(definition);
     has_footer = FALSE;
-    offset     = sizeof(BinaryHeader_t);
-    is_valid   = (sizeof(BinaryHeader_t) <= sizeOfBinaryBuffer);
-    if (is_valid)
-    {
-        is_valid = (BINARY_DF_MAGIC_NUMBER == ReadUnsigned(bufferToReadBinaryFrom, OFFSET_OF(BinaryHeader_t, magicNumber), BINARY_USHORT_BYTES));
-    }
-    if (is_valid)
-    {
-        definition->name[0]           = '\0';
-        definition->libraryVersion    = bufferToReadBinaryFrom[OFFSET_OF(BinaryHeader_t, libraryVersion)];
-        definition->supplementVersion = bufferToReadBinaryFrom[OFFSET_OF(BinaryHeader_t, supplementVersion)];
-        is_valid                      = AddIntegerProperty(definition, ARINC661_PROPERTY_DEFINITION, 0, BINARY_PROPERTY_APPLICATION_ID, ReadUnsigned(bufferToReadBinaryFrom, OFFSET_OF(BinaryHeader_t, appliIdent), BINARY_USHORT_BYTES));
-        // Skip the implementation-dependent OEM data, which occupies whole words
-        offset += AlignToWord(ReadUnsigned(bufferToReadBinaryFrom, OFFSET_OF(BinaryHeader_t, oemDataSize), BINARY_USHORT_BYTES));
-    }
+    offset     = 0;
+    is_valid   = ReadBinaryHeader(definition, bufferToReadBinaryFrom, sizeOfBinaryBuffer, &offset);
     if (is_valid)
     {
         // Each block takes at least one word, so the input size bounds the walk
