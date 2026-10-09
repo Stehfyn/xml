@@ -14,6 +14,18 @@
 #include <limits.h>
 #include <stdio.h>
 
+#define TEST_TREE_NODES (4) ///< Nodes of the tree test: a root, two children, and a grandchild
+
+/*************************************************************************************************/
+/**
+ * \brief Nodes in the order a tree visit reached them.
+ */
+typedef struct VisitRecord_s
+{
+    const FACEOE_Utl_Node_t* nodes[TEST_TREE_NODES]; ///< Visited nodes, in visit order
+    uint32_t                 count;                  ///< Nodes recorded
+} VisitRecord_t;
+
 /*************************************************************************************************/
 /**
  * \brief Runs the ARINC 661 definition tests.
@@ -586,17 +598,39 @@ static void TestNumberScanning(void)
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  Appends the node to the VisitRecord_t the context points to.
+ *
+ * \param[in] node      Node being visited
+ * \param[in] context   VisitRecord_t receiving the node
+ *
+ * \retval    None
+ */
+static void RecordVisit(const FACEOE_Utl_Node_t* node, void* context)
+{
+    VisitRecord_t* record;
+
+    record = (VisitRecord_t*)context;
+    assert(record->count < COUNT_OF(record->nodes));
+    record->nodes[record->count] = node;
+    record->count += 1;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Takes nodes in storage order until the storage is full, then links a root with two children
- *  and a grandchild and checks every link.
+ *  and a grandchild and checks every link. A visit reaches only linked nodes, parents before
+ *  children.
  */
 static void TestTree(void)
 {
-    FACEOE_Utl_Node_t  nodes[4];
+    FACEOE_Utl_Node_t  nodes[TEST_TREE_NODES];
     FACEOE_Utl_Tree_t  tree;
     FACEOE_Utl_Node_t* first;
     FACEOE_Utl_Node_t* second;
     FACEOE_Utl_Node_t* grandchild;
-    int32_t            items[3];
+    VisitRecord_t      record;
+    int32_t            items[TEST_TREE_NODES - 1];
 
     FACEOE_Utl_Tree_Initialize(&tree, nodes, COUNT_OF(nodes), NULL);
     assert(&nodes[0] == tree.root);
@@ -608,6 +642,12 @@ static void TestTree(void)
     assert(&nodes[3] == grandchild);
     assert(NULL == FACEOE_Utl_Tree_AddNode(&tree, NULL));
     assert(COUNT_OF(nodes) == tree.nodeCount);
+
+    // Taken but unlinked nodes are not visited
+    record.count = 0;
+    FACEOE_Utl_Tree_Visit(&tree, RecordVisit, &record);
+    assert(1 == record.count);
+    assert(tree.root == record.nodes[0]);
 
     FACEOE_Utl_Node_AppendChild(tree.root, first);
     FACEOE_Utl_Node_AppendChild(tree.root, second);
@@ -622,6 +662,15 @@ static void TestTree(void)
     assert(grandchild == first->lastChild);
     assert(first == grandchild->parent);
     assert(&items[2] == grandchild->item);
+
+    // Depth first: each parent, then its children in append order
+    record.count = 0;
+    FACEOE_Utl_Tree_Visit(&tree, RecordVisit, &record);
+    assert(COUNT_OF(nodes) == record.count);
+    assert(tree.root == record.nodes[0]);
+    assert(first == record.nodes[1]);
+    assert(grandchild == record.nodes[2]);
+    assert(second == record.nodes[3]);
 }
 
 /*************************************************************************************************/

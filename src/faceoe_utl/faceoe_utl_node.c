@@ -48,6 +48,7 @@ void FACEOE_Utl_Node_Initialize(FACEOE_Utl_Node_t* node, const void* item)
 {
     LOGASSERT(NULL != node);
 
+    (void)memset(node, 0, sizeof((*node)));
     node->item        = item;
     node->parent      = NULL;
     node->firstChild  = NULL;

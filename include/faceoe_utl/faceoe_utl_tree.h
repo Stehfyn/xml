@@ -36,6 +36,17 @@ typedef struct FACEOE_Utl_Tree_s
     uint32_t           nodeCount;    ///< Number of nodes taken, the root included
 } FACEOE_Utl_Tree_t;
 
+/*************************************************************************************************/
+/**
+ * \brief Visits one node while FACEOE_Utl_Tree_Visit is running.
+ *
+ * \param[in] node      Node being visited
+ * \param[in] context   Caller-owned context
+ *
+ * \retval    None
+ */
+typedef void (*FACEOE_Utl_Tree_Visitor_t)(const FACEOE_Utl_Node_t* node, void* context);
+
 /*=================================================================================================
 ** 3.3 Constants
 **===============================================================================================*/
@@ -80,5 +91,25 @@ void FACEOE_Utl_Tree_Initialize(FACEOE_Utl_Tree_t* tree, FACEOE_Utl_Node_t* node
  * \retval        FACEOE_Utl_Node_t*   The node, or NULL when the storage is full.
  */
 FACEOE_Utl_Node_t* FACEOE_Utl_Tree_AddNode(FACEOE_Utl_Tree_t* tree, const void* item);
+
+/*************************************************************************************************/
+/**
+ * \brief Visits every node linked under the root, depth first.
+ *
+ * \par Details:
+ *  The visitor must not change the links while the visit runs.
+ *
+ * \par Requirements:
+ *  - 001 This function shall call visitor once for the root and each node linked below it, a parent before its children and children in append order.
+ *  - 002 This function shall not visit a node that is taken but not linked below the root.
+ *  - 003 This function shall fail an assertion if tree or visitor is NULL, or the walk does not end within nodeCount visits.
+ *
+ * \param[in] tree      Tree to visit
+ * \param[in] visitor   Non-NULL callback invoked for each node
+ * \param[in] context   Caller-owned context passed to visitor
+ *
+ * \retval    None
+ */
+void FACEOE_Utl_Tree_Visit(const FACEOE_Utl_Tree_t* tree, FACEOE_Utl_Tree_Visitor_t visitor, void* context);
 
 #endif /* FACEOE_UTL_TREE_H */
