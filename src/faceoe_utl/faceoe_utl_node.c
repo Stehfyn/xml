@@ -44,7 +44,7 @@
  * \par Details:
  *  The item may be NULL, for a node that stands only for its children.
  */
-void FACEOE_Utl_Node_Initialize(FACEOE_Utl_Node_t* node, const void* item)
+void FACEOE_Utl_Node_Initialize(FACEOE_Utl_Node_t* node, void* item)
 {
     LOGASSERT(NULL != node);
 

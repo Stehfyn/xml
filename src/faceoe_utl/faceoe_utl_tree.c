@@ -95,7 +95,7 @@ static const FACEOE_Utl_Node_t* NextNode(const FACEOE_Utl_Tree_t* tree, const FA
  * \par Details:
  *  The root is taken with FACEOE_Utl_Tree_AddNode, leaving nodeCapacity - 1 nodes for later calls.
  */
-void FACEOE_Utl_Tree_Initialize(FACEOE_Utl_Tree_t* tree, FACEOE_Utl_Node_t* nodes, uint32_t nodeCapacity, const void* rootItem)
+void FACEOE_Utl_Tree_Initialize(FACEOE_Utl_Tree_t* tree, FACEOE_Utl_Node_t* nodes, uint32_t nodeCapacity, void* rootItem)
 {
     LOGASSERT(NULL != tree);
     LOGASSERT(NULL != nodes);
@@ -113,7 +113,7 @@ void FACEOE_Utl_Tree_Initialize(FACEOE_Utl_Tree_t* tree, FACEOE_Utl_Node_t* node
  * \par Details:
  *  Nodes are never given back; initializing the tree again reuses the storage.
  */
-FACEOE_Utl_Node_t* FACEOE_Utl_Tree_AddNode(FACEOE_Utl_Tree_t* tree, const void* item)
+FACEOE_Utl_Node_t* FACEOE_Utl_Tree_AddNode(FACEOE_Utl_Tree_t* tree, void* item)
 {
     FACEOE_Utl_Node_t* node;
     bool_t             has_room;

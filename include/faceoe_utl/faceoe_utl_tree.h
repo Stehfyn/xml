@@ -74,7 +74,7 @@ typedef void (*FACEOE_Utl_Tree_Visitor_t)(const FACEOE_Utl_Node_t* node, void* c
  *
  * \retval     None
  */
-void FACEOE_Utl_Tree_Initialize(FACEOE_Utl_Tree_t* tree, FACEOE_Utl_Node_t* nodes, uint32_t nodeCapacity, const void* rootItem);
+void FACEOE_Utl_Tree_Initialize(FACEOE_Utl_Tree_t* tree, FACEOE_Utl_Node_t* nodes, uint32_t nodeCapacity, void* rootItem);
 
 /*************************************************************************************************/
 /**
@@ -90,7 +90,7 @@ void FACEOE_Utl_Tree_Initialize(FACEOE_Utl_Tree_t* tree, FACEOE_Utl_Node_t* node
  *
  * \retval        FACEOE_Utl_Node_t*   The node, or NULL when the storage is full.
  */
-FACEOE_Utl_Node_t* FACEOE_Utl_Tree_AddNode(FACEOE_Utl_Tree_t* tree, const void* item);
+FACEOE_Utl_Node_t* FACEOE_Utl_Tree_AddNode(FACEOE_Utl_Tree_t* tree, void* item);
 
 /*************************************************************************************************/
 /**

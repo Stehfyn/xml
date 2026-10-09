@@ -33,11 +33,13 @@ void RunArinc661RendererTests(void);
 #define TEST_MAX_PROPERTIES (2048)
 
 #define TEST_MAX_LAYERS     (2)
+#define TEST_LAYER_ID       (7U) ///< LayerId of the test layer; not its array index, so lookups by index would fail
 
 static Arinc661_Layer_t           s_layers[TEST_MAX_LAYERS];
 static Arinc661_Widget_t          s_widgets[TEST_MAX_WIDGETS];
 static Arinc661_Property_t        s_properties[TEST_MAX_PROPERTIES];
-static FACEOE_Utl_Node_t          s_sceneNodes[ARINC661_SCENE_NODE_COUNT(TEST_MAX_LAYERS, TEST_MAX_WIDGETS, TEST_MAX_PROPERTIES)];
+static FACEOE_Utl_Node_t          s_sceneNodes[ARINC661_SCENE_NODE_COUNT(TEST_MAX_WIDGETS, TEST_MAX_PROPERTIES)];
+static Arinc661_Scene_Node_t      s_sceneItems[COUNT_OF(s_sceneNodes)];
 static FACEOE_Gfx_Command_t       s_commands[8192];
 static FACEOE_Gfx_Point_t         s_points[65536];
 static char_t                     s_text[65536];
@@ -45,11 +47,28 @@ static Arinc661_Renderer_Bounds_t s_bounds[TEST_MAX_WIDGETS];
 
 /*************************************************************************************************/
 /**
- * \brief Builds the scene of a definition in s_sceneNodes, asserting that it succeeds.
+ * \brief Builds the scene of a definition in s_sceneNodes and s_sceneItems, asserting that it succeeds.
  */
 static void BuildScene(const Arinc661_Definition_t* definition, Arinc661_Scene_t* scene)
 {
-    assert(Arinc661_Scene_Build(scene, s_sceneNodes, COUNT_OF(s_sceneNodes), definition->layers, definition->layerCount, definition->widgets, definition->widgetCount, definition->properties, definition->propertyCount, NULL));
+    assert(Arinc661_Scene_Build(scene, s_sceneNodes, s_sceneItems, COUNT_OF(s_sceneNodes), definition->layers, definition->layerCount, definition->widgets, definition->widgetCount, definition->properties, definition->propertyCount, NULL));
+}
+
+/*************************************************************************************************/
+/**
+ * \brief Appends a property.
+ */
+static void OwnedProp(Arinc661_Definition_t* definition, Arinc661_PropertyOwner_t owner, uint32_t ownerIndex, const char_t* name, const char_t* value)
+{
+    Arinc661_Property_t* property;
+
+    assert(definition->propertyCount < definition->propertyCapacity);
+    property             = &definition->properties[definition->propertyCount];
+    property->owner      = owner;
+    property->ownerIndex = ownerIndex;
+    strcpy(property->name, name);
+    strcpy(property->value, value);
+    definition->propertyCount += 1;
 }
 
 /*************************************************************************************************/
@@ -58,15 +77,19 @@ static void BuildScene(const Arinc661_Definition_t* definition, Arinc661_Scene_t
  */
 static void Prop(Arinc661_Definition_t* definition, uint32_t widgetIndex, const char_t* name, const char_t* value)
 {
-    Arinc661_Property_t* property;
+    OwnedProp(definition, ARINC661_PROPERTY_WIDGET, widgetIndex, name, value);
+}
 
-    assert(definition->propertyCount < definition->propertyCapacity);
-    property             = &definition->properties[definition->propertyCount];
-    property->owner      = ARINC661_PROPERTY_WIDGET;
-    property->ownerIndex = widgetIndex;
-    strcpy(property->name, name);
-    strcpy(property->value, value);
-    definition->propertyCount += 1;
+/*************************************************************************************************/
+/**
+ * \brief Appends the LayerId property of layer 0, TEST_LAYER_ID.
+ */
+static void AddLayerId(Arinc661_Definition_t* definition)
+{
+    char_t text[ARINC661_MAX_PROPERTY_BYTES];
+
+    (void)snprintf(text, sizeof(text), "%u", TEST_LAYER_ID);
+    OwnedProp(definition, ARINC661_PROPERTY_LAYER, 0, "LayerId", text);
 }
 
 /*************************************************************************************************/
@@ -249,6 +272,7 @@ void RunArinc661RendererTests(void)
 
     Arinc661_Definition_Initialize(&definition, s_layers, TEST_MAX_LAYERS, s_widgets, TEST_MAX_WIDGETS, s_properties, TEST_MAX_PROPERTIES, NULL, 0);
     definition.layerCount = 1;
+    AddLayerId(&definition);
     FACEOE_Gfx_DrawList_Initialize(&list, s_commands, 8192, s_points, 65536, s_text, sizeof(s_text));
     memset(&base, 0, sizeof(base));
     base.a = 0.1f;
@@ -264,7 +288,7 @@ void RunArinc661RendererTests(void)
     options.bounds            = s_bounds;
     options.boundsCapacity    = TEST_MAX_WIDGETS;
     BuildScene(&definition, &scene);
-    Arinc661_Renderer_GetLayerSize(&scene, 0, &width, &height);
+    Arinc661_Renderer_GetLayerSize(&scene, TEST_LAYER_ID, &width, &height);
     assert((10000.0f == width) && (10000.0f == height));
 
     // A panel at (1000, 1000) holding a label at (500, 500): the label is drawn at (1500, 1500)
@@ -299,7 +323,7 @@ void RunArinc661RendererTests(void)
     }
     FACEOE_Gfx_DrawList_SetTransform(&list, &base);
     BuildScene(&definition, &scene);
-    Arinc661_Renderer_DrawLayer(&scene, 0, &list, &options);
+    Arinc661_Renderer_DrawLayer(&scene, TEST_LAYER_ID, &list, &options);
     assert(FALSE == list.isOverflowed);
     assert(0 == list.transformDepth);
     assert(0 == list.clipDepth);
@@ -334,7 +358,7 @@ void RunArinc661RendererTests(void)
     FACEOE_Gfx_DrawList_Clear(&list);
     FACEOE_Gfx_DrawList_SetTransform(&list, &base);
     BuildScene(&definition, &scene);
-    Arinc661_Renderer_DrawLayer(&scene, 0, &list, &options);
+    Arinc661_Renderer_DrawLayer(&scene, TEST_LAYER_ID, &list, &options);
     assert(1 == options.boundsCount);
     assert(FALSE == HasText(&list, "Hello"));
     options.showsHidden = TRUE;
@@ -367,7 +391,7 @@ void RunArinc661RendererTests(void)
     FACEOE_Gfx_DrawList_Clear(&list);
     FACEOE_Gfx_DrawList_SetTransform(&list, &base);
     BuildScene(&definition, &scene);
-    Arinc661_Renderer_DrawLayer(&scene, 0, &list, &options);
+    Arinc661_Renderer_DrawLayer(&scene, TEST_LAYER_ID, &list, &options);
     has_bounds = FALSE;
     for (bounds_index = 0; bounds_index < options.boundsCount; ++bounds_index)
     {
@@ -388,6 +412,7 @@ void RunArinc661RendererTests(void)
     {
         definition.widgetCount   = 0;
         definition.propertyCount = 0;
+        AddLayerId(&definition);
         panel                    = Widget(&definition, "A661_PANEL", UINT32_MAX, 1);
         child                    = Widget(&definition, Arinc661_Definition_GetTypeName(FALSE, type_index), panel, 2);
         if (0 == strncmp("A661_TABBED_PANEL_GROUP", Arinc661_Definition_GetTypeName(FALSE, type_index), sizeof("A661_TABBED_PANEL_GROUP")))
@@ -409,7 +434,7 @@ void RunArinc661RendererTests(void)
         FACEOE_Gfx_DrawList_Clear(&list);
         FACEOE_Gfx_DrawList_SetTransform(&list, &base);
         BuildScene(&definition, &scene);
-        Arinc661_Renderer_DrawLayer(&scene, 0, &list, &options);
+        Arinc661_Renderer_DrawLayer(&scene, TEST_LAYER_ID, &list, &options);
         if (list.isOverflowed || (0 != list.transformDepth) || (0 != list.clipDepth) || (options.boundsCount < definition.widgetCount))
         {
             fprintf(stderr, "scene failed for %s: overflow %d transforms %u clips %u bounds %u of %u\n", Arinc661_Definition_GetTypeName(FALSE, type_index), (int)list.isOverflowed, (unsigned)list.transformDepth, (unsigned)list.clipDepth, (unsigned)options.boundsCount, (unsigned)definition.widgetCount);
@@ -418,4 +443,18 @@ void RunArinc661RendererTests(void)
         assert(0 < CountKind(&list, FACEOE_GFX_COMMAND_FILL_POLYGON));
         assert(HasText(&list, "w2"));
     }
+
+    // An inactive layer records nothing, and draws again once active; a LayerId no layer holds records nothing
+    FACEOE_Gfx_DrawList_Clear(&list);
+    Arinc661_Scene_DisableLayer(&scene, TEST_LAYER_ID);
+    Arinc661_Renderer_DrawLayer(&scene, TEST_LAYER_ID, &list, &options);
+    assert((0 == list.commandCount) && (0 == options.boundsCount));
+    Arinc661_Scene_EnableLayer(&scene, TEST_LAYER_ID);
+    Arinc661_Renderer_DrawLayer(&scene, TEST_LAYER_ID, &list, &options);
+    assert((0 < list.commandCount) && (definition.widgetCount <= options.boundsCount));
+    FACEOE_Gfx_DrawList_Clear(&list);
+    Arinc661_Renderer_DrawLayer(&scene, 0, &list, &options);
+    assert((0 == list.commandCount) && (0 == options.boundsCount));
+    Arinc661_Renderer_GetLayerSize(&scene, 0, &width, &height);
+    assert((10000.0f == width) && (10000.0f == height));
 }

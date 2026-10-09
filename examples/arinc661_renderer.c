@@ -248,17 +248,6 @@ static const FACEOE_Utl_Node_t* GetFirstChild(const FACEOE_Utl_Node_t* node);
 
 /*************************************************************************************************/
 /**
- * \brief Returns a layer's node.
- *
- * \param[in] scene        Scene
- * \param[in] layerIndex   Layer array index
- *
- * \retval    const FACEOE_Utl_Node_t*   Layer node, or NULL.
- */
-static const FACEOE_Utl_Node_t* FindLayer(const Arinc661_Scene_t* scene, uint32_t layerIndex);
-
-/*************************************************************************************************/
-/**
  * \brief Lists the rotation, scale, and translation animations below a node, in drawing order.
  *
  * \param[in,out] renderer   Drawing state
@@ -822,7 +811,7 @@ static void DrawChildren(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, fl
  */
 static const Arinc661_Widget_t* WidgetOf(const FACEOE_Utl_Node_t* node)
 {
-    return (const Arinc661_Widget_t*)node->item;
+    return ((const Arinc661_Scene_Node_t*)node->item)->widget;
 }
 
 /*************************************************************************************************/
@@ -843,29 +832,6 @@ static const FACEOE_Utl_Node_t* GetFirstProperty(const FACEOE_Utl_Node_t* node)
 static const FACEOE_Utl_Node_t* GetFirstChild(const FACEOE_Utl_Node_t* node)
 {
     return node->firstChild->nextSibling;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
- *  The root's children after its model node are the layers in array order.
- */
-static const FACEOE_Utl_Node_t* FindLayer(const Arinc661_Scene_t* scene, uint32_t layerIndex)
-{
-    const FACEOE_Utl_Node_t* layer;
-    uint32_t                 index;
-
-    layer = GetFirstChild(scene->root);
-    for (index = 0; index < layerIndex; ++index)
-    {
-        if (NULL == layer)
-        {
-            break;
-        }
-        layer = layer->nextSibling;
-    }
-
-    return layer;
 }
 
 /*************************************************************************************************/
@@ -934,7 +900,7 @@ static const char_t* Value(const FACEOE_Utl_Node_t* node, const char_t* name, ui
     seen  = 0;
     for (entry = GetFirstProperty(node); NULL != entry; entry = entry->nextSibling)
     {
-        property = (const Arinc661_Property_t*)entry->item;
+        property = ((const Arinc661_Scene_Node_t*)entry->item)->property;
         if (0 == strncmp(name, property->name, sizeof(property->name)))
         {
             if (seen == occurrence)
@@ -963,7 +929,7 @@ static uint32_t Occurrences(const FACEOE_Utl_Node_t* node, const char_t* name)
     seen = 0;
     for (entry = GetFirstProperty(node); NULL != entry; entry = entry->nextSibling)
     {
-        property = (const Arinc661_Property_t*)entry->item;
+        property = ((const Arinc661_Scene_Node_t*)entry->item)->property;
         if (0 == strncmp(name, property->name, sizeof(property->name)))
         {
             seen += 1;
@@ -3213,40 +3179,51 @@ static void DrawChildren(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, fl
  *  Lists the layer's animations once, fills the layer area when asked, then records every
  *  widget placed directly in the layer and, through it, everything below.
  */
-void Arinc661_Renderer_DrawLayer(const Arinc661_Scene_t* scene, uint32_t layerIndex, FACEOE_Gfx_DrawList_t* drawList, Arinc661_Renderer_Options_t* options)
+void Arinc661_Renderer_DrawLayer(const Arinc661_Scene_t* scene, uint32_t layerId, FACEOE_Gfx_DrawList_t* drawList, Arinc661_Renderer_Options_t* options)
 {
     const FACEOE_Utl_Node_t* layer;
     const FACEOE_Utl_Node_t* child;
     Renderer_t               renderer;
+    bool_t                   is_active;
 
     LOGASSERT(NULL != scene);
     LOGASSERT(NULL != drawList);
     LOGASSERT(NULL != options);
 
-    layer = FindLayer(scene, layerIndex);
-    LOGASSERT(NULL != layer);
-
-    (void)memset(&renderer, 0, sizeof(renderer));
-    renderer.drawList    = drawList;
-    renderer.options     = options;
-    renderer.base        = (*FACEOE_Gfx_DrawList_Transform(drawList));
     options->boundsCount = 0;
-    if (0.0f <= options->animationTime)
+    layer                = Arinc661_Scene_GetLayer(scene, layerId);
+    if (NULL != layer)
     {
-        // Collect the layer's animation widgets once so targets can be matched cheaply
-        CollectAnimations(&renderer, layer);
+        is_active = ((const Arinc661_Scene_Node_t*)layer->item)->isActive;
     }
-    Arinc661_Renderer_GetLayerSize(scene, layerIndex, &renderer.layerWidth, &renderer.layerHeight);
-    if (options->fillsLayerArea)
+    else
     {
-        FACEOE_Gfx_DrawList_FillRectangle(drawList, 0.0f, 0.0f, renderer.layerWidth, renderer.layerHeight, COLOR_LAYER);
-        FACEOE_Gfx_DrawList_StrokeRectangle(drawList, 0.0f, 0.0f, renderer.layerWidth, renderer.layerHeight, COLOR_LAYER_BORDER, RENDERER_THIN);
+        is_active = FALSE;
     }
-    for (child = GetFirstChild(layer); NULL != child; child = child->nextSibling)
+
+    if (is_active)
     {
-        if (FALSE == WidgetOf(child)->isExtension)
+        (void)memset(&renderer, 0, sizeof(renderer));
+        renderer.drawList = drawList;
+        renderer.options  = options;
+        renderer.base     = (*FACEOE_Gfx_DrawList_Transform(drawList));
+        if (0.0f <= options->animationTime)
         {
-            DrawWidget(&renderer, child, 1.0f, NULL);
+            // Collect the layer's animation widgets once so targets can be matched cheaply
+            CollectAnimations(&renderer, layer);
+        }
+        Arinc661_Renderer_GetLayerSize(scene, layerId, &renderer.layerWidth, &renderer.layerHeight);
+        if (options->fillsLayerArea)
+        {
+            FACEOE_Gfx_DrawList_FillRectangle(drawList, 0.0f, 0.0f, renderer.layerWidth, renderer.layerHeight, COLOR_LAYER);
+            FACEOE_Gfx_DrawList_StrokeRectangle(drawList, 0.0f, 0.0f, renderer.layerWidth, renderer.layerHeight, COLOR_LAYER_BORDER, RENDERER_THIN);
+        }
+        for (child = GetFirstChild(layer); NULL != child; child = child->nextSibling)
+        {
+            if (FALSE == WidgetOf(child)->isExtension)
+            {
+                DrawWidget(&renderer, child, 1.0f, NULL);
+            }
         }
     }
 }
@@ -3527,9 +3504,9 @@ void Arinc661_Renderer_FormatNumber(const char_t* format, float64_t value, char_
 /*************************************************************************************************/
 /**
  * \par Details:
- *  A missing Width or Height, or one below 1, falls back to 100 mm.
+ *  A missing layer, Width, or Height, or a size below 1, falls back to 100 mm.
  */
-void Arinc661_Renderer_GetLayerSize(const Arinc661_Scene_t* scene, uint32_t layerIndex, float32_t* width, float32_t* height)
+void Arinc661_Renderer_GetLayerSize(const Arinc661_Scene_t* scene, uint32_t layerId, float32_t* width, float32_t* height)
 {
     const FACEOE_Utl_Node_t*   layer;
     const FACEOE_Utl_Node_t*   entry;
@@ -3543,28 +3520,29 @@ void Arinc661_Renderer_GetLayerSize(const Arinc661_Scene_t* scene, uint32_t laye
     LOGASSERT(NULL != width);
     LOGASSERT(NULL != height);
 
-    layer = FindLayer(scene, layerIndex);
-    LOGASSERT(NULL != layer);
-
     (*width)  = RENDERER_DEFAULT_EXTENT;
     (*height) = RENDERER_DEFAULT_EXTENT;
-    for (entry = GetFirstProperty(layer); NULL != entry; entry = entry->nextSibling)
+    layer     = Arinc661_Scene_GetLayer(scene, layerId);
+    if (NULL != layer)
     {
-        property  = (const Arinc661_Property_t*)entry->item;
-        is_width  = (0 == strncmp("Width", property->name, sizeof("Width")));
-        is_height = (0 == strncmp("Height", property->name, sizeof("Height")));
-        is_size   = ScanNumber(property->value, &number) && (1.0f <= number);
-        if (is_width && is_size)
+        for (entry = GetFirstProperty(layer); NULL != entry; entry = entry->nextSibling)
         {
-            (*width) = number;
-        }
-        else if (is_height && is_size)
-        {
-            (*height) = number;
-        }
-        else
-        {
-            // Other layer properties do not size the layer
+            property  = ((const Arinc661_Scene_Node_t*)entry->item)->property;
+            is_width  = (0 == strncmp("Width", property->name, sizeof("Width")));
+            is_height = (0 == strncmp("Height", property->name, sizeof("Height")));
+            is_size   = ScanNumber(property->value, &number) && (1.0f <= number);
+            if (is_width && is_size)
+            {
+                (*width) = number;
+            }
+            else if (is_height && is_size)
+            {
+                (*height) = number;
+            }
+            else
+            {
+                // Other layer properties do not size the layer
+            }
         }
     }
 }

@@ -30,7 +30,7 @@
  */
 typedef struct FACEOE_Utl_Node_s
 {
-    const void*               item;        ///< Pointer to the caller's item, or NULL
+    void*                     item;        ///< Pointer to the caller's item, or NULL
     struct FACEOE_Utl_Node_s* parent;      ///< Parent, or NULL for a root
     struct FACEOE_Utl_Node_s* firstChild;  ///< First child, or NULL
     struct FACEOE_Utl_Node_s* lastChild;   ///< Last child, or NULL
@@ -63,7 +63,7 @@ typedef struct FACEOE_Utl_Node_s
  *
  * \retval     None
  */
-void FACEOE_Utl_Node_Initialize(FACEOE_Utl_Node_t* node, const void* item);
+void FACEOE_Utl_Node_Initialize(FACEOE_Utl_Node_t* node, void* item);
 
 /*************************************************************************************************/
 /**

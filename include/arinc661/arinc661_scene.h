@@ -7,7 +7,8 @@
 
 /**
  * ARINC 661 Part 1-7, section 3.2.3: a layer holds widgets, a container widget holds child
- * widgets, and section 8: an extension belongs to the widget it extends.
+ * widgets, and section 8: an extension belongs to the widget it extends. Table 4.5.3.2-4:
+ * LayerIdent is a uchar, so a LayerId is 0 to 255.
  * J661-hosted Supplement 6 strict XML Definition File schema (a661Strict.xsd), whose
  * dfType, layerType, and widgetType each hold a model element of properties:
  * https://j661.sourceforge.net/articles/articles/resources/a661Strict.xsd
@@ -26,8 +27,10 @@
 ** 3.1 Macros
 **===============================================================================================*/
 
-/** Nodes a scene needs: the root and its model node, two per layer and per widget (the node and its model node), and one per property. */
-#define ARINC661_SCENE_NODE_COUNT(layerCount, widgetCount, propertyCount) (2UL + (2UL * (layerCount)) + (2UL * (widgetCount)) + (propertyCount))
+#define ARINC661_SCENE_LAYER_IDS (256UL) ///< LayerId values, 0 to 255; one layer slot each
+
+/** Nodes, and items, a scene needs: the root and its model node, two per LayerId and per widget (the node and its model node), and one per property. */
+#define ARINC661_SCENE_NODE_COUNT(widgetCount, propertyCount) (2UL + (2UL * ARINC661_SCENE_LAYER_IDS) + (2UL * (widgetCount)) + (propertyCount))
 
 /*=================================================================================================
 ** 3.2 Types
@@ -35,25 +38,55 @@
 
 /*************************************************************************************************/
 /**
+ * \brief What a scene node stands for.
+ */
+typedef enum Arinc661_Scene_NodeKind_e
+{
+    ARINC661_SCENE_NODE_DEFINITION, ///< The root, which stands for the definition
+    ARINC661_SCENE_NODE_MODEL,      ///< First child of the root, a layer, or a widget, holding its properties
+    ARINC661_SCENE_NODE_LAYER,      ///< A layer, or a layer slot no layer holds
+    ARINC661_SCENE_NODE_WIDGET,     ///< A widget or an extension
+    ARINC661_SCENE_NODE_PROPERTY    ///< A property
+} Arinc661_Scene_NodeKind_t;
+
+/*************************************************************************************************/
+/**
+ * \brief The item of one scene node: what the node stands for, and the scene's state for it.
+ */
+typedef struct Arinc661_Scene_Node_s
+{
+    Arinc661_Scene_NodeKind_t  kind;     ///< What the node stands for
+    const Arinc661_Layer_t*    layer;    ///< The layer of a layer node, or NULL
+    const Arinc661_Widget_t*   widget;   ///< The widget or extension of a widget node, or NULL
+    const Arinc661_Property_t* property; ///< The property of a property node, or NULL
+    bool_t                     isActive; ///< TRUE while the layer of a layer node is active; FALSE for other nodes
+} Arinc661_Scene_Node_t;
+
+/*************************************************************************************************/
+/**
  * \brief The layer and widget hierarchy of one definition, as a tree.
  *
  * \par Details:
- *  The root, whose item is NULL, stands for the definition. Each layer, widget, and extension
- *  is a node whose item points to its Arinc661_Layer_t or Arinc661_Widget_t. The root and
- *  every layer, widget, and extension node have a model node as first child; a model node's
- *  item is NULL, and its children are property nodes, in array order, whose items point to
- *  the owner's Arinc661_Property_t entries:
+ *  Each node's item is the Arinc661_Scene_Node_t at the same index in the items given to
+ *  Arinc661_Scene_Build. Its kind says what the node stands for, and its layer, widget, or
+ *  property points into the definition's arrays. The root and every layer, widget, and
+ *  extension node have a model node as first child, whose children are property nodes in
+ *  array order:
  *
  * \verbatim
- * root                        item NULL
+ * root                        ARINC661_SCENE_NODE_DEFINITION
  *   model                     properties with owner ARINC661_PROPERTY_DEFINITION, such as ApplicationId
- *   layer                     item Arinc661_Layer_t
+ *   layer                     ARINC661_SCENE_NODE_LAYER, in LayerId order
  *     model                   LayerId, ContextNumber, Width, Height
- *     widget                  item Arinc661_Widget_t, placed directly in the layer
+ *     widget                  ARINC661_SCENE_NODE_WIDGET, placed directly in the layer
  *       model                 WidgetIdent and the Creation Structure values
  *       widget                a widget nested in the one above
  *       widget                an extension of the one above; isExtension is set
  * \endverbatim
+ *
+ *  Each layer node sits in the node array at the slot of its LayerId, so
+ *  Arinc661_Scene_GetLayer reaches it without a search. An inactive layer stays in the tree;
+ *  only isActive in its item changes.
  */
 typedef FACEOE_Utl_Tree_t Arinc661_Scene_t;
 
@@ -71,23 +104,29 @@ typedef FACEOE_Utl_Tree_t Arinc661_Scene_t;
 
 /*************************************************************************************************/
 /**
- * \brief Builds a scene from layers, widgets, and properties, in caller-owned nodes.
+ * \brief Builds a scene from layers, widgets, and properties, in caller-owned nodes and items.
  *
  * \par Details:
- *  The scene points into the arrays and the nodes; the caller keeps them unchanged while the
- *  scene is used, and builds the scene again after changing them.
+ *  A layer's LayerId is its first LayerId property, read with Arinc661_Scene_ParseLayerId. At
+ *  most ARINC661_SCENE_LAYER_IDS layers can have distinct LayerIds, so only that many array
+ *  positions are considered.
+ *  The scene points into the arrays, the nodes, and the items; the caller keeps the arrays
+ *  unchanged while the scene is used, and builds the scene again after changing them.
  *
  * \par Requirements:
- *  - 001 This function shall place layers, widgets, and properties in array order.
- *  - 002 This function shall leave out a widget whose layerIndex is not below layerCount, or whose parent widget is not an earlier entry in the same layer, and every widget below it.
- *  - 003 This function shall leave out a widget whose omit flag is non-zero, and every widget below it.
- *  - 004 This function shall leave out a property whose owner is not in the arrays.
- *  - 005 This function shall return FALSE, with only the root in the scene, if nodeCapacity is less than ARINC661_SCENE_NODE_COUNT of the counts.
- *  - 006 This function shall fail an assertion if scene or nodes is NULL, nodeCapacity is zero, or an array is NULL with a non-zero count.
+ *  - 001 This function shall place each layer at the slot of its LayerId, below the root in LayerId order, and widgets and properties in array order.
+ *  - 002 This function shall leave out, with everything it holds, a layer without a valid LayerId, a layer whose LayerId an earlier layer has, and a layer at position ARINC661_SCENE_LAYER_IDS or beyond.
+ *  - 003 This function shall leave out a widget whose layer is not in the scene, or whose parent widget is not an earlier entry in the same layer, and every widget below it.
+ *  - 004 This function shall leave out a widget whose omit flag is non-zero, and every widget below it.
+ *  - 005 This function shall leave out a property whose owner is not in the arrays or is a layer left out of the scene.
+ *  - 006 This function shall make every layer in the scene active.
+ *  - 007 This function shall return FALSE, with only the root in the scene, if nodeCapacity is less than ARINC661_SCENE_NODE_COUNT of the counts.
+ *  - 008 This function shall fail an assertion if scene, nodes, or items is NULL, nodeCapacity is zero, or an array is NULL with a non-zero count.
  *
  * \param[out] scene           Scene to build
  * \param[out] nodes           Caller-owned node storage for the scene's tree
- * \param[in]  nodeCapacity    Number of nodes in nodes
+ * \param[out] items           Caller-owned item storage, one item per node
+ * \param[in]  nodeCapacity    Number of entries in nodes, and in items
  * \param[in]  layers          Layers
  * \param[in]  layerCount      Number of layers
  * \param[in]  widgets         Widgets and extensions
@@ -99,6 +138,69 @@ typedef FACEOE_Utl_Tree_t Arinc661_Scene_t;
  * \retval     TRUE            if the scene was built.
  * \retval     FALSE           if the nodes are too few.
  */
-bool_t Arinc661_Scene_Build(Arinc661_Scene_t* scene, FACEOE_Utl_Node_t* nodes, uint32_t nodeCapacity, const Arinc661_Layer_t* layers, uint32_t layerCount, const Arinc661_Widget_t* widgets, uint32_t widgetCount, const Arinc661_Property_t* properties, uint32_t propertyCount, const byte_t* omitFlags);
+bool_t Arinc661_Scene_Build(Arinc661_Scene_t* scene, FACEOE_Utl_Node_t* nodes, Arinc661_Scene_Node_t* items, uint32_t nodeCapacity, const Arinc661_Layer_t* layers, uint32_t layerCount, const Arinc661_Widget_t* widgets, uint32_t widgetCount, const Arinc661_Property_t* properties, uint32_t propertyCount, const byte_t* omitFlags);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads a LayerId property value.
+ *
+ * \par Requirements:
+ *  - 001 This function shall accept text that is wholly a decimal integer from 0 to ARINC661_SCENE_LAYER_IDS - 1.
+ *  - 002 This function shall leave layerId unchanged on failure.
+ *  - 003 This function shall fail an assertion if text or layerId is NULL.
+ *
+ * \param[in]  text      Zero-terminated property value
+ * \param[out] layerId   LayerId, written only on success
+ *
+ * \retval     TRUE      if the text is a valid LayerId.
+ * \retval     FALSE     otherwise.
+ */
+bool_t Arinc661_Scene_ParseLayerId(const char_t* text, uint32_t* layerId);
+
+/*************************************************************************************************/
+/**
+ * \brief Returns the node of the layer with a LayerId, from its slot in the node array.
+ *
+ * \par Requirements:
+ *  - 001 This function shall return the node of the layer holding layerId, active or not, without visiting other nodes.
+ *  - 002 This function shall return NULL if no layer in the scene holds layerId.
+ *  - 003 This function shall fail an assertion if scene is NULL.
+ *
+ * \param[in] scene     Scene built by Arinc661_Scene_Build
+ * \param[in] layerId   LayerId
+ *
+ * \retval    const FACEOE_Utl_Node_t*   Layer node, whose item says whether the layer is active; or NULL.
+ */
+const FACEOE_Utl_Node_t* Arinc661_Scene_GetLayer(const Arinc661_Scene_t* scene, uint32_t layerId);
+
+/*************************************************************************************************/
+/**
+ * \brief Makes the layer with a LayerId active.
+ *
+ * \par Requirements:
+ *  - 001 This function shall set isActive in the item of the layer node holding layerId.
+ *  - 002 This function shall fail an assertion if scene is NULL, or no layer in the scene holds layerId.
+ *
+ * \param[in,out] scene     Scene built by Arinc661_Scene_Build
+ * \param[in]     layerId   LayerId of the layer to make active
+ *
+ * \retval        None
+ */
+void Arinc661_Scene_EnableLayer(Arinc661_Scene_t* scene, uint32_t layerId);
+
+/*************************************************************************************************/
+/**
+ * \brief Makes the layer with a LayerId inactive; it stays in the tree.
+ *
+ * \par Requirements:
+ *  - 001 This function shall clear isActive in the item of the layer node holding layerId.
+ *  - 002 This function shall fail an assertion if scene is NULL, or no layer in the scene holds layerId.
+ *
+ * \param[in,out] scene     Scene built by Arinc661_Scene_Build
+ * \param[in]     layerId   LayerId of the layer to make inactive
+ *
+ * \retval        None
+ */
+void Arinc661_Scene_DisableLayer(Arinc661_Scene_t* scene, uint32_t layerId);
 
 #endif /* ARINC661_SCENE_H */

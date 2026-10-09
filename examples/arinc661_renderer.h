@@ -81,16 +81,17 @@ typedef struct Arinc661_Renderer_Options_s
  * \par Details:
  *  The draw list's current transform maps layer units (0.01 mm, Y up) to output units; the
  *  caller sets it before the call. Widgets are recorded in scene order, children after their
- *  container, so later widgets overdraw earlier ones as in section 2.3.2.3.
+ *  container, so later widgets overdraw earlier ones as in section 2.3.2.3. Nothing is
+ *  recorded for an inactive layer, or for a LayerId no layer in the scene holds.
  *
- * \param[in]     scene        Scene to draw
- * \param[in]     layerIndex   Array index of the layer to draw
- * \param[in,out] drawList     Target draw list
- * \param[in,out] options      Drawing options; boundsCount is reset, then counts the bounds written
+ * \param[in]     scene      Scene to draw
+ * \param[in]     layerId    LayerId of the layer to draw
+ * \param[in,out] drawList   Target draw list
+ * \param[in,out] options    Drawing options; boundsCount is reset, then counts the bounds written
  *
  * \retval        None
  */
-void Arinc661_Renderer_DrawLayer(const Arinc661_Scene_t* scene, uint32_t layerIndex, FACEOE_Gfx_DrawList_t* drawList, Arinc661_Renderer_Options_t* options);
+void Arinc661_Renderer_DrawLayer(const Arinc661_Scene_t* scene, uint32_t layerId, FACEOE_Gfx_DrawList_t* drawList, Arinc661_Renderer_Options_t* options);
 
 /*************************************************************************************************/
 /**
@@ -126,14 +127,14 @@ void Arinc661_Renderer_FormatNumber(const char_t* format, float64_t value, char_
 /**
  * \brief Reads a layer's Width and Height in 0.01 mm.
  *
- * \param[in]  scene        Scene
- * \param[in]  layerIndex   Array index of the layer
- * \param[out] width        Width, at least 1
- * \param[out] height       Height, at least 1
+ * \param[in]  scene     Scene
+ * \param[in]  layerId   LayerId of the layer
+ * \param[out] width     Width, at least 1
+ * \param[out] height    Height, at least 1
  *
  * \retval     None
  */
-void Arinc661_Renderer_GetLayerSize(const Arinc661_Scene_t* scene, uint32_t layerIndex, float32_t* width, float32_t* height);
+void Arinc661_Renderer_GetLayerSize(const Arinc661_Scene_t* scene, uint32_t layerId, float32_t* width, float32_t* height);
 
 #ifdef __cplusplus
 }

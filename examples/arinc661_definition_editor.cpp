@@ -569,7 +569,13 @@ static const Arinc661_Parameter_t c_ulongParameter  = {NULL, ARINC661_PARAMETER_
 /**
  * \brief Node storage for the scene of the document being drawn; each draw builds the scene again.
  */
-static FACEOE_Utl_Node_t s_sceneNodes[ARINC661_SCENE_NODE_COUNT(ARINC661_DEFINITION_EDITOR_MAX_LAYERS, ARINC661_DEFINITION_EDITOR_MAX_WIDGETS, ARINC661_DEFINITION_EDITOR_MAX_PROPERTIES)];
+static FACEOE_Utl_Node_t s_sceneNodes[ARINC661_SCENE_NODE_COUNT(ARINC661_DEFINITION_EDITOR_MAX_WIDGETS, ARINC661_DEFINITION_EDITOR_MAX_PROPERTIES)];
+
+/*************************************************************************************************/
+/**
+ * \brief Item storage for the scene in s_sceneNodes, one item per node.
+ */
+static Arinc661_Scene_Node_t s_sceneItems[COUNT_OF(s_sceneNodes)];
 
 /*=================================================================================================
 ** 3.5 Static function prototypes
@@ -1282,6 +1288,18 @@ static const char_t* LayerIdText(const Arinc661_DefinitionEditor_Document_t* doc
 
 /*************************************************************************************************/
 /**
+ * \brief Returns the LayerId under which a layer is in a scene built from its document.
+ *
+ * \param[in] document     Document the scene was built from
+ * \param[in] scene        Scene built from the document
+ * \param[in] layerIndex   Layer array index
+ *
+ * \retval    uint32_t   LayerId, or ARINC661_SCENE_LAYER_IDS for a layer the scene left out.
+ */
+static uint32_t SceneLayerId(const Arinc661_DefinitionEditor_Document_t* document, const Arinc661_Scene_t* scene, uint32_t layerIndex);
+
+/*************************************************************************************************/
+/**
  * \brief Draws the icon row above the scene canvas and the layer chooser.
  *
  * \param[in,out] document     Document being edited
@@ -1415,7 +1433,7 @@ static void DrawSceneInteraction(Arinc661_DefinitionEditor_Document_t* document,
 
 /*************************************************************************************************/
 /**
- * \brief Builds the scene of a document in s_sceneNodes.
+ * \brief Builds the scene of a document in s_sceneNodes and s_sceneItems.
  *
  * \param[in]  document      Document to build the scene from
  * \param[in]  omitsHidden   TRUE to leave out the widgets hidden in the editor
@@ -5024,6 +5042,48 @@ static const char_t* LayerIdText(const Arinc661_DefinitionEditor_Document_t* doc
 /*************************************************************************************************/
 /**
  * \par Details:
+ *  The scene leaves out a layer without a valid LayerId, or with the LayerId of an earlier
+ *  layer; the renderer draws nothing for ARINC661_SCENE_LAYER_IDS.
+ */
+static uint32_t SceneLayerId(const Arinc661_DefinitionEditor_Document_t* document, const Arinc661_Scene_t* scene, uint32_t layerIndex)
+{
+    const FACEOE_Utl_Node_t* layer;
+    uint32_t                 layer_id;
+    bool_t                   has_id;
+    bool_t                   is_in_scene;
+
+    layer_id = ARINC661_SCENE_LAYER_IDS;
+    has_id   = Arinc661_Scene_ParseLayerId(LayerIdText(document, layerIndex), &layer_id);
+    if (has_id)
+    {
+        layer = Arinc661_Scene_GetLayer(scene, layer_id);
+    }
+    else
+    {
+        layer = NULL;
+    }
+
+    if (NULL != layer)
+    {
+        // Another layer may hold the LayerId
+        is_in_scene = !!(&document->layers[layerIndex] == ((const Arinc661_Scene_Node_t*)layer->item)->layer);
+    }
+    else
+    {
+        is_in_scene = FALSE;
+    }
+
+    if (FALSE == is_in_scene)
+    {
+        layer_id = ARINC661_SCENE_LAYER_IDS;
+    }
+
+    return layer_id;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
  *  Zoom, fit, grid, and snap; add layer, widget, and extension, duplicate, and delete;
  *  align, distribute, and zoom to selection; the scene controls help; then the combo
  *  choosing the layer shown, which also selects that layer.
@@ -5184,7 +5244,7 @@ static void BuildScene(const Arinc661_DefinitionEditor_Document_t* document, boo
     {
         omit_flags = document->isHiddenInEditor;
     }
-    is_built = Arinc661_Scene_Build(scene, s_sceneNodes, COUNT_OF(s_sceneNodes), document->layers, document->definition.layerCount, document->widgets, document->definition.widgetCount, document->properties, document->definition.propertyCount, omit_flags);
+    is_built = Arinc661_Scene_Build(scene, s_sceneNodes, s_sceneItems, COUNT_OF(s_sceneNodes), document->layers, document->definition.layerCount, document->widgets, document->definition.widgetCount, document->properties, document->definition.propertyCount, omit_flags);
     LOGASSERT(is_built);
 }
 
@@ -7712,7 +7772,7 @@ static void DrawScenePane(Arinc661_DefinitionEditor_Document_t* editor)
         else
         {
             BuildScene(editor, TRUE, &scene);
-            Arinc661_Renderer_GetLayerSize(&scene, layer_index, &layer_width, &layer_height);
+            Arinc661_Renderer_GetLayerSize(&scene, SceneLayerId(editor, &scene, layer_index), &layer_width, &layer_height);
             width_text  = "";
             height_text = "";
             property_index = FindOwnedProperty(editor, ARINC661_PROPERTY_LAYER, layer_index, PROPERTY_WIDTH);
@@ -7821,7 +7881,7 @@ static void DrawScenePane(Arinc661_DefinitionEditor_Document_t* editor)
             options.fontSize          = ImGui::GetFontSize();
             options.bounds            = owner->sceneBounds;
             options.boundsCapacity    = ARINC661_DEFINITION_EDITOR_MAX_WIDGETS;
-            Arinc661_Renderer_DrawLayer(&scene, layer_index, &owner->drawList, &options);
+            Arinc661_Renderer_DrawLayer(&scene, SceneLayerId(editor, &scene, layer_index), &owner->drawList, &options);
             owner->sceneBoundsCount = options.boundsCount;
             draw_list->PushClipRect(canvas_min, canvas_max, true);
             draw_list->AddRectFilled(layer_min, layer_min + layer_size, SCENE_LAYER_COLOR);
@@ -8506,7 +8566,7 @@ bool_t Arinc661_DefinitionEditor_RecordDocument(const Arinc661_DefinitionEditor_
         BuildScene(document, FALSE, &scene);
         for (layer_index = 0; layer_index < document->definition.layerCount; ++layer_index)
         {
-            Arinc661_Renderer_DrawLayer(&scene, layer_index, drawList, &options);
+            Arinc661_Renderer_DrawLayer(&scene, SceneLayerId(document, &scene, layer_index), drawList, &options);
             has_layers = TRUE;
         }
     }
@@ -8930,7 +8990,7 @@ bool_t Arinc661_DefinitionEditor_RecordDocumentBounds(const Arinc661_DefinitionE
                 options.bounds         = &bounds[total];
                 options.boundsCapacity = (boundsCapacity - total);
             }
-            Arinc661_Renderer_DrawLayer(&scene, layer_index, drawList, &options);
+            Arinc661_Renderer_DrawLayer(&scene, SceneLayerId(document, &scene, layer_index), drawList, &options);
             total += options.boundsCount;
             has_layers = TRUE;
         }
@@ -9052,7 +9112,7 @@ bool_t Arinc661_DefinitionEditor_LayerAt(const Arinc661_DefinitionEditor_t* edit
         (*layerId) = LayerIdText(document, layerIndex);
         (*name)    = document->layers[layerIndex].name;
         BuildScene(document, FALSE, &scene);
-        Arinc661_Renderer_GetLayerSize(&scene, layerIndex, width, height);
+        Arinc661_Renderer_GetLayerSize(&scene, SceneLayerId(document, &scene, layerIndex), width, height);
         is_found = TRUE;
     }
 
