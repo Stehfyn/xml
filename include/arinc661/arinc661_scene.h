@@ -55,11 +55,9 @@ typedef enum Arinc661_Scene_NodeKind_e
  */
 typedef struct Arinc661_Scene_Node_s
 {
-    Arinc661_Scene_NodeKind_t  kind;     ///< What the node stands for
-    const Arinc661_Layer_t*    layer;    ///< The layer of a layer node, or NULL
-    const Arinc661_Widget_t*   widget;   ///< The widget or extension of a widget node, or NULL
-    const Arinc661_Property_t* property; ///< The property of a property node, or NULL
-    bool_t                     isActive; ///< TRUE while the layer of a layer node is active; FALSE for other nodes
+    Arinc661_Scene_NodeKind_t kind;   ///< What the node stands for, and so what data points to
+    const void*               data;   ///< The Arinc661_Layer_t, Arinc661_Widget_t, or Arinc661_Property_t kind names; NULL for the root, a model node, or a layer slot no layer holds
+    bool_t                    active; ///< TRUE while the layer of a layer node is active; FALSE for other nodes
 } Arinc661_Scene_Node_t;
 
 /*************************************************************************************************/
@@ -68,10 +66,9 @@ typedef struct Arinc661_Scene_Node_s
  *
  * \par Details:
  *  Each node's item is the Arinc661_Scene_Node_t at the same index in the items given to
- *  Arinc661_Scene_Build. Its kind says what the node stands for, and its layer, widget, or
- *  property points into the definition's arrays. The root and every layer, widget, and
- *  extension node have a model node as first child, whose children are property nodes in
- *  array order:
+ *  Arinc661_Scene_Build. Its kind says what the node stands for, and its data points into
+ *  the definition's arrays. The root and every layer, widget, and extension node have a
+ *  model node as first child, whose children are property nodes in array order:
  *
  * \verbatim
  * root                        ARINC661_SCENE_NODE_DEFINITION
@@ -86,7 +83,7 @@ typedef struct Arinc661_Scene_Node_s
  *
  *  Each layer node sits in the node array at the slot of its LayerId, so
  *  Arinc661_Scene_GetLayer reaches it without a search. An inactive layer stays in the tree;
- *  only isActive in its item changes.
+ *  only the active flag in its item changes.
  */
 typedef FACEOE_Utl_Tree_t Arinc661_Scene_t;
 
@@ -107,9 +104,9 @@ typedef FACEOE_Utl_Tree_t Arinc661_Scene_t;
  * \brief Builds a scene from layers, widgets, and properties, in caller-owned nodes and items.
  *
  * \par Details:
- *  A layer's LayerId is its first LayerId property, read with Arinc661_Scene_ParseLayerId. At
- *  most ARINC661_SCENE_LAYER_IDS layers can have distinct LayerIds, so only that many array
- *  positions are considered.
+ *  A layer's LayerId is its first LayerId property, which must be wholly a decimal integer
+ *  from 0 to 255. At most ARINC661_SCENE_LAYER_IDS layers can have distinct LayerIds, so only
+ *  that many array positions are considered.
  *  The scene points into the arrays, the nodes, and the items; the caller keeps the arrays
  *  unchanged while the scene is used, and builds the scene again after changing them.
  *
@@ -142,23 +139,6 @@ bool_t Arinc661_Scene_Build(Arinc661_Scene_t* scene, FACEOE_Utl_Node_t* nodes, A
 
 /*************************************************************************************************/
 /**
- * \brief Reads a LayerId property value.
- *
- * \par Requirements:
- *  - 001 This function shall accept text that is wholly a decimal integer from 0 to ARINC661_SCENE_LAYER_IDS - 1.
- *  - 002 This function shall leave layerId unchanged on failure.
- *  - 003 This function shall fail an assertion if text or layerId is NULL.
- *
- * \param[in]  text      Zero-terminated property value
- * \param[out] layerId   LayerId, written only on success
- *
- * \retval     TRUE      if the text is a valid LayerId.
- * \retval     FALSE     otherwise.
- */
-bool_t Arinc661_Scene_ParseLayerId(const char_t* text, uint32_t* layerId);
-
-/*************************************************************************************************/
-/**
  * \brief Returns the node of the layer with a LayerId, from its slot in the node array.
  *
  * \par Requirements:
@@ -178,7 +158,7 @@ const FACEOE_Utl_Node_t* Arinc661_Scene_GetLayer(const Arinc661_Scene_t* scene, 
  * \brief Makes the layer with a LayerId active.
  *
  * \par Requirements:
- *  - 001 This function shall set isActive in the item of the layer node holding layerId.
+ *  - 001 This function shall set the active flag in the item of the layer node holding layerId.
  *  - 002 This function shall fail an assertion if scene is NULL, or no layer in the scene holds layerId.
  *
  * \param[in,out] scene     Scene built by Arinc661_Scene_Build
@@ -193,7 +173,7 @@ void Arinc661_Scene_EnableLayer(Arinc661_Scene_t* scene, uint32_t layerId);
  * \brief Makes the layer with a LayerId inactive; it stays in the tree.
  *
  * \par Requirements:
- *  - 001 This function shall clear isActive in the item of the layer node holding layerId.
+ *  - 001 This function shall clear the active flag in the item of the layer node holding layerId.
  *  - 002 This function shall fail an assertion if scene is NULL, or no layer in the scene holds layerId.
  *
  * \param[in,out] scene     Scene built by Arinc661_Scene_Build

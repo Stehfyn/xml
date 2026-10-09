@@ -5048,15 +5048,25 @@ static const char_t* LayerIdText(const Arinc661_DefinitionEditor_Document_t* doc
 static uint32_t SceneLayerId(const Arinc661_DefinitionEditor_Document_t* document, const Arinc661_Scene_t* scene, uint32_t layerIndex)
 {
     const FACEOE_Utl_Node_t* layer;
+    float32_t                number;
     uint32_t                 layer_id;
-    bool_t                   has_id;
+    bool_t                   has_number;
+    bool_t                   is_slot;
     bool_t                   is_in_scene;
 
-    layer_id = ARINC661_SCENE_LAYER_IDS;
-    has_id   = Arinc661_Scene_ParseLayerId(LayerIdText(document, layerIndex), &layer_id);
-    if (has_id)
+    has_number = GetPropertyNumber(document, ARINC661_PROPERTY_LAYER, layerIndex, PROPERTY_LAYER_ID, &number);
+    if (has_number)
     {
-        layer = Arinc661_Scene_GetLayer(scene, layer_id);
+        is_slot = !!((0.0f <= number) && (number < (float32_t)ARINC661_SCENE_LAYER_IDS));
+    }
+    else
+    {
+        is_slot = FALSE;
+    }
+
+    if (is_slot)
+    {
+        layer = Arinc661_Scene_GetLayer(scene, (uint32_t)number);
     }
     else
     {
@@ -5065,15 +5075,19 @@ static uint32_t SceneLayerId(const Arinc661_DefinitionEditor_Document_t* documen
 
     if (NULL != layer)
     {
-        // Another layer may hold the LayerId
-        is_in_scene = !!(&document->layers[layerIndex] == ((const Arinc661_Scene_Node_t*)layer->item)->layer);
+        // The scene may have left this layer out and given the slot to another
+        is_in_scene = !!(&document->layers[layerIndex] == ((const Arinc661_Scene_Node_t*)layer->item)->data);
     }
     else
     {
         is_in_scene = FALSE;
     }
 
-    if (FALSE == is_in_scene)
+    if (is_in_scene)
+    {
+        layer_id = (uint32_t)number;
+    }
+    else
     {
         layer_id = ARINC661_SCENE_LAYER_IDS;
     }

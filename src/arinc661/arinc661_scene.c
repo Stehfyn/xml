@@ -50,44 +50,51 @@
 /**
  * \brief Sets an item to stand for one entry of a kind.
  *
- * \param[out] item       Item to set
- * \param[in]  kind       What the node stands for
- * \param[in]  layer      Layer of a layer node, or NULL
- * \param[in]  widget     Widget of a widget node, or NULL
- * \param[in]  property   Property of a property node, or NULL
+ * \param[out] item   Item to set
+ * \param[in]  kind   What the node stands for
+ * \param[in]  data   Layer, widget, or property that kind names; NULL for the root, a model node, or a layer slot no layer holds
  *
  * \retval     None
  */
-static void InitializeItem(Arinc661_Scene_Node_t* item, Arinc661_Scene_NodeKind_t kind, const Arinc661_Layer_t* layer, const Arinc661_Widget_t* widget, const Arinc661_Property_t* property);
+static void InitializeItem(Arinc661_Scene_Node_t* item, Arinc661_Scene_NodeKind_t kind, const void* data);
 
 /*************************************************************************************************/
 /**
  * \brief Takes the next node, with the item at the same index.
  *
- * \param[in,out] scene      Scene with room for the node
- * \param[out]    items      Item storage of the scene
- * \param[in]     kind       What the node stands for
- * \param[in]     layer      Layer of a layer node, or NULL
- * \param[in]     widget     Widget of a widget node, or NULL
- * \param[in]     property   Property of a property node, or NULL
+ * \param[in,out] scene   Scene with room for the node
+ * \param[out]    items   Item storage of the scene
+ * \param[in]     kind    What the node stands for
+ * \param[in]     data    Layer, widget, or property that kind names; NULL for a model node or a layer slot no layer holds
  *
  * \retval        FACEOE_Utl_Node_t*   The node.
  */
-static FACEOE_Utl_Node_t* AddNode(Arinc661_Scene_t* scene, Arinc661_Scene_Node_t* items, Arinc661_Scene_NodeKind_t kind, const Arinc661_Layer_t* layer, const Arinc661_Widget_t* widget, const Arinc661_Property_t* property);
+static FACEOE_Utl_Node_t* AddNode(Arinc661_Scene_t* scene, Arinc661_Scene_Node_t* items, Arinc661_Scene_NodeKind_t kind, const void* data);
 
 /*************************************************************************************************/
 /**
  * \brief Adds a layer or widget node and its model node, linked as its first child.
  *
- * \param[in,out] scene    Scene with room for both nodes
- * \param[out]    items    Item storage of the scene
- * \param[in]     kind     ARINC661_SCENE_NODE_LAYER or ARINC661_SCENE_NODE_WIDGET
- * \param[in]     layer    Layer, or NULL for a widget or a layer slot no layer holds
- * \param[in]     widget   Widget, or NULL for a layer
+ * \param[in,out] scene   Scene with room for both nodes
+ * \param[out]    items   Item storage of the scene
+ * \param[in]     kind    ARINC661_SCENE_NODE_LAYER or ARINC661_SCENE_NODE_WIDGET
+ * \param[in]     data    Layer or widget, or NULL for a layer slot no layer holds
  *
  * \retval        FACEOE_Utl_Node_t*   The layer or widget node.
  */
-static FACEOE_Utl_Node_t* AddOwner(Arinc661_Scene_t* scene, Arinc661_Scene_Node_t* items, Arinc661_Scene_NodeKind_t kind, const Arinc661_Layer_t* layer, const Arinc661_Widget_t* widget);
+static FACEOE_Utl_Node_t* AddOwner(Arinc661_Scene_t* scene, Arinc661_Scene_Node_t* items, Arinc661_Scene_NodeKind_t kind, const void* data);
+
+/*************************************************************************************************/
+/**
+ * \brief Reads a LayerId property value.
+ *
+ * \param[in]  text      Zero-terminated property value
+ * \param[out] layerId   LayerId, written only on success
+ *
+ * \retval     TRUE      if the text is wholly a decimal integer from 0 to ARINC661_SCENE_LAYER_IDS - 1.
+ * \retval     FALSE     otherwise.
+ */
+static bool_t ParseLayerId(const char_t* text, uint32_t* layerId);
 
 /*=================================================================================================
 ** 4. PRIVATE FUNCTIONS
@@ -98,14 +105,19 @@ static FACEOE_Utl_Node_t* AddOwner(Arinc661_Scene_t* scene, Arinc661_Scene_Node_
  * \par Details:
  *  Every layer starts active.
  */
-static void InitializeItem(Arinc661_Scene_Node_t* item, Arinc661_Scene_NodeKind_t kind, const Arinc661_Layer_t* layer, const Arinc661_Widget_t* widget, const Arinc661_Property_t* property)
+static void InitializeItem(Arinc661_Scene_Node_t* item, Arinc661_Scene_NodeKind_t kind, const void* data)
 {
     (void)memset(item, 0, sizeof((*item)));
-    item->kind     = kind;
-    item->layer    = layer;
-    item->widget   = widget;
-    item->property = property;
-    item->isActive = (NULL != layer);
+    item->kind = kind;
+    item->data = data;
+    if (ARINC661_SCENE_NODE_LAYER == kind)
+    {
+        item->active = (NULL != data);
+    }
+    else
+    {
+        item->active = FALSE;
+    }
 }
 
 /*************************************************************************************************/
@@ -113,12 +125,12 @@ static void InitializeItem(Arinc661_Scene_Node_t* item, Arinc661_Scene_NodeKind_
  * \par Details:
  *  None
  */
-static FACEOE_Utl_Node_t* AddNode(Arinc661_Scene_t* scene, Arinc661_Scene_Node_t* items, Arinc661_Scene_NodeKind_t kind, const Arinc661_Layer_t* layer, const Arinc661_Widget_t* widget, const Arinc661_Property_t* property)
+static FACEOE_Utl_Node_t* AddNode(Arinc661_Scene_t* scene, Arinc661_Scene_Node_t* items, Arinc661_Scene_NodeKind_t kind, const void* data)
 {
     Arinc661_Scene_Node_t* item;
 
     item = &items[scene->nodeCount];
-    InitializeItem(item, kind, layer, widget, property);
+    InitializeItem(item, kind, data);
 
     return FACEOE_Utl_Tree_AddNode(scene, item);
 }
@@ -129,16 +141,55 @@ static FACEOE_Utl_Node_t* AddNode(Arinc661_Scene_t* scene, Arinc661_Scene_Node_t
  *  The model node comes first so that a node's properties are always its first child's
  *  children, as in a661Strict.xsd.
  */
-static FACEOE_Utl_Node_t* AddOwner(Arinc661_Scene_t* scene, Arinc661_Scene_Node_t* items, Arinc661_Scene_NodeKind_t kind, const Arinc661_Layer_t* layer, const Arinc661_Widget_t* widget)
+static FACEOE_Utl_Node_t* AddOwner(Arinc661_Scene_t* scene, Arinc661_Scene_Node_t* items, Arinc661_Scene_NodeKind_t kind, const void* data)
 {
     FACEOE_Utl_Node_t* owner;
     FACEOE_Utl_Node_t* model;
 
-    owner = AddNode(scene, items, kind, layer, widget, NULL);
-    model = AddNode(scene, items, ARINC661_SCENE_NODE_MODEL, NULL, NULL, NULL);
+    owner = AddNode(scene, items, kind, data);
+    model = AddNode(scene, items, ARINC661_SCENE_NODE_MODEL, NULL);
     FACEOE_Utl_Node_AppendChild(owner, model);
 
     return owner;
+}
+
+/*************************************************************************************************/
+/**
+ * \par Details:
+ *  Uses FACEOE_Utl_Scan_Int64, so a sign is accepted and leading white space is not.
+ */
+static bool_t ParseLayerId(const char_t* text, uint32_t* layerId)
+{
+    int64_t value;
+    int32_t consumed;
+    bool_t  is_number;
+    bool_t  is_layer_id;
+
+    consumed = FACEOE_Utl_Scan_Int64(text, &value);
+    if (0 < consumed)
+    {
+        is_number = ('\0' == text[consumed]);
+    }
+    else
+    {
+        is_number = FALSE;
+    }
+
+    if (is_number)
+    {
+        is_layer_id = (0 <= value) && (value < (int64_t)ARINC661_SCENE_LAYER_IDS);
+    }
+    else
+    {
+        is_layer_id = FALSE;
+    }
+
+    if (is_layer_id)
+    {
+        (*layerId) = (uint32_t)value;
+    }
+
+    return is_layer_id;
 }
 
 /*=================================================================================================
@@ -196,7 +247,7 @@ bool_t Arinc661_Scene_Build(Arinc661_Scene_t* scene, FACEOE_Utl_Node_t* nodes, A
     LOGASSERT((NULL != properties) || (0 == propertyCount));
 
     FACEOE_Utl_Tree_Initialize(scene, nodes, nodeCapacity, &items[0]);
-    InitializeItem(&items[0], ARINC661_SCENE_NODE_DEFINITION, NULL, NULL, NULL);
+    InitializeItem(&items[0], ARINC661_SCENE_NODE_DEFINITION, NULL);
 
     has_room = (ARINC661_SCENE_NODE_COUNT((uint64_t)widgetCount, (uint64_t)propertyCount) <= nodeCapacity);
     if (has_room)
@@ -228,7 +279,7 @@ bool_t Arinc661_Scene_Build(Arinc661_Scene_t* scene, FACEOE_Utl_Node_t* nodes, A
             if (is_layer_id)
             {
                 id_of_layer[property->ownerIndex] = SCENE_NO_LAYER_ID;
-                (void)Arinc661_Scene_ParseLayerId(property->value, &id_of_layer[property->ownerIndex]);
+                (void)ParseLayerId(property->value, &id_of_layer[property->ownerIndex]);
             }
         }
 
@@ -256,11 +307,11 @@ bool_t Arinc661_Scene_Build(Arinc661_Scene_t* scene, FACEOE_Utl_Node_t* nodes, A
             }
         }
 
-        FACEOE_Utl_Node_AppendChild(scene->root, AddNode(scene, items, ARINC661_SCENE_NODE_MODEL, NULL, NULL, NULL));
+        FACEOE_Utl_Node_AppendChild(scene->root, AddNode(scene, items, ARINC661_SCENE_NODE_MODEL, NULL));
 
         for (layer_id = 0; layer_id < ARINC661_SCENE_LAYER_IDS; ++layer_id)
         {
-            owner = AddOwner(scene, items, ARINC661_SCENE_NODE_LAYER, layer_of_id[layer_id], NULL);
+            owner = AddOwner(scene, items, ARINC661_SCENE_NODE_LAYER, layer_of_id[layer_id]);
             if (NULL != layer_of_id[layer_id])
             {
                 FACEOE_Utl_Node_AppendChild(scene->root, owner);
@@ -271,7 +322,7 @@ bool_t Arinc661_Scene_Build(Arinc661_Scene_t* scene, FACEOE_Utl_Node_t* nodes, A
         for (index = 0; index < widgetCount; ++index)
         {
             widget = &widgets[index];
-            owner  = AddOwner(scene, items, ARINC661_SCENE_NODE_WIDGET, NULL, widget);
+            owner  = AddOwner(scene, items, ARINC661_SCENE_NODE_WIDGET, widget);
 
             is_in_layer = (widget->layerIndex < slot_layer_count);
             if (is_in_layer)
@@ -337,7 +388,7 @@ bool_t Arinc661_Scene_Build(Arinc661_Scene_t* scene, FACEOE_Utl_Node_t* nodes, A
         for (index = 0; index < propertyCount; ++index)
         {
             property      = &properties[index];
-            property_node = AddNode(scene, items, ARINC661_SCENE_NODE_PROPERTY, NULL, NULL, property);
+            property_node = AddNode(scene, items, ARINC661_SCENE_NODE_PROPERTY, property);
 
             is_layer_owner = (ARINC661_PROPERTY_LAYER == property->owner) && (property->ownerIndex < slot_layer_count);
             if (is_layer_owner)
@@ -380,48 +431,6 @@ bool_t Arinc661_Scene_Build(Arinc661_Scene_t* scene, FACEOE_Utl_Node_t* nodes, A
 /*************************************************************************************************/
 /**
  * \par Details:
- *  Uses FACEOE_Utl_Scan_Int64, so a sign is accepted and leading white space is not.
- */
-bool_t Arinc661_Scene_ParseLayerId(const char_t* text, uint32_t* layerId)
-{
-    int64_t value;
-    int32_t consumed;
-    bool_t  is_number;
-    bool_t  is_layer_id;
-
-    LOGASSERT(NULL != text);
-    LOGASSERT(NULL != layerId);
-
-    consumed = FACEOE_Utl_Scan_Int64(text, &value);
-    if (0 < consumed)
-    {
-        is_number = ('\0' == text[consumed]);
-    }
-    else
-    {
-        is_number = FALSE;
-    }
-
-    if (is_number)
-    {
-        is_layer_id = (0 <= value) && (value < (int64_t)ARINC661_SCENE_LAYER_IDS);
-    }
-    else
-    {
-        is_layer_id = FALSE;
-    }
-
-    if (is_layer_id)
-    {
-        (*layerId) = (uint32_t)value;
-    }
-
-    return is_layer_id;
-}
-
-/*************************************************************************************************/
-/**
- * \par Details:
  *  The slot is computed, not searched for. A scene whose build failed has only its root, so
  *  every slot lies beyond nodeCount.
  */
@@ -447,7 +456,7 @@ const FACEOE_Utl_Node_t* Arinc661_Scene_GetLayer(const Arinc661_Scene_t* scene, 
     if (is_built)
     {
         layer   = &scene->nodes[SCENE_LAYER_NODE(layerId)];
-        is_held = (NULL != ((const Arinc661_Scene_Node_t*)layer->item)->layer);
+        is_held = (NULL != ((const Arinc661_Scene_Node_t*)layer->item)->data);
     }
     else
     {
@@ -476,7 +485,7 @@ void Arinc661_Scene_EnableLayer(Arinc661_Scene_t* scene, uint32_t layerId)
     layer = Arinc661_Scene_GetLayer(scene, layerId);
     LOGASSERT(NULL != layer);
 
-    ((Arinc661_Scene_Node_t*)layer->item)->isActive = TRUE;
+    ((Arinc661_Scene_Node_t*)layer->item)->active = TRUE;
 }
 
 /*************************************************************************************************/
@@ -491,5 +500,5 @@ void Arinc661_Scene_DisableLayer(Arinc661_Scene_t* scene, uint32_t layerId)
     layer = Arinc661_Scene_GetLayer(scene, layerId);
     LOGASSERT(NULL != layer);
 
-    ((Arinc661_Scene_Node_t*)layer->item)->isActive = FALSE;
+    ((Arinc661_Scene_Node_t*)layer->item)->active = FALSE;
 }

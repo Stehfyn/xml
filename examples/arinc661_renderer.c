@@ -811,7 +811,7 @@ static void DrawChildren(Renderer_t* renderer, const FACEOE_Utl_Node_t* node, fl
  */
 static const Arinc661_Widget_t* WidgetOf(const FACEOE_Utl_Node_t* node)
 {
-    return ((const Arinc661_Scene_Node_t*)node->item)->widget;
+    return (const Arinc661_Widget_t*)((const Arinc661_Scene_Node_t*)node->item)->data;
 }
 
 /*************************************************************************************************/
@@ -900,7 +900,7 @@ static const char_t* Value(const FACEOE_Utl_Node_t* node, const char_t* name, ui
     seen  = 0;
     for (entry = GetFirstProperty(node); NULL != entry; entry = entry->nextSibling)
     {
-        property = ((const Arinc661_Scene_Node_t*)entry->item)->property;
+        property = (const Arinc661_Property_t*)((const Arinc661_Scene_Node_t*)entry->item)->data;
         if (0 == strncmp(name, property->name, sizeof(property->name)))
         {
             if (seen == occurrence)
@@ -929,7 +929,7 @@ static uint32_t Occurrences(const FACEOE_Utl_Node_t* node, const char_t* name)
     seen = 0;
     for (entry = GetFirstProperty(node); NULL != entry; entry = entry->nextSibling)
     {
-        property = ((const Arinc661_Scene_Node_t*)entry->item)->property;
+        property = (const Arinc661_Property_t*)((const Arinc661_Scene_Node_t*)entry->item)->data;
         if (0 == strncmp(name, property->name, sizeof(property->name)))
         {
             seen += 1;
@@ -3194,7 +3194,7 @@ void Arinc661_Renderer_DrawLayer(const Arinc661_Scene_t* scene, uint32_t layerId
     layer                = Arinc661_Scene_GetLayer(scene, layerId);
     if (NULL != layer)
     {
-        is_active = ((const Arinc661_Scene_Node_t*)layer->item)->isActive;
+        is_active = ((const Arinc661_Scene_Node_t*)layer->item)->active;
     }
     else
     {
@@ -3527,7 +3527,7 @@ void Arinc661_Renderer_GetLayerSize(const Arinc661_Scene_t* scene, uint32_t laye
     {
         for (entry = GetFirstProperty(layer); NULL != entry; entry = entry->nextSibling)
         {
-            property  = ((const Arinc661_Scene_Node_t*)entry->item)->property;
+            property  = (const Arinc661_Property_t*)((const Arinc661_Scene_Node_t*)entry->item)->data;
             is_width  = (0 == strncmp("Width", property->name, sizeof("Width")));
             is_height = (0 == strncmp("Height", property->name, sizeof("Height")));
             is_size   = ScanNumber(property->value, &number) && (1.0f <= number);
